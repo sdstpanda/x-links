@@ -216,6 +216,7 @@ a.exsauce-disabled {
 .extag {
 	text-decoration: none !important;
 	position: relative;
+	white-space: nobreak;
 }
 
 .exdetails {
@@ -424,4 +425,59 @@ a.exsauce-disabled {
 	display: inline;
 }
 .exfilter-text-inner {
+}
+
+
+.extag-block-namespace-tag {
+	display: inline-block;
+	border: 1px solid #909090;
+	border-radius: 0.25em;
+	padding: 0 2px;
+	line-height: normal;
+}
+.extag-block-namespace.extheme-dark>.extag-block-namespace-tag {
+	border-color: #707070;
+}
+.extag-block-namespace.extag-namespace-language>.extag-block-namespace-tag {
+	color: #6721c6;
+}
+.extag-block-namespace.extag-namespace-group>.extag-block-namespace-tag {
+	color: #9f8636;
+}
+.extag-block-namespace.extag-namespace-artist>.extag-block-namespace-tag {
+	color: #c47525;
+}
+.extag-block-namespace.extag-namespace-parody>.extag-block-namespace-tag {
+	color: #0ea79e;
+}
+.extag-block-namespace.extag-namespace-character>.extag-block-namespace-tag {
+	color: #288028;
+}
+.extag-block-namespace.extag-namespace-male>.extag-block-namespace-tag {
+	color: #0659ae;
+}
+.extag-block-namespace.extag-namespace-female>.extag-block-namespace-tag {
+	color: #e0338d;
+}
+
+.extag-block-namespace.extag-namespace-language.extheme-dark>.extag-block-namespace-tag {
+	color: #895cc6;
+}
+.extag-block-namespace.extag-namespace-group.extheme-dark>.extag-block-namespace-tag {
+	color: #e8c44f;
+}
+.extag-block-namespace.extag-namespace-artist.extheme-dark>.extag-block-namespace-tag {
+	color: #e89c4f;
+}
+.extag-block-namespace.extag-namespace-parody.extheme-dark>.extag-block-namespace-tag {
+	color: #21eda2;
+}
+.extag-block-namespace.extag-namespace-character.extheme-dark>.extag-block-namespace-tag {
+	color: #6ce769;
+}
+.extag-block-namespace.extag-namespace-male.extheme-dark>.extag-block-namespace-tag {
+	color: #23add0;
+}
+.extag-block-namespace.extag-namespace-female.extheme-dark>.extag-block-namespace-tag {
+	color: #e89cc4;
 }

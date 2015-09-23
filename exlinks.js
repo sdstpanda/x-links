@@ -2,7 +2,7 @@
 (function() {
   "use strict";
   var fetch, options, conf, tempconf, pageconf, regex, img, cat, d, t, $, $$,
-    Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Filter, Parser, Options, Config, Main;
+    Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Filter, Parser, Options, Config, Theme, Main;
 
   img = {};
   cat = {
@@ -29,7 +29,8 @@
       'Gallery Details':             ['checkbox', true,  'Show gallery details for link on hover.'],
       'Gallery Actions':             ['checkbox', true,  'Generate gallery actions for links.'],
       'Smart Links':                 ['checkbox', false, 'All links lead to E-Hentai unless they have fjording tags.'],
-      'ExSauce':                     ['checkbox', true,  'Add ExSauce reverse image search to posts. Disabled in Opera.']
+      'ExSauce':                     ['checkbox', true,  'Add ExSauce reverse image search to posts. Disabled in Opera.'],
+      'Extended Info':               ['checkbox', true,  'Fetch additional gallery info, such as tag namespaces']
       /*'Filter':                      ['checkbox', true,  'Use the highlight filter on gallery information.'],*/
     },
     actions: {
@@ -377,6 +378,26 @@
       frag = d.createDocumentFragment();
       frag.appendChild(div);
       d.body.appendChild(frag);
+
+      // Full info
+      if (conf['Extended Info']) {
+        if (data.full && data.full.version >= API.full_version) {
+          UI.display_full(data);
+        }
+        else {
+          Debug.log("Requesting full info for " + data.gid + "/" + data.token);
+          API.request_full_info(data.gid, data.token, function (err, full_data) {
+            if (err === null) {
+              data.full = full_data;
+              Database.set(data);
+              UI.display_full(data);
+            }
+            else {
+              Debug.log("Error requesting full information: " + err);
+            }
+          });
+        }
+      }
     },
     actions: function(data,link) {
       var uid, token, key, date, user, sites, tagstring, button, div, tagspace, frag, content, n;
@@ -403,7 +424,7 @@
       uid = data.gid;
       token = data.token;
       key = data.archiver_key;
-      date = new Date(data.date);
+      date = new Date(parseInt(data.posted,10)*1000);
       data.size = Math.round((data.filesize/1024/1024)*100)/100;
       data.datetext = UI.date(date);
       sites = [
@@ -568,6 +589,72 @@
           }
         }
       });
+    },
+    display_full: function (data) {
+      var nodes = document.querySelectorAll(".extags.uid-" + data.gid),
+        tagfrag = d.createDocumentFragment(),
+        re_site = /exhentai\.org/i,
+        namespace, namespace_style, tags, tag, link, site, i, j, n, t, ii;
+
+      if (nodes.length === 0 || Object.keys(data.full.tags).length === 0) {
+        return;
+      }
+
+      for (namespace in data.full.tags) {
+        tags = data.full.tags[namespace];
+        namespace_style = " extag-namespace extag-namespace-" + namespace.replace(/\ /g, '-');
+
+        tag = $.create('span', {
+          className: "extag-block extag-block-namespace" + Theme.get() + namespace_style
+        });
+        link = $.create('span', {
+          textContent: namespace,
+          className: "extag-block-namespace-tag"
+        });
+        tag.appendChild(link);
+        tag.appendChild($.tnode(":"));
+        tagfrag.appendChild(tag);
+
+        for (i = 0, ii = tags.length; i < ii; ++i) {
+          tag = $.create('span', { className: "extag-block" + namespace_style });
+          link = $.create('a', {
+            textContent: tags[i],
+            className: "exlink extag",
+            href: 'http://exhentai.org/tag/' + tags[i].replace(/\ /g, '+')
+          });
+
+          Filter.highlight("tags", link, data, null);
+
+          tag.appendChild(link);
+          tag.appendChild($.tnode(i === ii - 1 ? ";" : ","));
+          tagfrag.appendChild(tag);
+        }
+      }
+      tagfrag.lastChild.removeChild(tagfrag.lastChild.lastChild);
+
+      for (i = 0; i < nodes.length; ) {
+        n = nodes[i];
+        t = tagfrag;
+        ++i;
+
+        if (
+          (link = n.querySelector("a[href]")) !== null &&
+          !re_site.test(link.getAttribute("href"))
+        ) {
+          site = Config.link(link.href, conf['Stats Link']);
+          t = (i < nodes.length) ? tagfrag.cloneNode(true) : tagfrag;
+          tags = t.querySelectorAll("a[href]");
+          for (j = 0; j < tags.length; ++j) {
+            tags[j].setAttribute("href", tags[j].getAttribute("href").replace(re_site, site));
+          }
+        }
+        else if (i < nodes.length) {
+          t = tagfrag.cloneNode(true);
+        }
+
+        n.innerHTML = "";
+        n.appendChild(t);
+      }
     }
   };
   API = {
@@ -575,9 +662,11 @@
     so: {},
     g: {},
     go: {},
-    timer: window.setTimeout,
     cooldown: 0,
     working: false,
+    full_timer: null,
+    full_queue: [],
+    full_version: 1,
     queue: function(type) {
       if(type === 's') {
         for ( var k in API.g ) {
@@ -656,7 +745,7 @@
                   Debug.log('API Request error. Waiting five seconds before trying again. (Time: '+Debug.timer.stop('apirequest')+')');
                   Debug.log(xhr.responseText);
                   /*API.cooldown = Date.now() + (5 * t.SECOND);*/
-                  API.timer(Main.update, 5000);
+                  setTimeout(Main.update, 5000);
                 }
               }
             }
@@ -715,6 +804,104 @@
           API[type] = {};
         }
       });
+    },
+    request_full_info: function (id, token, cb) {
+      if (API.full_timer === null) {
+        API.execute_full_request(id, token, cb);
+      }
+      else {
+        API.full_queue.push([ id, token, cb ]);
+      }
+    },
+    on_request_full_next: function () {
+      API.full_timer = null;
+      if (API.full_queue.length > 0) {
+        var d = API.full_queue.shift();
+        API.execute_full_request(d[0], d[1], d[2]);
+      }
+    },
+    execute_full_request: function (id, token, cb) {
+      var callback = function (err, data) {
+        API.full_timer = setTimeout(API.on_request_full_next, 200);
+        cb(err, data);
+      };
+
+      GM_xmlhttpRequest({
+        method: 'GET',
+        url: 'http://exhentai.org/g/' + id + '/' + token + '/',
+        onload: function (xhr) {
+          if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+              var html = null;
+              try {
+                html = (new DOMParser()).parseFromString(xhr.responseText, "text/html")
+              }
+              catch (e) {}
+
+              if (html === null) {
+                callback("Error parsing html", null);
+              }
+              else {
+                html = API.parse_full_info(html);
+                if (html === null) {
+                  callback("Error parsing info", null);
+                }
+                else {
+                  callback(null, html);
+                }
+              }
+            }
+            else {
+              callback("Bad status " + xhr.status, null);
+            }
+          }
+        },
+        onerror: function () {
+          callback("Connection error", null);
+        },
+        onabort: function () {
+          callback("Connection aborted", null);
+        }
+      });
+    },
+    parse_full_info: function (html) {
+      var data = {
+        version: API.full_version,
+        tags: {}
+      };
+
+      // Tags
+      var pattern = /(.+):/,
+        par = html.querySelectorAll("#taglist tr"),
+        tds, namespace, ns, i, j, m, n;
+
+      for (i = 0; i < par.length; ++i) {
+        // Class
+        tds = par[i].querySelectorAll("td");
+        if (tds.length > 0) {
+          // Namespace
+          namespace = ((m = pattern.exec(tds[0].textContent)) ? m[1].trim() : "");
+          if (!(namespace in data.tags)) {
+            ns = [];
+            data.tags[namespace] = ns;
+          }
+          else {
+            ns = data.tags[namespace];
+          }
+
+          // Tags
+          tds = tds[tds.length - 1].querySelectorAll("div");
+          for (j = 0; j < tds.length; ++j) {
+            // Create tag
+            if ((n = tds[j].querySelector("a")) !== null) {
+              // Add tag
+              data.tags[namespace].push(n.textContent.trim());
+            }
+          }
+        }
+      }
+
+      return data;
     }
   };
   Cache = {
@@ -2081,6 +2268,152 @@
       }
     }
   };
+  Theme = {
+    current: "light",
+    get: function () {
+      return (Theme.current === "light" ? " extheme" : " extheme extheme-dark");
+    },
+    prepare: function (first) {
+      Theme.update(!first);
+
+      var add_mo = function (nodes, init, callback) {
+        var MO = (window.MutationObserver || window.WebKitMutationObserver),
+          mo, i;
+
+        if (!MO) {
+          return;
+        }
+
+        mo = new MO(callback);
+        for (i = 0; i < nodes.length; ++i) {
+          mo.observe(nodes[i], init);
+        }
+      };
+
+      add_mo([document.head], { childList: true }, function (records) {
+        var update = false,
+          nodes, i, j, tag;
+
+        outer:
+        for (i = 0; i < records.length; ++i) {
+          if ((nodes = records[i].addedNodes)) {
+            for (j = 0; j < nodes.length; ++j) {
+              tag = nodes[j].tagName;
+              if (tag === "STYLE" || tag === "LINK") {
+                update = true;
+                break outer;
+              }
+            }
+          }
+          if ((nodes = records[i].removedNodes)) {
+            for (j = 0; j < nodes.length; ++j) {
+              tag = nodes[j].tagName;
+              if (tag === "STYLE" || tag === "LINK") {
+                update = true;
+                break outer;
+              }
+            }
+          }
+        }
+
+        if (update) {
+          Theme.update();
+        }
+      });
+    },
+    update: function (update_nodes) {
+      var new_theme = Theme.detect();
+      if (new_theme !== null && new_theme !== Theme.current) {
+        if (update_nodes) {
+          var nodes = document.querySelectorAll("extheme"),
+            cls, i;
+          if (new_theme === "light") {
+            cls = "extheme-" + Theme.current;
+            for (i = 0; i < nodes.length; ++i) {
+              nodes.classList.remove(cls);
+            }
+          }
+          else {
+            cls = "extheme-" + new_theme;
+            for (i = 0; i < nodes.length; ++i) {
+              nodes.classList.add(cls);
+            }
+          }
+        }
+        Theme.current = new_theme;
+      }
+    },
+    detect: function () {
+      var doc_el = document.documentElement,
+        body = document.querySelector("body"),
+        n = document.createElement("div"),
+        color, colors, i, j, a, a_inv;
+
+      if (!body || !doc_el) {
+        return null;
+      }
+
+      n.className = "post reply post_wrapper";
+      body.appendChild(n);
+
+      color = Theme.parse_css_color(window.getComputedStyle(doc_el).backgroundColor);
+      colors = [
+        Theme.parse_css_color(window.getComputedStyle(body).backgroundColor),
+        Theme.parse_css_color(window.getComputedStyle(n).backgroundColor),
+      ];
+
+      body.removeChild(n);
+
+      for (i = 0; i < colors.length; ++i) {
+        a = colors[i][3];
+        a_inv = (1.0 - a) * color[3];
+
+        for (j = 0; j < 3; ++j) {
+          color[j] = (color[j] * a_inv + colors[i][j] * a);
+        }
+        color[3] = Math.max(color[3], a);
+      }
+
+      if (color[3] === 0) {
+        return null;
+      }
+
+      return (color[0] + color[1] + color[2] < 384) ? "dark" : "light";
+    },
+    parse_css_color: function (color) {
+      if (color !== "transparent") {
+        var m;
+        if ((m = /^rgba?\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*(,\s*([0-9\.]+)\s*)?\)$/.exec(color))) {
+          return [
+            parseInt(m[1], 10),
+            parseInt(m[2], 10),
+            parseInt(m[3], 10),
+            m[4] === undefined ? 1 : parseFloat(m[4])
+          ];
+        }
+        else if ((m = /^#([0-9a-fA-F]{3,})$/.exec(color))) {
+          if ((m = m[1]).length === 6) {
+            return [
+              parseInt(m.substr(0, 2), 16),
+              parseInt(m.substr(2, 2), 16),
+              parseInt(m.substr(4, 2), 16),
+              1
+            ];
+          }
+          else {
+            return [
+              parseInt(m[0], 16),
+              parseInt(m[1], 16),
+              parseInt(m[2], 16),
+              1
+            ];
+          }
+        }
+      }
+
+      return [ 0 , 0 , 0 , 0 ];
+    }
+  };
   Main = {
     namespace: 'exlinks-',
     version: '#VERSION#',
@@ -2645,6 +2978,7 @@
       });
       $.add(d.head,font);
       $.add(d.head,style);
+      Theme.prepare();
       Debug.log('Initialization complete. Time: '+Debug.timer.stop('init'));
       var nodelist = $$(Parser.postbody),
         MutationObserver, updater,
