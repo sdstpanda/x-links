@@ -97,16 +97,18 @@
 		}
 	};
 	regex = {
-		url: /(https?:\/\/)?(forums|gu|g|u)?\.?e[\-x]hentai\.org\/[^\ \n<>\'\"]*/,
+		url: /(https?:\/\/)?(forums|gu|g|u)?\.?e[\-x]hentai\.org\/[^\ \n<>\'\"]*/i,
 		protocol: /https?\:\/\//,
-		site: /(g\.e\-hentai\.org|exhentai\.org)/,
+		site: /(g\.e\-hentai\.org|exhentai\.org)/i,
 		type: /t?y?p?e?[\/|\-]([gs])[\/|\ ]/,
 		uid: /uid\-([0-9]+)/,
 		token: /token\-([0-9a-f]+)/,
 		page: /page\-([0-9a-f]+)\-([0-9]+)/,
 		gid: /\/g\/([0-9]+)\/([0-9a-f]+)/,
 		sid: /\/s\/([0-9a-f]+)\/([0-9]+)\-([0-9]+)/,
-		fjord: /abortion|bestiality|incest|lolicon|shotacon|toddlercon/
+		fjord: /abortion|bestiality|incest|lolicon|shotacon|toddlercon/,
+		site_exhentai: /exhentai\.org/i,
+		site_gehentai: /g\.e\-hentai\.org/i
 	};
 	t = {
 		SECOND: 1000,
@@ -375,17 +377,17 @@
 			tagstring = data.tags.join(',');
 
 			if (conf['Smart Links'] === true) {
-				if (tagstring.match(regex.fjord)) {
-					if (link.href.match('g.e-hentai.org')) {
-						link.href = link.href.replace('g.e-hentai.org', 'exhentai.org');
+				if (regex.fjord.test(tagstring)) {
+					if (regex.site_gehentai.test(link.href)) {
+						link.href = link.href.replace(regex.site_gehentai, 'exhentai.org');
 						button = $.id(link.id.replace('gallery', 'button'));
 						button.href = link.href;
 						button.innerHTML = UI.button.text(link.href);
 					}
 				}
 				else {
-					if (link.href.match('exhentai.org')) {
-						link.href = link.href.replace('exhentai.org', 'g.e-hentai.org');
+					if (regex.site_exhentai.test(link.href)) {
+						link.href = link.href.replace(regex.site_exhentai, 'g.e-hentai.org');
 						button = $.id(link.id.replace('gallery', 'button'));
 						button.href = link.href;
 						button.innerHTML = UI.button.text(link.href);
@@ -418,8 +420,8 @@
 				user: "http://" + sites[4] + "/uploader/" + user.replace(/\ /g, '+'),
 				stats: "http://" + sites[5] + "/stats.php?gid=" + uid + "&t=" + token
 			};
-			if (data.url.arc.match("g.e-hentai.org") && tagstring.match(regex.fjord)) {
-				data.url.arc = data.url.arc.replace('g.e-hentai', 'exhentai');
+			if (regex.site_gehentai.test(data.url.arc) && regex.fjord.test(tagstring)) {
+				data.url.arc = data.url.arc.replace(regex.site_gehentai, 'exhentai');
 			}
 			frag = d.createDocumentFragment();
 			div = $.frag(UI.html.actions(data));
@@ -455,8 +457,12 @@
 			e.preventDefault();
 		},
 		show: function () {
-			var uid = this.className.match(regex.uid)[1],
-				details = $.id('exblock-details-uid-' + uid);
+			var uid = regex.uid.exec(this.className),
+				details;
+
+			if (uid === null) return;
+			uid = uid[1];
+			details = $.id('exblock-details-uid-' + uid);
 
 			if (details) {
 				details.style.display = "table";
@@ -466,8 +472,12 @@
 			}
 		},
 		hide: function () {
-			var uid = this.className.match(regex.uid)[1],
-				details = $.id('exblock-details-uid-' + uid);
+			var uid = regex.uid.exec(this.className),
+				details;
+
+			if (uid === null) return;
+			uid = uid[1];
+			details = $.id('exblock-details-uid-' + uid);
 
 			if (details) {
 				details.style.display = "none";
@@ -477,8 +487,13 @@
 			}
 		},
 		move: function (e) {
-			var uid = this.className.match(regex.uid)[1],
-				details = $.id('exblock-details-uid-' + uid);
+			var uid = regex.uid.exec(this.className),
+				details;
+
+			if (uid === null) return;
+			uid = uid[1];
+			details = $.id('exblock-details-uid-' + uid);
+
 			if (details) {
 				if (details.offsetWidth + e.clientX + 20 < window.innerWidth - 8) {
 					details.style.left = (e.clientX + 12) + 'px';
@@ -499,7 +514,10 @@
 			var w = 400,
 				h = 400,
 				link = e.target,
-				type = link.href.match(/gallerytorrents|gallerypopups|archiver/)[0];
+				type = /gallerytorrents|gallerypopups|archiver/i.exec(link.href);
+
+			if (type === null) return;
+			type = type[0];
 
 			if (type === "gallerytorrents") {
 				w = 610;
@@ -509,17 +527,15 @@
 				w = 675;
 				h = 415;
 			}
-			else if (type === "archiver") {
+			else { // if (type === "archiver") {
 				w = 350;
 				h = 320;
 			}
-			if (type) {
-				window.open(
-					link.href,
-					"_pu" + (Math.random() + "").replace(/0\./, ""),
-					"toolbar=0,scrollbars=0,location=0,statusbar=0,menubar=0,resizable=0,width=" + w + ",height=" + h + ",left=" + ((screen.width - w) / 2) + ",top=" + ((screen.height - h) / 2)
-				);
-			}
+			window.open(
+				link.href,
+				"_pu" + (Math.random() + "").replace(/0\./, ""),
+				"toolbar=0,scrollbars=0,location=0,statusbar=0,menubar=0,resizable=0,width=" + w + ",height=" + h + ",left=" + ((screen.width - w) / 2) + ",top=" + ((screen.height - h) / 2)
+			);
 		},
 		date: function (d) {
 			var pad = function (n, sep) {
@@ -534,15 +550,9 @@
 		init: function () {
 			$.extend(UI.button, {
 				text: function (url) {
-					if (url.match('exhentai.org')) {
-						return '[Ex]';
-					}
-					else if (url.match('g.e-hentai.org')) {
-						return '[EH]';
-					}
-					else {
-						return false;
-					}
+					if (regex.site_exhentai.test(url)) return '[Ex]';
+					if (regex.site_gehentai.test(url)) return '[EH]';
+					return false;
 				}
 			});
 		},
@@ -571,7 +581,6 @@
 		display_full: function (data) {
 			var nodes = document.querySelectorAll(".extags.uid-" + data.gid),
 				tagfrag = d.createDocumentFragment(),
-				re_site = /exhentai\.org/i,
 				namespace, namespace_style, tags, tag, link, site, i, j, n, t, ii;
 
 			if (nodes.length === 0 || Object.keys(data.full.tags).length === 0) return;
@@ -616,13 +625,13 @@
 
 				if (
 					(link = n.querySelector("a[href]")) !== null &&
-					!re_site.test(link.getAttribute("href"))
+					!regex.site_exhentai.test(link.getAttribute("href"))
 				) {
 					site = Config.link(link.href, conf['Stats Link']);
 					t = (i < nodes.length) ? tagfrag.cloneNode(true) : tagfrag;
 					tags = t.querySelectorAll("a[href]");
 					for (j = 0; j < tags.length; ++j) {
-						tags[j].setAttribute("href", tags[j].getAttribute("href").replace(re_site, site));
+						tags[j].setAttribute("href", tags[j].getAttribute("href").replace(regex.site_exhentai, site));
 					}
 				}
 				else if (i < nodes.length) {
@@ -897,7 +906,7 @@
 
 			for (i = 0, ii = Cache.type.length; i < ii; ++i) {
 				key = Cache.type.key(i);
-				if (key.match(/exlinks-(gallery|md5|sha1)/)) {
+				if (/exlinks-(gallery|md5|sha1)/.test(key)) {
 					json = Cache.type.getItem(key);
 					json = JSON.parse(json);
 					if (Date.now() > json.added + json.TTL) {
@@ -958,14 +967,11 @@
 		},
 		load: function () {
 			var key, data, i, ii;
-
 			for (i = 0, ii = Cache.type.length; i < ii; ++i) {
 				key = Cache.type.key(i);
-				if (key.match(Main.namespace + 'gallery')) {
-					data = Cache.get(key.match(/\d+/));
-					if (data) {
-						Database.set(data);
-					}
+				if (new RegExp(Main.namespace + "gallery").test(key)) {
+					data = Cache.get(/\d+/.exec(key));
+					if (data) Database.set(data);
 				}
 			}
 		}
@@ -1157,7 +1163,7 @@
 						]);
 					}
 				}
-				else { // if (style.match('none')) {
+				else {
 					results.style.display = "table";
 					if (conf['Show Short Results'] === true) {
 						$.off(a, [
@@ -1394,7 +1400,7 @@
 						}
 					}
 					text = node.textContent;
-					match = text.match(regex.url);
+					match = regex.url.exec(text);
 					tl = "";
 					linknode = match ? [] : null;
 					while (match) {
@@ -1404,7 +1410,7 @@
 						tl = text.substr(sp + ml + 1, text.length);
 						tu = $.create('a');
 						tu.className = 'exlink exgallery exunprocessed';
-						if (match[0].match(regex.protocol)) {
+						if (regex.protocol.test(match[0])) {
 							tu.href = match[0];
 							tu.innerHTML = match[0];
 						}
@@ -1419,7 +1425,7 @@
 						}
 						linknode.push(tu);
 						text = tl;
-						match = text.match(regex.url);
+						match = regex.url.exec(text);
 					}
 					if (tl.length > 0) {
 						linknode.push($.tnode(tl));
@@ -1615,8 +1621,8 @@
 		mode: '4chan',
 		link: function (url, opt) {
 			if (opt.value === "Original") {
-				if (url.match('exhentai.org')) return 'exhentai.org';
-				if (url.match('g.e-hentai.org')) return 'g.e-hentai.org';
+				if (regex.site_exhentai.test(url)) return 'exhentai.org';
+				if (regex.site_gehentai.test(url)) return 'g.e-hentai.org';
 				return false;
 			}
 			if (opt.value === "g.e-hentai.org") return opt.value;
@@ -1627,7 +1633,7 @@
 				curDocType = document.doctype,
 				curType;
 
-			if (curSite.match(/archive\.moe/)) {
+			if (/archive\.moe/i.test(curSite)) {
 				curType = [
 					"<!DOCTYPE ",
 					curDocType.name,
@@ -1637,7 +1643,7 @@
 					'>'
 				].join('');
 
-				if (curType.match('<!DOCTYPE html>')) {
+				if (/<!DOCTYPE html>/.test(curType)) {
 					Config.mode = 'foolz';
 					Parser.postbody = '.text';
 					Parser.prelinks = 'a:not(.backlink)';
@@ -1648,7 +1654,7 @@
 					Parser.image = '.thumb';
 				}
 			}
-			else if (curSite.match(/boards\.38chan\.net/)) {
+			else if (/boards\.38chan\.net/i.test(curSite)) {
 				Config.mode = '38chan';
 				Parser.postbody = '.post:not(.hidden)>.body';
 				Parser.prelinks = 'a:not([onclick])';
@@ -1678,7 +1684,7 @@
 					}
 				}
 			}
-			if (navigator.userAgent.match('Presto')) {
+			if (/presto/i.test(navigator.userAgent)) {
 				conf.ExSauce = false;
 			}
 			tempconf = JSON.parse(JSON.stringify(conf));
@@ -2349,32 +2355,38 @@
 			var check = Database.check(uid),
 				links, link, type, token, page, i, ii;
 
-			if (!check) {
-				links = Parser.unformatted(uid);
-				for (i = 0, ii = links.length; i < ii; ++i) {
-					link = links[i];
-					type = link.className.match(regex.type)[1];
-					if (type === 's') {
-						page = link.className.match(regex.page);
+			if (check) {
+				Main.queue.add(uid);
+				return [ uid, 'f' ];
+			}
+
+			links = Parser.unformatted(uid);
+			for (i = 0, ii = links.length; i < ii; ++i) {
+				link = links[i];
+				type = regex.type.exec(link.className);
+				if (type !== null) {
+					if (type[1] === 's') {
+						page = regex.page.exec(link.className);
 					}
-					else if (type === 'g') {
-						token = link.className.match(regex.token);
+					else if (type[1] === 'g') {
+						token = regex.token.exec(link.className);
 						break;
 					}
 				}
-				if (type === 's') {
+			}
+			if (type === 's') {
+				if (page !== null) {
 					API.queue.add('s', uid, page[1], page[2]);
 					return [ uid, type ];
 				}
-				else if (type === 'g') {
+			}
+			else if (type === 'g') {
+				if (token !== null) {
 					API.queue.add('g', uid, token[1]);
 					return [ uid, type ];
 				}
 			}
-			else {
-				Main.queue.add(uid);
-				return [ uid, 'f' ];
-			}
+			return null;
 		},
 		format: function (queue) {
 			Debug.timer.start('format');
@@ -2455,8 +2467,10 @@
 			if (Object.keys(failed).length > 0) {
 				for (k in failed) {
 					failure = Main.check(parseInt(k, 10));
-					failtype.push(failure[0]);
-					failtype.push(failure[1]);
+					if (failure !== null) {
+						failtype.push(failure[0]);
+						failtype.push(failure[1]);
+					}
 				}
 				Debug.log([failtype]);
 				Main.update();
@@ -2493,34 +2507,41 @@
 			Main.update();
 		},
 		single: function (link) {
-			var type = link.className.match(regex.type)[1],
-				uid = link.className.match(regex.uid)[1],
-				token = link.className.match(regex.token),
-				page = link.className.match(regex.page),
-				check;
+			var type = regex.type.exec(link.className),
+				uid = regex.uid.exec(link.className),
+				token = regex.token.exec(link.className),
+				page, check;
+
+			if (type === null || uid === null) return;
+			type = type[1];
+			uid = uid[1];
 
 			if (type === 's') {
-				check = Database.check(uid);
-				if (check) {
-					type = 'g';
-					token = check;
-					link.classList.remove('type-s');
-					link.classList.remove('page-' + page[1] + '-' + page[2]);
-					link.classList.add('type-g');
-					link.classList.add('token-' + token);
-					Main.queue.add(uid);
-				}
-				else {
-					API.queue.add('s', uid, page[1], page[2]);
+				page = regex.page.exec(link.className);
+				if (page !== null) {
+					check = Database.check(uid);
+					if (check && token !== null) {
+						type = 'g';
+						token = check;
+						link.classList.remove('type-s');
+						link.classList.remove('page-' + page[1] + '-' + page[2]);
+						link.classList.add('type-g');
+						link.classList.add('token-' + token);
+						Main.queue.add(uid);
+					}
+					else {
+						API.queue.add('s', uid, page[1], page[2]);
+					}
 				}
 			}
 			else if (type === 'g') {
-				check = Database.check(uid);
-				if (check) {
+				if (Database.check(uid)) {
 					Main.queue.add(uid);
 				}
 				else {
-					API.queue.add('g', uid, token[1]);
+					if (token !== null) {
+						API.queue.add('g', uid, token[1]);
+					}
 				}
 			}
 		},
@@ -2548,7 +2569,7 @@
 								if (file.childNodes.length > 1) {
 									info = file.childNodes[0];
 									md5 = file.childNodes[1].firstChild.getAttribute('data-md5');
-									isJPG = file.childNodes[1].href.match(/\.jpg$/i);
+									isJPG = /\.jpg$/i.test(file.childNodes[1].href);
 									if (md5) {
 										md5 = md5.replace('==', '');
 										sauce = $('.exsauce', info);
@@ -2618,7 +2639,7 @@
 					}
 				}
 
-				if (post.innerHTML.match(regex.url)) {
+				if (regex.url.test(post.innerHTML)) {
 					Debug.value.add('posts');
 
 					if (conf['Hide in Quotes']) {
@@ -2637,7 +2658,7 @@
 						if (prelinks) {
 							for (j = 0, jj = prelinks.length; j < jj; ++j) {
 								prelink = prelinks[j];
-								if (prelink.href.match(regex.url)) {
+								if (regex.url.test(prelink.href)) {
 									prelink.classList.add('exlink');
 									prelink.classList.add('exgallery');
 									prelink.classList.add('exunprocessed');
@@ -2683,14 +2704,14 @@
 							if (link.classList.contains('exunprocessed')) {
 								site = conf['Gallery Link'];
 								if (site.value !== "Original") {
-									if (!link.href.match(site.value)) {
+									if (!new RegExp(site.value).test(link.href)) {
 										link.href = link.href.replace(regex.site, site.value);
 									}
 								}
-								type = link.href.match(regex.type);
+								type = regex.type.exec(link.href);
 								if (type) type = type[1];
 								if (type === 's') {
-									sid = link.href.match(regex.sid);
+									sid = regex.sid.exec(link.href);
 									if (sid) {
 										link.classList.add('type-s');
 										link.classList.add('uid-' + sid[2]);
@@ -2702,7 +2723,7 @@
 									}
 								}
 								else if (type === 'g') {
-									gid = link.href.match(regex.gid);
+									gid = regex.gid.exec(link.href);
 									if (gid) {
 										link.classList.add('type-g');
 										link.classList.add('uid-' + gid[1]);
@@ -2836,7 +2857,7 @@
 						node = nodes[i];
 						if (node.nodeName === 'A' && node.classList.contains('linkified')) {
 							if (
-								node.innerHTML.match(regex.url) &&
+								regex.url.test(node.innerHTML) &&
 								node.previousSibling.classList.contains('exbutton')
 							) {
 								node.className = "exlink exgallery exunprocessed";
