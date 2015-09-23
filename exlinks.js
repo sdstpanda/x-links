@@ -318,27 +318,6 @@
 				return str;
 			}
 		},
-		createtags: function (site, tags, data) {
-			var tagfrag = d.createDocumentFragment(),
-				tag, link, i, ii;
-			for (i = 0, ii = tags.length; i < ii; ++i) {
-				tag = $.create('span', {
-					className: "extag-block"
-				});
-				link = $.create('a', {
-					textContent: tags[i],
-					className: "exlink extag",
-					href: 'http://' + site + '/tag/' + tags[i].replace(/\ /g, '+')
-				});
-
-				Filter.highlight("tags", link, data, null);
-
-				tag.appendChild(link);
-				if (i < ii - 1) tag.appendChild($.tnode(","));
-				tagfrag.appendChild(tag);
-			}
-			return tagfrag;
-		},
 		details: function (uid) {
 			var data = Database.get(uid),
 				date, div, frag, tagspace, content, n;
@@ -365,7 +344,7 @@
 			content = div.firstChild;
 			tagspace = $('.extags', div);
 			content.style.setProperty("display", "table", "important");
-			$.add(tagspace, UI.createtags("exhentai.org", data.tags, data));
+			$.add(tagspace, UI.create_tags("exhentai.org", data.tags, data));
 			frag = d.createDocumentFragment();
 			frag.appendChild(div);
 			d.body.appendChild(frag);
@@ -453,7 +432,7 @@
 			content.id = link.id.replace('exlink-gallery', 'exblock-actions');
 			content.style.setProperty("display", conf['Show by Default'] ? "table" : "none", "important");
 			tagspace = $('.extags', div);
-			$.add(tagspace, UI.createtags(sites[6], data.tags, data));
+			$.add(tagspace, UI.create_tags(sites[6], data.tags, data));
 			frag.appendChild(div);
 			return frag;
 		},
@@ -567,24 +546,44 @@
 				}
 			});
 		},
+		create_tags: function (site, tags, data) {
+			var tagfrag = d.createDocumentFragment(),
+				tag, link, i, ii;
+			for (i = 0, ii = tags.length; i < ii; ++i) {
+				tag = $.create("span", {
+					className: "extag-block"
+				});
+				link = $.create("a", {
+					textContent: tags[i],
+					className: "exlink extag",
+					href: "http://" + site + "/tag/" + tags[i].replace(/\ /g, "+"),
+					target: "_blank"
+				});
+
+				Filter.highlight("tags", link, data, null);
+
+				tag.appendChild(link);
+				if (i < ii - 1) tag.appendChild($.tnode(","));
+				tagfrag.appendChild(tag);
+			}
+			return tagfrag;
+		},
 		display_full: function (data) {
 			var nodes = document.querySelectorAll(".extags.uid-" + data.gid),
 				tagfrag = d.createDocumentFragment(),
 				re_site = /exhentai\.org/i,
 				namespace, namespace_style, tags, tag, link, site, i, j, n, t, ii;
 
-			if (nodes.length === 0 || Object.keys(data.full.tags).length === 0) {
-				return;
-			}
+			if (nodes.length === 0 || Object.keys(data.full.tags).length === 0) return;
 
 			for (namespace in data.full.tags) {
 				tags = data.full.tags[namespace];
-				namespace_style = " extag-namespace extag-namespace-" + namespace.replace(/\ /g, '-');
+				namespace_style = " extag-namespace extag-namespace-" + namespace.replace(/\ /g, "-");
 
-				tag = $.create('span', {
+				tag = $.create("span", {
 					className: "extag-block extag-block-namespace" + Theme.get() + namespace_style
 				});
-				link = $.create('span', {
+				link = $.create("span", {
 					textContent: namespace,
 					className: "extag-block-namespace-tag"
 				});
@@ -593,11 +592,12 @@
 				tagfrag.appendChild(tag);
 
 				for (i = 0, ii = tags.length; i < ii; ++i) {
-					tag = $.create('span', { className: "extag-block" + namespace_style });
-					link = $.create('a', {
+					tag = $.create("span", { className: "extag-block" + namespace_style });
+					link = $.create("a", {
 						textContent: tags[i],
 						className: "exlink extag",
-						href: 'http://exhentai.org/tag/' + tags[i].replace(/\ /g, '+')
+						href: "http://exhentai.org/tag/" + tags[i].replace(/\ /g, "+"),
+						target: "_blank"
 					});
 
 					Filter.highlight("tags", link, data, null);
