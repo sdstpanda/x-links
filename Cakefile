@@ -67,7 +67,7 @@ task 'build', (options) ->
 	input = input.replace "\#VERSION\#", VERSION
 	input = input.replace "img = {}", "img = #{images}"
 	input = input.replace "css = '';", "css = 'data:text/css;base64,#{styleb64}';"
-	input = input.replace /\/\*jshint.*\*\//, ''
+	input = input.replace /\/\*\s*jshint.*\*\//, ''
 	if options.uglify
 		{uglify} = options
 		uopts = uglify.split ','
@@ -77,7 +77,7 @@ task 'build', (options) ->
 		if uopts[1] == 'squeeze'
 			ast = pro.ast_squeeze(ast)
 		input = pro.gen_code(ast)
-	input = "\n"+HEADER+"\n"+input
+	input = HEADER+"\n"+input
 	fs.writeFileSync OUTPUT, input, 'utf8', (err) ->
 		throw err if err
 	log 'Build successful!'

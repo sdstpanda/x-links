@@ -1,4 +1,4 @@
-﻿/*jshint eqnull:true, noarg:true, noempty:true, eqeqeq:true, bitwise:false, strict:true, undef:true, curly:true, browser:true, devel:true, maxerr:50 */
+/* jshint eqnull:true, noarg:true, noempty:true, eqeqeq:true, bitwise:false, strict:true, undef:true, curly:true, browser:true, devel:true, newcap:false, maxerr:50 */
 (function() {
   "use strict";
   var fetch, options, conf, tempconf, pageconf, regex, img, cat, d, t, $, $$,
@@ -125,11 +125,11 @@
     Functions are not chainable.
   */
   $ = function(selector, root) {
-    if(root == null) { root = d.body; }
+    if (!root) { root = d.body; }
     return root.querySelector(selector);
   };
   $$ = function(selector, root) {
-    if(root == null) { root = d.body; }
+    if (!root) { root = d.body; }
     return Array.prototype.slice.call(root.querySelectorAll(selector));
   };
   $.extend = function(obj, properties) {
@@ -351,7 +351,7 @@
       return tagfrag;
     },
     details: function(uid) {
-      var data, date, div, frag, tagspace, link, content, n;
+      var data, date, div, frag, tagspace, content, n;
       data = Database.get(uid);
       if(data.title_jpn) {
         data.jtitle = '<br /><span class="exjptitle">'+data.title_jpn+'</span>';
@@ -501,7 +501,7 @@
       }
       actions.setAttribute('style',style);
     },
-    show: function(e) {
+    show: function() {
       var uid, details, style;
       uid = this.className.match(regex.uid)[1];
       details = $.id('exblock-details-uid-'+uid);
@@ -513,7 +513,7 @@
         UI.details(uid);
       }
     },
-    hide: function(e) {
+    hide: function() {
       var uid, details, style;
       uid = this.className.match(regex.uid)[1];
       details = $.id('exblock-details-uid-'+uid);
@@ -681,7 +681,7 @@
       }
       return 0;
     },
-    request: function(type,hash) {
+    request: function(type) {
       var request, limit = 0, json;
       if(type === 's') {
         request = {
@@ -834,7 +834,7 @@
             if (xhr.status === 200) {
               var html = null;
               try {
-                html = (new DOMParser()).parseFromString(xhr.responseText, "text/html")
+                html = (new DOMParser()).parseFromString(xhr.responseText, "text/html");
               }
               catch (e) {}
 
@@ -924,7 +924,7 @@
       }
       var len = res.length;
       if(len) {
-        Debug.log("Purged "+res.length+" old entries from cache.")
+        Debug.log("Purged "+res.length+" old entries from cache.");
         for(i = 0; i < len; i++) {
           Cache.type.removeItem(res[i]);
         }
@@ -1328,8 +1328,7 @@
       image = a.href;
       Debug.log('Fetching image ' + image);
       a.textContent = Sauce.text('Loading');
-      GM_xmlhttpRequest(
-      {
+      GM_xmlhttpRequest({
         method: "GET",
         url: image,
         overrideMimeType: "text/plain; charset=x-user-defined",
@@ -1637,7 +1636,9 @@
           arrtop = [$.tnode('['),conflink,$.tnode('] ')];
           arrbot = [$.tnode('['),conflink2,$.tnode('] ')];
           $.prepend($.id('navtopright'),$.elem(arrtop));
-          $.id('navbotright') && $.prepend($.id('navbotright'),$.elem(arrbot));
+          if ($.id('navbotright')) {
+            $.prepend($.id('navbotright'),$.elem(arrbot));
+          }
         }
       } else
       if(Config.mode === 'fuuka')
@@ -1720,10 +1721,10 @@
         }
       }
       if(curSite.match('boards.38chan.net/')) {
-        Config.mode = '38chan'
-        Parser.postbody = '.post:not(.hidden) > .body'
-        Parser.prelinks = 'a:not([onclick])'
-        Parser.image = '.fileinfo'
+        Config.mode = '38chan';
+        Parser.postbody = '.post:not(.hidden) > .body';
+        Parser.prelinks = 'a:not([onclick])';
+        Parser.image = '.fileinfo';
       }
     },
     save: function() {
@@ -2120,7 +2121,7 @@
         Filter.init();
       }
 
-      var filters, info, matches, match, text, frag, segment, cache, i, t, n1, n2;
+      var filters, info, matches, text, frag, segment, cache, i, t, n1, n2;
 
       filters = Filter[mode];
       if (filters.length === 0) {
@@ -2596,12 +2597,17 @@
       }
     },
     process: function(posts) {
-      var post, file, info, sauce, exsauce, md5, sha1, results, hover, saucestyle,
-        actions, style, prelinks, prelink, links, link, site,
+      var post, file, info, sauce, exsauce, md5, sha1, results, saucestyle,
+        actions, style, prelinks, prelink, links, link, site, prevent,
         type, gid, sid, uid, button, usage, linkified, isJPG;
 
       Debug.timer.start('process');
       Debug.value.set('post_total',posts.length);
+
+      prevent = function (e) {
+        e.preventDefault();
+        return false;
+      };
 
       for ( var i = 0, ii = posts.length; i < ii; i++ )
       {
@@ -2632,11 +2638,8 @@
                       exsauce.setAttribute('data-md5',md5);
                       if(isJPG) {
                         exsauce.classList.add('exsauce-disabled');
-                        $.on(exsauce,'click',function(e) {
-                          e.preventDefault();
-                          return false;
-                        });
-                        exsauce.title = "Reverse Image Search doesn't work for JPG images because 4chan manipulates them on upload. There is nothing ExLinks can do about this. All complaints can be directed at 4chan staff."
+                        $.on(exsauce,'click', prevent);
+                        exsauce.title = "Reverse Image Search doesn't work for JPG images because 4chan manipulates them on upload. There is nothing ExLinks can do about this. All complaints can be directed at 4chan staff.";
                       } else {
                         $.on(exsauce,'click',Sauce.click);
                       }
@@ -2677,16 +2680,16 @@
                     }
                   }
                 }
-              } else
-              if(Config.mode === 'fuuka') {
+              }
+              /*else if (Config.mode === 'fuuka') {
                 // A WORLD OF PAIN
-              } else
-              if(Config.mode === 'foolz') {
+              }
+              else if (Config.mode === 'foolz') {
                 // AWAITS
               }
-              if(Config.mode === '38chan') {
+              else if(Config.mode === '38chan') {
                 // Man, why doesn't Tinychan even have md5 hashes for images?
-              }
+              }*/
             }
           }
         }
@@ -2854,12 +2857,11 @@
       }
     },
     observer: function(m) {
-      var nodes, node, nodelist = [];
+      var nodes, node, nodelist = [], i, ii;
       m.forEach(function(e) {
         if(e.addedNodes) {
           nodes = e.addedNodes;
-          for ( var i = 0, ii = nodes.length; i < ii; i++ )
-          {
+          for (i = 0, ii = nodes.length; i < ii; ++i) {
             node = nodes[i];
             if(node.nodeName === 'DIV') {
               if(node.classList.contains('postContainer')) {
@@ -2886,7 +2888,7 @@
             if(e.previousSibling &&
                e.previousSibling.classList &&
                e.previousSibling.classList.contains("file-info")) {
-              var node = e.target;
+              node = e.target;
               while(node) {
                 if(node.classList.contains("postContainer") ||
                    node.classList.contains("inline")) {
@@ -2904,9 +2906,9 @@
         }
         // detect 4chan X's linkification muck-ups
         if(e.addedNodes.length) {
-          var nodes = e.addedNodes;
-          for(var i = 0, ii = nodes.length; i < ii; ++i) {
-            var node = nodes[i];
+          nodes = e.addedNodes;
+          for (i = 0, ii = nodes.length; i < ii; ++i) {
+            node = nodes[i];
             if(node.nodeName === 'A' &&
                node.classList.contains('linkified')) {
               if(node.innerHTML.match(regex.url) &&
