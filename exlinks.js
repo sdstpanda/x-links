@@ -3159,6 +3159,7 @@
 				className: "ex-easylist-item-info-item ex-easylist-item-info-item-rating" + theme
 			}));
 			$.add(n6, $.create("div", {
+				className: "exlinks-stars-container",
 				innerHTML: UI.html.stars(data.rating)
 			}));
 			$.add(n6, $.create("span", {

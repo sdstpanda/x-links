@@ -1,4 +1,9 @@
-﻿.exlinks-star-none {
+﻿.exlinks-stars-container {
+	position: relative;
+	z-index: 0;
+}
+
+.exlinks-star-none {
 	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAQAAADYBBcfAAAA5UlEQVR4AZ2VwQmEMBBFfx0S5iwWJCIhhSwhRXgSEesQCVuIzbgCGiLJ4GTzbupjvvqNYFcDd9KgcBFmHCczqEzUOC50meiC6Eo0hS2IG5Rc7HFE9HLRPkQrf6L+IXpQ/n0ZuJigxap7YEAhViEa+Pwr1tDwRZKHvu+asIi15ZZudRJpEyhty/CqDfkWVWixs9KOFpWg3AmuoDNMf/ivkEHLgwrDEr6M8hLWJBd6PiwfdASdjO9hFdZoVg91He2juWuuAF04PYPSrfKiS0WbK3FQF34bMcm03FST3/ItanCrho1/CT96LV7iyUEWwgAAAABJRU5ErkJggg==");
 }
 .exlinks-star-half {
@@ -20,27 +25,27 @@
 }
 
 .exlinks-star-1 {
-	z-index: 999;
+	z-index: 4;
 	width: 13px;
 	background-position: 0px 0px;
 }
 .exlinks-star-2 {
-	z-index: 998;
+	z-index: 3;
 	width: 12px;
 	background-position: -1px 0px;
 }
 .exlinks-star-3 {
-	z-index: 997;
+	z-index: 2;
 	width: 12px;
 	background-position: -1px 0px;
 }
 .exlinks-star-4 {
-	z-index: 996;
+	z-index: 1;
 	width: 12px;
 	background-position: -1px 0px;
 }
 .exlinks-star-5 {
-	z-index: 995;
+	z-index: 0;
 	width: 13px;
 	background-position: -1px 0px;
 }
