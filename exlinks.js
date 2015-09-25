@@ -4,7 +4,7 @@
 
 	var fetch, options, conf, tempconf, pageconf, regex, img, cat, d, t, $, $$,
 		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Parser, Options, Config, Main,
-		Filter, Theme, EasyList;
+		Helper, Filter, Theme, EasyList;
 
 	img = {};
 	cat = {
@@ -141,20 +141,19 @@
 			return Math.min(max, Math.max(min, value));
 		},
 		elem: function (arr) {
-			var frag = d.createDocumentFragment();
-			for (var i = 0, ii = arr.length; i < ii; ++i) {
+			var frag = d.createDocumentFragment(),
+				i, ii;
+			for (i = 0, ii = arr.length; i < ii; ++i) {
 				frag.appendChild(arr[i]);
 			}
 			return frag;
 		},
 		frag: function (content) {
-			var frag, div, i, ii;
-			frag = d.createDocumentFragment();
-			div = $.create('div', {
-				innerHTML: content
-			});
-			for (i = 0, ii = div.childNodes.length; i < ii; ++i) {
-				frag.appendChild(div.childNodes[i].cloneNode(true));
+			var frag = d.createDocumentFragment(),
+				div = $.create("div", { innerHTML: content }),
+				n;
+			for (n = div.firstChild; n !== null; n = n.nextSibling) {
+				frag.appendChild(n.cloneNode(true));
 			}
 			return frag;
 		},
@@ -309,6 +308,15 @@
 			}
 		}
 	};
+	Helper = {
+		div: d.createElement("div"),
+		normalize_api_string: function (text) {
+			Helper.div.innerHTML = text;
+			text = Helper.div.textContent;
+			Helper.div.textContent = "";
+			return text;
+		}
+	};
 	UI = {
 		html: {
 			details: function (data, data_alt) { return '#DETAILS#'; },
@@ -390,7 +398,7 @@
 						link.href = link.href.replace(regex.site_gehentai, 'exhentai.org');
 						button = $.id(link.id.replace('gallery', 'button'));
 						button.href = link.href;
-						button.innerHTML = UI.button.text(link.href);
+						button.textContent = UI.button.text(link.href);
 					}
 				}
 				else {
@@ -398,7 +406,7 @@
 						link.href = link.href.replace(regex.site_exhentai, 'g.e-hentai.org');
 						button = $.id(link.id.replace('gallery', 'button'));
 						button.href = link.href;
-						button.innerHTML = UI.button.text(link.href);
+						button.textContent = UI.button.text(link.href);
 					}
 				}
 			}
@@ -444,11 +452,10 @@
 			return frag;
 		},
 		button: function (url, eid) {
-			var button;
-			button = $.create('a', {
+			var button = $.create('a', {
 				id: eid.replace('gallery', 'button'),
 				className: 'exlink exbutton exfetch',
-				innerHTML: UI.button.text(url),
+				textContent: UI.button.text(url),
 				href: url
 			});
 			button.style.marginRight = '4px';
@@ -1249,8 +1256,12 @@
 				});
 
 				for (i = 0, ii = result.length; i < ii; ++i) {
-					hover.innerHTML += '<a class="exsauce-hover" href="' + result[i][0] + '">' + result[i][1] + '</a>';
-					if (i < ii - 1) hover.innerHTML += '<br />';
+					$.add(hover, $.create("a", {
+						className: "exsauce-hover",
+						href: result[i][0],
+						textContent: result[i][1]
+					}));
+					if (i < ii - 1) $.add(hover, $.create("br"));
 				}
 				hover.style.setProperty("display", "table", "important");
 				$.add(d.body, hover);
@@ -1266,9 +1277,12 @@
 					$.on(a, 'click', Sauce.UI.toggle);
 					results = $.create('div', {
 						className: 'exblock exresults',
-						id: a.id.replace('exsauce', 'exresults'),
-						innerHTML: '<b>Reverse Image Search Results</b> | View on: <a href="' + a.href + '">' + Sauce.label(true) + '</a><br />'
+						id: a.id.replace('exsauce', 'exresults')
 					});
+					$.add(results, $.create("b", { textContent: "Reverse Image Search Results" }));
+					$.add(results, $.tnode(" | View on: "));
+					$.add(results, $.create("a", { href: a.href, textContent: Sauce.label(true) }));
+					$.add(results, $.create("br"));
 					results.style.setProperty("display", conf['Show Results by Default'] ? "table" : "none", "important");
 					for (i = 0, ii = result.length; i < ii; ++i) {
 						results.appendChild($.tnode(result[i][0]));
@@ -1301,19 +1315,27 @@
 				url: a.href,
 				onload: function (xhr) {
 					var result = [],
-						response = $.frag(xhr.responseText),
-						links = $$('div.it5 a,div.id2 a', response),
-						link, i, ii;
+						html = null,
+						links, link, i, ii;
 
-					for (i = 0, ii = links.length; i < ii; ++i) {
-							link = links[i];
-							result.push([ link.href, link.innerHTML ]);
+					try {
+						html = (new DOMParser()).parseFromString(xhr.responseText, "text/html");
 					}
+					catch (e) {}
 
-					Hash.set(result, 'sha1', sha1);
-					Debug.log('Lookup successful. Formatting.');
-					if (conf['Show Short Results']) Sauce.UI.hover(sha1);
-					Sauce.format(a, result);
+					if (html !== null) {
+						links = $$('div.it5 a,div.id2 a', html);
+
+						for (i = 0, ii = links.length; i < ii; ++i) {
+							link = links[i];
+							result.push([ link.href, link.textContent ]);
+						}
+
+						Hash.set(result, 'sha1', sha1);
+						Debug.log('Lookup successful. Formatting.');
+						if (conf['Show Short Results']) Sauce.UI.hover(sha1);
+						Sauce.format(a, result);
+					}
 				}
 			});
 		},
@@ -1371,7 +1393,7 @@
 			Sauce.check(e.target);
 		},
 		label: function (siteonly) {
-			var label = (conf['Site to Use'].value === 'exhentai.org') ? 'ExHentai' : 'E-Hentai';//'ExSauce';
+			var label = (conf['Site to Use'].value === 'exhentai.org') ? 'ExHentai' : 'E-Hentai';
 
 			if (!siteonly) {
 				if (conf['Use Custom Label'] === true) {
@@ -1437,11 +1459,11 @@
 						tu.className = 'exlink exgallery exunprocessed';
 						if (regex.protocol.test(match[0])) {
 							tu.href = match[0];
-							tu.innerHTML = match[0];
+							tu.textContent = match[0];
 						}
 						else {
 							tu.href = 'http://' + match[0];
-							tu.innerHTML = 'http://' + match[0];
+							tu.textContent = 'http://' + match[0];
 						}
 						tu.setAttribute('target', '_blank');
 						tu.style.textDecoration = 'none';
@@ -1597,7 +1619,7 @@
 					$.add(d.body, conflink);
 				}
 				else if (chanss) {
-					conflink.innerHTML = 'Ex';
+					conflink.textContent = 'Ex';
 					conflink.setAttribute('style', 'background-image: url(' + img.options + '); padding-top: 15px !important; opacity: 0.75;');
 					$.on(conflink, [
 						[ 'mouseover', function (e) { e.target.style.opacity = 1.0;} ],
@@ -1606,7 +1628,7 @@
 					$.add($.id('navtopright'), conflink);
 				}
 				else {
-					conflink.innerHTML = 'ExLinks Settings';
+					conflink.textContent = 'ExLinks Settings';
 					conflink.setAttribute('style', 'cursor: pointer; ' + (conflink.getAttribute('style') || ""));
 					conflink2 = conflink.cloneNode(true);
 					$.on(conflink2, 'click', Options.open);
@@ -1619,19 +1641,19 @@
 				}
 			}
 			else if (Config.mode === 'fuuka') {
-				conflink.innerHTML = 'exlinks options';
+				conflink.textContent = 'exlinks options';
 				conflink.setAttribute('style', 'cursor: pointer; text-decoration: underline;');
 				arrtop = [ $.tnode(' [ '), conflink, $.tnode(' ] ') ];
 				$.add($('div'), $.elem(arrtop));
 			}
 			else if (Config.mode === 'foolz') {
-				conflink.innerHTML = 'ExLinks Options';
+				conflink.textContent = 'ExLinks Options';
 				conflink.setAttribute('style', 'cursor: pointer;');
 				arrtop = [ $.tnode(' [ '), conflink, $.tnode(' ] ') ];
 				$.add($('.letters'), $.elem(arrtop));
 			}
 			else if (Config.mode === '38chan') {
-				conflink.innerHTML = 'exlinks options';
+				conflink.textContent = 'exlinks options';
 				conflink.setAttribute('style', 'cursor: pointer;');
 				conflink2 = conflink.cloneNode(true);
 				$.on(conflink2, 'click', Options.open);
@@ -1725,7 +1747,6 @@
 		cache: {
 			tags: {}
 		},
-		div: d.createElement("div"),
 		regex_default_flags: "color:#ee2200;link-color:#ee2200;",
 		Segment: function (start, end, data) {
 			this.start = start;
@@ -1878,12 +1899,6 @@
 				array[i] = array[i].trim().toLowerCase();
 			}
 			return array;
-		},
-		normalize_api_string: function (text) {
-			Filter.div.innerHTML = text;
-			var t = Filter.div.textContent;
-			Filter.div.textContent = "";
-			return t;
 		},
 		matches_to_segments: function (text, matches) {
 			var Segment, segments, fast, hit, m, s, i, j;
@@ -2074,7 +2089,7 @@
 			// Uploader
 			if (Filter.uploader.length > 0) {
 				if ((str = data.uploader)) {
-					str = Filter.normalize_api_string(str);
+					str = Helper.normalize_api_string(str);
 					info = Filter.check_multiple(str, filter_uploader, data);
 					if (info.any) {
 						Filter.append_match_datas(info, result.uploader);
@@ -2880,7 +2895,7 @@
 
 			$.add(n5, n6 = $.create("a", {
 				className: "ex-easylist-item-title-link" + theme,
-				innerHTML: data.title,
+				textContent: Helper.normalize_api_string(data.title),
 				href: url,
 				target: "_blank"
 			}));
@@ -2889,7 +2904,7 @@
 			if (data.title_jpn) {
 				$.add(n4, n5 = $.create("span", {
 					className: "ex-easylist-item-title-jp" + theme,
-					innerHTML: data.title_jpn
+					textContent: Helper.normalize_api_string(data.title_jpn)
 				}));
 				n5.setAttribute("data-original", n5.textContent);
 			}
@@ -3475,7 +3490,7 @@
 						for (j = 0, jj = links.length; j < jj; ++j) {
 							link = links[j];
 							button = $.id(link.id.replace('gallery', 'button'));
-							link.innerHTML = data.title;
+							link.textContent = Helper.normalize_api_string(data.title);
 
 							if ((hl = Filter.check(link, data))[0] !== Filter.None) {
 								c = (hl[0] === Filter.Good) ? conf['Good Tag Marker'] : conf['Bad Tag Marker'];
@@ -3516,7 +3531,7 @@
 						for (j = 0, jj = links.length; j < jj; ++j) {
 							link = links[j];
 							button = $.id(link.id.replace('gallery', 'button'));
-							link.innerHTML = 'Incorrect Gallery Key';
+							link.textContent = 'Incorrect Gallery Key';
 							$.off(button, 'click', Main.singlelink);
 							link.classList.remove('exprocessed');
 							link.classList.add('exformatted');
@@ -3647,7 +3662,7 @@
 										sauce = $('.exsauce', info);
 										if (!sauce) {
 											exsauce = $.create('a', {
-												textContent: Sauce.label(),
+												textContent: Sauce.label(false),
 												className: 'exsauce',
 												id: 'exsauce-' + post.id,
 												href: file.childNodes[1].href
