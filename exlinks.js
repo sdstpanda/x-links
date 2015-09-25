@@ -490,12 +490,7 @@
 				data_alt = {},
 				frag, tagspace, content, n;
 
-			if (data.title_jpn) {
-				data_alt.jtitle = '<br /><span class="exjptitle">' + data.title_jpn + '</span>';
-			}
-			else {
-				data_alt.jtitle = '';
-			}
+			data_alt.jtitle = data.title_jpn ? ('<br /><span class="exjptitle">' + data.title_jpn + '</span>') : '';
 
 			data_alt.size = Math.round((data.filesize / 1024 / 1024) * 100) / 100;
 			data_alt.datetext = UI.date(new Date(parseInt(data.posted, 10) * 1000));
@@ -515,7 +510,7 @@
 			content.style.setProperty("display", "table", "important");
 			$.add(tagspace, UI.create_tags(domain, data.tags, data));
 			n = $(".exdetails", frag);
-			d.body.appendChild(frag);
+			$.add(d.body, frag);
 
 			// Full info
 			if (conf['Extended Info']) {
@@ -538,7 +533,7 @@
 				uid = data.gid,
 				token = data.token,
 				key = data.archiver_key,
-				domain, user, sites, button, div, tagspace, frag, content, n;
+				domain, user, sites, button, frag, n;
 
 			if (conf['Smart Links'] === true) {
 				if (regex.fjord.test(tagstring)) {
@@ -586,18 +581,16 @@
 			if (regex.site_gehentai.test(data_alt.url.arc) && regex.fjord.test(tagstring)) {
 				data_alt.url.arc = data_alt.url.arc.replace(regex.site_gehentai, 'exhentai');
 			}
-			frag = d.createDocumentFragment();
-			div = $.frag(UI.html.actions(data, data_alt));
 
-			if ((n = $('.exuploader', div)) !== null) {
+			frag = $.frag(UI.html.actions(data, data_alt));
+
+			if ((n = $('.exuploader', frag)) !== null) {
 				Filter.highlight("uploader", n, data, null);
 			}
 
-			content = div.firstChild;
-			content.style.setProperty("display", conf['Show by Default'] ? "table" : "none", "important");
-			tagspace = $('.extags', div);
-			$.add(tagspace, UI.create_tags(sites[6], data.tags, data));
-			frag.appendChild(div);
+			frag.firstChild.style.setProperty("display", conf['Show by Default'] ? "table" : "none", "important");
+			$.add($(".extags", frag), UI.create_tags(sites[6], data.tags, data));
+
 			return frag;
 		},
 		button: function (url) {
@@ -732,14 +725,14 @@
 
 				Filter.highlight("tags", link, data, null);
 
-				tag.appendChild(link);
-				if (i < ii - 1) tag.appendChild($.tnode(","));
-				tagfrag.appendChild(tag);
+				$.add(tag, link);
+				if (i < ii - 1) $.add(tag, $.tnode(","));
+				$.add(tagfrag, tag);
 			}
 			return tagfrag;
 		},
 		display_full: function (data) {
-			var nodes = document.querySelectorAll(".extags.exlinks-gid[data-exlinks-gid='" + data.gid + "']"),
+			var nodes = $$(".extags.exlinks-gid[data-exlinks-gid='" + data.gid + "']"),
 				tagfrag = d.createDocumentFragment(),
 				url_base = "http://" + domains.exhentai,
 				theme = Theme.get(),
@@ -758,9 +751,9 @@
 					textContent: namespace,
 					className: "extag-block-namespace-tag"
 				});
-				tag.appendChild(link);
-				tag.appendChild($.tnode(":"));
-				tagfrag.appendChild(tag);
+				$.add(tag, link);
+				$.add(tag, $.tnode(":"));
+				$.add(tagfrag, tag);
 
 				for (i = 0, ii = tags.length; i < ii; ++i) {
 					tag = $.create("span", { className: "extag-block" + namespace_style });
@@ -773,12 +766,12 @@
 
 					Filter.highlight("tags", link, data, null);
 
-					tag.appendChild(link);
-					tag.appendChild($.tnode(i === ii - 1 ? ";" : ","));
-					tagfrag.appendChild(tag);
+					$.add(tag, link);
+					$.add(tag, $.tnode(i === ii - 1 ? ";" : ","));
+					$.add(tagfrag, tag);
 				}
 			}
-			tagfrag.lastChild.removeChild(tagfrag.lastChild.lastChild);
+			$.remove(tagfrag.lastChild.lastChild);
 
 			for (i = 0; i < nodes.length; ) {
 				n = nodes[i];
@@ -786,12 +779,12 @@
 				++i;
 
 				if (
-					(link = n.querySelector("a[href]")) !== null &&
+					(link = $("a[href]", n)) !== null &&
 					!regex.site_exhentai.test(link.getAttribute("href"))
 				) {
 					site = Config.domain(Helper.get_domain(link.href), conf['Stats Link']);
 					t = (i < nodes.length) ? tagfrag.cloneNode(true) : tagfrag;
-					tags = t.querySelectorAll("a[href]");
+					tags = $$("a[href]", t);
 					for (j = 0; j < tags.length; ++j) {
 						tags[j].setAttribute("href", tags[j].getAttribute("href").replace(regex.site_exhentai, site));
 					}
@@ -801,7 +794,7 @@
 				}
 
 				n.innerHTML = "";
-				n.appendChild(t);
+				$.add(n, t);
 			}
 		}
 	};
@@ -1037,12 +1030,12 @@
 
 			// Tags
 			var pattern = /(.+):/,
-				par = html.querySelectorAll("#taglist tr"),
+				par = $$("#taglist tr", html),
 				tds, namespace, ns, i, j, m, n;
 
 			for (i = 0; i < par.length; ++i) {
 				// Class
-				tds = par[i].querySelectorAll("td");
+				tds = $$("td", par[i]);
 				if (tds.length > 0) {
 					// Namespace
 					namespace = ((m = pattern.exec(tds[0].textContent)) ? m[1].trim() : "");
@@ -1055,10 +1048,10 @@
 					}
 
 					// Tags
-					tds = tds[tds.length - 1].querySelectorAll("div");
+					tds = $$("div", tds[tds.length - 1]);
 					for (j = 0; j < tds.length; ++j) {
 						// Create tag
-						if ((n = tds[j].querySelector("a")) !== null) {
+						if ((n = $("a", tds[j])) !== null) {
 							// Add tag
 							data.tags[namespace].push(n.textContent.trim());
 						}
@@ -1409,8 +1402,8 @@
 					$.add(results, $.create("br"));
 					results.style.setProperty("display", conf['Show Results by Default'] ? "table" : "none", "important");
 					for (i = 0, ii = result.length; i < ii; ++i) {
-						results.appendChild($.tnode(result[i][0]));
-						if (i < ii - 1) results.appendChild($.create('br'));
+						$.add(results, $.tnode(result[i][0]));
+						if (i < ii - 1) $.add(results, $.create('br'));
 					}
 					if (Config.mode === '4chan') {
 						parent = a.parentNode.parentNode.parentNode;
@@ -1636,7 +1629,7 @@
 				frag = d.createDocumentFragment(),
 				gen;
 
-			frag.appendChild(overlay);
+			$.add(frag, overlay);
 			$.add(d.body, frag);
 			$.on($.id('exlinks-options-save'), 'click', Options.save);
 			$.on($.id('exlinks-options-cancel'), 'click', Options.close);
@@ -1782,8 +1775,8 @@
 			return (opt.value === "Original") ? domain : opt.value;
 		},
 		site: function () {
-			var curSite = document.URL,
-				curDocType = document.doctype,
+			var curSite = d.URL,
+				curDocType = d.doctype,
 				curType;
 
 			if (/archive\.moe/i.test(curSite)) {
@@ -2263,7 +2256,7 @@
 				n1 = n1.cloneNode(true);
 				node.innerHTML = "";
 				while ((n2 = n1.firstChild) !== null) {
-					node.appendChild(n2);
+					$.add(node, n2);
 				}
 				return Filter.hl_return(n1.classList.contains("exfilter-bad"), node);
 			}
@@ -2301,21 +2294,21 @@
 				segment = matches[i];
 				t = text.substring(segment.start, segment.end);
 				if (segment.data.length === 0) {
-					frag.appendChild($.tnode(t));
+					$.add(frag, $.tnode(t));
 				}
 				else {
 					n1 = $.create("span", { className: "exfilter-text" });
 					n2 = $.create("span", { className: "exfilter-text-inner" });
 					n2.textContent = t;
-					n1.appendChild(n2);
-					frag.appendChild(n1);
+					$.add(n1, n2);
+					$.add(frag, n1);
 					Filter.apply_styles(n1, segment.data);
 				}
 			}
 
 			// Replace
 			node.innerHTML = "";
-			node.appendChild(frag);
+			$.add(node, frag);
 			if (cache !== undefined) {
 				cache[text] = node;
 			}
@@ -2361,10 +2354,10 @@
 				n1 = $.create("span", { className: "exfilter-text" });
 				n2 = $.create("span", { className: "exfilter-text-inner" });
 				while ((n = node.firstChild) !== null) {
-					n2.appendChild(n);
+					$.add(n2, n);
 				}
-				n1.appendChild(n2);
-				node.appendChild(n1);
+				$.add(n1, n2);
+				$.add(node, n1);
 				Filter.apply_styling(n1, color, background, underline);
 			}
 		},
@@ -2408,11 +2401,11 @@
 
 				mo = new MO(callback);
 				for (i = 0; i < nodes.length; ++i) {
-					mo.observe(nodes[i], init);
+					if (nodes[i]) mo.observe(nodes[i], init);
 				}
 			};
 
-			add_mo([document.head], { childList: true }, function (records) {
+			add_mo([ d.head ], { childList: true }, function (records) {
 				var update = false,
 					nodes, i, j, tag;
 
@@ -2447,7 +2440,7 @@
 			var new_theme = Theme.detect();
 			if (new_theme !== null && new_theme !== Theme.current) {
 				if (update_nodes) {
-					var nodes = document.querySelectorAll("extheme"),
+					var nodes = $$("extheme"),
 						cls, i;
 					if (new_theme === "light") {
 						cls = "extheme-" + Theme.current;
@@ -2466,12 +2459,12 @@
 			}
 		},
 		detect: function () {
-			var doc_el = document.documentElement,
-				body = document.querySelector("body"),
-				n = document.createElement("div"),
+			var doc_el = d.documentElement,
+				body = d.body,
+				n = d.createElement("div"),
 				color, colors, i, j, a, a_inv;
 
-			if (!body || !doc_el) {
+			if (!doc_el || !body) {
 				return null;
 			}
 
@@ -2484,8 +2477,6 @@
 				Theme.parse_css_color(window.getComputedStyle(n).backgroundColor),
 			];
 
-			body.removeChild(n);
-
 			for (i = 0; i < colors.length; ++i) {
 				a = colors[i][3];
 				a_inv = (1.0 - a) * color[3];
@@ -2495,6 +2486,8 @@
 				}
 				color[3] = Math.max(color[3], a);
 			}
+
+			body.removeChild(n);
 
 			if (color[3] === 0) {
 				return null;
@@ -2593,7 +2586,7 @@
 			var mobile_top = true,
 				links = [],
 				navlinks, navlink, is_desktop, link_mod,
-				n1, n2, n3, i, ii;
+				n1, n2, i, ii;
 
 			if (Config.mode === '4chan') {
 				navlinks = $$(".navLinks");
@@ -2635,14 +2628,12 @@
 						className: "mobile",
 						style: "text-align: center; margin: 0.5em 0;"
 					});
-					n2 = $.create("span", {
+					$.add(n1, n2 = $.create("span", {
 						className: "mobileib button exlinks-easy-list-button"
-					});
-					n3 = $.create("a", {
+					}));
+					$.add(n2, $.create("a", {
 						textContent: link_mod("Easy List", false)
-					});
-					$.add(n2, n3);
-					$.add(n1, n2);
+					}));
 					if (mobile_top) {
 						$.before(navlink, n1);
 					}
@@ -2673,39 +2664,34 @@
 			EasyList.overlay = n1;
 
 			// Content aligner
-			n2 = $.create("div", {
+			$.add(n1, n2 = $.create("div", {
 				className: "ex-easylist-content-align"
-			});
-			$.add(n1, n2);
+			}));
 
 			// Content
-			n3 = $.create("div", {
+			$.add(n2, n3 = $.create("div", {
 				className: "ex-easylist-content"
-			});
-			$.add(n2, n3);
+			}));
 
-			n4 = $.create("div", {
+			$.add(n3, n4 = $.create("div", {
 				className: "ex-easylist-content-inner post reply postContainer post_wrapper" + theme
-			});
+			}));
 			$.on(n4, "click", EasyList.on_overlay_content_mouse_event);
 			$.on(n4, "mousedown", EasyList.on_overlay_content_mouse_event);
-			$.add(n3, n4);
 			n3 = n4;
 
 			$.add(n3, n4 = $.create("div", {
 				className: "ex-easylist-title"
 			}));
 
-			n5 = $.create("span", {
+			$.add(n4, $.create("span", {
 				className: "ex-easylist-title-text",
 				textContent: "ExLinks Easy List"
-			});
-			$.add(n4, n5);
-			n5 = $.create("span", {
+			}));
+			$.add(n4, $.create("span", {
 				className: "ex-easylist-subtitle",
 				textContent: "More porn, less hassle"
-			});
-			$.add(n4, n5);
+			}));
 
 			// Close
 			$.add(n3, n4 = $.create("div", { className: "ex-easylist-control-links" }));
@@ -2729,16 +2715,14 @@
 			$.add(n3, EasyList.options_container);
 
 			// Empty notification
-			n4 = $.create("div", {
+			$.add(n3, n4 = $.create("div", {
 				className: "ex-easylist-empty-notification ex-easylist-empty-notification-visible",
 				textContent: "No galleries found"
-			});
-			$.add(n3, n4);
+			}));
 			EasyList.empty_notification = n4;
 
 			// Items list
-			n4 = $.create("div", { className: "ex-easylist-items" + theme });
-			$.add(n3, n4);
+			$.add(n3, n4 = $.create("div", { className: "ex-easylist-items" + theme }));
 			EasyList.items_container = n4;
 
 			// Setup
@@ -2872,12 +2856,12 @@
 		enable: function () {
 			var n = d.body;
 			if (EasyList.overlay.parentNode !== n) {
-				n.appendChild(EasyList.overlay);
+				$.add(n, EasyList.overlay);
 			}
 			d.documentElement.classList.add("ex-easylist-overlaying");
 
 			// Focus
-			n = document.createElement("textarea");
+			n = $.create("textarea");
 			$.add(EasyList.overlay, n);
 			n.focus();
 			n.blur();
@@ -2889,7 +2873,7 @@
 		},
 		disable: function () {
 			if (EasyList.overlay.parentNode !== null) {
-				EasyList.overlay.parentNode.removeChild(EasyList.overlay);
+				$.remove(EasyList.overlay);
 			}
 			d.documentElement.classList.remove("ex-easylist-overlaying");
 
@@ -3289,7 +3273,7 @@
 			for (i = 0, ii = items.length; i < ii; ++i) {
 				n = items[i].node;
 				par.appendChild(n);
-				if ((n2 = n.querySelector(".ex-easylist-item-image-index")) !== null) {
+				if ((n2 = $(".ex-easylist-item-image-index", n)) !== null) {
 					n2.textContent = "#" + (i + 1);
 				}
 			}
@@ -3320,7 +3304,7 @@
 			];
 
 			for (i = (tags_only ? 3 : 0), ii = targets.length; i < ii; ++i) {
-				nodes = node.querySelectorAll(targets[i][0]);
+				nodes = $$(targets[i][0], node);
 				mode = targets[i][1];
 				results = targets[i][2];
 				for (j = 0, jj = nodes.length; j < jj; ++j) {
@@ -3335,8 +3319,8 @@
 			}
 
 			if (!tags_only) {
-				link = node.querySelector(".ex-easylist-item-title-link");
-				n = node.querySelector(".ex-easylist-item-title-tag-link");
+				link = $(".ex-easylist-item-title-link", node);
+				n = $(".ex-easylist-item-title-tag-link", node);
 
 				if (link !== null && n !== null) {
 					if (!first) {
@@ -3422,7 +3406,7 @@
 			$.off(this, "mouseover", EasyList.on_gallery_mouseover);
 
 			var node = this,
-				tags_container = this.querySelector(".ex-easylist-item-tags"),
+				tags_container = $(".ex-easylist-item-tags", this),
 				gid = this.getAttribute("data-gid") || "",
 				token = this.getAttribute("data-token") || "",
 				domain = this.getAttribute("data-site");
