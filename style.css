@@ -413,6 +413,9 @@ a.exsauce-disabled {
 	color: #000;
 	background-color: #fff;
 }
+#exlinks-options label {
+	cursor: pointer;
+}
 
 .exlinks-options-color-input {
 	padding: 0.25em !important;
@@ -957,6 +960,9 @@ div.ex-easylist-content-inner.post.reply.postContainer.extheme-dark {
 	border-bottom: 1px solid rgba(0,0,0,0);
 	white-space: nowrap;
 }
+.ex-easylist-option-label {
+	display: inline-block;
+}
 .ex-easylist-option-label+.ex-easylist-option-label {
 	margin-left: 0.5em;
 }
@@ -970,10 +976,17 @@ div.ex-easylist-content-inner.post.reply.postContainer.extheme-dark {
 	border-radius: 0.25em;
 	background-color: rgba(255,255,255,0.125);
 	border: 1px solid rgba(0,0,0,0.0625);
+	cursor: pointer;
+}
+.ex-easylist-option-button:hover {
+	border-color: rgba(0,0,0,0.25);
 }
 .ex-easylist-option-button.extheme-dark {
 	background-color: rgba(0,0,0,0.125);
 	border: 1px solid rgba(255,255,255,0.0625);
+}
+.ex-easylist-option-button.extheme-dark:hover {
+	border-color: rgba(255,255,255,0.25);
 }
 .ex-easylist-option-input:checked~.ex-easylist-option-button {
 	background-color: rgba(255,255,255,0.5);

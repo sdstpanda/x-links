@@ -1873,6 +1873,8 @@
 				Parser.prelinks = 'a:not([onclick])';
 				Parser.image = '.fileinfo';
 			}
+
+			console.log(Config.mode, Parser);
 		},
 		save: function () {
 			for (var i in options) {
@@ -4159,8 +4161,7 @@
 			if (nodelist.length > 0) Main.process(nodelist);
 		},
 		ready: function () {
-			var nodelist = $$(Parser.postbody),
-				MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver,
+			var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver,
 				updater, css, font, style;
 
 			Debug.timer.start('init');
@@ -4186,7 +4187,7 @@
 
 			Debug.log('Initialization complete; time=' + Debug.timer.stop('init'));
 
-			Main.process(nodelist);
+			Main.process($$(Parser.postbody));
 
 			if (MutationObserver) {
 				updater = new MutationObserver(Main.observer);
