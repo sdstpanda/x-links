@@ -4,7 +4,7 @@
 
 	var fetch, domains, options, conf, tempconf, pageconf, regex, img, cat, d, t, $, $$,
 		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Parser, Options, Config, Main,
-		Helper, Filter, Theme, EasyList;
+		Helper, HttpRequest, Filter, Theme, EasyList;
 
 	img = {};
 	cat = {
@@ -135,6 +135,57 @@
 		return obj;
 	};
 	$.extend($, {
+		ready: (function () {
+			var callbacks = [],
+				check_interval = null,
+				check_interval_time = 250;
+
+			var callback_check = function () {
+				if (
+					(document.readyState === "interactive" || document.readyState === "complete") &&
+					callbacks !== null
+				) {
+					var cbs = callbacks,
+						cb_count = cbs.length,
+						i;
+
+					callbacks = null;
+
+					for (i = 0; i < cb_count; ++i) {
+						cbs[i].call(null);
+					}
+
+					window.removeEventListener("load", callback_check, false);
+					window.removeEventListener("DOMContentLoaded", callback_check, false);
+					window.removeEventListener("readystatechange", callback_check, false);
+
+					if (check_interval !== null) {
+						clearInterval(check_interval);
+						check_interval = null;
+					}
+
+					return true;
+				}
+
+				return false;
+			};
+
+			window.addEventListener("load", callback_check, false);
+			window.addEventListener("DOMContentLoaded", callback_check, false);
+			window.addEventListener("readystatechange", callback_check, false);
+
+			return function (cb) {
+				if (callbacks === null) {
+					cb.call(null);
+				}
+				else {
+					callbacks.push(cb);
+					if (check_interval === null && callback_check() !== true) {
+						check_interval = setInterval(callback_check, check_interval_time);
+					}
+				}
+			};
+		})(),
 		clamp: function (value, min, max) {
 			return Math.min(max, Math.max(min, value));
 		},
@@ -462,6 +513,28 @@
 			return (m === null) ? "" : m[1];
 		}
 	};
+	HttpRequest = (function () {
+		try {
+			if (GM_xmlhttpRequest && typeof(GM_xmlhttpRequest) === "function") {
+				return function (data) {
+					Debug.log("HttpRequest: " + data.method + " " + data.url);
+					return GM_xmlhttpRequest(data);
+				};
+			}
+		}
+		catch (e) {}
+
+		// Fallback
+		return function (data) {
+			Debug.log("HttpRequest fill: " + data.method + " " + data.url);
+			var onerror = (data && data.onerror && typeof(data.onerror) === "function") ? data.onerror : null;
+			setTimeout(function () {
+				if (onerror !== null) {
+					onerror.call(null, {});
+				}
+			}, 10);
+		};
+	})();
 	UI = {
 		html: {
 			details: function (data, data_alt) { return '#DETAILS#'; },
@@ -870,7 +943,7 @@
 					API.cooldown = Date.now();
 					Debug.timer.start('apirequest');
 					Debug.log([ 'API Request', request ]);
-					GM_xmlhttpRequest({
+					HttpRequest({
 						method: 'POST',
 						url: 'http://' + domains.gehentai + '/api.php',
 						data: JSON.stringify(request),
@@ -987,9 +1060,7 @@
 				cb(err, data);
 			};
 
-			Debug.log("Requesting full info for " + id + "/" + token);
-
-			GM_xmlhttpRequest({
+			HttpRequest({
 				method: "GET",
 				url: "http://" + site + "/g/" + id + "/" + token + "/",
 				onload: function (xhr) {
@@ -1427,7 +1498,7 @@
 		lookup: function (a, sha1) {
 			a.textContent = Sauce.text('Checking');
 
-			GM_xmlhttpRequest({
+			HttpRequest({
 				method: "GET",
 				url: a.href,
 				onload: function (xhr) {
@@ -1454,7 +1525,7 @@
 		hash: function (a, md5) {
 			Debug.log('Fetching image ' + a.href);
 			a.textContent = Sauce.text('Loading');
-			GM_xmlhttpRequest({
+			HttpRequest({
 				method: "GET",
 				url: a.href,
 				overrideMimeType: "text/plain; charset=x-user-defined",
@@ -4122,7 +4193,6 @@
 			else {
 				$.on(d.body, 'DOMNodeInserted', Main.dom);
 			}
-			$.off(d, 'DOMContentLoaded', Main.ready);
 		},
 		init: function () {
 			Config.init();
@@ -4140,7 +4210,7 @@
 					Main.queue.list = {};
 				}
 			});
-			$.on(d, 'DOMContentLoaded', Main.ready);
+			$.ready(Main.ready);
 		},
 		get_linkified_links: function () {
 			return $$("a.exlink.exgallery[href]");
