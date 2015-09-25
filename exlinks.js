@@ -315,6 +315,9 @@
 			text = Helper.div.textContent;
 			Helper.div.textContent = "";
 			return text;
+		},
+		regex_escape: function (text) {
+			return text.replace(/[\$\(\)\*\+\-\.\/\?\[\\\]\^\{\|\}]/g, "\\$&");
 		}
 	};
 	UI = {
@@ -1763,9 +1766,6 @@
 			Filter.tags = Filter.parse(conf['Tag Filter']);
 			Filter.uploader = Filter.parse(conf['Uploader Filter']);
 		},
-		regex_escape: function (text) {
-			return text.replace(/[\$\(\)\*\+\-\.\/\?\[\\\]\^\{\|\}]/g, "\\$&");
-		},
 		genregex: function (pattern, flags) {
 			if (flags.indexOf("g") < 0) {
 				flags += "g";
@@ -1817,7 +1817,7 @@
 						regex = line;
 						flags = Filter.parse_flags(Filter.regex_default_flags);
 					}
-					regex = new RegExp(Filter.regex_escape(regex), "ig");
+					regex = new RegExp(Helper.regex_escape(regex), "ig");
 
 					filters.push({
 						regex: regex,
