@@ -120,10 +120,10 @@
 
 	// Inspired by 4chan X and jQuery API: https://api.jquery.com/ (functions are not chainable)
 	$ = function (selector, root) {
-		return (root || d.body).querySelector(selector);
+		return (root || d).querySelector(selector);
 	};
 	$$ = function (selector, root) {
-		return Array.prototype.slice.call((root || d.body).querySelectorAll(selector));
+		return (root || d).querySelectorAll(selector);
 	};
 	$.extend = function (obj, properties) {
 		for (var k in properties) {
@@ -3545,8 +3545,8 @@
 			for (i = 0, ii = queue.length; i < ii; ++i) {
 				uid = queue[i];
 				data = Database.get(uid);
-				links = Parser.unformatted(uid);
 				if (data) {
+					links = Parser.unformatted(uid);
 					if (!data.hasOwnProperty('error')) {
 						Debug.value.add('formatlinks');
 						for (j = 0, jj = links.length; j < jj; ++j) {
@@ -3818,16 +3818,14 @@
 						linkified = true;
 
 						prelinks = $$(Parser.prelinks, post);
-						if (prelinks) {
-							for (j = 0, jj = prelinks.length; j < jj; ++j) {
-								prelink = prelinks[j];
-								if (regex.url.test(prelink.href)) {
-									prelink.classList.add('exlink');
-									prelink.classList.add('exgallery');
-									prelink.classList.add('exunprocessed');
-									prelink.style.textDecoration = 'none';
-									prelink.setAttribute('target', '_blank');
-								}
+						for (j = 0, jj = prelinks.length; j < jj; ++j) {
+							prelink = prelinks[j];
+							if (regex.url.test(prelink.href)) {
+								prelink.classList.add('exlink');
+								prelink.classList.add('exgallery');
+								prelink.classList.add('exunprocessed');
+								prelink.style.textDecoration = 'none';
+								prelink.setAttribute('target', '_blank');
 							}
 						}
 						Parser.linkify(post);
@@ -3977,7 +3975,7 @@
 								nodelist.push($(Parser.postbody, node));
 							}
 							else if (node.classList.contains('thread')) { // support 4chan's new index pages
-								nodelist = nodelist.concat($$(Parser.postbody, node));
+								$.push_many(nodelist, $$(Parser.postbody, node));
 							}
 						}
 						else if (node.nodeName === 'ARTICLE') {
