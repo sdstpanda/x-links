@@ -311,8 +311,8 @@
 	};
 	UI = {
 		html: {
-			details: function (data) { return '#DETAILS#'; },
-			actions: function (data) { return '#ACTIONS#'; },
+			details: function (data, data_alt) { return '#DETAILS#'; },
+			actions: function (data, data_alt) { return '#ACTIONS#'; },
 			options: function () { return '#OPTIONS#'; },
 			stars: function (data) {
 				var str = '',
@@ -334,19 +334,20 @@
 		},
 		details: function (uid) {
 			var data = Database.get(uid),
-				date, div, frag, tagspace, content, n;
+				data_alt = {},
+				div, frag, tagspace, content, n;
 
 			if (data.title_jpn) {
-				data.jtitle = '<br /><span class="exjptitle">' + data.title_jpn + '</span>';
+				data_alt.jtitle = '<br /><span class="exjptitle">' + data.title_jpn + '</span>';
 			}
 			else {
-				data.jtitle = '';
+				data_alt.jtitle = '';
 			}
-			date = new Date(parseInt(data.posted, 10) * 1000);
-			data.datetext = UI.date(date);
-			data.visible = data.expunged ? 'No' : 'Yes';
 
-			div = $.frag(UI.html.details(data));
+			data_alt.datetext = UI.date(new Date(parseInt(data.posted, 10) * 1000));
+			data_alt.visible = data.expunged ? 'No' : 'Yes';
+
+			div = $.frag(UI.html.details(data, data_alt));
 
 			if ((n = $('.extitle', div)) !== null) {
 				Filter.highlight("title", n, data, null);
@@ -376,9 +377,12 @@
 			}
 		},
 		actions: function (data, link) {
-			var uid, token, key, date, user, sites, tagstring, button, div, tagspace, frag, content, n;
-
-			tagstring = data.tags.join(',');
+			var data_alt = {},
+				tagstring = data.tags.join(','),
+				uid = data.gid,
+				token = data.token,
+				key = data.archiver_key,
+				user, sites, button, div, tagspace, frag, content, n;
 
 			if (conf['Smart Links'] === true) {
 				if (regex.fjord.test(tagstring)) {
@@ -398,12 +402,9 @@
 					}
 				}
 			}
-			uid = data.gid;
-			token = data.token;
-			key = data.archiver_key;
-			date = new Date(parseInt(data.posted, 10) * 1000);
-			data.size = Math.round((data.filesize / 1024 / 1024) * 100) / 100;
-			data.datetext = UI.date(date);
+
+			data_alt.size = Math.round((data.filesize / 1024 / 1024) * 100) / 100;
+			data_alt.datetext = UI.date(new Date(parseInt(data.posted, 10) * 1000));
 			sites = [
 				Config.link(link.href, conf['Torrent Link']),
 				Config.link(link.href, conf['Hentai@Home Link']),
@@ -414,7 +415,7 @@
 				Config.link(link.href, conf['Tag Links'])
 			];
 			user = data.uploader || 'Unknown';
-			data.url = {
+			data_alt.url = {
 				ge: "http://g.e-hentai.org/g/" + uid + "/" + token + "/",
 				ex: "http://exhentai.org/g/" + uid + "/" + token + "/",
 				bt: "http://" + sites[0] + "/gallerytorrents.php?gid=" + uid + "&t=" + token,
@@ -424,11 +425,11 @@
 				user: "http://" + sites[4] + "/uploader/" + user.replace(/\ /g, '+'),
 				stats: "http://" + sites[5] + "/stats.php?gid=" + uid + "&t=" + token
 			};
-			if (regex.site_gehentai.test(data.url.arc) && regex.fjord.test(tagstring)) {
-				data.url.arc = data.url.arc.replace(regex.site_gehentai, 'exhentai');
+			if (regex.site_gehentai.test(data_alt.url.arc) && regex.fjord.test(tagstring)) {
+				data_alt.url.arc = data_alt.url.arc.replace(regex.site_gehentai, 'exhentai');
 			}
 			frag = d.createDocumentFragment();
-			div = $.frag(UI.html.actions(data));
+			div = $.frag(UI.html.actions(data, data_alt));
 
 			if ((n = $('.exuploader', div)) !== null) {
 				Filter.highlight("uploader", n, data, null);
