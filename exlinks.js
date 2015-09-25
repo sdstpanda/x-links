@@ -318,6 +318,22 @@
 		},
 		regex_escape: function (text) {
 			return text.replace(/[\$\(\)\*\+\-\.\/\?\[\\\]\^\{\|\}]/g, "\\$&");
+		},
+		json_parse_safe: function (text, def) {
+			try {
+				return JSON.parse(text);
+			}
+			catch (e) {
+				return def;
+			}
+		},
+		html_parse_safe: function (text, def) {
+			try {
+				return (new DOMParser()).parseFromString(text, "text/html");
+			}
+			catch (e) {
+				return def;
+			}
 		}
 	};
 	UI = {
@@ -740,12 +756,8 @@
 						onload: function (xhr) {
 							var json = null;
 							if (xhr.readyState === 4 && xhr.status === 200) {
-								try {
-									json = JSON.parse(xhr.responseText) || {};
-								}
-								catch (e) {
-									json = {};
-								}
+								json = Helper.json_parse_safe(xhr.responseText) || {};
+
 								if (Object.keys(json).length > 0) {
 									Debug.log([ 'API Response, Time: ' + Debug.timer.stop('apirequest'), json ]);
 									API.response(type, json);
@@ -859,12 +871,7 @@
 				onload: function (xhr) {
 					if (xhr.readyState === 4) {
 						if (xhr.status === 200) {
-							var html = null;
-							try {
-								html = (new DOMParser()).parseFromString(xhr.responseText, "text/html");
-							}
-							catch (e) {}
-
+							var html = Helper.html_parse_safe(xhr.responseText, null);
 							if (html === null) {
 								callback("Error parsing html", null);
 							}
@@ -942,9 +949,8 @@
 			for (i = 0, ii = Cache.type.length; i < ii; ++i) {
 				key = Cache.type.key(i);
 				if (new RegExp("^" + Helper.regex_escape(Main.namespace) + "(gallery|md5|sha1)").test(key)) {
-					json = Cache.type.getItem(key);
-					json = JSON.parse(json);
-					if (Date.now() > json.added + json.TTL) {
+					json = Helper.json_parse_safe(Cache.type.getItem(key));
+					if (!(json && typeof(json) === "object" && Date.now() <= json.added + json.TTL)) {
 						res.push(key);
 					}
 				}
@@ -958,20 +964,14 @@
 			}
 		},
 		get: function (uid, type) {
-			var key, json;
-			if (!type) type = 'gallery';
-			key = Main.namespace + type + '-' + uid;
-			json = Cache.type.getItem(key);
-			if (json) {
-				json = JSON.parse(json);
-				if (Date.now() > json.added + json.TTL) {
-					Cache.type.removeItem(key);
-					return false;
-				}
-				else {
-					return json.data;
-				}
+			var key = Main.namespace + (type || "gallery") + "-" + uid,
+				json = Helper.json_parse_safe(Cache.type.getItem(key));
+
+			if (json && typeof(json) === "object" && Date.now() <= json.added + json.TTL) {
+				return json.data;
 			}
+
+			Cache.type.removeItem(key);
 			return false;
 		},
 		set: function (data, type, hash, ttl) {
@@ -1318,13 +1318,8 @@
 				url: a.href,
 				onload: function (xhr) {
 					var result = [],
-						html = null,
+						html = Helper.html_parse_safe(xhr.responseText, null),
 						links, link, i, ii;
-
-					try {
-						html = (new DOMParser()).parseFromString(xhr.responseText, "text/html");
-					}
-					catch (e) {}
 
 					if (html !== null) {
 						links = $$('div.it5 a,div.id2 a', html);
@@ -1350,8 +1345,8 @@
 				url: a.href,
 				overrideMimeType: "text/plain; charset=x-user-defined",
 				headers: { "Content-Type": "image/jpeg" },
-				onload: function (x) {
-					var sha1 = SHA1.hash(x.responseText);
+				onload: function (xhr) {
+					var sha1 = SHA1.hash(xhr.responseText);
 					a.textContent = Sauce.text('Hashing');
 					a.setAttribute('data-sha1', sha1);
 					Hash.set(sha1, 'md5', md5);
@@ -1724,8 +1719,7 @@
 				for (k in options[i]) {
 					temp = localStorage.getItem(Main.namespace + 'user-' + k);
 					if (temp) {
-						temp = JSON.parse(temp);
-						conf[k] = temp;
+						conf[k] = Helper.json_parse_safe(temp, false);
 					}
 					else {
 						option = JSON.stringify(options[i][k][1]);
@@ -2471,23 +2465,15 @@
 				settings = EasyList.settings,
 				k;
 
-			if (value && typeof(value) === "string") {
-				try {
-					value = JSON.parse(value);
-				}
-				catch (e) {
-					value = null;
-				}
-
-				if (typeof(value) === "object" && value !== null) {
-					for (k in settings) {
-						if (
-							Object.prototype.hasOwnProperty.call(settings, k) &&
-							Object.prototype.hasOwnProperty.call(value, k) &&
-							typeof(settings[k]) === typeof(value[k])
-						) {
-							settings[k] = value[k];
-						}
+			value = Helper.json_parse_safe(value, null);
+			if (value !== null && typeof(value) === "object") {
+				for (k in settings) {
+					if (
+						Object.prototype.hasOwnProperty.call(settings, k) &&
+						Object.prototype.hasOwnProperty.call(value, k) &&
+						typeof(settings[k]) === typeof(value[k])
+					) {
+						settings[k] = value[k];
 					}
 				}
 			}
