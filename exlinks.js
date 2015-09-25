@@ -1195,14 +1195,42 @@
 			Cache.type.setItem(key, JSON.stringify(value));
 		},
 		load: function () {
-			var key, data, i, ii;
+			var re_matcher = new RegExp("^" + Helper.regex_escape(Main.namespace) + "gallery"),
+				key, data, i, ii;
+
 			for (i = 0, ii = Cache.type.length; i < ii; ++i) {
 				key = Cache.type.key(i);
-				if (new RegExp(Helper.regex_escape(Main.namespace) + "gallery").test(key)) {
+				if (re_matcher.test(key)) {
 					data = Cache.get(/\d+/.exec(key));
 					if (data) Database.set(data);
 				}
 			}
+		},
+		clear: function () {
+			var re_matcher = new RegExp("^" + Helper.regex_escape(Main.namespace) + "gallery"),
+				types = [ window.localStorage, window.sessionStorage ],
+				results = [],
+				remove, type, key, i, ii, j, jj;
+
+			for (i = 0, ii = types.length; i < ii; ++i) {
+				type = types[i];
+				remove = [];
+
+				for (j = 0, jj = type.length; j < jj; ++j) {
+					key = type.key(i);
+					if (re_matcher.test(key)) {
+						remove.push(key);
+					}
+				}
+
+				for (j = 0, jj = remove.length; j < jj; ++j) {
+					type.removeItem(remove[j]);
+				}
+
+				results.push(jj);
+			}
+
+			return results;
 		}
 	};
 	Database = $.extend({}, {
@@ -1668,35 +1696,44 @@
 			$.remove($.id('exlinks-overlay'));
 			d.body.style.overflow = 'visible';
 		},
-		toggle: function () {
+		on_change: function () {
 			var option = this,
 				type = option.getAttribute('type'),
+				name = option.name,
 				domain;
 
-			if (type === 'checkbox') {
-				tempconf[option.name] = (option.checked ? true : false);
-			}
-			else if (type === 'domain' || type === 'saucedomain') {
+			if (!(name in tempconf)) return;
+
+			if (option.tagName === "SELECT") {
 				domain = {
 					"1": fetch.original,
 					"2": fetch.gehentai,
 					"3": fetch.exhentai
 				};
-				tempconf[option.name] = domain[option.value];
+				tempconf[name] = domain[option.value];
 			}
-			else if (type === 'text' || option.tagName === "TEXTAREA") {
-				tempconf[option.name] = option.value;
+			else if (type === "checkbox") {
+				tempconf[name] = (option.checked ? true : false);
+			}
+			else if (type === "text" || option.tagName === "TEXTAREA") {
+				tempconf[name] = option.value;
+			}
+		},
+		on_data_clear: function (event) {
+			if (!event.which || event.which === 1) {
+				event.preventDefault();
+				var clears = Cache.clear();
+				Debug.log("Cleared cache; localStorage=" + clears[0] + "; sessionStorage=" + clears[1]);
+				this.textContent = "Cleared!";
 			}
 		},
 		open: function () {
 			pageconf = JSON.parse(JSON.stringify(tempconf));
 
-			var overlay = $.frag(UI.html.options()),
-				over = overlay.firstChild,
-				frag = d.createDocumentFragment(),
-				gen;
+			var frag = $.frag(UI.html.options()),
+				over = frag.firstChild;
 
-			$.add(frag, overlay);
+			Theme.apply(frag);
 			$.add(d.body, frag);
 			$.on($.id('exlinks-options-save'), 'click', Options.save);
 			$.on($.id('exlinks-options-cancel'), 'click', Options.close);
@@ -1704,75 +1741,93 @@
 			$.on($.id('exlinks-options'), 'click', function (e) { e.stopPropagation(); });
 			d.body.style.overflow = 'hidden';
 
-			gen = function (target, obj) {
-				var theme = Theme.get(),
-					desc, tr, type, value, i;
-				for (i in obj) {
-					desc = obj[i][2];
-					type = obj[i][0];
-					value = tempconf[i];
+			Options.gen($.id('exlinks-options-general'), options.general);
+			Options.gen($.id('exlinks-options-actions'), options.actions);
+			Options.gen($.id('exlinks-options-sauce'), options.sauce);
+			Options.gen($.id('exlinks-options-domains'), options.domains);
+			Options.gen($.id('exlinks-options-debug'), options.debug, {
+				"Clear Stored Data": [ "button", false, "Clear all stored data <em>except</em> for settings", "Clear", Options.on_data_clear ],
+			});
+			Options.gen($.id('exlinks-options-filter'), options.filter);
+			$.on($("input.exlinks-options-color-input[type=color]"), 'change', Filter.settings_color_change);
+		},
+		gen: function (target) {
+			var theme = Theme.get(),
+				desc, tr, type, value, obj, key, i, ii;
+
+			for (i = 1, ii = arguments.length; i < ii; ++i) {
+				obj = arguments[i];
+				for (key in obj) {
+					desc = obj[key][2];
+					type = obj[key][0];
+					value = tempconf[key];
 					tr = $.create('tr', { className: theme.trim() });
 					if (type === 'checkbox') {
 						tr.innerHTML = [
 							'<td>',
-							'<input class="exlinks-options-checkbox" type="checkbox" id="' + i + '" name="' + i + '" />',
-							'<label for="' + i + '"><b>' + i + ':</b> ' + desc + '</label>',
+							'<input class="exlinks-options-checkbox extheme" type="checkbox" id="' + key + '" name="' + key + '" />',
+							'<label for="' + key + '"><b>' + key + ':</b> ' + desc + '</label>',
 							'</td>'
 						].join('');
 						$('input', tr).checked = value;
-						$.on($('input', tr), 'change', Options.toggle);
+						$.on($('input', tr), 'change', Options.on_change);
 					}
 					else if (type === 'domain') {
 						tr.innerHTML = [
 							'<td>',
-							'<select class="exlinks-options-select" name="' + i + '" type="domain">',
+							'<select class="exlinks-options-select extheme" name="' + key + '">',
 								'<option value="1"' + (value.value === 'Original' ? ' selected' : '') + '>Original</option>',
 								'<option value="2"' + (value.value === domains.gehentai ? ' selected' : '') + '>' + domains.gehentai + '</option>',
 								'<option value="3"' + (value.value === domains.exhentai ? ' selected' : '') + '>' + domains.exhentai + '</option></select>',
-							'<b>' + i + ':</b> ' + desc + '</td>'
+							'<b>' + key + ':</b> ' + desc +
+							'</td>'
 						].join('');
-						$.on($('select', tr), 'change', Options.toggle);
+						$.on($('select', tr), 'change', Options.on_change);
 					}
 					else if (type === 'saucedomain') {
 						tr.innerHTML = [
 							'<td>',
-							'<select class="exlinks-options-select" name="' + i + '" type="domain">',
+							'<select class="exlinks-options-select extheme" name="' + key + '">',
 								'<option value="2"' + (value.value === domains.gehentai ? ' selected' : '') + '>' + domains.gehentai + '</option>',
 								'<option value="3"' + (value.value === domains.exhentai ? ' selected' : '') + '>' + domains.exhentai + '</option></select>',
-							'<b>' + i + ':</b> ' + desc + '</td>'
+							'<b>' + key + ':</b> ' + desc +
+							'</td>'
 						].join('');
-						$.on($('select', tr), 'change', Options.toggle);
+						$.on($('select', tr), 'change', Options.on_change);
 					}
 					else if (type === 'textbox') {
 						tr.innerHTML = [
 							'<td>',
-							'<input class="exlinks-options-textbox" type="text" id="' + i + '" name="' + i + '" />',
-							'<b>' + i + ':</b> ' + desc + '</td>'
+							'<input class="exlinks-options-textbox extheme" type="text" id="' + key + '" name="' + key + '" />',
+							'<b>' + key + ':</b> ' + desc +
+							'</td>'
 						].join('');
 						$('input', tr).value = value;
-						$.on($('input', tr), 'input', Options.toggle);
+						$.on($('input', tr), 'input', Options.on_change);
 					}
 					else if (type === 'textarea') {
 						tr.innerHTML = [
 							'<td>',
-							'<b>' + i + ':</b> ' + desc + '<br />',
-							'<textarea class="exlinks-options-textarea" wrap="off" autocomplete="off" spellcheck="false" id="' + i + '" name="' + i + '"></textarea>',
+							'<b>' + key + ':</b> ' + desc + '<br />',
+							'<textarea class="exlinks-options-textarea extheme" wrap="off" autocomplete="off" spellcheck="false" id="' + key + '" name="' + key + '"></textarea>',
 							'</td>'
 						].join('');
 						$('textarea', tr).value = value;
-						$.on($('textarea', tr), 'input', Options.toggle);
+						$.on($('textarea', tr), 'input', Options.on_change);
+					}
+					else if (type === 'button') {
+						tr.innerHTML = [
+							'<td>',
+							'<button class="exlinks-options-input-button extheme" id="' + key + '" name="' + key + '">' + (obj[key][3] || '') + '</button>',
+							'<b>' + key + ':</b> ' + desc +
+							'</td>'
+						].join('');
+						$.on($('button', tr), 'click', obj[key][4] || Options.on_change);
 					}
 					$.add(target, tr);
+					Theme.apply(tr);
 				}
-			};
-
-			gen($.id('exlinks-options-general'), options.general);
-			gen($.id('exlinks-options-actions'), options.actions);
-			gen($.id('exlinks-options-sauce'), options.sauce);
-			gen($.id('exlinks-options-domains'), options.domains);
-			gen($.id('exlinks-options-debug'), options.debug);
-			gen($.id('exlinks-options-filter'), options.filter);
-			$.on($("input.exlinks-options-color-input[type=color]"), 'change', Filter.settings_color_change);
+			}
 		},
 		init: function () {
 			var oneechan = $.id('OneeChanLink'),
@@ -1780,16 +1835,11 @@
 				conflink, conflink2, arrtop, arrbot;
 
 			Main["4chanX3"] = d.documentElement.classList.contains("fourchan-x");
-			conflink = $.create('a', { title: 'ExLinks Settings', className: 'exlinksOptionsLink entry' });
+			conflink = $.create('a', { title: 'ExLinks Settings', className: 'entry' });
 			$.on(conflink, 'click', Options.open);
 
 			if (Config.mode === '4chan') {
 				if (oneechan) {
-					conflink.setAttribute('style', 'position: fixed; background: url(' + img.options + '); top: 108px; right: 10px; left: auto; width: 15px; height: 15px; opacity: 0.75; z-index: 5;');
-					$.on(conflink, [
-						[ 'mouseover', function () { this.style.opacity = 1.0; } ],
-						[ 'mouseout', function () { this.style.opacity = 0.65; } ]
-					]);
 					$.add(d.body, conflink);
 				}
 				else if (chanss) {
@@ -1873,8 +1923,6 @@
 				Parser.prelinks = 'a:not([onclick])';
 				Parser.image = '.fileinfo';
 			}
-
-			console.log(Config.mode, Parser);
 		},
 		save: function () {
 			for (var i in options) {
@@ -2459,6 +2507,16 @@
 		get: function () {
 			return (Theme.current === "light" ? " extheme" : " extheme extheme-dark");
 		},
+		apply: function (node) {
+			if (Theme.current !== "light") {
+				var nodes = $$(".extheme", node),
+					i, ii;
+
+				for (i = 0, ii = nodes.length; i < ii; ++i) {
+					nodes[i].classList.add("extheme-dark");
+				}
+			}
+		},
 		prepare: function (first) {
 			Theme.update(!first);
 
@@ -2679,7 +2737,7 @@
 						n1.nodeValue = n1.nodeValue.replace(/\]\s*$/, "]") + " [";
 					}
 					else {
-						$.add(navlink, $.tnode("["));
+						$.add(navlink, $.tnode(" ["));
 					}
 
 					n2 = $.create("a", {
@@ -4135,7 +4193,7 @@
 				) {
 					menu = e.addedNodes[0];
 					conflink = $.create('a', {
-						className: 'exlinksOptionsLink entry',
+						className: 'entry',
 						textContent: "ExLinks Settings"
 					});
 					$.on(conflink, 'click', function () {
