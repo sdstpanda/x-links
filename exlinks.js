@@ -3,7 +3,8 @@
 	"use strict";
 
 	var fetch, options, conf, tempconf, pageconf, regex, img, cat, d, t, $, $$,
-		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Filter, Parser, Options, Config, Theme, Main;
+		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Parser, Options, Config, Main,
+		Filter, Theme, EasyList;
 
 	img = {};
 	cat = {
@@ -236,6 +237,17 @@
 			else {
 				elem.removeEventListener(eventlist, handler, false);
 			}
+		},
+		push_many: function (target, new_entries) {
+			var max_push = 1000;
+			if (new_entries.length < max_push) {
+				Array.prototype.push.apply(target, new_entries);
+			}
+			else {
+				for (var i = 0, ii = new_entries.length; i < ii; i += max_push) {
+					Array.prototype.push.apply(target, new_entries.slice(i, i + max_push));
+				}
+			}
 		}
 	});
 	Debug = {
@@ -353,22 +365,14 @@
 
 			// Full info
 			if (conf['Extended Info']) {
-				if (data.full && data.full.version >= API.full_version) {
-					UI.display_full(data);
-				}
-				else {
-					Debug.log("Requesting full info for " + data.gid + "/" + data.token);
-					API.request_full_info(data.gid, data.token, function (err, full_data) {
-						if (err === null) {
-							data.full = full_data;
-							Database.set(data);
-							UI.display_full(data);
-						}
-						else {
-							Debug.log("Error requesting full information: " + err);
-						}
-					});
-				}
+				API.request_full_info(data.gid, data.token, function (err) {
+					if (err === null) {
+						UI.display_full(data);
+					}
+					else {
+						Debug.log("Error requesting full information: " + err);
+					}
+				});
 			}
 		},
 		actions: function (data, link) {
@@ -552,7 +556,7 @@
 				text: function (url) {
 					if (regex.site_exhentai.test(url)) return '[Ex]';
 					if (regex.site_gehentai.test(url)) return '[EH]';
-					return false;
+					return '[?]';
 				}
 			});
 		},
@@ -798,6 +802,13 @@
 			});
 		},
 		request_full_info: function (id, token, cb) {
+			if (Database.check(id)) {
+				var data = Database.get(id);
+				if (data && data.full && data.full.version >= API.full_version) {
+					cb(null, data);
+					return;
+				}
+			}
 			if (API.full_timer === null) {
 				API.execute_full_request(id, token, cb);
 			}
@@ -813,10 +824,23 @@
 			}
 		},
 		execute_full_request: function (id, token, cb) {
-			var callback = function (err, data) {
+			var callback = function (err, full_data) {
 				API.full_timer = setTimeout(API.on_request_full_next, 200);
+
+				var data = Database.get(id);
+				if (data) {
+					data.full = full_data;
+					Database.set(data);
+				}
+				else {
+					err = "Could not update data";
+					data = null;
+				}
+
 				cb(err, data);
 			};
+
+			Debug.log("Requesting full info for " + id + "/" + token);
 
 			GM_xmlhttpRequest({
 				method: 'GET',
@@ -1582,7 +1606,7 @@
 				}
 				else {
 					conflink.innerHTML = 'ExLinks Settings';
-					conflink.setAttribute('style', 'cursor: pointer; ' + conflink.getAttribute('style'));
+					conflink.setAttribute('style', 'cursor: pointer; ' + (conflink.getAttribute('style') || ""));
 					conflink2 = conflink.cloneNode(true);
 					$.on(conflink2, 'click', Options.open);
 					arrtop = [ $.tnode('['), conflink, $.tnode('] ') ];
@@ -1701,6 +1725,7 @@
 			tags: {}
 		},
 		div: d.createElement("div"),
+		regex_default_flags: "color:#ee2200;link-color:#ee2200;",
 		Segment: function (start, end, data) {
 			this.start = start;
 			this.end = end;
@@ -1716,6 +1741,9 @@
 			Filter.tags = Filter.parse(conf['Tag Filter']);
 			Filter.uploader = Filter.parse(conf['Uploader Filter']);
 		},
+		regex_escape: function (text) {
+			return text.replace(/[\$\(\)\*\+\-\.\/\?\[\\\]\^\{\|\}]/g, "\\$&");
+		},
 		genregex: function (pattern, flags) {
 			if (flags.indexOf("g") < 0) {
 				flags += "g";
@@ -1728,26 +1756,51 @@
 			}
 		},
 		parse: function (input) {
-			var filters, lines, i, pos, pos2, flags, line, regex;
-			filters = [];
-			lines = (input || "").split("\n");
+			var filters = [],
+				lines = (input || "").split("\n"),
+				i, pos, pos2, flags, line, regex;
+
 			for (i = 0; i < lines.length; ++i) {
 				line = lines[i].trim();
+				if (line.length === 0) continue;
 				if (line[0] === "/" && (pos = line.lastIndexOf("/")) > 0) {
-					pos2 = line.indexOf(";", pos + 1);
+					++pos;
+					pos2 = line.indexOf(";", pos);
 
-					regex = line.substr(1, pos - 1);
-					flags = (pos2 > 0) ? line.substr(pos + 1, pos2 - pos - 1) : "";
+					regex = line.substr(1, pos - 2);
+					if (pos2 >= 0) {
+						flags = line.substr(pos, pos2 - pos);
+						pos = pos2 + 1;
+					}
+					else {
+						flags = line.substr(pos);
+						pos = line.length;
+					}
 					regex = Filter.genregex(regex, flags);
 
 					if (regex) {
-						pos = Math.max(pos, pos2) + 1;
-						flags = (pos < line.length) ? Filter.parse_flags(line.substr(pos)) : null;
+						flags = Filter.parse_flags((pos < line.length) ? line.substr(pos) : Filter.regex_default_flags);
 						filters.push({
 							regex: regex,
 							flags: flags
 						});
 					}
+				}
+				else if (line[0] !== "#") {
+					if ((pos = line.indexOf(";")) > 0) {
+						regex = line.substr(0, pos);
+						flags = (pos < line.length) ? Filter.parse_flags(line.substr(pos)) : null;
+					}
+					else {
+						regex = line;
+						flags = Filter.parse_flags(Filter.regex_default_flags);
+					}
+					regex = new RegExp(Filter.regex_escape(regex), "ig");
+
+					filters.push({
+						regex: regex,
+						flags: flags
+					});
 				}
 			}
 			return filters;
@@ -1944,11 +1997,16 @@
 			}
 		},
 		check_multiple: function (text, filters, data) {
-			var info, match, i;
-			info = new Filter.MatchInfo();
+			var info = new Filter.MatchInfo(),
+				filter, match, i;
+
 			for (i = 0; i < filters.length; ++i) {
-				match = Filter.check_single(text, filters[i], data);
-				if (match !== false) {
+				filter = filters[i];
+				filter.regex.lastIndex = 0;
+				while (true) {
+					match = Filter.check_single(text, filter, data);
+					if (match === false) break;
+
 					info.any = true;
 					if (match !== true) {
 						info.matches.push(match);
@@ -1963,7 +2021,6 @@
 		check_single: function (text, filter, data) {
 			var list, cat, i, m;
 
-			filter.regex.lastIndex = 0;
 			m = filter.regex.exec(text);
 			if (filter.flags === null) {
 				return (m !== null);
@@ -1992,8 +2049,17 @@
 			// Text filter
 			return (m === null) ? false : new Filter.Segment(m.index, m.index + m[0].length, filter.flags);
 		},
-		check: function (titlenode, data) {
-			var status, str, tags, result, i, info;
+		check: function (titlenode, data, extras) {
+			if (Filter.title === null) return [ Filter.None, null ];
+
+			var filter_uploader = Filter.uploader,
+				filter_tags = Filter.tags,
+				status, str, tags, result, i, info;
+
+			if (extras && extras.length > 0) {
+				filter_uploader = filter_uploader.concat(extras);
+				filter_tags = filter_tags.concat(extras);
+			}
 
 			result = {
 				tags: [],
@@ -2002,13 +2068,13 @@
 			};
 
 			// Title
-			status = Filter.highlight("title", titlenode, data, result.title);
+			status = Filter.highlight("title", titlenode, data, result.title, extras);
 
 			// Uploader
 			if (Filter.uploader.length > 0) {
 				if ((str = data.uploader)) {
 					str = Filter.normalize_api_string(str);
-					info = Filter.check_multiple(str, Filter.uploader, data);
+					info = Filter.check_multiple(str, filter_uploader, data);
 					if (info.any) {
 						Filter.append_match_datas(info, result.uploader);
 						if (info.bad) {
@@ -2025,7 +2091,7 @@
 			if (Filter.tags.length > 0) {
 				if ((tags = data.tags) && tags.length > 0) {
 					for (i = 0; i < tags.length; ++i) {
-						info = Filter.check_multiple(tags[i], Filter.tags, data);
+						info = Filter.check_multiple(tags[i], filter_tags, data);
 						if (info.any) {
 							Filter.append_match_datas(info, result.tags);
 							if (info.bad) {
@@ -2051,32 +2117,26 @@
 
 			return [ status , (status === Filter.None ? null : result) ];
 		},
-		highlight: function (mode, node, data, results) {
+		highlight: function (mode, node, data, results, extras) {
 			if (Filter.title === null) {
 				Filter.init();
 			}
 
-			var filters, info, matches, text, frag, segment, cache, i, t, n1, n2;
+			var no_extras = true,
+				filters = Filter[mode],
+				info, matches, text, frag, segment, cache, i, t, n1, n2;
 
-			filters = Filter[mode];
 			if (filters.length === 0) {
 				return Filter.None;
 			}
-
-			var hl_return = function (bad, node) {
-				if (bad) {
-					node.classList.add("exfilter-bad");
-					return Filter.Bad;
-				}
-				else {
-					node.classList.add("exfilter-good");
-					return Filter.Good;
-				}
-			};
+			if (extras && extras.length > 0) {
+				filters = filters.concat(extras);
+				no_extras = false;
+			}
 
 			// Cache for tags
 			text = node.textContent;
-			if ((cache = Filter.cache[mode]) !== undefined && (n1 = cache[text]) !== undefined) {
+			if (no_extras && (cache = Filter.cache[mode]) !== undefined && (n1 = cache[text]) !== undefined) {
 				if (n1 === null) {
 					return Filter.None;
 				}
@@ -2087,7 +2147,7 @@
 				while ((n2 = n1.firstChild) !== null) {
 					node.appendChild(n2);
 				}
-				return hl_return(n1.classList.contains("exfilter-bad"), node);
+				return Filter.hl_return(n1.classList.contains("exfilter-bad"), node);
 			}
 
 			// Check filters
@@ -2141,7 +2201,7 @@
 			if (cache !== undefined) {
 				cache[text] = node;
 			}
-			return hl_return(info.bad, node);
+			return Filter.hl_return(info.bad, node);
 		},
 		highlight_tag: function (node, link, filter_data) {
 			if (filter_data[0] === Filter.Bad) {
@@ -2188,6 +2248,16 @@
 				n1.appendChild(n2);
 				node.appendChild(n1);
 				Filter.apply_styling(n1, color, background, underline);
+			}
+		},
+		hl_return: function (bad, node) {
+			if (bad) {
+				node.classList.add("exfilter-bad");
+				return Filter.Bad;
+			}
+			else {
+				node.classList.add("exfilter-good");
+				return Filter.Good;
 			}
 		},
 		settings_color_change: function () {
@@ -2348,9 +2418,1007 @@
 			return [ 0 , 0 , 0 , 0 ];
 		}
 	};
+	EasyList = {
+		overlay: null,
+		options_container: null,
+		items_container: null,
+		empty_notification: null,
+		current: [],
+		current_map: {},
+		queue: [],
+		queue_map: {},
+		queue_timer: null,
+		custom_filters: [],
+		node_sort_order_keys: {
+			thread: [ "data-index", 1 ],
+			upload: [ "data-date-uploaded", -1 ],
+			rating: [ "data-rating", -1 ]
+		},
+		display_mode_names: [
+			"full",
+			"compact",
+			"minimal"
+		],
+		settings: {
+			sort_by: "thread",
+			group_by_category: false,
+			group_by_filters: false,
+			custom_filters: "# Custom filters follow the same rules as standard filters\n",
+			display_mode: 0 // 0 = full, 1 = compact, 2 = minimal
+		},
+		settings_save: function () {
+			localStorage.setItem(Main.namespace + "easylist-settings", JSON.stringify(EasyList.settings));
+		},
+		settings_load: function () {
+			// Load
+			var value = localStorage.getItem(Main.namespace + "easylist-settings"),
+				settings = EasyList.settings,
+				k;
+
+			if (value && typeof(value) === "string") {
+				try {
+					value = JSON.parse(value);
+				}
+				catch (e) {
+					value = null;
+				}
+
+				if (typeof(value) === "object" && value !== null) {
+					for (k in settings) {
+						if (
+							Object.prototype.hasOwnProperty.call(settings, k) &&
+							Object.prototype.hasOwnProperty.call(value, k) &&
+							typeof(settings[k]) === typeof(value[k])
+						) {
+							settings[k] = value[k];
+						}
+					}
+				}
+			}
+
+			// Load filters
+			EasyList.load_filters();
+		},
+		init: function () {
+			var mobile_top = true,
+				links = [],
+				navlinks, navlink, is_desktop, link_mod,
+				n1, n2, n3, i, ii;
+
+			if (Config.mode === '4chan') {
+				navlinks = $$(".navLinks");
+				is_desktop = function (node) { return node.classList.contains("desktop"); };
+				link_mod = function (text) { return text; };
+			}
+			else if (Config.mode === 'foolz') {
+				navlinks = $$(".letters");
+				is_desktop = function () { return true; };
+				link_mod = function (text) { return " " + text + " "; };
+			}
+			else {
+				navlinks = [];
+			}
+
+			for (i = 0, ii = navlinks.length; i < ii; ++i) {
+				navlink = navlinks[i];
+				if (is_desktop(navlink)) {
+					// Desktop
+					if ((n1 = navlink.lastChild) !== null && n1.nodeType === 3) { // TEXT_NODE
+						n1.nodeValue = n1.nodeValue.replace(/\]\s*$/, "]") + " [";
+					}
+					else {
+						$.add(navlink, $.tnode("["));
+					}
+
+					n2 = $.create("a", {
+						className: "exlinks-easy-list-link",
+						textContent: link_mod("ExLinks Easy List", true),
+						style: "cursor: pointer;"
+					});
+
+					$.add(navlink, n2);
+					$.add(navlink, $.tnode("]"));
+				}
+				else {
+					// Mobile
+					n1 = $.create("div", {
+						className: "mobile",
+						style: "text-align: center; margin: 0.5em 0;"
+					});
+					n2 = $.create("span", {
+						className: "mobileib button exlinks-easy-list-button"
+					});
+					n3 = $.create("a", {
+						textContent: link_mod("Easy List", false)
+					});
+					$.add(n2, n3);
+					$.add(n1, n2);
+					if (mobile_top) {
+						$.before(navlink, n1);
+					}
+					else {
+						$.after(navlink, n1);
+					}
+
+					mobile_top = false;
+				}
+
+				links.push(n2);
+			}
+
+			for (i = 0, ii = links.length; i < ii; ++i) {
+				$.on(links[i], "click", EasyList.on_open_click);
+			}
+		},
+		create: function () {
+			var theme = Theme.get(),
+				n1, n2, n3, n4, n5;
+
+			// Overlay
+			n1 = $.create("div", {
+				className: "ex-easylist-overlay" + theme
+			});
+			$.on(n1, "click", EasyList.on_overlay_click);
+			$.on(n1, "mousedown", EasyList.on_overlay_mousedown);
+			EasyList.overlay = n1;
+
+			// Content aligner
+			n2 = $.create("div", {
+				className: "ex-easylist-content-align"
+			});
+			$.add(n1, n2);
+
+			// Content
+			n3 = $.create("div", {
+				className: "ex-easylist-content"
+			});
+			$.add(n2, n3);
+
+			n4 = $.create("div", {
+				className: "ex-easylist-content-inner post reply postContainer" + theme
+			});
+			$.on(n4, "click", EasyList.on_overlay_content_mouse_event);
+			$.on(n4, "mousedown", EasyList.on_overlay_content_mouse_event);
+			$.add(n3, n4);
+			n3 = n4;
+
+			$.add(n3, n4 = $.create("div", {
+				className: "ex-easylist-title"
+			}));
+
+			n5 = $.create("span", {
+				className: "ex-easylist-title-text",
+				textContent: "ExLinks Easy List"
+			});
+			$.add(n4, n5);
+			n5 = $.create("span", {
+				className: "ex-easylist-subtitle",
+				textContent: "More porn, less hassle"
+			});
+			$.add(n4, n5);
+
+			// Close
+			$.add(n3, n4 = $.create("div", { className: "ex-easylist-control-links" }));
+
+			$.add(n4, n5 = $.create("a", {
+				className: "ex-easylist-control-link ex-easylist-control-link-options",
+				textContent: "options"
+			}));
+			$.on(n5, "click", EasyList.on_options_click);
+
+			$.add(n4, n5 = $.create("a", {
+				className: "ex-easylist-control-link",
+				textContent: "close"
+			}));
+			$.on(n5, "click", EasyList.on_close_click);
+
+			$.add(n3, $.create("div", { className: "ex-easylist-title-line" }));
+
+			// Options
+			EasyList.options_container = EasyList.create_options(theme);
+			$.add(n3, EasyList.options_container);
+
+			// Empty notification
+			n4 = $.create("div", {
+				className: "ex-easylist-empty-notification ex-easylist-empty-notification-visible",
+				textContent: "No galleries found"
+			});
+			$.add(n3, n4);
+			EasyList.empty_notification = n4;
+
+			// Items list
+			n4 = $.create("div", { className: "ex-easylist-items" + theme });
+			$.add(n3, n4);
+			EasyList.items_container = n4;
+
+			// Setup
+			EasyList.update_display_mode(true);
+		},
+		create_options: function (theme) {
+			var n1, n2, n3, n4, n5, n6, v;
+
+			n1 = $.create("div", { className: "ex-easylist-options" });
+			$.add(n1, n2 = $.create("div", { className: "ex-easylist-option-table" }));
+
+
+			$.add(n2, n3 = $.create("div", { className: "ex-easylist-option-row" }));
+			$.add(n3, n4 = $.create("div", { className: "ex-easylist-option-cell" }));
+			$.add(n4, $.create("span", { className: "ex-easylist-option-title", textContent: "Sort by:" }));
+
+			$.add(n3, n4 = $.create("div", { className: "ex-easylist-option-cell" }));
+
+			v = "thread";
+			$.add(n4, n5 = $.create("label", { className: "ex-easylist-option-label" }));
+			$.add(n5, n6 = $.create("input", {
+				className: "ex-easylist-option-input",
+				name: "ex-easylist-options-sort-by",
+				type: "radio",
+				checked: (EasyList.settings.sort_by === v),
+				value: v
+			}));
+			$.add(n5, $.create("span", { className: "ex-easylist-option-button" + theme, textContent: "Appearance in thread" }));
+			$.on(n6, "change", EasyList.on_option_change.sort_by);
+
+			v = "upload";
+			$.add(n4, n5 = $.create("label", { className: "ex-easylist-option-label" }));
+			$.add(n5, n6 = $.create("input", {
+				className: "ex-easylist-option-input",
+				name: "ex-easylist-options-sort-by",
+				type: "radio",
+				checked: (EasyList.settings.sort_by === v),
+				value: v
+			}));
+			$.add(n5, $.create("span", { className: "ex-easylist-option-button" + theme, textContent: "Upload date" }));
+			$.on(n6, "change", EasyList.on_option_change.sort_by);
+
+			v = "rating";
+			$.add(n4, n5 = $.create("label", { className: "ex-easylist-option-label" }));
+			$.add(n5, n6 = $.create("input", {
+				className: "ex-easylist-option-input",
+				name: "ex-easylist-options-sort-by",
+				type: "radio",
+				checked: (EasyList.settings.sort_by === v),
+				value: v
+			}));
+			$.add(n5, $.create("span", { className: "ex-easylist-option-button" + theme, textContent: "Rating" }));
+			$.on(n6, "change", EasyList.on_option_change.sort_by);
+
+
+			$.add(n2, n3 = $.create("div", { className: "ex-easylist-option-row" }));
+			$.add(n3, n4 = $.create("div", { className: "ex-easylist-option-cell" }));
+			$.add(n4, $.create("span", { className: "ex-easylist-option-title", textContent: "Group by:" }));
+
+			$.add(n3, n4 = $.create("div", { className: "ex-easylist-option-cell" }));
+
+			$.add(n4, n5 = $.create("label", { className: "ex-easylist-option-label" }));
+			$.add(n5, n6 = $.create("input", { className: "ex-easylist-option-input", type: "checkbox", checked: EasyList.settings.group_by_filters }));
+			$.add(n5, $.create("span", { className: "ex-easylist-option-button" + theme, textContent: "Filters" }));
+			$.on(n6, "change", EasyList.on_option_change.group_by_filters);
+
+			$.add(n4, n5 = $.create("label", { className: "ex-easylist-option-label" }));
+			$.add(n5, n6 = $.create("input", { className: "ex-easylist-option-input", type: "checkbox", checked: EasyList.settings.group_by_category }));
+			$.add(n5, $.create("span", { className: "ex-easylist-option-button" + theme, textContent: "Category" }));
+			$.on(n6, "change", EasyList.on_option_change.group_by_category);
+
+
+			$.add(n2, n3 = $.create("div", { className: "ex-easylist-option-row" }));
+			$.add(n3, n4 = $.create("div", { className: "ex-easylist-option-cell" }));
+			$.add(n4, $.create("span", { className: "ex-easylist-option-title", textContent: "Display mode:" }));
+
+			$.add(n3, n4 = $.create("div", { className: "ex-easylist-option-cell" }));
+
+			v = 0;
+			$.add(n4, n5 = $.create("label", { className: "ex-easylist-option-label" }));
+			$.add(n5, n6 = $.create("input", {
+				className: "ex-easylist-option-input",
+				name: "ex-easylist-options-display",
+				type: "radio",
+				checked: (EasyList.settings.display_mode === v),
+				value: "" + v
+			}));
+			$.add(n5, $.create("span", { className: "ex-easylist-option-button" + theme, textContent: "Full" }));
+			$.on(n6, "change", EasyList.on_option_change.display_mode);
+
+			v = 1;
+			$.add(n4, n5 = $.create("label", { className: "ex-easylist-option-label" }));
+			$.add(n5, n6 = $.create("input", {
+				className: "ex-easylist-option-input",
+				name: "ex-easylist-options-display",
+				type: "radio",
+				checked: (EasyList.settings.display_mode === v),
+				value: "" + v
+			}));
+			$.add(n5, $.create("span", { className: "ex-easylist-option-button" + theme, textContent: "Compact" }));
+			$.on(n6, "change", EasyList.on_option_change.display_mode);
+
+			v = 2;
+			$.add(n4, n5 = $.create("label", { className: "ex-easylist-option-label" }));
+			$.add(n5, n6 = $.create("input", {
+				className: "ex-easylist-option-input",
+				name: "ex-easylist-options-display",
+				type: "radio",
+				checked: (EasyList.settings.display_mode === v),
+				value: "" + v
+			}));
+			$.add(n5, $.create("span", { className: "ex-easylist-option-button" + theme, textContent: "Minimal" }));
+			$.on(n6, "change", EasyList.on_option_change.display_mode);
+
+
+
+			$.add(n2, n3 = $.create("div", { className: "ex-easylist-option-row" }));
+			$.add(n3, n4 = $.create("div", { className: "ex-easylist-option-cell" }));
+			$.add(n4, $.create("span", { className: "ex-easylist-option-title", textContent: "Custom filters:" }));
+
+			$.add(n3, n4 = $.create("div", { className: "ex-easylist-option-cell" }));
+			$.add(n4, n6 = $.create("textarea", { className: "ex-easylist-option-textarea" + theme, value: EasyList.settings.custom_filters, wrap: "off", spellcheck: false, autocomplete: "off" }));
+			$.on(n6, "change", EasyList.on_option_change.custom_filters);
+			$.on(n6, "input", EasyList.on_option_change.custom_filters_input);
+
+
+			$.add(n1, $.create("div", { className: "ex-easylist-title-line" }));
+
+			return n1;
+		},
+		enable: function () {
+			var n = d.body;
+			if (EasyList.overlay.parentNode !== n) {
+				n.appendChild(EasyList.overlay);
+			}
+			d.documentElement.classList.add("ex-easylist-overlaying");
+
+			// Focus
+			n = document.createElement("textarea");
+			$.add(EasyList.overlay, n);
+			n.focus();
+			n.blur();
+			$.remove(n);
+
+			// Scroll to top
+			EasyList.overlay.scrollTop = 0;
+			EasyList.overlay.scrollLeft = 0;
+		},
+		disable: function () {
+			if (EasyList.overlay.parentNode !== null) {
+				EasyList.overlay.parentNode.removeChild(EasyList.overlay);
+			}
+			d.documentElement.classList.remove("ex-easylist-overlaying");
+
+			EasyList.set_options_visible(false);
+
+			Main.off_linkify(EasyList.on_linkify);
+		},
+		populate: function () {
+			EasyList.on_linkify(Main.get_linkified_links());
+			Main.on_linkify(EasyList.on_linkify);
+		},
+		set_empty: function (empty) {
+			if (EasyList.empty_notification !== null) {
+				var cls = "ex-easylist-empty-notification-visible";
+				if (empty !== EasyList.empty_notification.classList.contains(cls)) {
+					EasyList.empty_notification.classList.toggle(cls);
+				}
+			}
+		},
+		get_options_visible: function () {
+			return EasyList.options_container.classList.contains("ex-easylist-options-visible");
+		},
+		set_options_visible: function (visible) {
+			var n = $(".ex-easylist-control-link-options", EasyList.overlay),
+				cl, cls;
+
+			if (n !== null) {
+				cl = n.classList;
+				cls = "ex-easylist-control-link-focus";
+				if (cl.contains(cls) !== visible) cl.toggle(cls);
+			}
+
+			cl = EasyList.options_container.classList;
+			cls = "ex-easylist-options-visible";
+			if (cl.contains(cls) !== visible) cl.toggle(cls);
+		},
+		create_gallery_nodes: function (data, theme, index) {
+			var site = "exhentai.org",
+				url_base = "http://" + site,
+				url = url_base + "/g/" + data.gid + "/" + data.token + "/",
+				hl_res, n1, n2, n3, n4, n5, n6, n7, i;
+
+			n1 = $.create("div", { className: "ex-easylist-item" + theme });
+			n1.setAttribute("data-index", index);
+			n1.setAttribute("data-gid", data.gid);
+			n1.setAttribute("data-token", data.token);
+			n1.setAttribute("data-rating", data.rating);
+			n1.setAttribute("data-date-uploaded", data.posted);
+			n1.setAttribute("data-category", data.category.toLowerCase());
+			n1.setAttribute("data-site", site);
+
+			$.add(n1, n2 = $.create("div", { className: "ex-easylist-item-table-container" + theme }));
+			$.add(n2, n3 = $.create("div", { className: "ex-easylist-item-table" + theme }));
+			n2 = n3;
+			$.add(n2, n3 = $.create("div", { className: "ex-easylist-item-row" + theme }));
+			$.add(n3, n4 = $.create("div", { className: "ex-easylist-item-cell ex-easylist-item-cell-image" + theme }));
+
+			// Image
+			$.add(n4, n5 = $.create("a", {
+				className: "ex-easylist-item-image-container" + theme,
+				href: url,
+				target: "_blank"
+			}));
+
+			$.add(n5, n6 = $.create("div", {
+				className: "ex-easylist-item-image-outer" + theme
+			}));
+
+			$.add(n6, n7 = $.create("img", {
+				className: "ex-easylist-item-image" + theme,
+				src: data.thumb,
+				alt: "",
+				title: ""
+			}));
+			$.on(n7, "error", EasyList.on_thumbnail_error);
+
+			$.add(n6, $.create("span", {
+				className: "ex-easylist-item-image-index" + theme,
+				textContent: "#" + (index + 1)
+			}));
+
+
+			// Main content
+			$.add(n3, n4 = $.create("div", { className: "ex-easylist-item-cell" + theme }));
+
+			$.add(n4, n5 = $.create("div", {
+				className: "ex-easylist-item-title" + theme
+			}));
+
+			$.add(n5, n6 = $.create("a", {
+				className: "ex-easylist-item-title-tag-link" + theme,
+				textContent: UI.button.text(site),
+				href: url,
+				target: "_blank"
+			}));
+			n6.setAttribute("data-original", n6.textContent);
+
+			$.add(n5, n6 = $.create("a", {
+				className: "ex-easylist-item-title-link" + theme,
+				innerHTML: data.title,
+				href: url,
+				target: "_blank"
+			}));
+			n6.setAttribute("data-original", n6.textContent);
+
+			if (data.title_jpn) {
+				$.add(n4, n5 = $.create("span", {
+					className: "ex-easylist-item-title-jp" + theme,
+					innerHTML: data.title_jpn
+				}));
+				n5.setAttribute("data-original", n5.textContent);
+			}
+
+			$.add(n4, n5 = $.create("div", { className: "ex-easylist-item-upload-info" + theme }));
+			$.add(n5, $.tnode("Uploaded by "));
+			$.add(n5, n6 = $.create("a", {
+				className: "ex-easylist-item-uploader" + theme,
+				textContent: data.uploader,
+				href: url_base + "/uploader/" + data.uploader,
+				target: "_blank"
+			}));
+			n6.setAttribute("data-original", n6.textContent);
+			$.add(n5, $.tnode(" on "));
+			$.add(n5, $.create("span", {
+				className: "ex-easylist-item-upload-date" + theme,
+				textContent: UI.date(new Date(parseInt(data.posted, 10) * 1000))
+			}));
+
+			$.add(n4, n5 = $.create("div", { className: "ex-easylist-item-tags" + theme }));
+
+			n6 = EasyList.create_full_tags(site, data, theme);
+			$.add(n5, n6[0]);
+			if (!n6[1]) {
+				$.on(n1, "mouseover", EasyList.on_gallery_mouseover);
+			}
+
+
+			// Right sidebar
+			$.add(n3, n4 = $.create("div", { className: "ex-easylist-item-cell ex-easylist-item-cell-side" + theme }));
+
+			$.add(n4, n5 = $.create("div", {
+				className: "ex-easylist-item-info" + theme,
+			}));
+
+			$.add(n5, n6 = $.create("a", {
+				className: "ex-easylist-item-info-button btn btn-eh btn-" + cat[data.category].short + theme,
+				href: url_base + "/" +  cat[data.category].short,
+				target: "_blank"
+			}));
+			$.add(n6, $.create("div", {
+				className: "noise",
+				textContent: cat[data.category].name
+			}));
+
+
+			$.add(n5, n6 = $.create("div", {
+				className: "ex-easylist-item-info-item ex-easylist-item-info-item-rating" + theme
+			}));
+			$.add(n6, $.create("div", {
+				innerHTML: UI.html.stars(data.rating)
+			}));
+			$.add(n6, $.create("span", {
+				className: "ex-easylist-item-info-light",
+				textContent: "(Avg: " + (parseFloat(data.rating) || 0).toFixed(2) + ")"
+			}));
+
+
+			$.add(n5, n6 = $.create("div", {
+				className: "ex-easylist-item-info-item ex-easylist-item-info-item-files" + theme
+			}));
+			i = parseInt(data.filecount, 10) || 0;
+			$.add(n6, $.create("span", {
+				textContent: i + " image" + (i === 1 ? "" : "s")
+			}));
+			$.add(n6, $.create("br"));
+			i = (data.filesize / 1024 / 1024).toFixed(2).replace(/\.?0+$/, "");
+			$.add(n6, $.create("span", {
+				className: "ex-easylist-item-info-light",
+				textContent: "(" + i + " MB)"
+			}));
+
+			// Highlight
+			hl_res = EasyList.update_filters(n1, data, true, false, true);
+			EasyList.tag_filtering_results(n1, hl_res);
+
+			return n1;
+		},
+		create_full_tags: function (site, data, theme) {
+			var url_base = "http://" + site,
+				n1 = $.create("div", { className: "ex-easylist-item-tag-table" + theme }),
+				namespace_style = "",
+				all_tags = { "": data.tags },
+				namespace, tags, n2, n3, n4, i, ii;
+
+			if (data.full && data.full.version >= API.full_version && Object.keys(data.full.tags).length > 0) {
+				all_tags = data.full.tags;
+			}
+
+			for (namespace in all_tags) {
+				tags = all_tags[namespace];
+
+				$.add(n1, n2 = $.create("div", {
+					className: "ex-easylist-item-tag-row" + theme
+				}));
+
+				if (namespace !== "") {
+					namespace_style = " extag-namespace extag-namespace-" + namespace.replace(/\ /g, "-");
+					$.add(n2, n3 = $.create("div", {
+						className: "ex-easylist-item-tag-cell ex-easylist-item-tag-cell-label" + theme
+					}));
+					$.add(n3, n4 = $.create("span", {
+						className: "extag-block-namespace extag-block-namespace-no-outline" + namespace_style + theme
+					}));
+					$.add(n4, $.create("span", {
+						textContent: namespace,
+						className: "extag-block-namespace-tag"
+					}));
+					$.add(n3, $.tnode(":"));
+				}
+
+				$.add(n2, n3 = $.create("div", {
+					className: "ex-easylist-item-tag-cell" + theme
+				}));
+				n2 = n3;
+
+				for (i = 0, ii = tags.length; i < ii; ++i) {
+					$.add(n2, n3 = $.create("span", {
+						className: "extag-block" + namespace_style
+					}));
+					$.add(n3, n4 = $.create("a", {
+						textContent: tags[i],
+						className: "exlink extag extag-color-inherit ex-easylist-item-tag",
+						href: url_base + "/tag/" + tags[i].replace(/\ /g, "+"),
+						target: "_blank"
+					}));
+					n4.setAttribute("data-original", n4.textContent);
+
+					if (i < ii - 1) $.add(n3, $.tnode(","));
+				}
+			}
+
+			return [ n1, namespace !== "" ];
+		},
+		add_gallery: function (gid, theme) {
+			var data = Database.get(gid),
+				info, n;
+
+			delete EasyList.queue_map[gid];
+
+			if (data !== null) {
+				n = EasyList.create_gallery_nodes(data, theme, EasyList.current.length);
+				info = {
+					gid: gid,
+					node: n
+				};
+
+				EasyList.current_map[gid] = info;
+				EasyList.current.push(info);
+
+				$.add(EasyList.items_container, n);
+			}
+		},
+		add_gallery_complete: function () {
+			EasyList.set_empty(EasyList.current.length === 0);
+
+			var set = EasyList.settings;
+			if (set.group_by_category || set.group_by_filters || set.sort_by !== "thread") {
+				EasyList.update_ordering();
+			}
+		},
+		tag_filtering_results: function (node, hl_results) {
+			var list, bad, i, ii, k;
+			for (k in hl_results) {
+				list = hl_results[k];
+				bad = 0;
+				for (i = 0, ii = list.length; i < ii; ++i) {
+					if (list[i].bad) ++bad;
+				}
+
+				node.setAttribute("data-filter-matches-" + k, list.length - bad);
+				node.setAttribute("data-filter-matches-" + k + "-bad", bad);
+			}
+		},
+		get_category_ordering: function () {
+			var cat_order = {},
+				i = 0,
+				k;
+
+			for (k in cat) {
+				cat_order[cat[k].short] = i;
+				++i;
+			}
+			cat_order[""] = i;
+
+			return cat_order;
+		},
+		get_node_filter_group: function (node) {
+			var v1 = parseInt(node.getAttribute("data-filter-matches-title"), 10) || 0,
+				v2 = parseInt(node.getAttribute("data-filter-matches-title-bad"), 10) || 0,
+				v3 = parseInt(node.getAttribute("data-filter-matches-uploader"), 10) || 0,
+				v4 = parseInt(node.getAttribute("data-filter-matches-uploader-bad"), 10) || 0,
+				v5 = parseInt(node.getAttribute("data-filter-matches-tags"), 10) || 0,
+				v6 = parseInt(node.getAttribute("data-filter-matches-tags-bad"), 10) || 0;
+
+			v2 += v4 + v6;
+			if (v2 > 0) return -v2;
+			return v1 + v3 + v5;
+		},
+		get_node_category_group: function (node, ordering) {
+			var k = node.getAttribute("data-category") || "";
+			return ordering[k in ordering ? k : ""];
+		},
+		update_display_mode: function (first) {
+			var list = EasyList.display_mode_names,
+				mode = list[EasyList.settings.display_mode] || "",
+				cl = EasyList.items_container.classList,
+				i, ii;
+
+			if (!first) {
+				for (i = 0, ii = list.length; i < ii; ++i) {
+					cl.remove("ex-easylist-" + list[i]);
+				}
+			}
+
+			cl.add("ex-easylist-" + mode);
+		},
+		update_ordering: function () {
+			var items = [],
+				list = EasyList.current,
+				mode = EasyList.settings.sort_by,
+				ordering, base_array, item, attr, cat_order, par, n, n2, i, ii;
+
+			// Grouping
+			if (EasyList.settings.group_by_filters) {
+				if (EasyList.settings.group_by_category) {
+					cat_order = EasyList.get_category_ordering();
+					base_array = function (node) {
+						return [ EasyList.get_node_filter_group(node), EasyList.get_node_category_group(node, cat_order) ];
+					};
+					ordering = [ -1, 1 ];
+				}
+				else {
+					base_array = function (node) {
+						return [ EasyList.get_node_filter_group(node) ];
+					};
+					ordering = [ -1 ];
+				}
+			}
+			else if (EasyList.settings.group_by_category) {
+				cat_order = EasyList.get_category_ordering();
+				base_array = function (node) {
+					return [ EasyList.get_node_category_group(node, cat_order) ];
+				};
+				ordering = [ 1 ];
+			}
+			else {
+				base_array = function () { return []; };
+				ordering = [];
+			}
+
+			// Iterate
+			attr = EasyList.node_sort_order_keys[mode in EasyList.node_sort_order_keys ? mode : "thread"];
+			ordering.push(attr[1], 1);
+			attr = attr[0];
+			for (i = 0, ii = list.length; i < ii; ++i) {
+				n = list[i].node;
+				item = {
+					order: base_array(n),
+					node: n
+				};
+				item.order.push(
+					parseFloat(n.getAttribute(attr)) || 0,
+					parseFloat(n.getAttribute("data-index")) || 0
+				);
+				items.push(item);
+			}
+
+			// Sort
+			items.sort(function (a, b) {
+				var x, y, i, ii;
+				a = a.order;
+				b = b.order;
+				for (i = 0, ii = a.length; i < ii; ++i) {
+					x = a[i];
+					y = b[i];
+					if (x < y) return -ordering[i];
+					if (x > y) return ordering[i];
+				}
+				return 0;
+			});
+
+			// Re-insert
+			// Maybe eventually add labels
+			par = EasyList.items_container;
+			for (i = 0, ii = items.length; i < ii; ++i) {
+				n = items[i].node;
+				par.appendChild(n);
+				if ((n2 = n.querySelector(".ex-easylist-item-image-index")) !== null) {
+					n2.textContent = "#" + (i + 1);
+				}
+			}
+		},
+		update_filters: function (node, data, first, tags_only, get_results) {
+			var results1 = null,
+				results2 = null,
+				results3 = null,
+				ret = null,
+				targets, nodes, mode, results, link, hl, n, i, ii, j, jj;
+
+			if (get_results) {
+				results1 = [];
+				results2 = [];
+				results3 = [];
+				ret = {
+					title: results1,
+					uploader: results2,
+					tags: results3
+				};
+			}
+
+			targets = [
+				[ ".ex-easylist-item-title-link", "title", results1 ],
+				[ ".ex-easylist-item-title-jp", "title", results1 ],
+				[ ".ex-easylist-item-uploader", "uploader", results2 ],
+				[ ".ex-easylist-item-tag", "tags", results3 ],
+			];
+
+			for (i = (tags_only ? 3 : 0), ii = targets.length; i < ii; ++i) {
+				nodes = node.querySelectorAll(targets[i][0]);
+				mode = targets[i][1];
+				results = targets[i][2];
+				for (j = 0, jj = nodes.length; j < jj; ++j) {
+					n = nodes[j];
+					if (!first) {
+						n.textContent = n.getAttribute("data-original") || "";
+						n.classList.remove("exfilter-good");
+						n.classList.remove("exfilter-bad");
+					}
+					Filter.highlight(mode, n, data, results, EasyList.custom_filters);
+				}
+			}
+
+			if (!tags_only) {
+				link = node.querySelector(".ex-easylist-item-title-link");
+				n = node.querySelector(".ex-easylist-item-title-tag-link");
+
+				if (link !== null && n !== null) {
+					if (!first) {
+						n.textContent = n.getAttribute("data-original") || "";
+						n.classList.remove("exfilter-good");
+						n.classList.remove("exfilter-bad");
+					}
+
+					link = link.cloneNode(true);
+					if ((hl = Filter.check(link, data, EasyList.custom_filters))[0] !== Filter.None) {
+						Filter.highlight_tag(n, link, hl);
+					}
+				}
+			}
+
+			return ret;
+		},
+		update_all_filters: function () {
+			var list = EasyList.current,
+				hl_res, data, i, ii;
+
+			for (i = 0, ii = list.length; i < ii; ++i) {
+				data = Database.get(list[i].gid);
+				if (data) {
+					hl_res = EasyList.update_filters(list[i].node, data, false, false, true);
+					EasyList.tag_filtering_results(list[i].node, hl_res);
+				}
+			}
+		},
+		load_filters: function () {
+			EasyList.custom_filters = Filter.parse(EasyList.settings.custom_filters);
+		},
+		on_option_change: {
+			sort_by: function () {
+				EasyList.settings.sort_by = this.value;
+				EasyList.settings_save();
+				EasyList.update_ordering();
+			},
+			group_by_category: function () {
+				EasyList.settings.group_by_category = this.checked;
+				EasyList.settings_save();
+				EasyList.update_ordering();
+			},
+			group_by_filters: function () {
+				EasyList.settings.group_by_filters = this.checked;
+				EasyList.settings_save();
+				EasyList.update_ordering();
+			},
+			display_mode: function () {
+				EasyList.settings.display_mode = parseInt(this.value) || 0;
+				EasyList.settings_save();
+				EasyList.update_display_mode(false);
+			},
+			custom_filters: function () {
+				if (EasyList.settings.custom_filters !== this.value) {
+					EasyList.settings.custom_filters = this.value;
+					EasyList.settings_save();
+					EasyList.load_filters();
+					EasyList.update_all_filters();
+
+					// Update order
+					if (EasyList.settings.group_by_filters) {
+						EasyList.update_ordering();
+					}
+				}
+			},
+			custom_filters_input: function () {
+				var node = this;
+				if (EasyList.on_option_change.custom_filters_input_delay_timer !== null) {
+					clearTimeout(EasyList.on_option_change.custom_filters_input_delay_timer);
+				}
+				EasyList.on_option_change.custom_filters_input_delay_timer = setTimeout(
+					function () {
+						EasyList.on_option_change.custom_filters_input_delay_timer = null;
+						EasyList.on_option_change.custom_filters.call(node);
+					},
+					1000
+				);
+			},
+			custom_filters_input_delay_timer: null
+		},
+		on_gallery_mouseover: function () {
+			$.off(this, "mouseover", EasyList.on_gallery_mouseover);
+
+			var node = this,
+				tags_container = this.querySelector(".ex-easylist-item-tags"),
+				gid = this.getAttribute("data-gid") || "",
+				token = this.getAttribute("data-token") || "";
+
+			API.request_full_info(gid, token, function (err, data) {
+				if (err === null && tags_container !== null) {
+					var site, n, hl_res;
+					site = node.getAttribute("data-site") || "";
+					n = EasyList.create_full_tags(site, data, Theme.get());
+					tags_container.textContent = "";
+					$.add(tags_container, n[0]);
+
+					hl_res = EasyList.update_filters(tags_container, data, false, true, true);
+					EasyList.tag_filtering_results(node, { tags: hl_res.tags });
+				}
+			});
+		},
+		on_thumbnail_error: function () {
+			$.off(this, "error", EasyList.on_thumbnail_error);
+
+			var par = this.parentNode;
+			if (par === null) return;
+			par.style.width = "100%";
+			par.style.height = "100%";
+			this.style.visibility = "hidden";
+		},
+		on_linkify: function (links) {
+			var link, uid, i, ii;
+
+			for (i = 0, ii = links.length; i < ii; ++i) {
+				link = links[i];
+				if (
+					(uid = regex.uid.exec(link.className)) !== null
+				) {
+					uid = uid[1];
+					if (!(uid in EasyList.queue_map) && !(uid in EasyList.current_map)) {
+						EasyList.queue.push(uid);
+						EasyList.queue_map[uid] = true;
+					}
+				}
+			}
+
+			if (EasyList.queue.length > 0 && EasyList.queue_timer === null) {
+				EasyList.on_timer();
+			}
+		},
+		on_timer: function () {
+			EasyList.queue_timer = null;
+
+			var entries = EasyList.queue.splice(0, 20),
+				theme = Theme.get(),
+				i, ii;
+
+			for (i = 0, ii = entries.length; i < ii; ++i) {
+				EasyList.add_gallery(entries[i], theme);
+			}
+			EasyList.add_gallery_complete();
+
+			if (EasyList.queue.length > 0) {
+				EasyList.queue_timer = setTimeout(EasyList.on_timer, 50);
+			}
+		},
+		on_open_click: function (event) {
+			if (EasyList.overlay === null) {
+				EasyList.settings_load();
+				EasyList.create();
+			}
+			EasyList.enable();
+			EasyList.populate();
+			event.preventDefault();
+			return false;
+		},
+		on_close_click: function (event) {
+			if (!event.which || event.which === 1) {
+				EasyList.disable();
+			}
+		},
+		on_options_click: function (event) {
+			if (!event.which || event.which === 1) {
+				EasyList.set_options_visible(!EasyList.get_options_visible());
+			}
+		},
+		on_overlay_click: function (event) {
+			EasyList.disable();
+
+			event.preventDefault();
+			event.stopPropagation();
+			return false;
+		},
+		on_overlay_mousedown: function (event) {
+			if (!event.which || event.which === 1) {
+				event.preventDefault();
+				event.stopPropagation();
+				return false;
+			}
+		},
+		on_overlay_content_mouse_event: function (event) {
+			if (!event.which || event.which === 1) {
+				event.stopPropagation();
+			}
+		}
+	};
 	Main = {
 		namespace: 'exlinks-',
 		version: '#VERSION#',
+		linkify_event: {
+			queue: [],
+			listeners: []
+		},
 		check: function (uid) {
 			var check = Database.check(uid),
 				links, link, type, token, page, i, ii;
@@ -2455,6 +3523,7 @@
 							button.classList.add('extoggle');
 						}
 					}
+					Main.queue_linkify_event(links, data);
 				}
 				else {
 					Debug.value.add('failed');
@@ -2475,6 +3544,8 @@
 				Debug.log([failtype]);
 				Main.update();
 			}
+
+			Main.trigger_linkify_event();
 		},
 		queue: function () {
 			var arr = [],
@@ -2534,7 +3605,7 @@
 					}
 				}
 			}
-			else if (type === 'g') {
+			if (type === 'g') {
 				if (Database.check(uid)) {
 					Main.queue.add(uid);
 				}
@@ -2780,10 +3851,7 @@
 			var node = e.target,
 				nodelist = [];
 			if (node.nodeName === 'DIV') {
-				if (node.classList.contains('postContainer')) {
-					nodelist.push($(Parser.postbody, node));
-				}
-				else if (node.classList.contains('inline')) {
+				if (node.classList.contains('postContainer') || node.classList.contains('inline')) {
 					nodelist.push($(Parser.postbody, node));
 				}
 			}
@@ -2936,7 +4004,10 @@
 			});
 			$.add(d.head, font);
 			$.add(d.head, style);
+
 			Theme.prepare();
+			EasyList.init();
+
 			Debug.log('Initialization complete. Time: ' + Debug.timer.stop('init'));
 
 			Main.process(nodelist);
@@ -2967,6 +4038,41 @@
 				}
 			});
 			$.on(d, 'DOMContentLoaded', Main.ready);
+		},
+		get_linkified_links: function () {
+			return $$("a.exlink.exgallery[href]");
+		},
+		queue_linkify_event: function (links) {
+			if (Main.linkify_event.listeners.length > 0) {
+				$.push_many(Main.linkify_event.queue, links);
+			}
+		},
+		trigger_linkify_event: function () {
+			if (Main.linkify_event.queue.length > 0) {
+				var queue = Main.linkify_event.queue,
+					list = Main.linkify_event.listeners,
+					i, ii;
+
+				for (i = 0, ii = list.length; i < ii; ++i) {
+					list[i].call(null, queue);
+				}
+
+				Main.linkify_event.queue = [];
+			}
+		},
+		on_linkify: function (callback) {
+			Main.linkify_event.listeners.push(callback);
+		},
+		off_linkify: function (callback) {
+			var list = Main.linkify_event.listeners,
+				i, ii;
+			for (i = 0, ii = list.length; i < ii; ++i) {
+				if (list[i] === callback) {
+					list.splice(i, 1);
+					return true;
+				}
+			}
+			return false;
 		}
 	};
 
