@@ -941,7 +941,7 @@
 
 			for (i = 0, ii = Cache.type.length; i < ii; ++i) {
 				key = Cache.type.key(i);
-				if (/exlinks-(gallery|md5|sha1)/.test(key)) {
+				if (new RegExp("^" + Helper.regex_escape(Main.namespace) + "(gallery|md5|sha1)").test(key)) {
 					json = Cache.type.getItem(key);
 					json = JSON.parse(json);
 					if (Date.now() > json.added + json.TTL) {
@@ -1004,7 +1004,7 @@
 			var key, data, i, ii;
 			for (i = 0, ii = Cache.type.length; i < ii; ++i) {
 				key = Cache.type.key(i);
-				if (new RegExp(Main.namespace + "gallery").test(key)) {
+				if (new RegExp(Helper.regex_escape(Main.namespace) + "gallery").test(key)) {
 					data = Cache.get(/\d+/.exec(key));
 					if (data) Database.set(data);
 				}
