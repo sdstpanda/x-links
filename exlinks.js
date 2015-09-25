@@ -1491,7 +1491,7 @@
 					results = $.create('div', {
 						className: 'exblock exlinks-exsauce-results'
 					});
-					$.add(results, $.create("b", { textContent: "Reverse Image Search Results" }));
+					$.add(results, $.create("strong", { textContent: "Reverse Image Search Results" }));
 					$.add(results, $.tnode(" | View on: "));
 					$.add(results, $.create("a", { href: a.href, textContent: Sauce.label(true) }));
 					$.add(results, $.create("br"));
@@ -1766,7 +1766,7 @@
 						tr.innerHTML = [
 							'<td>',
 							'<input class="exlinks-options-checkbox extheme" type="checkbox" id="' + key + '" name="' + key + '" />',
-							'<label for="' + key + '"><b>' + key + ':</b> ' + desc + '</label>',
+							'<label for="' + key + '"><strong>' + key + ':</strong> ' + desc + '</label>',
 							'</td>'
 						].join('');
 						$('input', tr).checked = value;
@@ -1779,7 +1779,7 @@
 								'<option value="1"' + (value.value === 'Original' ? ' selected' : '') + '>Original</option>',
 								'<option value="2"' + (value.value === domains.gehentai ? ' selected' : '') + '>' + domains.gehentai + '</option>',
 								'<option value="3"' + (value.value === domains.exhentai ? ' selected' : '') + '>' + domains.exhentai + '</option></select>',
-							'<b>' + key + ':</b> ' + desc +
+							'<strong>' + key + ':</strong> ' + desc +
 							'</td>'
 						].join('');
 						$.on($('select', tr), 'change', Options.on_change);
@@ -1790,7 +1790,7 @@
 							'<select class="exlinks-options-select extheme" name="' + key + '">',
 								'<option value="2"' + (value.value === domains.gehentai ? ' selected' : '') + '>' + domains.gehentai + '</option>',
 								'<option value="3"' + (value.value === domains.exhentai ? ' selected' : '') + '>' + domains.exhentai + '</option></select>',
-							'<b>' + key + ':</b> ' + desc +
+							'<strong>' + key + ':</strong> ' + desc +
 							'</td>'
 						].join('');
 						$.on($('select', tr), 'change', Options.on_change);
@@ -1799,7 +1799,7 @@
 						tr.innerHTML = [
 							'<td>',
 							'<input class="exlinks-options-textbox extheme" type="text" id="' + key + '" name="' + key + '" />',
-							'<b>' + key + ':</b> ' + desc +
+							'<strong>' + key + ':</strong> ' + desc +
 							'</td>'
 						].join('');
 						$('input', tr).value = value;
@@ -1808,7 +1808,7 @@
 					else if (type === 'textarea') {
 						tr.innerHTML = [
 							'<td>',
-							'<b>' + key + ':</b> ' + desc + '<br />',
+							'<strong>' + key + ':</strong> ' + desc + '<br />',
 							'<textarea class="exlinks-options-textarea extheme" wrap="off" autocomplete="off" spellcheck="false" id="' + key + '" name="' + key + '"></textarea>',
 							'</td>'
 						].join('');
@@ -1819,7 +1819,7 @@
 						tr.innerHTML = [
 							'<td>',
 							'<button class="exlinks-options-input-button extheme" id="' + key + '" name="' + key + '">' + (obj[key][3] || '') + '</button>',
-							'<b>' + key + ':</b> ' + desc +
+							'<strong>' + key + ':</strong> ' + desc +
 							'</td>'
 						].join('');
 						$.on($('button', tr), 'click', obj[key][4] || Options.on_change);
