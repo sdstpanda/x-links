@@ -175,16 +175,17 @@
 	border-color: #353535 #353535 hsl(321, 0%, 7.5%);
 }
 
-.exactions, .exresults {
-	 max-width: 100%;
-	 width: auto;
-	 padding: 4px;
-	 margin: 3px 0;
-	 border-radius: 4px;
-	 background-color: rgba(0,0,0,0.05) !important;
+.exactions,
+.exlinks-exsauce-results {
+	max-width: 100%;
+	width: auto;
+	padding: 4px;
+	margin: 3px 0;
+	border-radius: 4px;
+	background-color: rgba(0,0,0,0.05) !important;
 }
 
-.exresults {
+.exlinks-exsauce-results {
 	padding: 6px;
 }
 
@@ -194,7 +195,11 @@
 	width: 100%;
 }
 
-.exsauce-no-underline, .exsauce-hover {
+.exsauce {
+	white-space: nowrap;
+}
+
+.exsauce-no-underline, .exlinks-exsauce-hover-link {
 	text-decoration: none !important;
 }
 
@@ -233,7 +238,7 @@ a.exsauce-disabled {
 	width: 60% !important;
 }
 
-.exhover {
+.exlinks-exsauce-hover {
 	opacity: 0.93;
 	position: fixed !important;
 	z-index: 993 !important;

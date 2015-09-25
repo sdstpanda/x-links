@@ -101,10 +101,6 @@
 		url: /(https?:\/\/)?(forums|gu|g|u)?\.?e[\-x]hentai\.org\/[^\ \n<>\'\"]*/i,
 		protocol: /https?\:\/\//,
 		site: /(g\.e\-hentai\.org|exhentai\.org)/i,
-		type: /t?y?p?e?[\/|\-]([gs])[\/|\ ]/,
-		uid: /uid\-([0-9]+)/,
-		token: /token\-([0-9a-f]+)/,
-		page: /page\-([0-9a-f]+)\-([0-9]+)/,
 		gid: /\/g\/([0-9]+)\/([0-9a-f]+)/,
 		sid: /\/s\/([0-9a-f]+)\/([0-9]+)\-([0-9]+)/,
 		fjord: /abortion|bestiality|incest|lolicon|shotacon|toddlercon/,
@@ -135,6 +131,7 @@
 				obj[k] = properties[k];
 			}
 		}
+		return obj;
 	};
 	$.extend($, {
 		clamp: function (value, min, max) {
@@ -247,6 +244,20 @@
 					Array.prototype.push.apply(target, new_entries.slice(i, i + max_push));
 				}
 			}
+		},
+		checked: {
+			prepend: function (parent, child) {
+				if (parent && child) return parent.insertBefore(child, parent.firstChild);
+			},
+			add: function (parent, child) {
+				if (parent && child) return parent.appendChild(child);
+			},
+			before: function (root, elem) {
+				if (root && elem) return root.parentNode.insertBefore(elem, root);
+			},
+			after: function (root, elem) {
+				if (root && elem) return root.parentNode.insertBefore(elem, root.nextSibling);
+			}
 		}
 	});
 	Debug = {
@@ -334,6 +345,98 @@
 			catch (e) {
 				return def;
 			}
+		},
+		get_id_from_node: function (node) {
+			return node.getAttribute("data-exlinks-gid") || "";
+		},
+		get_token_from_node: function (node) {
+			return node.getAttribute("data-exlinks-token") || "";
+		},
+		get_page_from_node: function (node) {
+			return node.getAttribute("data-exlinks-page") || "";
+		},
+		get_page_token_from_node: function (node) {
+			return node.getAttribute("data-exlinks-page-token") || "";
+		},
+		get_type_from_node: function (node) {
+			return node.getAttribute("data-exlinks-type") || "";
+		},
+		get_tag_button_from_link: function (node) {
+			// Assume the button is the previous (or previous-previous) sibling
+			if (
+				(node = node.previousSibling) !== null &&
+				(node.classList || ((node = node.previousSibling) !== null && node.classList)) &&
+				node.classList.contains("exbutton")
+			) {
+				return node;
+			}
+			return null;
+		},
+		get_link_from_tag_button: function (node) {
+			// Assume the link is the next (or next-next) sibling
+			if (
+				(node = node.nextSibling) !== null &&
+				(node.classList || ((node = node.nextSibling) !== null && node.classList)) &&
+				node.classList.contains("exgallery")
+			) {
+				return node;
+			}
+			return null;
+		},
+		get_actions_from_link: function (node, is_tag) {
+			// Get
+			if (is_tag) {
+				node = Helper.get_link_from_tag_button(node);
+				if (node === null) return null;
+			}
+
+			if (
+				(node = node.nextSibling) !== null &&
+				(node.classList || ((node = node.nextSibling) !== null && node.classList)) &&
+				node.classList.contains("exactions")
+			) {
+				return node;
+			}
+			return null;
+		},
+		get_exresults_from_exsauce: function (node) {
+			var container = Helper.get_post_container(node);
+
+			if (
+				container !== null &&
+				(node = $(".exlinks-exsauce-results", container)) !== null &&
+				Helper.get_post_container(node) === container
+			) {
+				return node;
+			}
+			return null;
+		},
+		get_post_container: $.extend(function (node) {
+			return Helper.get_post_container[Config.mode].call(null, node);
+		}, {
+			"4chan": function (node) {
+				while ((node = node.parentNode) !== null) {
+					if (node.classList.contains("postContainer")) return node;
+				}
+				return null;
+			},
+			"foolz": function (node) {
+				while ((node = node.parentNode) !== null) {
+					if (node.tagName === "ARTICLE") return node;
+				}
+				return null;
+			},
+			"38chan": function (node) {
+				while ((node = node.parentNode) !== null) {
+					if (node.classList.contains("post")) return node;
+				}
+				return null;
+			}
+			// "fuuka": function (node) {}
+		}),
+		get_url_type: function (url) {
+			var m = /t?y?p?e?[\/|\-]([gs])[\/|\ ]/.exec(url); // not sure why most of this is here...
+			return (m !== null) ? m[1] : "";
 		}
 	};
 	UI = {
@@ -362,7 +465,7 @@
 		details: function (uid) {
 			var data = Database.get(uid),
 				data_alt = {},
-				div, frag, tagspace, content, n;
+				frag, tagspace, content, n;
 
 			if (data.title_jpn) {
 				data_alt.jtitle = '<br /><span class="exjptitle">' + data.title_jpn + '</span>';
@@ -374,21 +477,20 @@
 			data_alt.datetext = UI.date(new Date(parseInt(data.posted, 10) * 1000));
 			data_alt.visible = data.expunged ? 'No' : 'Yes';
 
-			div = $.frag(UI.html.details(data, data_alt));
+			frag = $.frag(UI.html.details(data, data_alt));
 
-			if ((n = $('.extitle', div)) !== null) {
+			if ((n = $('.extitle', frag)) !== null) {
 				Filter.highlight("title", n, data, null);
 			}
-			if ((n = $('.exuploader', div)) !== null) {
+			if ((n = $('.exuploader', frag)) !== null) {
 				Filter.highlight("uploader", n, data, null);
 			}
 
-			content = div.firstChild;
-			tagspace = $('.extags', div);
+			content = frag.firstChild;
+			tagspace = $('.extags', frag);
 			content.style.setProperty("display", "table", "important");
 			$.add(tagspace, UI.create_tags("exhentai.org", data.tags, data));
-			frag = d.createDocumentFragment();
-			frag.appendChild(div);
+			n = $(".exdetails", frag);
 			d.body.appendChild(frag);
 
 			// Full info
@@ -402,6 +504,9 @@
 					}
 				});
 			}
+
+			// Done
+			return n;
 		},
 		actions: function (data, link) {
 			var data_alt = {},
@@ -415,17 +520,19 @@
 				if (regex.fjord.test(tagstring)) {
 					if (regex.site_gehentai.test(link.href)) {
 						link.href = link.href.replace(regex.site_gehentai, 'exhentai.org');
-						button = $.id(link.id.replace('gallery', 'button'));
-						button.href = link.href;
-						button.textContent = UI.button.text(link.href);
+						if ((button = Helper.get_tag_button_from_link(link)) !== null) {
+							button.href = link.href;
+							button.textContent = UI.button.text(link.href);
+						}
 					}
 				}
 				else {
 					if (regex.site_exhentai.test(link.href)) {
 						link.href = link.href.replace(regex.site_exhentai, 'g.e-hentai.org');
-						button = $.id(link.id.replace('gallery', 'button'));
-						button.href = link.href;
-						button.textContent = UI.button.text(link.href);
+						if ((button = Helper.get_tag_button_from_link(link)) !== null) {
+							button.href = link.href;
+							button.textContent = UI.button.text(link.href);
+						}
 					}
 				}
 			}
@@ -463,16 +570,14 @@
 			}
 
 			content = div.firstChild;
-			content.id = link.id.replace('exlink-gallery', 'exblock-actions');
 			content.style.setProperty("display", conf['Show by Default'] ? "table" : "none", "important");
 			tagspace = $('.extags', div);
 			$.add(tagspace, UI.create_tags(sites[6], data.tags, data));
 			frag.appendChild(div);
 			return frag;
 		},
-		button: function (url, eid) {
+		button: function (url) {
 			var button = $.create('a', {
-				id: eid.replace('gallery', 'button'),
 				className: 'exlink exbutton exfetch',
 				textContent: UI.button.text(url),
 				href: url
@@ -482,47 +587,40 @@
 			button.setAttribute('target', '_blank');
 			return button;
 		},
-		toggle: function (e) {
-			var actions = $.id(this.id.replace('exlink-button', 'exblock-actions'));
-			actions.style.display = (actions.style.display === "none") ? "table" : "none";
-			e.preventDefault();
+		toggle: function (event) {
+			if (!event.which || event.which === 1) {
+				var actions = Helper.get_actions_from_link(this, true);
+				if (actions !== null) {
+					actions.style.display = (actions.style.display === "none") ? "table" : "none";
+				}
+				event.preventDefault();
+			}
 		},
 		show: function () {
-			var uid = regex.uid.exec(this.className),
+			var uid = Helper.get_id_from_node(this),
 				details;
 
 			if (uid === null) return;
-			uid = uid[1];
 			details = $.id('exblock-details-uid-' + uid);
+			if (details === null) details = UI.details(uid);
 
-			if (details) {
-				details.style.display = "table";
-			}
-			else {
-				UI.details(uid);
-			}
+			details.style.display = "table";
 		},
 		hide: function () {
-			var uid = regex.uid.exec(this.className),
+			var uid = Helper.get_id_from_node(this),
 				details;
 
 			if (uid === null) return;
-			uid = uid[1];
 			details = $.id('exblock-details-uid-' + uid);
+			if (details === null) details = UI.details(uid);
 
-			if (details) {
-				details.style.display = "none";
-			}
-			else {
-				UI.details(uid);
-			}
+			details.style.display = "none";
 		},
 		move: function (e) {
-			var uid = regex.uid.exec(this.className),
+			var uid = Helper.get_id_from_node(this),
 				details;
 
 			if (uid === null) return;
-			uid = uid[1];
 			details = $.id('exblock-details-uid-' + uid);
 
 			if (details) {
@@ -610,7 +708,7 @@
 			return tagfrag;
 		},
 		display_full: function (data) {
-			var nodes = document.querySelectorAll(".extags.uid-" + data.gid),
+			var nodes = document.querySelectorAll(".extags.exlinks-gid[data-exlinks-gid='" + data.gid + "']"),
 				tagfrag = d.createDocumentFragment(),
 				namespace, namespace_style, tags, tag, link, site, i, j, n, t, ii;
 
@@ -827,7 +925,7 @@
 		request_full_info: function (id, token, cb) {
 			if (Database.check(id)) {
 				var data = Database.get(id);
-				if (data && data.full && data.full.version >= API.full_version) {
+				if (data && API.data_has_full(data)) {
 					cb(null, data);
 					return;
 				}
@@ -936,6 +1034,9 @@
 			}
 
 			return data;
+		},
+		data_has_full: function (data) {
+			return data.full && data.full.version >= API.full_version;
 		}
 	};
 	Cache = {
@@ -1011,7 +1112,7 @@
 			}
 		}
 	};
-	Database = {}; $.extend(Database, {
+	Database = $.extend({}, {
 		check: function (uid) {
 			var data;
 			if (Database[uid]) {
@@ -1047,14 +1148,7 @@
 			Database[uid] = data;
 			Cache.set(data);
 		},
-		usage: function (uid) {
-			if (!Database.usage.data[uid]) Database.usage.data[uid] = 0;
-			return Database.usage.data[uid]++;
-		},
 		init: function () {
-			$.extend(Database.usage, {
-				data: {}
-			});
 			if (conf['Populate Database on Load'] === true) {
 				Cache.load();
 			}
@@ -1083,8 +1177,7 @@
 		}
 	};
 	SHA1 = {
-		// SHA-1 JS implementation originally created by Chris Verness
-		// http://www.movable-type.co.uk/scripts/sha1.html
+		// SHA-1 JS implementation originally created by Chris Verness; http://movable-type.co.uk/scripts/sha1.html
 		data: function (image) {
 			var string = '',
 				i, ii;
@@ -1181,93 +1274,89 @@
 	};
 	Sauce = {
 		UI: {
-			toggle: function (e) {
-				e.preventDefault();
-				var a = e.target,
-					results = $.id(a.id.replace('exsauce', 'exresults')),
-					sha1 = a.getAttribute('data-sha1'),
+			toggle: function (event) {
+				event.preventDefault();
+
+				var sha1 = this.getAttribute("data-sha1"),
+					results = Helper.get_exresults_from_exsauce(this),
 					hover;
 
-				if (results.style.display === "table") {
-					results.style.display = "none";
-					if (conf['Show Short Results'] === true) {
-						$.on(a, [
-							[ 'mouseover', Sauce.UI.show ],
-							[ 'mousemove', Sauce.UI.move ],
-							[ 'mouseout', Sauce.UI.hide ]
-						]);
+				if (results !== null) {
+					if (results.style.display === "table") {
+						results.style.display = "none";
+						if (conf['Show Short Results'] === true) {
+							$.on(this, [
+								[ 'mouseover', Sauce.UI.show ],
+								[ 'mousemove', Sauce.UI.move ],
+								[ 'mouseout', Sauce.UI.hide ]
+							]);
+						}
+					}
+					else {
+						results.style.display = "table";
+						if (conf['Show Short Results'] === true) {
+							$.off(this, [
+								[ 'mouseover', Sauce.UI.show ],
+								[ 'mousemove', Sauce.UI.move ],
+								[ 'mouseout', Sauce.UI.hide ]
+							]);
+							hover = $.id('exlinks-exsauce-hover-' + sha1);
+							if (hover !== null) {
+								hover.style.setProperty("display", "none", "important");
+							}
+						}
 					}
 				}
-				else {
-					results.style.display = "table";
-					if (conf['Show Short Results'] === true) {
-						$.off(a, [
-							[ 'mouseover', Sauce.UI.show ],
-							[ 'mousemove', Sauce.UI.move ],
-							[ 'mouseout', Sauce.UI.hide ]
-						]);
-						hover = $.id('exhover-' + sha1);
-						hover.style.setProperty("display", "none", "important");
-					}
-				}
 			},
-			show: function (e) {
-				var a = e.target,
-					sha1 = a.getAttribute('data-sha1'),
-					hover = $.id('exhover-' + sha1);
+			show: function () {
+				var sha1 = this.getAttribute("data-sha1"),
+					hover = $.id("exlinks-exsauce-hover-" + sha1);
 
-				if (hover) {
-					hover.style.setProperty("display", "table", "important");
-				}
-				else {
-					Sauce.UI.hover(sha1);
-				}
+				if (hover === null) hover = Sauce.UI.hover(sha1);
+				hover.style.setProperty("display", "table", "important");
 			},
-			hide: function (e) {
-				var a = e.target,
-					sha1 = a.getAttribute('data-sha1'),
-					hover = $.id('exhover-' + sha1);
+			hide: function () {
+				var sha1 = this.getAttribute("data-sha1"),
+					hover = $.id("exlinks-exsauce-hover-" + sha1);
 
-				if (hover) {
-					hover.style.setProperty("display", "none", "important");
-				}
-				else {
-					Sauce.UI.hover(sha1);
-				}
+				if (hover === null) hover = Sauce.UI.hover(sha1);
+				hover.style.setProperty("display", "none", "important");
 			},
-			move: function (e) {
-				var a = e.target,
-					sha1 = a.getAttribute('data-sha1'),
-					hover = $.id('exhover-' + sha1);
+			move: function (event) {
+				var sha1 = this.getAttribute("data-sha1"),
+					hover = $.id("exlinks-exsauce-hover-" + sha1);
 
-				if (hover) {
-					hover.style.setProperty("display", "table", "important");
-					hover.style.left = (e.clientX + 12) + 'px';
-					hover.style.top = (e.clientY + 22) + 'px';
-				}
-				else {
-					Sauce.UI.hover(sha1);
-				}
+				if (hover === null) hover = Sauce.UI.hover(sha1);
+				hover.style.setProperty("display", "table", "important");
+				hover.style.left = (event.clientX + 12) + 'px';
+				hover.style.top = (event.clientY + 22) + 'px';
 			},
 			hover: function (sha1) {
 				var result = Hash.get(sha1, 'sha1'),
 					hover, i, ii;
 
 				hover = $.create('div', {
-					className: 'exblock exhover post reply',
-					id: 'exhover-' + sha1
+					className: 'exblock exlinks-exsauce-hover post reply',
+					id: 'exlinks-exsauce-hover-' + sha1
 				});
+				hover.setAttribute("data-sha1", sha1);
 
-				for (i = 0, ii = result.length; i < ii; ++i) {
-					$.add(hover, $.create("a", {
-						className: "exsauce-hover",
-						href: result[i][0],
-						textContent: result[i][1]
-					}));
-					if (i < ii - 1) $.add(hover, $.create("br"));
+				if ((ii = result.length) > 0) {
+					i = 0;
+					while (true) {
+						$.add(hover, $.create("a", {
+							className: "exlinks-exsauce-hover-link",
+							href: result[i][0],
+							textContent: result[i][1]
+						}));
+						if (++i >= ii) break;
+						$.add(hover, $.create("br"));
+					}
 				}
 				hover.style.setProperty("display", "table", "important");
 				$.add(d.body, hover);
+
+				return hover;
 			}
 		},
 		format: function (a, result) {
@@ -1279,8 +1368,7 @@
 				if (conf['Inline Results'] === true) {
 					$.on(a, 'click', Sauce.UI.toggle);
 					results = $.create('div', {
-						className: 'exblock exresults',
-						id: a.id.replace('exsauce', 'exresults')
+						className: 'exblock exlinks-exsauce-results'
 					});
 					$.add(results, $.create("b", { textContent: "Reverse Image Search Results" }));
 					$.add(results, $.tnode(" | View on: "));
@@ -1415,15 +1503,7 @@
 		links: '.exlink',
 		image: '.file',
 		unformatted: function (uid) {
-			var results = [],
-				links = $$('a.uid-' + uid),
-				i, ii;
-			for (i = 0, ii = links.length; i < ii; ++i) {
-				if (links[i].classList.contains('exprocessed')) {
-					results.push(links[i]);
-				}
-			}
-			return results;
+			return $$("a.exprocessed.exlinks-gid[data-exlinks-gid='" + uid + "']");
 		},
 		linkify: function (post) {
 			var ws = /^\s*$/,
@@ -1623,7 +1703,7 @@
 						[ 'mouseover', function (e) { e.target.style.opacity = 1.0;} ],
 						[ 'mouseout', function (e) { e.target.style.opacity = 0.65;} ]
 					]);
-					$.add($.id('navtopright'), conflink);
+					$.checked.add($.id('navtopright'), conflink);
 				}
 				else {
 					conflink.textContent = 'ExLinks Settings';
@@ -1632,23 +1712,21 @@
 					$.on(conflink2, 'click', Options.open);
 					arrtop = [ $.tnode('['), conflink, $.tnode('] ') ];
 					arrbot = [ $.tnode('['), conflink2, $.tnode('] ') ];
-					$.prepend($.id('navtopright'), $.elem(arrtop));
-					if ($.id('navbotright')) {
-						$.prepend($.id('navbotright'), $.elem(arrbot));
-					}
+					$.checked.prepend($.id('navtopright'), $.elem(arrtop));
+					$.checked.prepend($.id('navbotright'), $.elem(arrbot));
 				}
 			}
 			else if (Config.mode === 'fuuka') {
 				conflink.textContent = 'exlinks options';
 				conflink.setAttribute('style', 'cursor: pointer; text-decoration: underline;');
 				arrtop = [ $.tnode(' [ '), conflink, $.tnode(' ] ') ];
-				$.add($('div'), $.elem(arrtop));
+				$.checked.add($('div'), $.elem(arrtop));
 			}
 			else if (Config.mode === 'foolz') {
 				conflink.textContent = 'ExLinks Options';
 				conflink.setAttribute('style', 'cursor: pointer;');
 				arrtop = [ $.tnode(' [ '), conflink, $.tnode(' ] ') ];
-				$.add($('.letters'), $.elem(arrtop));
+				$.checked.add($('.letters'), $.elem(arrtop));
 			}
 			else if (Config.mode === '38chan') {
 				conflink.textContent = 'exlinks options';
@@ -1657,13 +1735,13 @@
 				$.on(conflink2, 'click', Options.open);
 				arrtop = [ $.tnode('  [ '), conflink, $.tnode(' ] ') ];
 				arrbot = [ $.tnode('  [ '), conflink2, $.tnode(' ] ') ];
-				$.add($('.boardlist'), $.elem(arrtop));
-				$.add($('.boardlist.bottom'), $.elem(arrbot));
+				$.checked.add($('.boardlist'), $.elem(arrtop));
+				$.checked.add($('.boardlist.bottom'), $.elem(arrbot));
 			}
 		}
 	};
 	Config = {
-		mode: '4chan',
+		mode: '4chan', // foolz, fuuka, 38chan
 		link: function (url, opt) {
 			if (opt.value === "Original") {
 				if (regex.site_exhentai.test(url)) return 'exhentai.org';
@@ -2577,7 +2655,7 @@
 			$.add(n2, n3);
 
 			n4 = $.create("div", {
-				className: "ex-easylist-content-inner post reply postContainer" + theme
+				className: "ex-easylist-content-inner post reply postContainer post_wrapper" + theme
 			});
 			$.on(n4, "click", EasyList.on_overlay_content_mouse_event);
 			$.on(n4, "mousedown", EasyList.on_overlay_content_mouse_event);
@@ -2976,7 +3054,7 @@
 				all_tags = { "": data.tags },
 				namespace, tags, n2, n3, n4, i, ii;
 
-			if (data.full && data.full.version >= API.full_version && Object.keys(data.full.tags).length > 0) {
+			if (API.data_has_full(data) && Object.keys(data.full.tags).length > 0) {
 				all_tags = data.full.tags;
 			}
 
@@ -3343,10 +3421,7 @@
 
 			for (i = 0, ii = links.length; i < ii; ++i) {
 				link = links[i];
-				if (
-					(uid = regex.uid.exec(link.className)) !== null
-				) {
-					uid = uid[1];
+				if ((uid = Helper.get_id_from_node(link)) !== null) {
 					if (!(uid in EasyList.queue_map) && !(uid in EasyList.current_map)) {
 						EasyList.queue.push(uid);
 						EasyList.queue_map[uid] = true;
@@ -3433,26 +3508,26 @@
 			links = Parser.unformatted(uid);
 			for (i = 0, ii = links.length; i < ii; ++i) {
 				link = links[i];
-				type = regex.type.exec(link.className);
-				if (type !== null) {
-					if (type[1] === 's') {
-						page = regex.page.exec(link.className);
-					}
-					else if (type[1] === 'g') {
-						token = regex.token.exec(link.className);
-						break;
-					}
+				type = Helper.get_type_from_node(link);
+				if (type === 's') {
+					page = Helper.get_page_from_node(link);
+					token = Helper.get_page_token_from_node(link);
+				}
+				else if (type === 'g') {
+					token = Helper.get_token_from_node(link);
+					break;
 				}
 			}
+					console.log("page&&token",type,page,token);
 			if (type === 's') {
-				if (page !== null) {
-					API.queue.add('s', uid, page[1], page[2]);
+				if (page && token) {
+					API.queue.add('s', uid, token, page);
 					return [ uid, type ];
 				}
 			}
 			else if (type === 'g') {
-				if (token !== null) {
-					API.queue.add('g', uid, token[1]);
+				if (token) {
+					API.queue.add('g', uid, token);
 					return [ uid, type ];
 				}
 			}
@@ -3475,16 +3550,25 @@
 						Debug.value.add('formatlinks');
 						for (j = 0, jj = links.length; j < jj; ++j) {
 							link = links[j];
-							button = $.id(link.id.replace('gallery', 'button'));
-							link.textContent = Helper.normalize_api_string(data.title);
 
-							if ((hl = Filter.check(link, data))[0] !== Filter.None) {
-								c = (hl[0] === Filter.Good) ? conf['Good Tag Marker'] : conf['Bad Tag Marker'];
-								button.textContent = button.textContent.replace(/\]\s*$/, c + "]");
-								Filter.highlight_tag(button, link, hl);
+							// Button
+							button = Helper.get_tag_button_from_link(link);
+							if (button !== null) {
+								if ((hl = Filter.check(link, data))[0] !== Filter.None) {
+									c = (hl[0] === Filter.Good) ? conf['Good Tag Marker'] : conf['Bad Tag Marker'];
+									button.textContent = button.textContent.replace(/\]\s*$/, c + "]");
+									Filter.highlight_tag(button, link, hl);
+								}
+								$.off(button, 'click', Main.singlelink);
+								if (conf['Gallery Actions'] === true) {
+									$.on(button, 'click', UI.toggle);
+								}
+								button.classList.remove('exfetch');
+								button.classList.add('extoggle');
 							}
 
-							$.off(button, 'click', Main.singlelink);
+							// Link title
+							link.textContent = Helper.normalize_api_string(data.title);
 							if (conf['Gallery Details'] === true) {
 								$.on(link, [
 									[ 'mouseover', UI.show ],
@@ -3492,37 +3576,38 @@
 									[ 'mousemove', UI.move ]
 								]);
 							}
-							if (conf['Gallery Actions'] === true) {
-								$.on(button, 'click', UI.toggle);
-							}
 							actions = UI.actions(data, link);
 							$.after(link, actions);
-							actions = $.id(link.id.replace('exlink-gallery', 'exblock-actions'));
-							if (conf['Torrent Popup'] === true) {
-								$.on($('a.extorrent', actions), 'click', UI.popup);
-							}
-							if (conf['Archiver Popup'] === true) {
-								$.on($('a.exarchiver', actions), 'click', UI.popup);
-							}
-							if (conf['Favorite Popup'] === true) {
-								$.on($('a.exfavorite', actions), 'click', UI.popup);
+							actions = Helper.get_actions_from_link(link, false);
+							if (actions !== null) {
+								if (conf['Torrent Popup'] === true) {
+									$.on($('a.extorrent', actions), 'click', UI.popup);
+								}
+								if (conf['Archiver Popup'] === true) {
+									$.on($('a.exarchiver', actions), 'click', UI.popup);
+								}
+								if (conf['Favorite Popup'] === true) {
+									$.on($('a.exfavorite', actions), 'click', UI.popup);
+								}
 							}
 							link.classList.remove('exprocessed');
 							link.classList.add('exformatted');
-							button.classList.remove('exfetch');
-							button.classList.add('extoggle');
 						}
 					}
 					else {
 						for (j = 0, jj = links.length; j < jj; ++j) {
 							link = links[j];
-							button = $.id(link.id.replace('gallery', 'button'));
+
+							button = Helper.get_tag_button_from_link(link);
+							if (button !== null) {
+								$.off(button, 'click', Main.singlelink);
+								button.classList.remove('exfetch');
+								button.classList.add('extoggle');
+							}
+
 							link.textContent = 'Incorrect Gallery Key';
-							$.off(button, 'click', Main.singlelink);
 							link.classList.remove('exprocessed');
 							link.classList.add('exformatted');
-							button.classList.remove('exfetch');
-							button.classList.add('extoggle');
 						}
 					}
 					Main.queue_linkify_event(links, data);
@@ -3576,52 +3661,55 @@
 		},
 		singlelink: function (e) {
 			e.preventDefault();
-			Main.single($.id(e.target.id.replace('button', 'gallery')));
-			Main.update();
+			var n = Helper.get_link_from_tag_button(this);
+			if (n !== null) {
+				Main.single(n);
+				Main.update();
+			}
 		},
 		single: function (link) {
-			var type = regex.type.exec(link.className),
-				uid = regex.uid.exec(link.className),
-				token = regex.token.exec(link.className),
-				page, check;
+			var type = Helper.get_type_from_node(link),
+				uid = Helper.get_id_from_node(link),
+				token = Helper.get_token_from_node(link),
+				page, page_token, check;
 
-			if (type === null || uid === null) return;
-			type = type[1];
-			uid = uid[1];
-
-			if (type === 's') {
-				page = regex.page.exec(link.className);
+			if (type === "s") {
+				page = Helper.get_page_from_node(link);
+				page_token = Helper.get_page_token_from_node(link);
 				if (page !== null) {
 					check = Database.check(uid);
-					if (check && token !== null) {
-						type = 'g';
+					if (check && token) {
+						type = "g";
 						token = check;
-						link.classList.remove('type-s');
-						link.classList.remove('page-' + page[1] + '-' + page[2]);
-						link.classList.add('type-g');
-						link.classList.add('token-' + token);
+						link.setAttribute("data-exlinks-type", type);
+						link.setAttribute("data-exlinks-token", token);
+						link.removeAttribute("data-exlinks-page");
+						link.removeAttribute("data-exlinks-page-token");
+						link.classList.add("exlinks-token");
+						link.classList.remove("exlinks-page");
+						link.classList.remove("exlinks-page-token");
 						Main.queue.add(uid);
 					}
 					else {
-						API.queue.add('s', uid, page[1], page[2]);
+						API.queue.add("s", uid, page_token, page);
 					}
 				}
 			}
-			if (type === 'g') {
+			if (type === "g") {
 				if (Database.check(uid)) {
 					Main.queue.add(uid);
 				}
 				else {
-					if (token !== null) {
-						API.queue.add('g', uid, token[1]);
+					if (token) {
+						API.queue.add('g', uid, token);
 					}
 				}
 			}
 		},
 		process: function (posts) {
-			var post, file, info, sauce, exsauce, md5, sha1, results, saucestyle,
+			var post, file, info, sauce, exsauce, md5, sha1, results,
 				actions, prelinks, prelink, links, link, site, prevent,
-				type, gid, sid, uid, button, usage, linkified, isJPG, i, ii, j, jj;
+				type, gid, sid, uid, button, linkified, isJPG, i, ii, j, jj;
 
 			Debug.timer.start('process');
 			Debug.value.set('post_total', posts.length);
@@ -3635,7 +3723,7 @@
 				post = posts[i];
 				if (conf.ExSauce === true) {
 					// Needs redoing to make life easier with archive
-					if (!post.classList.contains('exresults')) {
+					if (!post.classList.contains('exlinks-exsauce-results')) {
 						if ($(Parser.image, post.parentNode)) {
 							if (Config.mode === '4chan') {
 								file = $(Parser.image, post.parentNode);
@@ -3650,7 +3738,6 @@
 											exsauce = $.create('a', {
 												textContent: Sauce.label(false),
 												className: 'exsauce',
-												id: 'exsauce-' + post.id,
 												href: file.childNodes[1].href
 											});
 											if (conf['No Underline on Sauce']) {
@@ -3676,12 +3763,12 @@
 												sha1 = sauce.getAttribute('data-sha1');
 												if (conf['Show Short Results'] === true) {
 													if (conf['Inline Results'] === true) {
-														results = $.id(sauce.id.replace('exsauce', 'exresults'));
-														if (saucestyle.style.display === 'none') {
+														results = Helper.get_exresults_from_exsauce(sauce);
+														if (results !== null && results.style.display === 'none') {
 															$.on(sauce, [
-																[ 'mouseover', Sauce.UI.show],
-																[ 'mousemove', Sauce.UI.move],
-																[ 'mouseout', Sauce.UI.hide]
+																[ 'mouseover', Sauce.UI.show ],
+																[ 'mousemove', Sauce.UI.move ],
+																[ 'mouseout', Sauce.UI.hide ]
 															]);
 														}
 													}
@@ -3696,8 +3783,10 @@
 												if (conf['Inline Results'] === true) {
 													$.on(sauce, 'click', Sauce.UI.toggle);
 													if (conf['Hide Results in Quotes'] === true) {
-														results = $.id(sauce.id.replace('exsauce', 'exresults'));
-														results.style.setProperty("display", "none", "important");
+														results = Helper.get_exresults_from_exsauce(sauce);
+														if (results !== null) {
+															results.style.setProperty("display", "none", "important");
+														}
 													}
 												}
 											}
@@ -3781,14 +3870,18 @@
 										link.href = link.href.replace(regex.site, site.value);
 									}
 								}
-								type = regex.type.exec(link.href);
-								if (type) type = type[1];
+								type = Helper.get_url_type(link.href);
 								if (type === 's') {
 									sid = regex.sid.exec(link.href);
 									if (sid) {
-										link.classList.add('type-s');
-										link.classList.add('uid-' + sid[2]);
-										link.classList.add('page-' + sid[1] + '-' + sid[3]);
+										link.setAttribute("data-exlinks-type", "s");
+										link.setAttribute("data-exlinks-gid", sid[2]);
+										link.setAttribute("data-exlinks-page", sid[3]);
+										link.setAttribute("data-exlinks-page-token", sid[1]);
+										link.classList.add("exlinks-type");
+										link.classList.add("exlinks-gid");
+										link.classList.add("exlinks-page");
+										link.classList.add("exlinks-page-token");
 										uid = sid[2];
 									}
 									else {
@@ -3798,9 +3891,12 @@
 								else if (type === 'g') {
 									gid = regex.gid.exec(link.href);
 									if (gid) {
-										link.classList.add('type-g');
-										link.classList.add('uid-' + gid[1]);
-										link.classList.add('token-' + gid[2]);
+										link.setAttribute("data-exlinks-type", "g");
+										link.setAttribute("data-exlinks-gid", gid[1]);
+										link.setAttribute("data-exlinks-token", gid[2]);
+										link.classList.add("exlinks-type");
+										link.classList.add("exlinks-gid");
+										link.classList.add("exlinks-token");
 										uid = gid[1];
 									}
 									else {
@@ -3810,9 +3906,7 @@
 								link.classList.remove('exunprocessed');
 								if (type) {
 									link.classList.add('exprocessed');
-									usage = Database.usage(uid);
-									link.id = 'exlink-gallery-uid-' + uid + '-' + usage;
-									button = UI.button(link.href, link.id);
+									button = UI.button(link.href);
 									$.on(button, 'click', Main.singlelink);
 									$.before(link, button);
 								}
