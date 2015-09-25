@@ -638,11 +638,12 @@
 				}
 			}
 		},
-		popup: function (e) {
-			e.preventDefault();
+		popup: function (event) {
+			event.preventDefault();
+
 			var w = 400,
 				h = 400,
-				link = e.target,
+				link = this,
 				type = /gallerytorrents|gallerypopups|archiver/i.exec(link.href);
 
 			if (type === null) return;
@@ -1473,10 +1474,10 @@
 				Sauce.hash(a, md5);
 			}
 		},
-		click: function (e) {
-			e.preventDefault();
-			$.off(e.target, 'click', Sauce.click);
-			Sauce.check(e.target);
+		click: function (event) {
+			event.preventDefault();
+			$.off(this, 'click', Sauce.click);
+			Sauce.check(this);
 		},
 		label: function (siteonly) {
 			var label = (conf['Site to Use'].value === 'exhentai.org') ? 'ExHentai' : 'E-Hentai';
@@ -1575,8 +1576,8 @@
 			$.remove($.id('exlinks-overlay'));
 			d.body.style.overflow = 'visible';
 		},
-		toggle: function (e) {
-			var option = e.target,
+		toggle: function () {
+			var option = this,
 				type = option.getAttribute('type'),
 				domain = {
 					"1": fetch.original,
@@ -1691,8 +1692,8 @@
 				if (oneechan) {
 					conflink.setAttribute('style', 'position: fixed; background: url(' + img.options + '); top: 108px; right: 10px; left: auto; width: 15px; height: 15px; opacity: 0.75; z-index: 5;');
 					$.on(conflink, [
-						[ 'mouseover', function (e) { e.target.style.opacity = 1.0; } ],
-						[ 'mouseout', function (e) { e.target.style.opacity = 0.65; } ]
+						[ 'mouseover', function () { this.style.opacity = 1.0; } ],
+						[ 'mouseout', function () { this.style.opacity = 0.65; } ]
 					]);
 					$.add(d.body, conflink);
 				}
@@ -1700,8 +1701,8 @@
 					conflink.textContent = 'Ex';
 					conflink.setAttribute('style', 'background-image: url(' + img.options + '); padding-top: 15px !important; opacity: 0.75;');
 					$.on(conflink, [
-						[ 'mouseover', function (e) { e.target.style.opacity = 1.0;} ],
-						[ 'mouseout', function (e) { e.target.style.opacity = 0.65;} ]
+						[ 'mouseover', function () { this.style.opacity = 1.0; } ],
+						[ 'mouseout', function () { this.style.opacity = 0.65; } ]
 					]);
 					$.checked.add($.id('navtopright'), conflink);
 				}
@@ -3943,9 +3944,10 @@
 			Debug.log('Total posts: ' + Debug.value.get('post_total') + ' Linkified: ' + Debug.value.get('linkified') + ' Processed: ' + Debug.value.get('posts') + ' Links: ' + Debug.value.get('processed') + ' Time: ' + Debug.timer.stop('process'));
 			Main.update();
 		},
-		dom: function (e) {
-			var node = e.target,
+		dom: function (event) {
+			var node = event.target,
 				nodelist = [];
+
 			if (node.nodeName === 'DIV') {
 				if (node.classList.contains('postContainer') || node.classList.contains('inline')) {
 					nodelist.push($(Parser.postbody, node));
