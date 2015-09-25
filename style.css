@@ -308,7 +308,6 @@ a.exsauce-disabled {
 
 .exthumbnail {
 	float: left;
-	background-image: url(#{data.thumb});
 	margin-right: 8px;
 	width: 140px;
 	height: 200px;
