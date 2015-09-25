@@ -361,13 +361,10 @@
 				}
 			});
 		},
-		log: function (arr) {
+		log: function () {
 			if (Debug.on) {
-				var log = (arr instanceof Array) ? arr : [arr],
-					i, ii;
-				for (i = 0, ii = log.length; i < ii; ++i) {
-					console.log('ExLinks ' + Main.version + ':', log[i]);
-				}
+				var args = [ "ExLinks " + Main.version + ":" ].concat(Array.prototype.slice.call(arguments));
+				console.log.apply(console, args);
 			}
 		}
 	};
@@ -517,7 +514,7 @@
 		try {
 			if (GM_xmlhttpRequest && typeof(GM_xmlhttpRequest) === "function") {
 				return function (data) {
-					Debug.log("HttpRequest: " + data.method + " " + data.url);
+					Debug.log("HttpRequest:", data.method, data.url, data);
 					return GM_xmlhttpRequest(data);
 				};
 			}
@@ -526,7 +523,7 @@
 
 		// Fallback
 		return function (data) {
-			Debug.log("HttpRequest fill: " + data.method + " " + data.url);
+			Debug.log("HttpRequest:", data.method, data.url, data);
 			var onerror = (data && data.onerror && typeof(data.onerror) === "function") ? data.onerror : null;
 			setTimeout(function () {
 				if (onerror !== null) {
@@ -942,7 +939,7 @@
 					API.working = true;
 					API.cooldown = Date.now();
 					Debug.timer.start('apirequest');
-					Debug.log([ 'API Request', request ]);
+					Debug.log('API request', request);
 					HttpRequest({
 						method: 'POST',
 						url: 'http://' + domains.gehentai + '/api.php',
@@ -956,12 +953,11 @@
 								json = Helper.json_parse_safe(xhr.responseText) || {};
 
 								if (Object.keys(json).length > 0) {
-									Debug.log([ 'API Response, Time: ' + Debug.timer.stop('apirequest'), json ]);
+									Debug.log('API response; time=' + Debug.timer.stop('apirequest'), json);
 									API.response(type, json);
 								}
 								else {
-									Debug.log('API Request error. Waiting five seconds before trying again. (Time: ' + Debug.timer.stop('apirequest') + ')');
-									Debug.log(xhr.responseText);
+									Debug.log('API request error; waiiting five seconds before trying again. (time=' + Debug.timer.stop('apirequest') + ')', xhr);
 									// API.cooldown = Date.now() + (5 * t.SECOND);
 									setTimeout(Main.update, 5000);
 								}
@@ -1155,10 +1151,10 @@
 			}
 			ii = res.length;
 			if (ii > 0) {
-				Debug.log("Purged " + ii + " old entries from cache.");
 				for (i = 0; i < ii; ++i) {
 					Cache.type.removeItem(res[i]);
 				}
+				Debug.log("Purged " + ii + " old entries from cache");
 			}
 		},
 		get: function (uid, type) {
@@ -1493,7 +1489,7 @@
 					}
 				}
 			}
-			Debug.log('Formatting complete.');
+			Debug.log('Formatting complete');
 		},
 		lookup: function (a, sha1) {
 			a.textContent = Sauce.text('Checking');
@@ -1515,7 +1511,7 @@
 						}
 
 						Hash.set(result, 'sha1', sha1);
-						Debug.log('Lookup successful. Formatting.');
+						Debug.log('Lookup successful; formatting...');
 						if (conf['Show Short Results']) Sauce.UI.hover(sha1);
 						Sauce.format(a, result);
 					}
@@ -1550,23 +1546,23 @@
 				sha1 = Hash.get(md5, 'md5');
 			}
 			if (sha1) {
-				Debug.log('SHA-1 hash found.');
+				Debug.log('SHA-1 hash found');
 				a.setAttribute('data-sha1', sha1);
 				a.href = 'http://' + conf['Site to Use'].value + '/?f_doujinshi=1&f_manga=1&f_artistcg=1&f_gamecg=1&f_western=1&f_non-h=1&f_imageset=1&f_cosplay=1&f_asianporn=1&f_misc=1&f_search=Search+Keywords&f_apply=Apply+Filter&f_shash=' + sha1 + '&fs_similar=0';
 				if (conf['Search Expunged'] === true) a.href += '&fs_exp=1';
 				a.setAttribute('target', '_blank');
 				result = Hash.get(sha1, 'sha1');
 				if (result) {
-					Debug.log('Cached result found. Formatting.');
+					Debug.log('Cached result found; formatting...');
 					Sauce.format(a, result);
 				}
 				else {
-					Debug.log('No cached result found. Performing a lookup.');
+					Debug.log('No cached result found; performing a lookup...');
 					Sauce.lookup(a, sha1);
 				}
 			}
 			else {
-				Debug.log('No SHA-1 hash found. Fetching image.');
+				Debug.log('No SHA-1 hash found; fetching image...');
 				Sauce.hash(a, md5);
 			}
 		},
@@ -3710,7 +3706,7 @@
 			}
 
 			Main.queue.clear();
-			Debug.log('Formatted IDs: ' + Debug.value.get('formatlinks') + ' OK, ' + Debug.value.get('failed') + ' FAIL. Time: ' + Debug.timer.stop('format'));
+			Debug.log('Formatted IDs: ' + Debug.value.get('formatlinks') + ' OK, ' + Debug.value.get('failed') + ' FAIL. time=' + Debug.timer.stop('format'));
 			if (Object.keys(failed).length > 0) {
 				for (k in failed) {
 					failure = Main.check(parseInt(k, 10));
@@ -3719,7 +3715,7 @@
 						failtype.push(failure[1]);
 					}
 				}
-				Debug.log([failtype]);
+				Debug.log("Failures: ", failtype);
 				Main.update();
 			}
 
@@ -4017,7 +4013,13 @@
 
 			}
 
-			Debug.log('Total posts: ' + Debug.value.get('post_total') + ' Linkified: ' + Debug.value.get('linkified') + ' Processed: ' + Debug.value.get('posts') + ' Links: ' + Debug.value.get('processed') + ' Time: ' + Debug.timer.stop('process'));
+			Debug.log(
+				"Total posts=" + Debug.value.get("post_total") +
+				"; linkified=" + Debug.value.get("linkified") +
+				"; processed=" + Debug.value.get("posts") +
+				"; links=" + Debug.value.get("processed") +
+				"; time=" + Debug.timer.stop("process")
+			);
 			Main.update();
 		},
 		dom: function (event) {
@@ -4182,7 +4184,7 @@
 			Theme.prepare();
 			EasyList.init();
 
-			Debug.log('Initialization complete. Time: ' + Debug.timer.stop('init'));
+			Debug.log('Initialization complete; time=' + Debug.timer.stop('init'));
 
 			Main.process(nodelist);
 
