@@ -457,7 +457,7 @@
 						case 1: star = 'half'; break;
 						case 2: star = 'full'; break;
 					}
-					str += '<div class="exr' + (i + 1) + ' star-' + star + '"></div>';
+					str += '<div class="exlinks-star exlinks-star-' + (i + 1) + ' exlinks-star-' + star + '"></div>';
 				}
 				return str;
 			}
@@ -474,6 +474,7 @@
 				data_alt.jtitle = '';
 			}
 
+			data_alt.size = Math.round((data.filesize / 1024 / 1024) * 100) / 100;
 			data_alt.datetext = UI.date(new Date(parseInt(data.posted, 10) * 1000));
 			data_alt.visible = data.expunged ? 'No' : 'Yes';
 
@@ -537,7 +538,6 @@
 				}
 			}
 
-			data_alt.size = Math.round((data.filesize / 1024 / 1024) * 100) / 100;
 			data_alt.datetext = UI.date(new Date(parseInt(data.posted, 10) * 1000));
 			sites = [
 				Config.link(link.href, conf['Torrent Link']),
@@ -3006,12 +3006,12 @@
 			}));
 
 			$.add(n5, n6 = $.create("a", {
-				className: "ex-easylist-item-info-button btn btn-eh btn-" + cat[data.category].short + theme,
+				className: "ex-easylist-item-info-button exlinks-btn exlinks-btn-eh exlinks-btn-" + cat[data.category].short + theme,
 				href: url_base + "/" +  cat[data.category].short,
 				target: "_blank"
 			}));
 			$.add(n6, $.create("div", {
-				className: "noise",
+				className: "exlinks-noise",
 				textContent: cat[data.category].name
 			}));
 
