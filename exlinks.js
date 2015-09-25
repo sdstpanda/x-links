@@ -1645,25 +1645,27 @@
 			d.body.style.overflow = 'hidden';
 
 			gen = function (target, obj) {
-				var desc, tr, type, value, i;
+				var theme = Theme.get(),
+					desc, tr, type, value, i;
 				for (i in obj) {
 					desc = obj[i][2];
 					type = obj[i][0];
 					value = tempconf[i];
-					tr = $.create('tr');
+					tr = $.create('tr', { className: theme.trim() });
 					if (type === 'checkbox') {
 						tr.innerHTML = [
-							'<td style="padding:3px;">',
-							'<input style="float:right;margin-right:2px;" type="checkbox" id="' + i + '" name="' + i + '"' + (value ? ' checked' : '') + ' />',
+							'<td>',
+							'<input class="exlinks-options-checkbox" type="checkbox" id="' + i + '" name="' + i + '" />',
 							'<label for="' + i + '"><b>' + i + ':</b> ' + desc + '</label>',
 							'</td>'
 						].join('');
+						$('input', tr).checked = value;
 						$.on($('input', tr), 'change', Options.toggle);
 					}
 					else if (type === 'domain') {
 						tr.innerHTML = [
-							'<td style="padding:3px;">',
-							'<select name="' + i + '" type="domain" style="font-size:0.92em!important;float:right;width:18%;">',
+							'<td>',
+							'<select class="exlinks-options-select" name="' + i + '" type="domain">',
 								'<option value="1"' + (value.value === 'Original' ? ' selected' : '') + '>Original</option>',
 								'<option value="2"' + (value.value === domains.gehentai ? ' selected' : '') + '>' + domains.gehentai + '</option>',
 								'<option value="3"' + (value.value === domains.exhentai ? ' selected' : '') + '>' + domains.exhentai + '</option></select>',
@@ -1673,8 +1675,8 @@
 					}
 					else if (type === 'saucedomain') {
 						tr.innerHTML = [
-							'<td style="padding:3px;">',
-							'<select name="' + i + '" type="domain" style="font-size:0.92em!important;float:right;width:18%;">',
+							'<td>',
+							'<select class="exlinks-options-select" name="' + i + '" type="domain">',
 								'<option value="2"' + (value.value === domains.gehentai ? ' selected' : '') + '>' + domains.gehentai + '</option>',
 								'<option value="3"' + (value.value === domains.exhentai ? ' selected' : '') + '>' + domains.exhentai + '</option></select>',
 							'<b>' + i + ':</b> ' + desc + '</td>'
@@ -1683,8 +1685,8 @@
 					}
 					else if (type === 'textbox') {
 						tr.innerHTML = [
-							'<td style="padding:3px;">',
-							'<input style="float:right;padding-left:5px;width:18%;font-size:0.92em!important;" type="text" id="' + i + '" name="' + i + '" />',
+							'<td>',
+							'<input class="exlinks-options-textbox" type="text" id="' + i + '" name="' + i + '" />',
 							'<b>' + i + ':</b> ' + desc + '</td>'
 						].join('');
 						$('input', tr).value = value;
@@ -1692,9 +1694,9 @@
 					}
 					else if (type === 'textarea') {
 						tr.innerHTML = [
-							'<td style="padding:3px;">',
+							'<td>',
 							'<b>' + i + ':</b> ' + desc + '<br />',
-							'<textarea style="display:block;width:100%;height:7em;line-height:1.2em;padding:0.5em;box-sizing:border-box;resize:vertical;font-size:0.92em!important;" wrap="off" autocomplete="off" spellcheck="false" id="' + i + '" name="' + i + '"></textarea>',
+							'<textarea class="exlinks-options-textarea" wrap="off" autocomplete="off" spellcheck="false" id="' + i + '" name="' + i + '"></textarea>',
 							'</td>'
 						].join('');
 						$('textarea', tr).value = value;
