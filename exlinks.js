@@ -415,7 +415,7 @@
 			if (
 				(node = node.previousSibling) !== null &&
 				(node.classList || ((node = node.previousSibling) !== null && node.classList)) &&
-				node.classList.contains("exbutton")
+				node.classList.contains("ex-site-tag")
 			) {
 				return node;
 			}
@@ -683,12 +683,11 @@
 		},
 		button: function (url) {
 			var button = $.create('a', {
-				className: 'exlink exbutton exfetch',
+				className: 'ex-link-events ex-site-tag',
 				textContent: UI.button.text(url),
 				href: url
 			});
-			button.style.marginRight = '4px';
-			button.style.textDecoration = 'none';
+			button.setAttribute("data-action", "fetch");
 			button.setAttribute('target', '_blank');
 			return button;
 		},
@@ -1686,7 +1685,7 @@
 						tn = $.tnode(text.substr(0, sp));
 						tl = text.substr(sp + ml + 1, text.length);
 						tu = $.create('a');
-						tu.className = 'exlink exgallery exunprocessed';
+						tu.className = 'ex-link-events exgallery exunprocessed';
 						if (regex.protocol.test(match[0])) {
 							tu.href = match[0];
 						}
@@ -3740,8 +3739,7 @@
 								if (conf['Gallery Actions'] === true) {
 									$.on(button, 'click', UI.toggle);
 								}
-								button.classList.remove('exfetch');
-								button.classList.add('extoggle');
+								button.setAttribute("data-action", "toggle");
 							}
 
 							// Link title
@@ -3778,8 +3776,7 @@
 							button = Helper.get_tag_button_from_link(link);
 							if (button !== null) {
 								$.off(button, 'click', Main.singlelink);
-								button.classList.remove('exfetch');
-								button.classList.add('extoggle');
+								button.setAttribute("data-action", "toggle");
 							}
 
 							link.textContent = 'Incorrect Gallery Key';
@@ -3886,7 +3883,7 @@
 		process: function (posts) {
 			var post, file, info, sauce, exsauce, md5, results,
 				actions, prelinks, prelink, links, link, site, prevent,
-				button, linkified, isJPG, i, ii, j, jj;
+				button, linkified, isJPG, value, i, ii, j, jj;
 
 			Debug.timer.start('process');
 			Debug.value.set('post_total', posts.length);
@@ -4000,7 +3997,7 @@
 						for (j = 0, jj = prelinks.length; j < jj; ++j) {
 							prelink = prelinks[j];
 							if (regex.url.test(prelink.href)) {
-								prelink.classList.add('exlink');
+								prelink.classList.add('ex-link-events');
 								prelink.classList.add('exgallery');
 								prelink.classList.add('exunprocessed');
 								prelink.style.textDecoration = 'none';
@@ -4010,16 +4007,17 @@
 						Parser.linkify(post);
 						post.classList.add('exlinkified');
 					}
-					links = $$('a.exlink', post);
+					links = $$('a.ex-link-events', post);
 					for (j = 0, jj = links.length; j < jj; ++j) {
 						link = links[j];
-						if (link.classList.contains('exbutton')) {
-							if (link.classList.contains('extoggle')) {
+						if (link.classList.contains('ex-site-tag')) {
+							value = link.getAttribute("data-action");
+							if (value === "toggle") {
 								if (conf['Gallery Actions'] === true) {
 									$.on(link, 'click', UI.toggle);
 								}
 							}
-							if (link.classList.contains('exfetch')) {
+							else if (value === "fetch") {
 								$.on(link, 'click', Main.singlelink);
 							}
 						}
@@ -4035,7 +4033,10 @@
 								}
 							}
 							if (link.classList.contains('ex-actions-link-favorite')) {
-								if (conf['Favorite Popup'] === true) {
+								if (conf['Favorite Autosave']) {
+									$.on(link, 'click', UI.favorite);
+								}
+								else if (conf['Favorite Popup'] === true) {
 									$.on(link, 'click', UI.popup);
 								}
 							}
@@ -4095,11 +4096,6 @@
 										[ 'mousemove', UI.move ]
 									]);
 								}
-							}
-						}
-						if (link.classList.contains('ex-actions-link-favorite')) {
-							if (conf['Favorite Autosave']) {
-								$.on(link, 'click', UI.favorite);
 							}
 						}
 					}
@@ -4196,9 +4192,9 @@
 						if (node.nodeName === 'A' && node.classList.contains('linkified')) {
 							if (
 								regex.url.test(node.innerHTML) &&
-								node.previousSibling.classList.contains('exbutton')
+								node.previousSibling.classList.contains('ex-site-tag')
 							) {
-								node.className = "exlink exgallery exunprocessed";
+								node.className = "ex-link-events exgallery exunprocessed";
 								$.remove(node.previousSibling);
 								while (node) {
 									if (
@@ -4308,7 +4304,7 @@
 			$.ready(Main.ready);
 		},
 		get_linkified_links: function () {
-			return $$("a.exlink.exgallery[href]");
+			return $$("a.exgallery[href]");
 		},
 		queue_linkify_event: function (links) {
 			if (Main.linkify_event.listeners.length > 0) {

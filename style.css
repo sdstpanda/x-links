@@ -463,7 +463,7 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 
 /* Filtering */
 .ex-tag.ex-filter-good,
-.exbutton.ex-filter-good,
+.ex-site-tag.ex-filter-good,
 .exgallery.ex-filter-good,
 .ex-details-uploader.ex-filter-good {
 	font-weight: bold;
@@ -473,6 +473,16 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 	display: inline;
 }
 .ex-filter-text-inner {
+}
+
+/* Links */
+.ex-link-events {
+}
+.ex-site-tag {
+	white-space: nowrap;
+	display: inline-block;
+	margin-right: 0.25em;
+	text-decoration: none !important;
 }
 
 /* Options */
