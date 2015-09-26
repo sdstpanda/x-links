@@ -819,7 +819,7 @@
 			frag.firstChild.style.setProperty("display", conf['Show by Default'] ? "table" : "none", "important");
 			$.add($(".ex-actions-tags", frag), UI.create_tags(sites[6], data.tags, data));
 
-			return frag;
+			return frag.firstChild;
 		},
 		button: function (url) {
 			var button = $.create('a', {
@@ -1663,7 +1663,7 @@
 						(n = Helper.Post.get_text_body(n)) !== null
 					) {
 						$.before(n, results);
-						Main.process([ results ]);
+						Linkifier.parse_posts([ results ]);
 					}
 				}
 				if (conf['Show Results by Default'] === false) {
@@ -1778,15 +1778,31 @@
 		}
 	};
 	Linkifier = {
+		event_queue: {
+			format: []
+		},
+		event_listeners: {
+			format: []
+		},
 		get_links: function (parent) {
 			return $$("a.ex-linkified-gallery[href]", parent);
 		},
-		get_links_unformatted: function (gid, parent) {
-			return $$("a.ex-linkified-gallery.exlinks-gid[data-exlinks-gid='" + gid + "'][data-ex-linkified-status=processed]", parent);
+		get_links_formatted: function (parent) {
+			return $$("a.ex-linkified-gallery[data-ex-linkified-status=formatted]", parent);
 		},
-		linkify: function (post) {
+		get_links_unformatted: function (gid, parent) {
+			var selector = "a.ex-linkified-gallery.exlinks-gid";
+			if (gid !== null) {
+				selector += "[data-exlinks-gid='";
+				selector += gid;
+				selector += "']";
+			}
+			selector += "[data-ex-linkified-status=processed]";
+			return $$(selector, parent);
+		},
+		linkify: function (container) {
 			var ws = /^\s*$/,
-				nodes = $.textnodes(post),
+				nodes = $.textnodes(container),
 				node, text, match, linknode, sp, ml, tn, tl, tu, wbr, i, ii;
 
 			if (nodes.length > 0) {
@@ -1836,6 +1852,441 @@
 						$.replace(node, $.elem(linknode));
 					}
 				}
+			}
+		},
+		format: function (links, data) {
+			var has_data = !!data,
+				events = (Linkifier.event_listeners.format.length > 0) ? Linkifier.event_queue.format : null,
+				error, link, gid, i, ii;
+
+			if (has_data) {
+				error = Object.prototype.hasOwnProperty.call(data, "error");
+			}
+
+			for (i = 0, ii = links.length; i < ii; ++i) {
+				link = links[i];
+
+				if (!has_data) {
+					gid = Helper.get_id_from_node(link);
+					data = Database.get(gid);
+					if (data === null) continue;
+					error = Object.prototype.hasOwnProperty.call(data, "error");
+				}
+
+				if (error) {
+					Linkifier.format_link_error(link);
+				}
+				else {
+					Linkifier.format_link(link, data);
+				}
+
+				if (events !== null) events.push(link);
+			}
+
+			if (!has_data && events !== null) {
+				Linkifier.trigger("format");
+			}
+		},
+		format_link: function (link, data) {
+			var button, actions, hl, c;
+
+			// Link title
+			link.textContent = Helper.normalize_api_string(data.title);
+			link.setAttribute("data-ex-linkified-status", "formatted");
+
+			// Button
+			button = Helper.get_tag_button_from_link(link);
+			if (button !== null) {
+				if ((hl = Filter.check(link, data))[0] !== Filter.None) {
+					c = (hl[0] === Filter.Good) ? conf['Good Tag Marker'] : conf['Bad Tag Marker'];
+					button.textContent = button.textContent.replace(/\]\s*$/, c + "]");
+					Filter.highlight_tag(button, link, hl);
+				}
+				$.off(button, "click", Linkifier.on_tag_click_to_load);
+				button.setAttribute("data-action", "toggle");
+
+				if (conf['Gallery Actions'] === true) {
+					$.on(button, 'click', UI.toggle);
+				}
+			}
+
+			// Actions
+			actions = UI.actions(data, link);
+			$.after(link, actions);
+
+			// Events
+			if (conf['Gallery Details'] === true) {
+				$.on(link, [
+					[ 'mouseover', UI.show ],
+					[ 'mouseout', UI.hide ],
+					[ 'mousemove', UI.move ]
+				]);
+			}
+
+			if (conf['Torrent Popup'] === true) {
+				$.on($("a.ex-actions-link-torrent", actions), "click", UI.popup);
+			}
+			if (conf['Archiver Popup'] === true) {
+				$.on($("a.ex-actions-link-archiver", actions), "click", UI.popup);
+			}
+			if (conf['Favorite Popup'] === true) {
+				$.on($("a.ex-actions-link-favorite", actions), "click", UI.popup);
+			}
+		},
+		format_link_error: function (link) {
+			var button = Helper.get_tag_button_from_link(link);
+			if (button !== null) {
+				$.off(button, "click", Linkifier.on_tag_click_to_load);
+				button.setAttribute("data-action", "error");
+			}
+
+			link.textContent = "Incorrect Gallery Key";
+			link.setAttribute("data-ex-linkified-status", "formatted");
+		},
+		apply_link_events: function (node, check_children) {
+			var nodes = check_children ? $$("a.ex-link-events", node) : [ node ],
+				events, value, site, info, button, i, ii;
+
+			events = {};
+
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				node = nodes[i];
+				if (node.classList.contains('ex-site-tag')) {
+					value = node.getAttribute("data-action");
+					if (value === "toggle") {
+						if (conf['Gallery Actions'] === true) {
+							$.on(node, 'click', UI.toggle);
+						}
+					}
+					else if (value === "fetch") {
+						$.on(node, 'click', Linkifier.on_tag_click_to_load);
+					}
+				}
+				if (node.classList.contains('ex-actions-link')) {
+					if (node.classList.contains('ex-actions-link-torrent')) {
+						if (conf['Torrent Popup'] === true) {
+							$.on(node, 'click', UI.popup);
+						}
+					}
+					if (node.classList.contains('ex-actions-link-archiver')) {
+						if (conf['Archiver Popup'] === true) {
+							$.on(node, 'click', UI.popup);
+						}
+					}
+					if (node.classList.contains('ex-actions-link-favorite')) {
+						if (conf['Favorite Autosave']) {
+							$.on(node, 'click', UI.favorite);
+						}
+						else if (conf['Favorite Popup'] === true) {
+							$.on(node, 'click', UI.popup);
+						}
+					}
+				}
+				if (node.classList.contains('ex-linkified-gallery')) {
+					value = node.getAttribute("data-ex-linkified-status");
+					if (value === "unprocessed") {
+						site = conf['Gallery Link'];
+						if (site.value !== "Original") {
+							if (!new RegExp(site.value).test(node.href)) {
+								node.href = node.href.replace(regex.site, site.value);
+							}
+						}
+
+						info = Helper.get_url_info(node.href);
+						if (info === null) {
+							node.classList.remove('ex-linkified-gallery');
+							node.removeAttribute("data-ex-linkified-status");
+						}
+						else {
+							if (info.type === "s") {
+								node.setAttribute("data-exlinks-type", info.type);
+								node.setAttribute("data-exlinks-gid", info.gid);
+								node.setAttribute("data-exlinks-page", info.page);
+								node.setAttribute("data-exlinks-page-token", info.page_token);
+								node.classList.add("exlinks-type");
+								node.classList.add("exlinks-gid");
+								node.classList.add("exlinks-page");
+								node.classList.add("exlinks-page-token");
+							}
+							else if (info.type === "g") {
+								node.setAttribute("data-exlinks-type", info.type);
+								node.setAttribute("data-exlinks-gid", info.gid);
+								node.setAttribute("data-exlinks-token", info.token);
+								node.classList.add("exlinks-type");
+								node.classList.add("exlinks-gid");
+								node.classList.add("exlinks-token");
+							}
+
+							node.setAttribute("data-ex-linkified-status", "processed");
+
+							button = UI.button(node.href);
+							$.on(button, "click", Linkifier.on_tag_click_to_load);
+							$.before(node, button);
+
+							if (conf['Automatic Processing'] === true) {
+								Linkifier.check_link(node);
+								Debug.value.add('processed');
+							}
+						}
+					}
+					else if (value === "processed") {
+						if (conf['Automatic Processing'] === true) {
+							Linkifier.check_link(node);
+							Debug.value.add('processed');
+						}
+					}
+					else if (value === "formatted") {
+						if (conf['Gallery Details'] === true) {
+							$.on(node, [
+								[ 'mouseover', UI.show ],
+								[ 'mouseout', UI.hide ],
+								[ 'mousemove', UI.move ]
+							]);
+						}
+					}
+				}
+			}
+		},
+		parse_posts: function (posts) {
+			var post, post_body, post_links, link, i, ii, j, jj;
+
+			Debug.timer.start("process");
+
+			for (i = 0, ii = posts.length; i < ii; ++i) {
+				post = posts[i];
+				Linkifier.parse_post(post);
+
+				post_body = Helper.Post.get_text_body(post) || post;
+				if (regex.url.test(post_body.innerHTML)) {
+					Debug.value.add('posts');
+
+					if (!post.classList.contains('ex-post-linkified')) {
+						Debug.value.add('linkified');
+
+						post_links = Helper.Post.get_body_links(post_body);
+						for (j = 0, jj = post_links.length; j < jj; ++j) {
+							link = post_links[j];
+							if (regex.url.test(link.href)) {
+								link.classList.add("ex-link-events");
+								link.classList.add("ex-linkified");
+								link.classList.add("ex-linkified-gallery");
+								link.setAttribute("target", "_blank");
+								link.setAttribute("data-ex-linkified-status", "unprocessed");
+							}
+						}
+						Linkifier.linkify(post_body);
+						post.classList.add('ex-post-linkified');
+					}
+				}
+
+				Linkifier.apply_link_events(post, true);
+			}
+
+			Debug.log(
+				"Total posts=" + posts.length +
+				"; linkified=" + Debug.value.get("linkified") +
+				"; processed=" + Debug.value.get("posts") +
+				"; links=" + Debug.value.get("processed") +
+				"; time=" + Debug.timer.stop("process")
+			);
+			Main.update();
+		},
+		parse_post: function (post) {
+			var post_body, post_links, nodes, link, i, ii;
+
+			// Exsauce
+			if (conf.ExSauce) {
+				Linkifier.setup_post_exsauce(post);
+			}
+
+			// Collapse info if it's an inline
+			if (conf['Hide in Quotes']) {
+				nodes = $$('.exlinks-exsauce-results,.ex-actions', post);
+				for (i = 0, ii = nodes.length; i < ii; ++i) {
+					nodes[i].style.display = "none";
+				}
+			}
+
+			// Content
+			post_body = Helper.Post.get_text_body(post) || post;
+			if (regex.url.test(post_body.innerHTML)) {
+				Debug.value.add('posts');
+
+				if (!post.classList.contains("ex-post-linkified")) {
+					Debug.value.add('linkified');
+
+					post_links = Helper.Post.get_body_links(post_body);
+					for (i = 0, ii = post_links.length; i < ii; ++i) {
+						link = post_links[i];
+						if (regex.url.test(link.href)) {
+							link.classList.add("ex-link-events");
+							link.classList.add("ex-linkified");
+							link.classList.add("ex-linkified-gallery");
+							link.setAttribute("target", "_blank");
+							link.setAttribute("data-ex-linkified-status", "unprocessed");
+						}
+					}
+
+					Linkifier.linkify(post_body);
+					post.classList.add("ex-post-linkified");
+				}
+			}
+
+			// Events
+			Linkifier.apply_link_events(post, true);
+		},
+		setup_post_exsauce: function (post) {
+			var file_info, sauce, results;
+
+			// File info
+			file_info = Helper.Post.get_file_info(post);
+			if (file_info === null || file_info.md5 === null) return;
+
+			// Create if not found
+			sauce = $(".exlinks-exsauce-link", file_info.options);
+			if (sauce === null) {
+				sauce = $.create("a", {
+					className: "exlinks-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
+					textContent: Sauce.label(false),
+					href: file_info.url,
+					target: "_blank"
+				});
+				if (conf["No Underline on Sauce"]) {
+					sauce.classList.add("exlinks-exsauce-link-no-underline");
+				}
+				sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
+				if (/^\.jpe?g$/.test(file_info.type)) {
+					sauce.classList.add("exlinks-exsauce-link-disabled");
+					sauce.title = (
+						"Reverse Image Search doesn't work for JPG images because 4chan manipulates them on upload. " +
+						"There is nothing ExLinks can do about this. " +
+						"All complaints can be directed at 4chan staff."
+					);
+				}
+				if (file_info.options_sep) {
+					$.before2(file_info.options, $.tnode(file_info.options_sep), file_info.options_before);
+				}
+				$.before2(file_info.options, sauce, file_info.options_before);
+			}
+
+			// Events
+			if (sauce.classList.contains("exlinks-exsauce-link-disabled")) {
+				$.on(sauce, "click", function (event) {
+					event.preventDefault();
+					return false;
+				});
+			}
+			else if (!sauce.classList.contains('exlinks-exsauce-link-valid')) {
+				$.on(sauce, "click", Sauce.click);
+			}
+			else {
+				if (conf['Show Short Results'] === true) {
+					if (conf['Inline Results'] === true) {
+						results = Helper.get_exresults_from_exsauce(sauce);
+						if (results !== null && results.style.display === 'none') {
+							$.on(sauce, [
+								[ 'mouseover', Sauce.UI.show ],
+								[ 'mousemove', Sauce.UI.move ],
+								[ 'mouseout', Sauce.UI.hide ]
+							]);
+						}
+					}
+					else {
+						$.on(sauce, [
+							[ 'mouseover', Sauce.UI.show ],
+							[ 'mousemove', Sauce.UI.move ],
+							[ 'mouseout', Sauce.UI.hide ]
+						]);
+					}
+				}
+				if (conf['Inline Results'] === true) {
+					$.on(sauce, 'click', Sauce.UI.toggle);
+					if (conf['Hide Results in Quotes'] === true) {
+						results = Helper.get_exresults_from_exsauce(sauce);
+						if (results !== null) {
+							results.style.setProperty("display", "none", "important");
+						}
+					}
+				}
+			}
+		},
+		on_tag_click_to_load: function (event) {
+			event.preventDefault();
+
+			var n = Helper.get_link_from_tag_button(this);
+			if (n !== null) {
+				Linkifier.check_link(n);
+				Main.update();
+			}
+		},
+		check_link: function (link) {
+			var type = Helper.get_type_from_node(link),
+				uid = Helper.get_id_from_node(link),
+				token = Helper.get_token_from_node(link),
+				page, page_token, check;
+
+			if (type === "s") {
+				page = Helper.get_page_from_node(link);
+				page_token = Helper.get_page_token_from_node(link);
+				if (page !== null) {
+					check = Database.check(uid);
+					if (check && token) {
+						type = "g";
+						token = check;
+						link.setAttribute("data-exlinks-type", type);
+						link.setAttribute("data-exlinks-token", token);
+						link.removeAttribute("data-exlinks-page");
+						link.removeAttribute("data-exlinks-page-token");
+						link.classList.add("exlinks-token");
+						link.classList.remove("exlinks-page");
+						link.classList.remove("exlinks-page-token");
+						Main.queue.add(uid);
+					}
+					else {
+						API.queue.add("s", uid, page_token, page);
+					}
+				}
+			}
+			if (type === "g") {
+				if (Database.check(uid)) {
+					Main.queue.add(uid);
+				}
+				else {
+					if (token) {
+						API.queue.add('g', uid, token);
+					}
+				}
+			}
+		},
+		on: function (event_name, callback) {
+			var listeners = Linkifier.event_listeners[event_name];
+			if (!listeners) return false;
+			listeners.push(callback);
+			return true;
+		},
+		off: function (event_name, callback) {
+			var listeners = Linkifier.event_listeners[event_name],
+				i, ii;
+			if (listeners) {
+				for (i = 0, ii = listeners.length; i < ii; ++i) {
+					if (listeners[i] === callback) {
+						listeners.splice(i, 1);
+						return true;
+					}
+				}
+			}
+			return false;
+		},
+		trigger: function (event_name) {
+			var queue = Linkifier.event_queue[event_name],
+				listeners, i, ii;
+			if (queue && queue.length > 0) {
+				listeners = Linkifier.event_listeners[event_name];
+				for (i = 0, ii = listeners.length; i < ii; ++i) {
+					listeners[i].call(null, queue);
+				}
+
+				Linkifier.event_queue[event_name] = [];
 			}
 		}
 	};
@@ -3147,11 +3598,11 @@
 
 			EasyList.set_options_visible(false);
 
-			Main.off_linkify(EasyList.on_linkify);
+			Linkifier.off("format", EasyList.on_linkify);
 		},
 		populate: function () {
-			EasyList.on_linkify(Linkifier.get_links());
-			Main.on_linkify(EasyList.on_linkify);
+			EasyList.on_linkify(Linkifier.get_links_formatted());
+			Linkifier.on("format", EasyList.on_linkify);
 		},
 		set_empty: function (empty) {
 			if (EasyList.empty_notification !== null) {
@@ -3781,9 +4232,15 @@
 	Main = {
 		namespace: 'exlinks-',
 		version: '#VERSION#',
-		linkify_event: {
-			queue: [],
-			listeners: []
+		queue: function () {
+			var arr = [],
+				obj = Main.queue.list,
+				i = 0,
+				k;
+			for (k in obj) {
+				arr[i++] = parseInt(k, 10);
+			}
+			return arr;
 		},
 		check: function (uid) {
 			var check = Database.check(uid),
@@ -3822,407 +4279,39 @@
 			}
 			return null;
 		},
-		format: function (queue) {
-			Debug.timer.start('format');
-			Debug.value.set('failed', 0);
-
-			var failed = {},
-				failtype = [],
-				uid, links, link, button, data, actions, failure, hl, i, ii, j, jj, k, c;
+		flush_queue: function () {
+			var queue = Main.queue(),
+				update = false,
+				uid, data, i, ii;
 
 			for (i = 0, ii = queue.length; i < ii; ++i) {
 				uid = queue[i];
 				data = Database.get(uid);
-				if (data !== null) {
-					links = Linkifier.get_links_unformatted(uid);
-					if (!Object.prototype.hasOwnProperty.call(data, "error")) {
-						Debug.value.add('formatlinks');
-						for (j = 0, jj = links.length; j < jj; ++j) {
-							link = links[j];
-
-							// Button
-							button = Helper.get_tag_button_from_link(link);
-							if (button !== null) {
-								if ((hl = Filter.check(link, data))[0] !== Filter.None) {
-									c = (hl[0] === Filter.Good) ? conf['Good Tag Marker'] : conf['Bad Tag Marker'];
-									button.textContent = button.textContent.replace(/\]\s*$/, c + "]");
-									Filter.highlight_tag(button, link, hl);
-								}
-								$.off(button, 'click', Main.singlelink);
-								if (conf['Gallery Actions'] === true) {
-									$.on(button, 'click', UI.toggle);
-								}
-								button.setAttribute("data-action", "toggle");
-							}
-
-							// Link title
-							link.textContent = Helper.normalize_api_string(data.title);
-							if (conf['Gallery Details'] === true) {
-								$.on(link, [
-									[ 'mouseover', UI.show ],
-									[ 'mouseout', UI.hide ],
-									[ 'mousemove', UI.move ]
-								]);
-							}
-							actions = UI.actions(data, link);
-							$.after(link, actions);
-							actions = Helper.get_actions_from_link(link, false);
-							if (actions !== null) {
-								if (conf['Torrent Popup'] === true) {
-									$.on($('a.ex-actions-link-torrent', actions), 'click', UI.popup);
-								}
-								if (conf['Archiver Popup'] === true) {
-									$.on($('a.ex-actions-link-archiver', actions), 'click', UI.popup);
-								}
-								if (conf['Favorite Popup'] === true) {
-									$.on($('a.ex-actions-link-favorite', actions), 'click', UI.popup);
-								}
-							}
-							link.setAttribute("data-ex-linkified-status", "formatted");
-						}
-					}
-					else {
-						for (j = 0, jj = links.length; j < jj; ++j) {
-							link = links[j];
-
-							button = Helper.get_tag_button_from_link(link);
-							if (button !== null) {
-								$.off(button, 'click', Main.singlelink);
-								button.setAttribute("data-action", "toggle");
-							}
-
-							link.textContent = 'Incorrect Gallery Key';
-							link.setAttribute("data-ex-linkified-status", "formatted");
-						}
-					}
-					Main.queue_linkify_event(links, data);
+				if (data === null) {
+					update = true;
 				}
 				else {
-					Debug.value.add('failed');
-					failed[uid] = true;
+					Linkifier.format(Linkifier.get_links_unformatted(uid), data);
 				}
 			}
+
+			Linkifier.trigger("format");
 
 			Main.queue.clear();
-			Debug.log('Formatted IDs: ' + Debug.value.get('formatlinks') + ' OK, ' + Debug.value.get('failed') + ' FAIL. time=' + Debug.timer.stop('format'));
-			if (Object.keys(failed).length > 0) {
-				for (k in failed) {
-					failure = Main.check(parseInt(k, 10));
-					if (failure !== null) {
-						failtype.push(failure[0]);
-						failtype.push(failure[1]);
-					}
-				}
-				Debug.log("Failures: ", failtype);
+
+			if (update) {
 				Main.update();
 			}
-
-			Main.trigger_linkify_event();
-		},
-		queue: function () {
-			var arr = [],
-				obj = Main.queue.list,
-				i = 0,
-				k;
-			for (k in obj) {
-				arr[i++] = parseInt(k, 10);
-			}
-			return arr;
 		},
 		update: function () {
-			var queue = Main.queue();
+			Main.flush_queue();
+
 			if (!API.working) {
 				if (API.queue('s')) {
 					API.request('s');
 				}
 				else if (API.queue('g')) {
 					API.request('g');
-				}
-			}
-			if (queue.length > 0) {
-				Main.format(queue);
-				Main.queue.clear();
-			}
-		},
-		singlelink: function (e) {
-			e.preventDefault();
-			var n = Helper.get_link_from_tag_button(this);
-			if (n !== null) {
-				Main.single(n);
-				Main.update();
-			}
-		},
-		single: function (link) {
-			var type = Helper.get_type_from_node(link),
-				uid = Helper.get_id_from_node(link),
-				token = Helper.get_token_from_node(link),
-				page, page_token, check;
-
-			if (type === "s") {
-				page = Helper.get_page_from_node(link);
-				page_token = Helper.get_page_token_from_node(link);
-				if (page !== null) {
-					check = Database.check(uid);
-					if (check && token) {
-						type = "g";
-						token = check;
-						link.setAttribute("data-exlinks-type", type);
-						link.setAttribute("data-exlinks-token", token);
-						link.removeAttribute("data-exlinks-page");
-						link.removeAttribute("data-exlinks-page-token");
-						link.classList.add("exlinks-token");
-						link.classList.remove("exlinks-page");
-						link.classList.remove("exlinks-page-token");
-						Main.queue.add(uid);
-					}
-					else {
-						API.queue.add("s", uid, page_token, page);
-					}
-				}
-			}
-			if (type === "g") {
-				if (Database.check(uid)) {
-					Main.queue.add(uid);
-				}
-				else {
-					if (token) {
-						API.queue.add('g', uid, token);
-					}
-				}
-			}
-		},
-		process: function (posts) {
-			var post, post_body, post_links, link, i, ii, j, jj;
-
-			Debug.timer.start('process');
-
-			for (i = 0, ii = posts.length; i < ii; ++i) {
-				post = posts[i];
-				Main.setup_post(post);
-
-				post_body = Helper.Post.get_text_body(post) || post;
-				if (regex.url.test(post_body.innerHTML)) {
-					Debug.value.add('posts');
-
-					if (!post.classList.contains('ex-post-linkified')) {
-						Debug.value.add('linkified');
-
-						post_links = Helper.Post.get_body_links(post_body);
-						for (j = 0, jj = post_links.length; j < jj; ++j) {
-							link = post_links[j];
-							if (regex.url.test(link.href)) {
-								link.classList.add("ex-link-events");
-								link.classList.add("ex-linkified");
-								link.classList.add("ex-linkified-gallery");
-								link.setAttribute("target", "_blank");
-								link.setAttribute("data-ex-linkified-status", "unprocessed");
-							}
-						}
-						Linkifier.linkify(post_body);
-						post.classList.add('ex-post-linkified');
-					}
-				}
-
-				Main.setup_post_events(post);
-			}
-
-			Debug.log(
-				"Total posts=" + posts.length +
-				"; linkified=" + Debug.value.get("linkified") +
-				"; processed=" + Debug.value.get("posts") +
-				"; links=" + Debug.value.get("processed") +
-				"; time=" + Debug.timer.stop("process")
-			);
-			Main.update();
-		},
-		setup_post: function (post) {
-			var nodes, i, ii;
-
-			if (conf.ExSauce) {
-				Main.setup_post_exsauce(post);
-			}
-
-			if (conf['Hide in Quotes']) {
-				nodes = $$('.exlinks-exsauce-results,.ex-actions', post);
-				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					nodes[i].style.display = "none";
-				}
-			}
-		},
-		setup_post_exsauce: function (post) {
-			var file_info, sauce, results;
-
-			// File info
-			file_info = Helper.Post.get_file_info(post);
-			if (file_info === null || file_info.md5 === null) return;
-
-			// Create if not found
-			sauce = $(".exlinks-exsauce-link", file_info.options);
-			if (sauce === null) {
-				sauce = $.create("a", {
-					className: "exlinks-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
-					textContent: Sauce.label(false),
-					href: file_info.url,
-					target: "_blank"
-				});
-				if (conf["No Underline on Sauce"]) {
-					sauce.classList.add("exlinks-exsauce-link-no-underline");
-				}
-				sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
-				if (/^\.jpe?g$/.test(file_info.type)) {
-					sauce.classList.add("exlinks-exsauce-link-disabled");
-					sauce.title = (
-						"Reverse Image Search doesn't work for JPG images because 4chan manipulates them on upload. " +
-						"There is nothing ExLinks can do about this. " +
-						"All complaints can be directed at 4chan staff."
-					);
-				}
-				if (file_info.options_sep) {
-					$.before2(file_info.options, $.tnode(file_info.options_sep), file_info.options_before);
-				}
-				$.before2(file_info.options, sauce, file_info.options_before);
-			}
-
-			// Events
-			if (sauce.classList.contains("exlinks-exsauce-link-disabled")) {
-				$.on(sauce, "click", function (event) {
-					event.preventDefault();
-					return false;
-				});
-			}
-			else if (!sauce.classList.contains('exlinks-exsauce-link-valid')) {
-				$.on(sauce, "click", Sauce.click);
-			}
-			else {
-				if (conf['Show Short Results'] === true) {
-					if (conf['Inline Results'] === true) {
-						results = Helper.get_exresults_from_exsauce(sauce);
-						if (results !== null && results.style.display === 'none') {
-							$.on(sauce, [
-								[ 'mouseover', Sauce.UI.show ],
-								[ 'mousemove', Sauce.UI.move ],
-								[ 'mouseout', Sauce.UI.hide ]
-							]);
-						}
-					}
-					else {
-						$.on(sauce, [
-							[ 'mouseover', Sauce.UI.show ],
-							[ 'mousemove', Sauce.UI.move ],
-							[ 'mouseout', Sauce.UI.hide ]
-						]);
-					}
-				}
-				if (conf['Inline Results'] === true) {
-					$.on(sauce, 'click', Sauce.UI.toggle);
-					if (conf['Hide Results in Quotes'] === true) {
-						results = Helper.get_exresults_from_exsauce(sauce);
-						if (results !== null) {
-							results.style.setProperty("display", "none", "important");
-						}
-					}
-				}
-			}
-		},
-		setup_post_events: function (post) {
-			var links, value, link, site, info, button, j, jj;
-
-			links = $$('a.ex-link-events', post);
-			for (j = 0, jj = links.length; j < jj; ++j) {
-				link = links[j];
-				if (link.classList.contains('ex-site-tag')) {
-					value = link.getAttribute("data-action");
-					if (value === "toggle") {
-						if (conf['Gallery Actions'] === true) {
-							$.on(link, 'click', UI.toggle);
-						}
-					}
-					else if (value === "fetch") {
-						$.on(link, 'click', Main.singlelink);
-					}
-				}
-				if (link.classList.contains('ex-actions-link')) {
-					if (link.classList.contains('ex-actions-link-torrent')) {
-						if (conf['Torrent Popup'] === true) {
-							$.on(link, 'click', UI.popup);
-						}
-					}
-					if (link.classList.contains('ex-actions-link-archiver')) {
-						if (conf['Archiver Popup'] === true) {
-							$.on(link, 'click', UI.popup);
-						}
-					}
-					if (link.classList.contains('ex-actions-link-favorite')) {
-						if (conf['Favorite Autosave']) {
-							$.on(link, 'click', UI.favorite);
-						}
-						else if (conf['Favorite Popup'] === true) {
-							$.on(link, 'click', UI.popup);
-						}
-					}
-				}
-				if (link.classList.contains('ex-linkified-gallery')) {
-					value = link.getAttribute("data-ex-linkified-status");
-					if (value === "unprocessed") {
-						site = conf['Gallery Link'];
-						if (site.value !== "Original") {
-							if (!new RegExp(site.value).test(link.href)) {
-								link.href = link.href.replace(regex.site, site.value);
-							}
-						}
-
-						info = Helper.get_url_info(link.href);
-						if (info === null) {
-							link.classList.remove('ex-linkified-gallery');
-							link.removeAttribute("data-ex-linkified-status");
-						}
-						else {
-							if (info.type === "s") {
-								link.setAttribute("data-exlinks-type", info.type);
-								link.setAttribute("data-exlinks-gid", info.gid);
-								link.setAttribute("data-exlinks-page", info.page);
-								link.setAttribute("data-exlinks-page-token", info.page_token);
-								link.classList.add("exlinks-type");
-								link.classList.add("exlinks-gid");
-								link.classList.add("exlinks-page");
-								link.classList.add("exlinks-page-token");
-							}
-							else if (info.type === "g") {
-								link.setAttribute("data-exlinks-type", info.type);
-								link.setAttribute("data-exlinks-gid", info.gid);
-								link.setAttribute("data-exlinks-token", info.token);
-								link.classList.add("exlinks-type");
-								link.classList.add("exlinks-gid");
-								link.classList.add("exlinks-token");
-							}
-
-							link.setAttribute("data-ex-linkified-status", "processed");
-
-							button = UI.button(link.href);
-							$.on(button, "click", Main.singlelink);
-							$.before(link, button);
-
-							if (conf['Automatic Processing'] === true) {
-								Main.single(link);
-								Debug.value.add('processed');
-							}
-						}
-					}
-					else if (value === "processed") {
-						if (conf['Automatic Processing'] === true) {
-							Main.single(link);
-							Debug.value.add('processed');
-						}
-					}
-					else if (value === "formatted") {
-						if (conf['Gallery Details'] === true) {
-							$.on(link, [
-								[ 'mouseover', UI.show ],
-								[ 'mouseout', UI.hide ],
-								[ 'mousemove', UI.move ]
-							]);
-						}
-					}
 				}
 			}
 		},
@@ -4236,7 +4325,7 @@
 			}]);
 		},
 		observer: function (records) {
-			var nodelist = [],
+			var post_list = [],
 				nodes, node, e, i, ii, j, jj;
 
 			for (i = 0, ii = records.length; i < ii; ++i) {
@@ -4246,7 +4335,7 @@
 
 				// Look for posts
 				for (j = 0, jj = nodes.length; j < jj; ++j) {
-					Main.observe_post_change(nodes[j], nodelist);
+					Main.observe_post_change(nodes[j], post_list);
 				}
 
 				// 4chan X specific hacks.
@@ -4260,7 +4349,7 @@
 					) {
 						node = Helper.Post.get_post_container(e.target);
 						if (node !== null) {
-							nodelist.push(node);
+							post_list.push(node);
 						}
 					}
 				}
@@ -4281,7 +4370,7 @@
 
 						node = Helper.Post.get_post_container(node);
 						if (node !== null) {
-							nodelist.push(node);
+							post_list.push(node);
 						}
 					}
 				}
@@ -4296,8 +4385,8 @@
 				}
 			}
 
-			if (nodelist.length > 0) {
-				Main.process(nodelist);
+			if (post_list.length > 0) {
+				Linkifier.parse_posts(post_list);
 			}
 		},
 		observe_post_change: function (node, nodelist) {
@@ -4367,7 +4456,7 @@
 
 			Debug.log('Initialization complete; time=' + Debug.timer.stop('init'));
 
-			Main.process(Helper.Post.get_all_posts(d));
+			Linkifier.parse_posts(Helper.Post.get_all_posts(d));
 
 			if (MutationObserver) {
 				updater = new MutationObserver(Main.observer);
@@ -4395,38 +4484,6 @@
 			});
 			$.ready(Main.ready);
 		},
-		queue_linkify_event: function (links) {
-			if (Main.linkify_event.listeners.length > 0) {
-				$.push_many(Main.linkify_event.queue, links);
-			}
-		},
-		trigger_linkify_event: function () {
-			if (Main.linkify_event.queue.length > 0) {
-				var queue = Main.linkify_event.queue,
-					list = Main.linkify_event.listeners,
-					i, ii;
-
-				for (i = 0, ii = list.length; i < ii; ++i) {
-					list[i].call(null, queue);
-				}
-
-				Main.linkify_event.queue = [];
-			}
-		},
-		on_linkify: function (callback) {
-			Main.linkify_event.listeners.push(callback);
-		},
-		off_linkify: function (callback) {
-			var list = Main.linkify_event.listeners,
-				i, ii;
-			for (i = 0, ii = list.length; i < ii; ++i) {
-				if (list[i] === callback) {
-					list.splice(i, 1);
-					return true;
-				}
-			}
-			return false;
-		}
 	};
 
 	Main.init();
