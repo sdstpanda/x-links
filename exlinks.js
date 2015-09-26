@@ -442,47 +442,24 @@
 			if (
 				(node = node.nextSibling) !== null &&
 				(node.classList || ((node = node.nextSibling) !== null && node.classList)) &&
-				node.classList.contains("exactions")
+				node.classList.contains("ex-actions")
 			) {
 				return node;
 			}
 			return null;
 		},
 		get_exresults_from_exsauce: function (node) {
-			var container = Helper.get_post_container(node);
+			var container = Helper.Post.get_post_container(node);
 
 			if (
 				container !== null &&
 				(node = $(".exlinks-exsauce-results", container)) !== null &&
-				Helper.get_post_container(node) === container
+				Helper.Post.get_post_container(node) === container
 			) {
 				return node;
 			}
 			return null;
 		},
-		get_post_container: $.extend(function (node) {
-			return Helper.get_post_container[Config.mode].call(null, node);
-		}, {
-			"4chan": function (node) {
-				while ((node = node.parentNode) !== null) {
-					if (node.classList.contains("postContainer")) return node;
-				}
-				return null;
-			},
-			"foolz": function (node) {
-				while ((node = node.parentNode) !== null) {
-					if (node.tagName === "ARTICLE") return node;
-				}
-				return null;
-			},
-			"38chan": function (node) {
-				while ((node = node.parentNode) !== null) {
-					if (node.classList.contains("post")) return node;
-				}
-				return null;
-			}
-			// "fuuka": function (node) {}
-		}),
 		get_url_info: function (url) {
 			var m = /\/g\/(\d+)\/([0-9a-f]+)/.exec(url);
 			if (m !== null) {
@@ -508,6 +485,47 @@
 		get_domain: function (url) {
 			var m = /^https?:\/*([\w\-]+(?:\.[\w\-]+)*)/i.exec(url);
 			return (m === null) ? "" : m[1];
+		},
+		Post: {
+			get_post_container: $.extend(function (node) {
+				return Helper.Post.get_post_container[Config.mode].call(null, node);
+			}, {
+				"4chan": function (node) {
+					while ((node = node.parentNode) !== null) {
+						if (node.classList.contains("postContainer")) return node;
+					}
+					return null;
+				},
+				"foolz": function (node) {
+					while ((node = node.parentNode) !== null) {
+						if (node.tagName === "ARTICLE") return node;
+					}
+					return null;
+				},
+				"38chan": function (node) {
+					while ((node = node.parentNode) !== null) {
+						if (node.classList.contains("post")) return node;
+					}
+					return null;
+				}
+				// "fuuka": function (node) {}
+			}),
+			get_text_body: function (post) {
+				var sel;
+				if (Config.mode === "4chan") {
+					sel = "blockquote";
+				}
+				else if (Config.mode === "foolz") {
+					sel = ".text";
+				}
+				else if (Config.mode === "38chan") {
+					sel = ".body";
+				}
+				else {
+					return null;
+				}
+				return post.querySelector(sel);
+			}
 		}
 	};
 	HttpRequest = (function () {
@@ -540,7 +558,7 @@
 			stars: function (data) {
 				var str = '',
 					star = '',
-					rating = Math.round(parseFloat(data, 10) * 2),
+					rating = Math.round(parseFloat(data) * 2),
 					tmp, i;
 
 				for (i = 0; i < 5; ++i) {
@@ -560,7 +578,7 @@
 				data_alt = {},
 				frag, tagspace, content, n;
 
-			data_alt.jtitle = data.title_jpn ? ('<br /><span class="exjptitle">' + data.title_jpn + '</span>') : '';
+			data_alt.jtitle = data.title_jpn ? ('<br /><span class="ex-details-title-jp">' + data.title_jpn + '</span>') : '';
 
 			data_alt.size = Math.round((data.filesize / 1024 / 1024) * 100) / 100;
 			data_alt.datetext = UI.date(new Date(parseInt(data.posted, 10) * 1000));
@@ -654,7 +672,7 @@
 
 			frag = $.frag(UI.html.actions(data, data_alt));
 
-			if ((n = $('.exuploader', frag)) !== null) {
+			if ((n = $('.ex-actions-link-uploader', frag)) !== null) {
 				Filter.highlight("uploader", n, data, null);
 			}
 
@@ -1457,7 +1475,7 @@
 					hover, i, ii;
 
 				hover = $.create('div', {
-					className: 'exblock exlinks-exsauce-hover post reply',
+					className: 'exlinks-exsauce-hover exblock post reply',
 					id: 'exlinks-exsauce-hover-' + sha1
 				});
 				hover.setAttribute("data-sha1", sha1);
@@ -1482,30 +1500,40 @@
 		},
 		format: function (a, result) {
 			var count = result.length,
-				results, parent, post, i, ii;
-			a.classList.add('sauced');
+				results, n, i, ii;
+
+			a.classList.add('exlinks-exsauce-link-valid');
 			a.textContent = Sauce.text('Found: ' + count);
+
 			if (count > 0) {
 				if (conf['Inline Results'] === true) {
 					$.on(a, 'click', Sauce.UI.toggle);
+
 					results = $.create('div', {
 						className: 'exblock exlinks-exsauce-results'
 					});
 					$.add(results, $.create("strong", { textContent: "Reverse Image Search Results" }));
-					$.add(results, $.tnode(" | View on: "));
-					$.add(results, $.create("a", { href: a.href, textContent: Sauce.label(true) }));
+					$.add(results, $.create("span", { className: "exlinks-exsauce-results-sep", textContent: "|" }));
+					$.add(results, $.create("span", { className: "exlinks-exsauce-results-label", textContent: "View on:" }));
+					$.add(results, $.create("a", {
+						className: "exlinks-exsauce-results-link",
+						href: a.href,
+						textContent: Sauce.label(true)
+					}));
 					$.add(results, $.create("br"));
 					results.style.setProperty("display", conf['Show Results by Default'] ? "table" : "none", "important");
 					for (i = 0, ii = result.length; i < ii; ++i) {
 						$.add(results, $.tnode(result[i][0]));
 						if (i < ii - 1) $.add(results, $.create('br'));
 					}
-					if (Config.mode === '4chan') {
-						parent = a.parentNode.parentNode.parentNode;
-						post = $(Parser.postbody, parent);
-						$.before(post, results);
+
+					if (
+						(n = Helper.Post.get_post_container(a)) !== null &&
+						(n = Helper.Post.get_text_body(n)) !== null
+					) {
+						$.before(n, results);
+						Main.process([results]);
 					}
-					Main.process([results]);
 				}
 				if (conf['Show Results by Default'] === false) {
 					if (conf['Show Short Results'] === true) {
@@ -1621,7 +1649,6 @@
 	Parser = {
 		postbody: 'blockquote',
 		prelinks: 'a:not(.quotelink)',
-		links: '.exlink',
 		image: '.file',
 		unformatted: function (uid) {
 			return $$("a.exprocessed.exlinks-gid[data-exlinks-gid='" + uid + "']");
@@ -1638,11 +1665,11 @@
 						wbr = i;
 						while (nodes[wbr] && nodes[wbr].nextSibling && nodes[wbr].nextSibling.tagName === "WBR") {
 							nodes[wbr].parentNode.removeChild(nodes[wbr].nextSibling);
-							if (nodes[wbr + 1]) {
-								node.textContent += nodes[wbr + 1].textContent;
-								nodes[wbr + 1].textContent = "";
-							}
 							++wbr;
+							if (nodes[wbr]) {
+								node.textContent += nodes[wbr].textContent;
+								nodes[wbr].textContent = "";
+							}
 						}
 					}
 					text = node.textContent;
@@ -1658,12 +1685,11 @@
 						tu.className = 'exlink exgallery exunprocessed';
 						if (regex.protocol.test(match[0])) {
 							tu.href = match[0];
-							tu.textContent = match[0];
 						}
 						else {
 							tu.href = 'http://' + match[0];
-							tu.textContent = 'http://' + match[0];
 						}
+						tu.textContent = match[0];
 						tu.setAttribute('target', '_blank');
 						tu.style.textDecoration = 'none';
 						if (tn.length > 0 && !ws.test(tn.nodeValue)) {
@@ -3729,13 +3755,13 @@
 							actions = Helper.get_actions_from_link(link, false);
 							if (actions !== null) {
 								if (conf['Torrent Popup'] === true) {
-									$.on($('a.extorrent', actions), 'click', UI.popup);
+									$.on($('a.ex-actions-link-torrent', actions), 'click', UI.popup);
 								}
 								if (conf['Archiver Popup'] === true) {
-									$.on($('a.exarchiver', actions), 'click', UI.popup);
+									$.on($('a.ex-actions-link-archiver', actions), 'click', UI.popup);
 								}
 								if (conf['Favorite Popup'] === true) {
-									$.on($('a.exfavorite', actions), 'click', UI.popup);
+									$.on($('a.ex-actions-link-favorite', actions), 'click', UI.popup);
 								}
 							}
 							link.classList.remove('exprocessed');
@@ -3881,21 +3907,25 @@
 									isJPG = /\.jpg$/i.test(file.childNodes[1].href);
 									if (md5) {
 										md5 = md5.replace('==', '');
-										sauce = $('.exsauce', info);
+										sauce = $('.exlinks-exsauce-link', info);
 										if (!sauce) {
 											exsauce = $.create('a', {
 												textContent: Sauce.label(false),
-												className: 'exsauce',
+												className: 'exlinks-exsauce-link',
 												href: file.childNodes[1].href
 											});
 											if (conf['No Underline on Sauce']) {
-												exsauce.classList.add('exsauce-no-underline');
+												exsauce.classList.add('exlinks-exsauce-link-no-underline');
 											}
 											exsauce.setAttribute('data-md5', md5);
 											if (isJPG) {
-												exsauce.classList.add('exsauce-disabled');
+												exsauce.classList.add('exlinks-exsauce-link-disabled');
+												exsauce.title = (
+													"Reverse Image Search doesn't work for JPG images because 4chan manipulates them on upload.\n" +
+													"There is nothing ExLinks can do about this.\n" +
+													"All complaints can be directed at 4chan staff."
+												);
 												$.on(exsauce, 'click', prevent);
-												exsauce.title = "Reverse Image Search doesn't work for JPG images because 4chan manipulates them on upload. There is nothing ExLinks can do about this. All complaints can be directed at 4chan staff.";
 											}
 											else {
 												$.on(exsauce, 'click', Sauce.click);
@@ -3904,7 +3934,7 @@
 											$.add(info, exsauce);
 										}
 										else if (!isJPG) {
-											if (!sauce.classList.contains('sauced')) {
+											if (!sauce.classList.contains('exlinks-exsauce-link-valid')) {
 												$.on(sauce, 'click', Sauce.click);
 											}
 											else {
@@ -3952,10 +3982,10 @@
 					Debug.value.add('posts');
 
 					if (conf['Hide in Quotes']) {
-						actions = $$('.exactions', post);
+						actions = $$('.ex-actions', post);
 						for (j = 0, jj = actions.length; j < jj; ++j) {
-							if (actions[j].display === "inline-block") {
-								actions[j].display = "none";
+							if (actions[j].style.display !== "none") {
+								actions[j].style.display = "none";
 							}
 						}
 					}
@@ -3990,18 +4020,18 @@
 								$.on(link, 'click', Main.singlelink);
 							}
 						}
-						if (link.classList.contains('exaction')) {
-							if (link.classList.contains('extorrent')) {
+						if (link.classList.contains('ex-actions-link')) {
+							if (link.classList.contains('ex-actions-link-torrent')) {
 								if (conf['Torrent Popup'] === true) {
 									$.on(link, 'click', UI.popup);
 								}
 							}
-							if (link.classList.contains('exarchiver')) {
+							if (link.classList.contains('ex-actions-link-archiver')) {
 								if (conf['Archiver Popup'] === true) {
 									$.on(link, 'click', UI.popup);
 								}
 							}
-							if (link.classList.contains('extorrent')) {
+							if (link.classList.contains('ex-actions-link-favorite')) {
 								if (conf['Favorite Popup'] === true) {
 									$.on(link, 'click', UI.popup);
 								}
@@ -4064,7 +4094,7 @@
 								}
 							}
 						}
-						if (link.classList.contains('exfavorite')) {
+						if (link.classList.contains('ex-actions-link-favorite')) {
 							if (conf['Favorite Autosave']) {
 								$.on(link, 'click', UI.favorite);
 							}
