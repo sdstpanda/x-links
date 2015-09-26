@@ -1478,7 +1478,7 @@
 					hover, i, ii;
 
 				hover = $.create('div', {
-					className: 'exlinks-exsauce-hover exblock post reply',
+					className: 'exlinks-exsauce-hover post reply',
 					id: 'exlinks-exsauce-hover-' + sha1
 				});
 				hover.setAttribute("data-sha1", sha1);
@@ -1513,7 +1513,7 @@
 					$.on(a, 'click', Sauce.UI.toggle);
 
 					results = $.create('div', {
-						className: 'exblock exlinks-exsauce-results'
+						className: 'exlinks-exsauce-results'
 					});
 					$.add(results, $.create("strong", { textContent: "Reverse Image Search Results" }));
 					$.add(results, $.create("span", { className: "exlinks-exsauce-results-sep", textContent: "|" }));
