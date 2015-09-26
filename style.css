@@ -461,6 +461,20 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 	color: #e89cc4;
 }
 
+/* Filtering */
+.ex-tag.ex-filter-good,
+.exbutton.ex-filter-good,
+.exgallery.ex-filter-good,
+.ex-details-uploader.ex-filter-good {
+	font-weight: bold;
+}
+
+.ex-filter-text {
+	display: inline;
+}
+.ex-filter-text-inner {
+}
+
 /* Options */
 #exlinks-overlay {
 	position: fixed;
@@ -652,19 +666,6 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 }
 .exlinks-options-input-button.extheme-dark:hover {
 	border-color: rgba(255,255,255,0.5);
-}
-
-.extag.exfilter-good,
-.exbutton.exfilter-good,
-.exgallery.exfilter-good,
-.exuploader.exfilter-good {
-	font-weight: bold;
-}
-
-.exfilter-text {
-	display: inline;
-}
-.exfilter-text-inner {
 }
 
 /* Easy List */

@@ -2405,7 +2405,7 @@
 				while ((n2 = n1.firstChild) !== null) {
 					$.add(node, n2);
 				}
-				return Filter.hl_return(n1.classList.contains("exfilter-bad"), node);
+				return Filter.hl_return(n1.classList.contains("ex-filter-bad"), node);
 			}
 
 			// Check filters
@@ -2444,9 +2444,8 @@
 					$.add(frag, $.tnode(t));
 				}
 				else {
-					n1 = $.create("span", { className: "exfilter-text" });
-					n2 = $.create("span", { className: "exfilter-text-inner" });
-					n2.textContent = t;
+					n1 = $.create("span", { className: "ex-filter-text" });
+					n2 = $.create("span", { className: "ex-filter-text-inner", textContent: t });
 					$.add(n1, n2);
 					$.add(frag, n1);
 					Filter.apply_styles(n1, segment.data);
@@ -2463,13 +2462,13 @@
 		},
 		highlight_tag: function (node, link, filter_data) {
 			if (filter_data[0] === Filter.Bad) {
-				node.classList.add("exfilter-bad");
-				link.classList.add("exfilter-bad");
-				link.classList.remove("exfilter-good");
+				node.classList.add("ex-filter-bad");
+				link.classList.add("ex-filter-bad");
+				link.classList.remove("ex-filter-good");
 			}
 			else {
-				node.classList.add("exfilter-good");
-				link.classList.add("exfilter-good");
+				node.classList.add("ex-filter-good");
+				link.classList.add("ex-filter-good");
 			}
 
 			// Get styles
@@ -2498,8 +2497,8 @@
 
 			// Apply styles
 			if (color !== null || background !== null || underline !== null) {
-				n1 = $.create("span", { className: "exfilter-text" });
-				n2 = $.create("span", { className: "exfilter-text-inner" });
+				n1 = $.create("span", { className: "ex-filter-text" });
+				n2 = $.create("span", { className: "ex-filter-text-inner" });
 				while ((n = node.firstChild) !== null) {
 					$.add(n2, n);
 				}
@@ -2510,11 +2509,11 @@
 		},
 		hl_return: function (bad, node) {
 			if (bad) {
-				node.classList.add("exfilter-bad");
+				node.classList.add("ex-filter-bad");
 				return Filter.Bad;
 			}
 			else {
-				node.classList.add("exfilter-good");
+				node.classList.add("ex-filter-good");
 				return Filter.Good;
 			}
 		},
@@ -3469,8 +3468,8 @@
 					n = nodes[j];
 					if (!first) {
 						n.textContent = n.getAttribute("data-original") || "";
-						n.classList.remove("exfilter-good");
-						n.classList.remove("exfilter-bad");
+						n.classList.remove("ex-filter-good");
+						n.classList.remove("ex-filter-bad");
 					}
 					Filter.highlight(mode, n, data, results, EasyList.custom_filters);
 				}
@@ -3483,8 +3482,8 @@
 				if (link !== null && n !== null) {
 					if (!first) {
 						n.textContent = n.getAttribute("data-original") || "";
-						n.classList.remove("exfilter-good");
-						n.classList.remove("exfilter-bad");
+						n.classList.remove("ex-filter-good");
+						n.classList.remove("ex-filter-bad");
 					}
 
 					link = link.cloneNode(true);
