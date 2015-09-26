@@ -716,6 +716,8 @@
 				data_alt = {},
 				frag, tagspace, content, n;
 
+			if (data === null) return $.create("div"); // dummy
+
 			data_alt.jtitle = data.title_jpn ? ('<br /><span class="ex-details-title-jp">' + data.title_jpn + '</span>') : '';
 
 			data_alt.size = Math.round((data.filesize / 1024 / 1024) * 100) / 100;
@@ -1179,7 +1181,7 @@
 		request_full_info: function (id, token, site, cb) {
 			if (Database.check(id)) {
 				var data = Database.get(id);
-				if (data && API.data_has_full(data)) {
+				if (data !== null && API.data_has_full(data)) {
 					cb(null, data);
 					return;
 				}
@@ -1203,7 +1205,7 @@
 				API.full_timer = setTimeout(API.on_request_full_next, 200);
 
 				var data = Database.get(id);
-				if (data) {
+				if (data !== null) {
 					data.full = full_data;
 					Database.set(data);
 				}
@@ -1392,40 +1394,28 @@
 			return results;
 		}
 	};
-	Database = $.extend({}, {
+	Database = {
+		data: {},
 		check: function (uid) {
-			var data;
-			if (Database[uid]) {
-				return Database[uid].token;
-			}
-			else {
-				data = Cache.get(uid);
-				if (data) {
-					Database.set(data);
-					return data.token;
-				}
-				return false;
-			}
+			var data = Database.get(uid);
+			return data ? data.token : null;
 		},
 		get: function (uid) { // , debug
 			// Use this if you want to break database gets randomly for debugging
 			// if (arguments[1] === true && Math.random() > 0.8) return false;
-			var data;
-			if (Database[uid]) {
-				return Database[uid];
+			var data = Database.data[uid];
+			if (data) return data;
+
+			data = Cache.get(uid);
+			if (data) {
+				Database.data[data.gid] = data;
+				return data;
 			}
-			else {
-				data = Cache.get(uid);
-				if (data) {
-					Database.set(data);
-					return data;
-				}
-				return false;
-			}
+
+			return null;
 		},
 		set: function (data) {
-			var uid = data.gid;
-			Database[uid] = data;
+			Database.data[data.gid] = data;
 			Cache.set(data);
 		},
 		init: function () {
@@ -1433,7 +1423,7 @@
 				Cache.load();
 			}
 		}
-	});
+	};
 	Hash = {
 		md5: {},
 		sha1: {},
@@ -3623,7 +3613,7 @@
 
 			for (i = 0, ii = list.length; i < ii; ++i) {
 				data = Database.get(list[i].gid);
-				if (data) {
+				if (data !== null) {
 					hl_res = EasyList.update_filters(list[i].node, data, false, false, true);
 					EasyList.tag_filtering_results(list[i].node, hl_res);
 				}
@@ -3843,7 +3833,7 @@
 			for (i = 0, ii = queue.length; i < ii; ++i) {
 				uid = queue[i];
 				data = Database.get(uid);
-				if (data) {
+				if (data !== null) {
 					links = Linkifier.get_links_unformatted(uid);
 					if (!Object.prototype.hasOwnProperty.call(data, "error")) {
 						Debug.value.add('formatlinks');
