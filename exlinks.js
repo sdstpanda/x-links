@@ -586,18 +586,18 @@
 
 			frag = $.frag(UI.html.details(data, data_alt));
 
-			if ((n = $('.extitle', frag)) !== null) {
+			if ((n = $('.ex-details-title', frag)) !== null) {
 				Filter.highlight("title", n, data, null);
 			}
-			if ((n = $('.exuploader', frag)) !== null) {
+			if ((n = $('.ex-details-uploader', frag)) !== null) {
 				Filter.highlight("uploader", n, data, null);
 			}
 
 			content = frag.firstChild;
-			tagspace = $('.extags', frag);
+			tagspace = $('.ex-details-tags', frag);
 			content.style.setProperty("display", "table", "important");
 			$.add(tagspace, UI.create_tags(domain, data.tags, data));
-			n = $(".exdetails", frag);
+			n = $(".ex-details", frag);
 			$.add(d.body, frag);
 
 			// Full info
@@ -677,7 +677,7 @@
 			}
 
 			frag.firstChild.style.setProperty("display", conf['Show by Default'] ? "table" : "none", "important");
-			$.add($(".extags", frag), UI.create_tags(sites[6], data.tags, data));
+			$.add($(".ex-actions-tags", frag), UI.create_tags(sites[6], data.tags, data));
 
 			return frag;
 		},
@@ -802,11 +802,11 @@
 				tag, link, i, ii;
 			for (i = 0, ii = tags.length; i < ii; ++i) {
 				tag = $.create("span", {
-					className: "extag-block"
+					className: "ex-tag-block"
 				});
 				link = $.create("a", {
 					textContent: tags[i],
-					className: "exlink extag",
+					className: "ex-tag",
 					href: "http://" + site + "/tag/" + tags[i].replace(/\ /g, "+"),
 					target: "_blank"
 				});
@@ -820,34 +820,38 @@
 			return tagfrag;
 		},
 		display_full: function (data) {
-			var nodes = $$(".extags.exlinks-gid[data-exlinks-gid='" + data.gid + "']"),
-				tagfrag = d.createDocumentFragment(),
+			var tagfrag = d.createDocumentFragment(),
 				url_base = "http://" + domains.exhentai,
 				theme = Theme.get(),
-				namespace, namespace_style, tags, tag, link, site, i, j, n, t, ii;
+				nodes, namespace, namespace_style, tags, tag, link, site, i, j, n, t, ii;
+
+			nodes = $$(
+				".ex-actions-tags.exlinks-gid[data-exlinks-gid='" + data.gid + "']," +
+				".ex-details-tags.exlinks-gid[data-exlinks-gid='" + data.gid + "']"
+			);
 
 			if (nodes.length === 0 || Object.keys(data.full.tags).length === 0) return;
 
 			for (namespace in data.full.tags) {
 				tags = data.full.tags[namespace];
-				namespace_style = " extag-namespace extag-namespace-" + namespace.replace(/\ /g, "-");
+				namespace_style = " ex-tag-namespace-" + namespace.replace(/\ /g, "-");
 
 				tag = $.create("span", {
-					className: "extag-block extag-block-namespace" + theme + namespace_style
+					className: "ex-tag-namespace-block" + theme + namespace_style
 				});
 				link = $.create("span", {
 					textContent: namespace,
-					className: "extag-block-namespace-tag"
+					className: "ex-tag-namespace"
 				});
 				$.add(tag, link);
 				$.add(tag, $.tnode(":"));
 				$.add(tagfrag, tag);
 
 				for (i = 0, ii = tags.length; i < ii; ++i) {
-					tag = $.create("span", { className: "extag-block" + namespace_style });
+					tag = $.create("span", { className: "ex-tag-block" + namespace_style });
 					link = $.create("a", {
 						textContent: tags[i],
-						className: "exlink extag",
+						className: "ex-tag",
 						href: url_base + "/tag/" + tags[i].replace(/\ /g, "+"),
 						target: "_blank"
 					});
@@ -3233,16 +3237,16 @@
 				}));
 
 				if (namespace !== "") {
-					namespace_style = " extag-namespace extag-namespace-" + namespace.replace(/\ /g, "-");
+					namespace_style = " ex-tag-namespace-" + namespace.replace(/\ /g, "-");
 					$.add(n2, n3 = $.create("div", {
 						className: "ex-easylist-item-tag-cell ex-easylist-item-tag-cell-label" + theme
 					}));
 					$.add(n3, n4 = $.create("span", {
-						className: "extag-block-namespace extag-block-namespace-no-outline" + namespace_style + theme
+						className: "ex-tag-namespace-block ex-tag-namespace-block-no-outline" + namespace_style + theme
 					}));
 					$.add(n4, $.create("span", {
 						textContent: namespace,
-						className: "extag-block-namespace-tag"
+						className: "ex-tag-namespace"
 					}));
 					$.add(n3, $.tnode(":"));
 				}
@@ -3254,11 +3258,11 @@
 
 				for (i = 0, ii = tags.length; i < ii; ++i) {
 					$.add(n2, n3 = $.create("span", {
-						className: "extag-block" + namespace_style
+						className: "ex-tag-block" + namespace_style
 					}));
 					$.add(n3, n4 = $.create("a", {
 						textContent: tags[i],
-						className: "exlink extag extag-color-inherit ex-easylist-item-tag",
+						className: "ex-tag ex-tag-color-inherit ex-easylist-item-tag",
 						href: url_base + "/tag/" + tags[i].replace(/\ /g, "+"),
 						target: "_blank"
 					}));

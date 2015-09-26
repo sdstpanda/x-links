@@ -1,10 +1,10 @@
-﻿<div id="exblock-details-uid-#{data.gid}" class="exblock exdetails post reply post_wrapper exlinks-gid exlinks-token" data-exlinks-gid="#{data.gid}" data-exlinks-token="#{data.token}">
+﻿<div id="exblock-details-uid-#{data.gid}" class="exblock ex-details exlinks-gid exlinks-token post reply post_wrapper" data-exlinks-gid="#{data.gid}" data-exlinks-token="#{data.token}">
 	<!-- Thumbnail -->
-	<div class="exthumbnail" style="background-image:url(#{data.thumb});">
+	<div class="ex-details-thumbnail" style="background-image:url(#{data.thumb});">
 		&nbsp;
 	</div>
 	<!-- Sidepanel -->
-	<div class="exsidepanel">
+	<div class="ex-details-side-panel">
 		<!-- Category -->
 		<div class="exlinks-btn exlinks-btn-eh exlinks-btn-#{cat[data.category].short}">
 			<div class="exlinks-noise">
@@ -12,48 +12,49 @@
 			</div>
 		</div>
 		<!-- Rating -->
-		<div class="exsidebarbox">
+		<div class="ex-details-side-box">
 			<strong>Rating:</strong><br />
-			<div class="exrating exlinks-stars-container">
+			<div class="ex-details-rating exlinks-stars-container">
 				#{UI.html.stars(data.rating)}
 			</div>
-			<!--<img src="#{img.ratings[Math.round(parseInt(data.rating,10)*2)]}" alt="#{data.rating}" />--><br />
-			<span style="opacity: 0.65; font-size: 0.95em;">
+			<span class="ex-details-rating-text">
 				(Avg. #{data.rating})
 			</span>
 		</div>
 		<!-- Files -->
-		<div class="exsidebarbox">
+		<div class="ex-details-side-box">
 			<strong>Files:</strong><br />
-			#{data.filecount} images<br />
-			<span style="opacity: 0.65; font-size: 0.95em;">
+			<span class="ex-details-file-count">
+				#{data.filecount} images
+			</span><br />
+			<span class="ex-details-file-size">
 				(#{data_alt.size} MB)
 			</span>
 		</div>
 		<!-- Torrents -->
-		<div class="exsidebarbox">
-			<strong style="margin-right:4px;">Torrents:</strong> #{data.torrentcount}
+		<div class="ex-details-side-box">
+			<strong>Torrents:</strong> #{data.torrentcount}
 		</div>
 		<!-- Visible -->
-		<div class="exsidebarbox" style="margin-bottom: 0px;">
-			<strong style="margin-right:4px;">Visible:</strong> #{data_alt.visible}
+		<div class="ex-details-side-box">
+			<strong>Visible:</strong> #{data_alt.visible}
 		</div>
 	</div>
 	<!-- Title -->
-	<a class="exlink extitle" href="#">
+	<a class="ex-details-title" href="#">
 		#{data.title}
 	</a>
 	#{data_alt.jtitle}
 	<br /><br />
 	<!-- Upload info -->
-	<span style="font-size:1.0em !important;">
-		Uploaded by <strong class="exlink exuploader" style="font-size:1.0em!important;margin:0 5px;">#{data.uploader}</strong> on
-		<strong style="font-size:1.0em!important;margin: 0 5px;">#{data_alt.datetext}</strong>
+	<span class="ex-details-upload-info">
+		Uploaded by <strong class="ex-details-uploader">#{data.uploader}</strong> on
+		<strong class="ex-details-upload-date">#{data_alt.datetext}</strong>
 	</span>
 	<br /><br />
 	<!-- Tags -->
-	<span style="font-size: 1.05em !important; display: inline !important; line-height: 1.4em;">
-		<strong style="font-size:1.05em!important;margin-right:2px!important;">Tags:</strong><span class="extags exlinks-gid exlinks-token" data-exlinks-gid="#{data.gid}" data-exlinks-token="#{data.token}"></span>
+	<span class="ex-details-tag-block">
+		<strong class="ex-details-tag-block-label">Tags:</strong><span class="ex-details-tags exlinks-gid exlinks-token" data-exlinks-gid="#{data.gid}" data-exlinks-token="#{data.token}"></span>
 	</span>
-	<br style="clear: both;" />
+	<div class="ex-details-clear"></div>
 </div>
