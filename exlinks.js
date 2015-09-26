@@ -502,7 +502,7 @@
 		},
 		Post: (function () {
 			var specific, fns, post_selector, post_body_selector, post_parent_find, get_file_info,
-				belongs_to, file_ext;
+				belongs_to, body_links, file_ext;
 
 			specific = function (obj) {
 				var m = Config.mode;
@@ -636,6 +636,11 @@
 					return (fns.get_post_container(node) === post);
 				}
 			};
+			body_links = {
+				"4chan": "a:not(.quotelink)",
+				"foolz": "a:not(.backlink)",
+				"38chan": "a:not([onclick])"
+			};
 
 			fns = {
 				get_post_container: function (node) {
@@ -654,6 +659,10 @@
 				},
 				get_file_info: function (post) {
 					return specific(get_file_info).call(null, post);
+				},
+				get_body_links: function (post) {
+					var selector = specific(body_links);
+					return selector ? $$(selector, post) : [];
 				}
 			};
 
@@ -4010,8 +4019,7 @@
 			}
 		},
 		process: function (posts) {
-			var post, info, prelinks, prelink, links, link, site,
-				button, linkified, value, i, ii, j, jj;
+			var post, post_body, post_links, link, i, ii, j, jj;
 
 			Debug.timer.start('process');
 
@@ -4019,127 +4027,30 @@
 				post = posts[i];
 				Main.setup_post(post);
 
-				post = Helper.Post.get_text_body(post) || post;
-				if (regex.url.test(post.innerHTML)) {
+				post_body = Helper.Post.get_text_body(post) || post;
+				if (regex.url.test(post_body.innerHTML)) {
 					Debug.value.add('posts');
 
-					if (!post.classList.contains('exlinkified')) {
+					if (!post.classList.contains('ex-post-linkified')) {
 						Debug.value.add('linkified');
-						linkified = true;
 
-						prelinks = $$(Parser.prelinks, post);
-						for (j = 0, jj = prelinks.length; j < jj; ++j) {
-							prelink = prelinks[j];
-							if (regex.url.test(prelink.href)) {
-								prelink.classList.add("ex-link-events");
-								prelink.classList.add("ex-linkified");
-								prelink.classList.add("ex-linkified-gallery");
-								prelink.setAttribute("target", "_blank");
-								prelink.setAttribute("data-ex-linkified-status", "unprocessed");
+						post_links = Helper.Post.get_body_links(post_body);
+						for (j = 0, jj = post_links.length; j < jj; ++j) {
+							link = post_links[j];
+							if (regex.url.test(link.href)) {
+								link.classList.add("ex-link-events");
+								link.classList.add("ex-linkified");
+								link.classList.add("ex-linkified-gallery");
+								link.setAttribute("target", "_blank");
+								link.setAttribute("data-ex-linkified-status", "unprocessed");
 							}
 						}
-						Parser.linkify(post);
-						post.classList.add('exlinkified');
-					}
-					links = $$('a.ex-link-events', post);
-					for (j = 0, jj = links.length; j < jj; ++j) {
-						link = links[j];
-						if (link.classList.contains('ex-site-tag')) {
-							value = link.getAttribute("data-action");
-							if (value === "toggle") {
-								if (conf['Gallery Actions'] === true) {
-									$.on(link, 'click', UI.toggle);
-								}
-							}
-							else if (value === "fetch") {
-								$.on(link, 'click', Main.singlelink);
-							}
-						}
-						if (link.classList.contains('ex-actions-link')) {
-							if (link.classList.contains('ex-actions-link-torrent')) {
-								if (conf['Torrent Popup'] === true) {
-									$.on(link, 'click', UI.popup);
-								}
-							}
-							if (link.classList.contains('ex-actions-link-archiver')) {
-								if (conf['Archiver Popup'] === true) {
-									$.on(link, 'click', UI.popup);
-								}
-							}
-							if (link.classList.contains('ex-actions-link-favorite')) {
-								if (conf['Favorite Autosave']) {
-									$.on(link, 'click', UI.favorite);
-								}
-								else if (conf['Favorite Popup'] === true) {
-									$.on(link, 'click', UI.popup);
-								}
-							}
-						}
-						if (link.classList.contains('ex-linkified-gallery')) {
-							value = link.getAttribute("data-ex-linkified-status");
-							if (value === "unprocessed") {
-								site = conf['Gallery Link'];
-								if (site.value !== "Original") {
-									if (!new RegExp(site.value).test(link.href)) {
-										link.href = link.href.replace(regex.site, site.value);
-									}
-								}
-
-								info = Helper.get_url_info(link.href);
-								if (info === null) {
-									link.classList.remove('ex-linkified-gallery');
-									link.removeAttribute("data-ex-linkified-status");
-								}
-								else {
-									if (info.type === "s") {
-										link.setAttribute("data-exlinks-type", info.type);
-										link.setAttribute("data-exlinks-gid", info.gid);
-										link.setAttribute("data-exlinks-page", info.page);
-										link.setAttribute("data-exlinks-page-token", info.page_token);
-										link.classList.add("exlinks-type");
-										link.classList.add("exlinks-gid");
-										link.classList.add("exlinks-page");
-										link.classList.add("exlinks-page-token");
-									}
-									else if (info.type === "g") {
-										link.setAttribute("data-exlinks-type", info.type);
-										link.setAttribute("data-exlinks-gid", info.gid);
-										link.setAttribute("data-exlinks-token", info.token);
-										link.classList.add("exlinks-type");
-										link.classList.add("exlinks-gid");
-										link.classList.add("exlinks-token");
-									}
-
-									link.setAttribute("data-ex-linkified-status", "processed");
-
-									button = UI.button(link.href);
-									$.on(button, "click", Main.singlelink);
-									$.before(link, button);
-
-									if (conf['Automatic Processing'] === true) {
-										Main.single(link);
-										Debug.value.add('processed');
-									}
-								}
-							}
-							else if (value === "processed") {
-								if (conf['Automatic Processing'] === true) {
-									Main.single(link);
-									Debug.value.add('processed');
-								}
-							}
-							else if (value === "formatted") {
-								if (conf['Gallery Details'] === true) {
-									$.on(link, [
-										[ 'mouseover', UI.show ],
-										[ 'mouseout', UI.hide ],
-										[ 'mousemove', UI.move ]
-									]);
-								}
-							}
-						}
+						Parser.linkify(post_body);
+						post.classList.add('ex-post-linkified');
 					}
 				}
+
+				Main.setup_post_events(post);
 			}
 
 			Debug.log(
@@ -4235,6 +4146,108 @@
 						results = Helper.get_exresults_from_exsauce(sauce);
 						if (results !== null) {
 							results.style.setProperty("display", "none", "important");
+						}
+					}
+				}
+			}
+		},
+		setup_post_events: function (post) {
+			var links, value, link, site, info, button, j, jj;
+
+			links = $$('a.ex-link-events', post);
+			for (j = 0, jj = links.length; j < jj; ++j) {
+				link = links[j];
+				if (link.classList.contains('ex-site-tag')) {
+					value = link.getAttribute("data-action");
+					if (value === "toggle") {
+						if (conf['Gallery Actions'] === true) {
+							$.on(link, 'click', UI.toggle);
+						}
+					}
+					else if (value === "fetch") {
+						$.on(link, 'click', Main.singlelink);
+					}
+				}
+				if (link.classList.contains('ex-actions-link')) {
+					if (link.classList.contains('ex-actions-link-torrent')) {
+						if (conf['Torrent Popup'] === true) {
+							$.on(link, 'click', UI.popup);
+						}
+					}
+					if (link.classList.contains('ex-actions-link-archiver')) {
+						if (conf['Archiver Popup'] === true) {
+							$.on(link, 'click', UI.popup);
+						}
+					}
+					if (link.classList.contains('ex-actions-link-favorite')) {
+						if (conf['Favorite Autosave']) {
+							$.on(link, 'click', UI.favorite);
+						}
+						else if (conf['Favorite Popup'] === true) {
+							$.on(link, 'click', UI.popup);
+						}
+					}
+				}
+				if (link.classList.contains('ex-linkified-gallery')) {
+					value = link.getAttribute("data-ex-linkified-status");
+					if (value === "unprocessed") {
+						site = conf['Gallery Link'];
+						if (site.value !== "Original") {
+							if (!new RegExp(site.value).test(link.href)) {
+								link.href = link.href.replace(regex.site, site.value);
+							}
+						}
+
+						info = Helper.get_url_info(link.href);
+						if (info === null) {
+							link.classList.remove('ex-linkified-gallery');
+							link.removeAttribute("data-ex-linkified-status");
+						}
+						else {
+							if (info.type === "s") {
+								link.setAttribute("data-exlinks-type", info.type);
+								link.setAttribute("data-exlinks-gid", info.gid);
+								link.setAttribute("data-exlinks-page", info.page);
+								link.setAttribute("data-exlinks-page-token", info.page_token);
+								link.classList.add("exlinks-type");
+								link.classList.add("exlinks-gid");
+								link.classList.add("exlinks-page");
+								link.classList.add("exlinks-page-token");
+							}
+							else if (info.type === "g") {
+								link.setAttribute("data-exlinks-type", info.type);
+								link.setAttribute("data-exlinks-gid", info.gid);
+								link.setAttribute("data-exlinks-token", info.token);
+								link.classList.add("exlinks-type");
+								link.classList.add("exlinks-gid");
+								link.classList.add("exlinks-token");
+							}
+
+							link.setAttribute("data-ex-linkified-status", "processed");
+
+							button = UI.button(link.href);
+							$.on(button, "click", Main.singlelink);
+							$.before(link, button);
+
+							if (conf['Automatic Processing'] === true) {
+								Main.single(link);
+								Debug.value.add('processed');
+							}
+						}
+					}
+					else if (value === "processed") {
+						if (conf['Automatic Processing'] === true) {
+							Main.single(link);
+							Debug.value.add('processed');
+						}
+					}
+					else if (value === "formatted") {
+						if (conf['Gallery Details'] === true) {
+							$.on(link, [
+								[ 'mouseover', UI.show ],
+								[ 'mouseout', UI.hide ],
+								[ 'mousemove', UI.move ]
+							]);
 						}
 					}
 				}
