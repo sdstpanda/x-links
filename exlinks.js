@@ -1368,7 +1368,7 @@
 			}
 		},
 		clear: function () {
-			var re_matcher = new RegExp("^" + Helper.regex_escape(Main.namespace) + "gallery"),
+			var re_matcher = new RegExp("^" + Helper.regex_escape(Main.namespace) + "(gallery|md5|sha1)"),
 				types = [ window.localStorage, window.sessionStorage ],
 				results = [],
 				remove, type, key, i, ii, j, jj;
@@ -1378,7 +1378,7 @@
 				remove = [];
 
 				for (j = 0, jj = type.length; j < jj; ++j) {
-					key = type.key(i);
+					key = type.key(j);
 					if (re_matcher.test(key)) {
 						remove.push(key);
 					}
