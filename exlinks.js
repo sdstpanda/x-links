@@ -215,12 +215,12 @@
 				var cn, i, ii;
 				for (i = 0, ii = node.childNodes.length; i < ii; ++i) {
 					cn = node.childNodes[i];
-					if (cn.nodeType === 3) { // TEXT_NODE
+					if (cn.nodeType === Node.TEXT_NODE) {
 						if (!ws.test(cn.nodeValue)) {
 							tn.push(cn);
 						}
 					}
-					else if (cn.nodeType === 1) { // ELEMENT_NODE
+					else if (cn.nodeType === Node.ELEMENT_NODE) {
 						if (cn.tagName === 'SPAN' || cn.tagName === 'P' || cn.tagName === 'S') {
 							getTextNodes(cn);
 						}
@@ -242,6 +242,9 @@
 		},
 		before: function (root, elem) {
 			return root.parentNode.insertBefore(elem, root);
+		},
+		before2: function (root, node, before) {
+			return root.insertBefore(node, before);
 		},
 		after: function (root, elem) {
 			return root.parentNode.insertBefore(elem, root.nextSibling);
@@ -285,6 +288,14 @@
 			else {
 				elem.removeEventListener(eventlist, handler, false);
 			}
+		},
+		test: function (elem, selector) {
+			try {
+				if (elem.matches) return elem.matches(selector);
+				return elem.matchesSelector(selector);
+			}
+			catch (e) {}
+			return false;
 		},
 		push_many: function (target, new_entries) {
 			var max_push = 1000;
@@ -460,6 +471,9 @@
 			}
 			return null;
 		},
+		get_linkified_links: function (parent) {
+			return $$("a.exgallery[href]", parent);
+		},
 		get_url_info: function (url) {
 			var m = /\/g\/(\d+)\/([0-9a-f]+)/.exec(url);
 			if (m !== null) {
@@ -486,10 +500,31 @@
 			var m = /^https?:\/*([\w\-]+(?:\.[\w\-]+)*)/i.exec(url);
 			return (m === null) ? "" : m[1];
 		},
-		Post: {
-			get_post_container: $.extend(function (node) {
-				return Helper.Post.get_post_container[Config.mode].call(null, node);
-			}, {
+		Post: (function () {
+			var specific, fns, post_selector, post_body_selector, post_parent_find, get_file_info,
+				belongs_to, file_ext;
+
+			specific = function (obj) {
+				var m = Config.mode;
+				return obj[Object.prototype.hasOwnProperty.call(obj, m) ? m : ""];
+			};
+			file_ext = function (url) {
+				var i = url.indexOf("#"),
+					m = /\.[^\.]*$/.exec(i < 0 ? url : url.substr(0, i));
+				return (m === null) ? "" : m[0].toLowerCase();
+			};
+
+			post_selector = {
+				"4chan": ".postContainer:not(.ex-fake-post)",
+				"foolz": "article:not(.ex-fake-post)",
+				"38chan": ".post:not(.ex-fake-post)"
+			};
+			post_body_selector = {
+				"4chan": "blockquote",
+				"foolz": ".text",
+				"38chan": ".body"
+			};
+			post_parent_find = {
 				"4chan": function (node) {
 					while ((node = node.parentNode) !== null) {
 						if (node.classList.contains("postContainer")) return node;
@@ -509,24 +544,121 @@
 					return null;
 				}
 				// "fuuka": function (node) {}
-			}),
-			get_text_body: function (post) {
-				var sel;
-				if (Config.mode === "4chan") {
-					sel = "blockquote";
+			};
+			get_file_info = {
+				"4chan": function (post) {
+					var n = $(".file", post),
+						ft, img, a1;
+
+					if (n === null || !specific(belongs_to).call(null, n, post)) return null;
+
+					ft = $(".fileText", n);
+					img = $("img", n);
+					a1 = $("a", n);
+
+					if (ft === null || img === null || a1 === null) return null;
+
+					return {
+						image: img,
+						image_link: img.parentNode,
+						text_link: a1,
+						options: ft,
+						options_before: null,
+						options_class: "",
+						options_sep: " ",
+						url: a1.href,
+						type: file_ext(a1.href),
+						md5: img.getAttribute("data-md5") || null
+					};
+				},
+				"foolz": function (post) {
+					var n = $(".thread_image_box", post),
+						ft, img, a1;
+
+					if (n === null || !specific(belongs_to).call(null, n, post)) return null;
+
+					ft = $(".post_file_controls", post);
+					img = $("img", n);
+					a1 = $(".post_file_filename", post);
+
+					if (ft === null || img === null || a1 === null) return null;
+
+					return {
+						image: img,
+						image_link: img.parentNode,
+						text_link: a1,
+						options: ft,
+						options_before: $("a[download]", ft),
+						options_class: "btnr parent",
+						options_sep: "",
+						url: a1.href,
+						type: file_ext(a1.href),
+						md5: img.getAttribute("data-md5") || null
+					};
+				},
+				"38chan": function (post) {
+					var img = $("img", post),
+						ft, a1, n;
+
+					if (img === null || !specific(belongs_to).call(null, img, post) || img.parentNode.tagName !== "A") return null;
+
+					n = $(".fileinfo", post);
+					if (n === null) return null;
+
+					ft = $(".unimportant", n);
+					a1 = $("a", n);
+
+					if (ft === null || a1 === null) return null;
+
+					return {
+						image: img,
+						image_link: img.parentNode,
+						text_link: a1,
+						options: ft,
+						options_before: null,
+						options_class: "",
+						options_sep: " ",
+						url: a1.href,
+						type: file_ext(a1.href),
+						md5: null
+					};
 				}
-				else if (Config.mode === "foolz") {
-					sel = ".text";
+			};
+			belongs_to = {
+				"4chan": function (node, post) {
+					var re = /\D+/g,
+						id1 = node.id.replace(re, ""),
+						id2 = post.id.replace(re, "");
+
+					return (id1 && id1 === id2);
+				},
+				"": function (node, post) {
+					return (fns.get_post_container(node) === post);
 				}
-				else if (Config.mode === "38chan") {
-					sel = ".body";
+			};
+
+			fns = {
+				get_post_container: function (node) {
+					return specific(post_parent_find).call(null, node);
+				},
+				get_text_body: function (node) {
+					var selector = specific(post_body_selector);
+					return selector ? $(selector, node) : null;
+				},
+				is_post: function (node) {
+					return $.test(node, specific(post_selector));
+				},
+				get_all_posts: function (parent) {
+					var selector = specific(post_selector);
+					return selector ? $$(selector, parent) : [];
+				},
+				get_file_info: function (post) {
+					return specific(get_file_info).call(null, post);
 				}
-				else {
-					return null;
-				}
-				return post.querySelector(sel);
-			}
-		}
+			};
+
+			return fns;
+		})()
 	};
 	HttpRequest = (function () {
 		try {
@@ -1478,7 +1610,7 @@
 					hover, i, ii;
 
 				hover = $.create('div', {
-					className: 'exlinks-exsauce-hover post reply',
+					className: 'exlinks-exsauce-hover post reply post_wrapper ex-fake-post',
 					id: 'exlinks-exsauce-hover-' + sha1
 				});
 				hover.setAttribute("data-sha1", sha1);
@@ -1535,7 +1667,7 @@
 						(n = Helper.Post.get_text_body(n)) !== null
 					) {
 						$.before(n, results);
-						Main.process([results]);
+						Main.process([ results ]);
 					}
 				}
 				if (conf['Show Results by Default'] === false) {
@@ -2623,7 +2755,7 @@
 				return null;
 			}
 
-			n.className = "post reply post_wrapper";
+			n.className = "post reply post_wrapper ex-fake-post";
 			body.appendChild(n);
 
 			color = Theme.parse_css_color(window.getComputedStyle(doc_el).backgroundColor);
@@ -2761,7 +2893,7 @@
 				navlink = navlinks[i];
 				if (is_desktop(navlink)) {
 					// Desktop
-					if ((n1 = navlink.lastChild) !== null && n1.nodeType === 3) { // TEXT_NODE
+					if ((n1 = navlink.lastChild) !== null && n1.nodeType === Node.TEXT_NODE) {
 						n1.nodeValue = n1.nodeValue.replace(/\]\s*$/, "]") + " [";
 					}
 					else {
@@ -2829,7 +2961,7 @@
 			}));
 
 			$.add(n3, n4 = $.create("div", {
-				className: "ex-easylist-content-inner post reply postContainer post_wrapper" + theme
+				className: "ex-easylist-content-inner post reply post_wrapper ex-fake-post" + theme
 			}));
 			$.on(n4, "click", EasyList.on_overlay_content_mouse_event);
 			$.on(n4, "mousedown", EasyList.on_overlay_content_mouse_event);
@@ -3037,7 +3169,7 @@
 			Main.off_linkify(EasyList.on_linkify);
 		},
 		populate: function () {
-			EasyList.on_linkify(Main.get_linkified_links());
+			EasyList.on_linkify(Helper.get_linkified_links());
 			Main.on_linkify(EasyList.on_linkify);
 		},
 		set_empty: function (empty) {
@@ -3881,114 +4013,19 @@
 			}
 		},
 		process: function (posts) {
-			var post, file, info, sauce, exsauce, md5, results,
-				actions, prelinks, prelink, links, link, site, prevent,
-				button, linkified, isJPG, value, i, ii, j, jj;
+			var post, info, prelinks, prelink, links, link, site,
+				button, linkified, value, i, ii, j, jj;
 
 			Debug.timer.start('process');
-			Debug.value.set('post_total', posts.length);
-
-			prevent = function (event) {
-				event.preventDefault();
-				return false;
-			};
 
 			for (i = 0, ii = posts.length; i < ii; ++i) {
 				post = posts[i];
-				if (conf.ExSauce === true) {
-					// Needs redoing to make life easier with archive
-					if (!post.classList.contains('exlinks-exsauce-results')) {
-						if ($(Parser.image, post.parentNode)) {
-							if (Config.mode === '4chan') {
-								file = $(Parser.image, post.parentNode);
-								if (file.childNodes.length > 1) {
-									info = file.childNodes[0];
-									md5 = file.childNodes[1].firstChild.getAttribute('data-md5');
-									isJPG = /\.jpg$/i.test(file.childNodes[1].href);
-									if (md5) {
-										md5 = md5.replace('==', '');
-										sauce = $('.exlinks-exsauce-link', info);
-										if (!sauce) {
-											exsauce = $.create('a', {
-												textContent: Sauce.label(false),
-												className: 'exlinks-exsauce-link',
-												href: file.childNodes[1].href
-											});
-											if (conf['No Underline on Sauce']) {
-												exsauce.classList.add('exlinks-exsauce-link-no-underline');
-											}
-											exsauce.setAttribute('data-md5', md5);
-											if (isJPG) {
-												exsauce.classList.add('exlinks-exsauce-link-disabled');
-												exsauce.title = (
-													"Reverse Image Search doesn't work for JPG images because 4chan manipulates them on upload.\n" +
-													"There is nothing ExLinks can do about this.\n" +
-													"All complaints can be directed at 4chan staff."
-												);
-												$.on(exsauce, 'click', prevent);
-											}
-											else {
-												$.on(exsauce, 'click', Sauce.click);
-											}
-											$.add(info, $.tnode(" "));
-											$.add(info, exsauce);
-										}
-										else if (!isJPG) {
-											if (!sauce.classList.contains('exlinks-exsauce-link-valid')) {
-												$.on(sauce, 'click', Sauce.click);
-											}
-											else {
-												if (conf['Show Short Results'] === true) {
-													if (conf['Inline Results'] === true) {
-														results = Helper.get_exresults_from_exsauce(sauce);
-														if (results !== null && results.style.display === 'none') {
-															$.on(sauce, [
-																[ 'mouseover', Sauce.UI.show ],
-																[ 'mousemove', Sauce.UI.move ],
-																[ 'mouseout', Sauce.UI.hide ]
-															]);
-														}
-													}
-													else {
-														$.on(sauce, [
-															[ 'mouseover', Sauce.UI.show ],
-															[ 'mousemove', Sauce.UI.move ],
-															[ 'mouseout', Sauce.UI.hide ]
-														]);
-													}
-												}
-												if (conf['Inline Results'] === true) {
-													$.on(sauce, 'click', Sauce.UI.toggle);
-													if (conf['Hide Results in Quotes'] === true) {
-														results = Helper.get_exresults_from_exsauce(sauce);
-														if (results !== null) {
-															results.style.setProperty("display", "none", "important");
-														}
-													}
-												}
-											}
-										}
-									}
-								}
-							}
-							// else if (Config.mode === 'fuuka') // A WORLD OF PAIN
-							// else if (Config.mode === 'foolz') // AWAITS
-							// else if (Config.mode === '38chan') // Man, why doesn't Tinychan even have md5 hashes for images?
-						}
-					}
-				}
+				Main.setup_post(post);
 
+				post = Helper.Post.get_text_body(post) || post;
 				if (regex.url.test(post.innerHTML)) {
 					Debug.value.add('posts');
 
-					if (conf['Hide in Quotes']) {
-						actions = $$('.ex-actions', post);
-						for (j = 0, jj = actions.length; j < jj; ++j) {
-							if (actions[j].style.display !== "none") {
-								actions[j].style.display = "none";
-							}
-						}
-					}
 					if (!post.classList.contains('exlinkified')) {
 						Debug.value.add('linkified');
 						linkified = true;
@@ -4100,11 +4137,10 @@
 						}
 					}
 				}
-
 			}
 
 			Debug.log(
-				"Total posts=" + Debug.value.get("post_total") +
+				"Total posts=" + posts.length +
 				"; linkified=" + Debug.value.get("linkified") +
 				"; processed=" + Debug.value.get("posts") +
 				"; links=" + Debug.value.get("processed") +
@@ -4112,20 +4148,100 @@
 			);
 			Main.update();
 		},
-		dom: function (event) {
-			var node = event.target,
-				nodelist = [];
+		setup_post: function (post) {
+			var nodes, i, ii;
 
-			if (node.nodeName === 'DIV') {
-				if (node.classList.contains('postContainer') || node.classList.contains('inline')) {
-					nodelist.push($(Parser.postbody, node));
+			if (conf.ExSauce) {
+				Main.setup_post_exsauce(post);
+			}
+
+			if (conf['Hide in Quotes']) {
+				nodes = $$('.exlinks-exsauce-results,.ex-actions', post);
+				for (i = 0, ii = nodes.length; i < ii; ++i) {
+					nodes[i].style.display = "none";
 				}
 			}
-			else if (node.nodeName === 'ARTICLE') {
-				if (node.classList.contains('post')) {
-					nodelist.push($(Parser.postbody, node));
+		},
+		setup_post_exsauce: function (post) {
+			var file_info, sauce, results;
+
+			// File info
+			file_info = Helper.Post.get_file_info(post);
+			if (file_info === null || file_info.md5 === null) return;
+
+			// Create if not found
+			sauce = $(".exlinks-exsauce-link", file_info.options);
+			if (sauce === null) {
+				sauce = $.create("a", {
+					className: "exlinks-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
+					textContent: Sauce.label(false),
+					href: file_info.url,
+					target: "_blank"
+				});
+				if (conf["No Underline on Sauce"]) {
+					sauce.classList.add("exlinks-exsauce-link-no-underline");
+				}
+				sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
+				if (/^\.jpe?g$/.test(file_info.type)) {
+					sauce.classList.add("exlinks-exsauce-link-disabled");
+					sauce.title = (
+						"Reverse Image Search doesn't work for JPG images because 4chan manipulates them on upload. " +
+						"There is nothing ExLinks can do about this. " +
+						"All complaints can be directed at 4chan staff."
+					);
+				}
+				if (file_info.options_sep) {
+					$.before2(file_info.options, $.tnode(file_info.options_sep), file_info.options_before);
+				}
+				$.before2(file_info.options, sauce, file_info.options_before);
+			}
+
+			// Events
+			if (sauce.classList.contains("exlinks-exsauce-link-disabled")) {
+				$.on(sauce, "click", function (event) {
+					event.preventDefault();
+					return false;
+				});
+			}
+			else if (!sauce.classList.contains('exlinks-exsauce-link-valid')) {
+				$.on(sauce, "click", Sauce.click);
+			}
+			else {
+				if (conf['Show Short Results'] === true) {
+					if (conf['Inline Results'] === true) {
+						results = Helper.get_exresults_from_exsauce(sauce);
+						if (results !== null && results.style.display === 'none') {
+							$.on(sauce, [
+								[ 'mouseover', Sauce.UI.show ],
+								[ 'mousemove', Sauce.UI.move ],
+								[ 'mouseout', Sauce.UI.hide ]
+							]);
+						}
+					}
+					else {
+						$.on(sauce, [
+							[ 'mouseover', Sauce.UI.show ],
+							[ 'mousemove', Sauce.UI.move ],
+							[ 'mouseout', Sauce.UI.hide ]
+						]);
+					}
+				}
+				if (conf['Inline Results'] === true) {
+					$.on(sauce, 'click', Sauce.UI.toggle);
+					if (conf['Hide Results in Quotes'] === true) {
+						results = Helper.get_exresults_from_exsauce(sauce);
+						if (results !== null) {
+							results.style.setProperty("display", "none", "important");
+						}
+					}
 				}
 			}
+		},
+		dom: function (event) {
+			var nodelist = [];
+
+			Main.observe_post_change(event.target, nodelist);
+
 			if (nodelist.length > 0) {
 				Main.process(nodelist);
 			}
@@ -4140,19 +4256,7 @@
 					nodes = e.addedNodes;
 					for (i = 0, ii = nodes.length; i < ii; ++i) {
 						node = nodes[i];
-						if (node.nodeName === 'DIV') {
-							if (node.classList.contains('postContainer') || node.classList.contains('inline')) {
-								nodelist.push($(Parser.postbody, node));
-							}
-							else if (node.classList.contains('thread')) { // support 4chan's new index pages
-								$.push_many(nodelist, $$(Parser.postbody, node));
-							}
-						}
-						else if (node.nodeName === 'ARTICLE') {
-							if (node.classList.contains('post')) {
-								nodelist.push($(Parser.postbody, node));
-							}
-						}
+						Main.observe_post_change(node, nodelist);
 					}
 				}
 
@@ -4246,7 +4350,22 @@
 				}
 			});
 
-			if (nodelist.length > 0) Main.process(nodelist);
+			if (nodelist.length > 0) {
+				Main.process(nodelist);
+			}
+		},
+		observe_post_change: function (node, nodelist) {
+			if (node.nodeType === Node.ELEMENT_NODE) {
+				if (Helper.Post.is_post(node)) {
+					nodelist.push(node);
+				}
+				else if (node.classList.contains("thread")) {
+					var ns = Helper.Post.get_all_posts(node);
+					if (ns.length > 0) {
+						$.push_many(nodelist, ns);
+					}
+				}
+			}
 		},
 		ready: function () {
 			var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver,
@@ -4275,14 +4394,14 @@
 
 			Debug.log('Initialization complete; time=' + Debug.timer.stop('init'));
 
-			Main.process($$(Parser.postbody));
+			Main.process(Helper.Post.get_all_posts(d));
 
 			if (MutationObserver) {
 				updater = new MutationObserver(Main.observer);
 				updater.observe(d.body, { childList: true, subtree: true });
 			}
 			else {
-				$.on(d.body, 'DOMNodeInserted', Main.dom);
+				$.on(d.body, "DOMNodeInserted", Main.dom);
 			}
 		},
 		init: function () {
@@ -4302,9 +4421,6 @@
 				}
 			});
 			$.ready(Main.ready);
-		},
-		get_linkified_links: function () {
-			return $$("a.exgallery[href]");
 		},
 		queue_linkify_event: function (links) {
 			if (Main.linkify_event.listeners.length > 0) {
