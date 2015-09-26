@@ -4238,117 +4238,73 @@
 			}
 		},
 		dom: function (event) {
-			var nodelist = [];
-
-			Main.observe_post_change(event.target, nodelist);
-
-			if (nodelist.length > 0) {
-				Main.process(nodelist);
-			}
+			var node = event.target;
+			Main.observer([{
+				target: node.parentNode,
+				addedNodes: [ node ],
+				nextSibling: node.nextSibling,
+				previousSibling: node.previousSibling
+			}]);
 		},
-		observer: function (m) {
-			var nodelist = [];
+		observer: function (records) {
+			var nodelist = [],
+				nodes, node, e, i, ii, j, jj;
 
-			m.forEach(function (e) {
-				var nodes, node, menu, conflink, i, ii;
+			for (i = 0, ii = records.length; i < ii; ++i) {
+				e = records[i];
+				nodes = e.addedNodes;
+				if (!nodes) continue;
 
-				if (e.addedNodes) {
-					nodes = e.addedNodes;
-					for (i = 0, ii = nodes.length; i < ii; ++i) {
-						node = nodes[i];
-						Main.observe_post_change(node, nodelist);
-					}
+				// Look for posts
+				for (j = 0, jj = nodes.length; j < jj; ++j) {
+					Main.observe_post_change(nodes[j], nodelist);
 				}
 
 				// 4chan X specific hacks.
 				if (Main["4chanX3"]) {
 					// detect when source links are added.
-					if (e.target.classList.contains("fileText")) {
-						if (
-							e.previousSibling &&
-							e.previousSibling.classList &&
-							e.previousSibling.classList.contains("file-info")
-						) {
-							node = e.target;
-							while (node) {
-								if (
-									node.classList.contains("postContainer") ||
-									node.classList.contains("inline")
-								) {
-									break;
-								}
-								node = node.parentNode;
-								if (node.nodeName === 'BODY') {
-									node = null;
-									break;
-								}
-							}
-							if (node) nodelist.push($(Parser.postbody, node));
+					if (
+						e.target.classList.contains("fileText") &&
+						e.previousSibling &&
+						e.previousSibling.classList &&
+						e.previousSibling.classList.contains("file-info")
+					) {
+						node = Helper.Post.get_post_container(e.target);
+						if (node !== null) {
+							nodelist.push(node);
 						}
 					}
 				}
 
 				// Detect 4chan X's linkification muck-ups
-				if (e.addedNodes.length > 0) {
-					nodes = e.addedNodes;
-					for (i = 0, ii = nodes.length; i < ii; ++i) {
-						node = nodes[i];
-						if (node.nodeName === 'A' && node.classList.contains('linkified')) {
-							if (
-								regex.url.test(node.innerHTML) &&
-								node.previousSibling.classList.contains('ex-site-tag')
-							) {
-								node.className = "ex-link-events exgallery exunprocessed";
-								$.remove(node.previousSibling);
-								while (node) {
-									if (
-										node.classList.contains("postContainer") ||
-										node.classList.contains("inline")
-									) {
-										break;
-									}
-									node = node.parentNode;
-									if (node.nodeName === 'BODY') {
-										node = null;
-										break;
-									}
-								}
-								if (node) nodelist.push($(Parser.postbody, node));
-							}
+				for (j = 0, jj = nodes.length; j < jj; ++j) {
+					node = nodes[j];
+					if (
+						node.tagName === "A" &&
+						node.classList.contains("linkified") &&
+						node.previousSibling &&
+						node.previousSibling.classList &&
+						node.previousSibling.classList.contains("ex-site-tag")
+					) {
+						node.className = "ex-link-events exgallery exunprocessed";
+						$.remove(node.previousSibling);
+
+						node = Helper.Post.get_post_container(node);
+						if (node !== null) {
+							nodelist.push(node);
 						}
 					}
 				}
 
 				// Add menu button back in whenever the menu is opened.
 				if (
-					e.addedNodes.length &&
-					e.addedNodes[0].id === "menu" &&
-					e.addedNodes[0].parentNode.parentNode.parentNode.parentNode.id === "header-bar"
+					nodes.length > 0 &&
+					nodes[0].id === "menu" &&
+					nodes[0].parentNode.parentNode.parentNode.parentNode.id === "header-bar"
 				) {
-					menu = e.addedNodes[0];
-					conflink = $.create('a', {
-						className: 'entry',
-						textContent: "ExLinks Settings"
-					});
-					$.on(conflink, 'click', function () {
-						$.remove(menu);
-						Options.open();
-					});
-					$.on(conflink, 'mouseover', function () {
-						var entries = $$('.entry', menu),
-							i, ii;
-						for (i = 0, ii = entries.length; i < ii; ++i) {
-							entries[i].classList.remove('focused');
-						}
-						conflink.classList.add("focused");
-					});
-					$.on(conflink, 'mouseout', function () {
-						conflink.classList.remove("focused");
-					});
-					conflink.style.order = 112;
-					$.add(e.addedNodes[0], conflink);
+					Main.create_menu_link(nodes[0]);
 				}
-			});
+			}
 
 			if (nodelist.length > 0) {
 				Main.process(nodelist);
@@ -4366,6 +4322,33 @@
 					}
 				}
 			}
+		},
+		create_menu_link: function (menu) {
+			var link = $.create("a", {
+				className: "entry",
+				textContent: "ExLinks Settings"
+			});
+			link.style.order = 112;
+
+			$.on(link, [
+				[ "click", function () {
+					$.remove(menu);
+					Options.open();
+				} ],
+				[ "mouseover", function () {
+					var entries = $$('.entry', menu),
+						i, ii;
+					for (i = 0, ii = entries.length; i < ii; ++i) {
+						entries[i].classList.remove("focused");
+					}
+					this.classList.add("focused");
+				} ],
+				[ "mouseout", function () {
+					this.classList.remove("focused");
+				} ]
+			]);
+
+			$.add(menu, link);
 		},
 		ready: function () {
 			var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver,
