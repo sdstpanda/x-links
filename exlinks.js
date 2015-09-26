@@ -1786,7 +1786,7 @@
 		prelinks: 'a:not(.quotelink)',
 		image: '.file',
 		unformatted: function (uid) {
-			return $$("a.exprocessed.exlinks-gid[data-exlinks-gid='" + uid + "']");
+			return $$("a.ex-linkified-gallery.exlinks-gid[data-exlinks-gid='" + uid + "'][data-ex-linkified-status=processed]");
 		},
 		linkify: function (post) {
 			var ws = /^\s*$/,
@@ -1818,11 +1818,12 @@
 						tl = text.substr(sp + ml + 1, text.length);
 
 						tu = $.create("a", {
-							className: "ex-link-events ex-linkified ex-linkified-gallery exunprocessed",
+							className: "ex-link-events ex-linkified ex-linkified-gallery",
 							href: (regex.protocol.test(match[0]) ? "" : "http://") + match[0],
 							target: "_blank",
 							textContent: match[0]
 						});
+						tu.setAttribute("data-ex-linkified-status", "unprocessed");
 
 						if (tn.length > 0 && !ws.test(tn.nodeValue)) {
 							linknode.push(tn);
@@ -3824,7 +3825,7 @@
 					break;
 				}
 			}
-					console.log("page&&token",type,page,token);
+
 			if (type === 's') {
 				if (page && token) {
 					API.queue.add('s', uid, token, page);
@@ -3895,8 +3896,7 @@
 									$.on($('a.ex-actions-link-favorite', actions), 'click', UI.popup);
 								}
 							}
-							link.classList.remove('exprocessed');
-							link.classList.add('exformatted');
+							link.setAttribute("data-ex-linkified-status", "formatted");
 						}
 					}
 					else {
@@ -3910,8 +3910,7 @@
 							}
 
 							link.textContent = 'Incorrect Gallery Key';
-							link.classList.remove('exprocessed');
-							link.classList.add('exformatted');
+							link.setAttribute("data-ex-linkified-status", "formatted");
 						}
 					}
 					Main.queue_linkify_event(links, data);
@@ -4035,8 +4034,8 @@
 								prelink.classList.add("ex-link-events");
 								prelink.classList.add("ex-linkified");
 								prelink.classList.add("ex-linkified-gallery");
-								prelink.classList.add('exunprocessed');
 								prelink.setAttribute("target", "_blank");
+								prelink.setAttribute("data-ex-linkified-status", "unprocessed");
 							}
 						}
 						Parser.linkify(post);
@@ -4077,7 +4076,8 @@
 							}
 						}
 						if (link.classList.contains('ex-linkified-gallery')) {
-							if (link.classList.contains('exunprocessed')) {
+							value = link.getAttribute("data-ex-linkified-status");
+							if (value === "unprocessed") {
 								site = conf['Gallery Link'];
 								if (site.value !== "Original") {
 									if (!new RegExp(site.value).test(link.href)) {
@@ -4085,11 +4085,10 @@
 									}
 								}
 
-								link.classList.remove('exunprocessed');
-
 								info = Helper.get_url_info(link.href);
 								if (info === null) {
 									link.classList.remove('ex-linkified-gallery');
+									link.removeAttribute("data-ex-linkified-status");
 								}
 								else {
 									if (info.type === "s") {
@@ -4111,19 +4110,25 @@
 										link.classList.add("exlinks-token");
 									}
 
-									link.classList.add("exprocessed");
+									link.setAttribute("data-ex-linkified-status", "processed");
+
 									button = UI.button(link.href);
 									$.on(button, "click", Main.singlelink);
 									$.before(link, button);
+
+									if (conf['Automatic Processing'] === true) {
+										Main.single(link);
+										Debug.value.add('processed');
+									}
 								}
 							}
-							if (link.classList.contains('exprocessed')) {
+							else if (value === "processed") {
 								if (conf['Automatic Processing'] === true) {
 									Main.single(link);
 									Debug.value.add('processed');
 								}
 							}
-							if (link.classList.contains('exformatted')) {
+							else if (value === "formatted") {
 								if (conf['Gallery Details'] === true) {
 									$.on(link, [
 										[ 'mouseover', UI.show ],
@@ -4284,7 +4289,8 @@
 						node.previousSibling.classList &&
 						node.previousSibling.classList.contains("ex-site-tag")
 					) {
-						node.className = "ex-link-events ex-linkified ex-linkified-gallery exunprocessed";
+						node.className = "ex-link-events ex-linkified ex-linkified-gallery";
+						node.setAttribute("data-ex-linkified-status", "unprocessed");
 						$.remove(node.previousSibling);
 
 						node = Helper.Post.get_post_container(node);
