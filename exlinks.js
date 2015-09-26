@@ -1146,7 +1146,7 @@
 				arr = json.gmetadata;
 				for (i = 0, ii = arr.length; i < ii; ++i) {
 					Database.set(arr[i]);
-					Main.queue.add(arr[i].gid);
+					Main.queue.push(arr[i].gid);
 				}
 				API.queue.clear('g');
 				if (Object.keys(API.go).length > 0) {
@@ -2240,7 +2240,7 @@
 						link.classList.add("exlinks-token");
 						link.classList.remove("exlinks-page");
 						link.classList.remove("exlinks-page-token");
-						Main.queue.add(uid);
+						Main.queue.push(uid);
 					}
 					else {
 						API.queue.add("s", uid, page_token, page);
@@ -2249,7 +2249,7 @@
 			}
 			if (type === "g") {
 				if (Database.check(uid)) {
-					Main.queue.add(uid);
+					Main.queue.push(uid);
 				}
 				else {
 					if (token) {
@@ -4232,22 +4232,13 @@
 	Main = {
 		namespace: 'exlinks-',
 		version: '#VERSION#',
-		queue: function () {
-			var arr = [],
-				obj = Main.queue.list,
-				i = 0,
-				k;
-			for (k in obj) {
-				arr[i++] = parseInt(k, 10);
-			}
-			return arr;
-		},
+		queue: [],
 		check: function (uid) {
 			var check = Database.check(uid),
 				links, link, type, token, page, i, ii;
 
 			if (check) {
-				Main.queue.add(uid);
+				Main.queue.push(uid);
 				return [ uid, 'f' ];
 			}
 
@@ -4280,7 +4271,7 @@
 			return null;
 		},
 		flush_queue: function () {
-			var queue = Main.queue(),
+			var queue = Main.queue,
 				update = false,
 				uid, data, i, ii;
 
@@ -4297,7 +4288,7 @@
 
 			Linkifier.trigger("format");
 
-			Main.queue.clear();
+			Main.queue = [];
 
 			if (update) {
 				Main.update();
@@ -4473,15 +4464,6 @@
 			Database.init();
 			API.init();
 			UI.init();
-			$.extend(Main.queue, {
-				list: {},
-				add: function (uid) {
-					Main.queue.list[uid] = true;
-				},
-				clear: function () {
-					Main.queue.list = {};
-				}
-			});
 			$.ready(Main.ready);
 		},
 	};
