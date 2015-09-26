@@ -437,7 +437,7 @@
 			if (
 				(node = node.nextSibling) !== null &&
 				(node.classList || ((node = node.nextSibling) !== null && node.classList)) &&
-				node.classList.contains("exgallery")
+				node.classList.contains("ex-linkified-gallery")
 			) {
 				return node;
 			}
@@ -472,7 +472,7 @@
 			return null;
 		},
 		get_linkified_links: function (parent) {
-			return $$("a.exgallery[href]", parent);
+			return $$("a.ex-linkified-gallery[href]", parent);
 		},
 		get_url_info: function (url) {
 			var m = /\/g\/(\d+)\/([0-9a-f]+)/.exec(url);
@@ -1816,21 +1816,19 @@
 						ml = match[0].length - 1;
 						tn = $.tnode(text.substr(0, sp));
 						tl = text.substr(sp + ml + 1, text.length);
-						tu = $.create('a');
-						tu.className = 'ex-link-events exgallery exunprocessed';
-						if (regex.protocol.test(match[0])) {
-							tu.href = match[0];
-						}
-						else {
-							tu.href = 'http://' + match[0];
-						}
-						tu.textContent = match[0];
-						tu.setAttribute('target', '_blank');
-						tu.style.textDecoration = 'none';
+
+						tu = $.create("a", {
+							className: "ex-link-events ex-linkified ex-linkified-gallery exunprocessed",
+							href: (regex.protocol.test(match[0]) ? "" : "http://") + match[0],
+							target: "_blank",
+							textContent: match[0]
+						});
+
 						if (tn.length > 0 && !ws.test(tn.nodeValue)) {
 							linknode.push(tn);
 						}
 						linknode.push(tu);
+
 						text = tl;
 						match = regex.url.exec(text);
 					}
@@ -4034,11 +4032,11 @@
 						for (j = 0, jj = prelinks.length; j < jj; ++j) {
 							prelink = prelinks[j];
 							if (regex.url.test(prelink.href)) {
-								prelink.classList.add('ex-link-events');
-								prelink.classList.add('exgallery');
+								prelink.classList.add("ex-link-events");
+								prelink.classList.add("ex-linkified");
+								prelink.classList.add("ex-linkified-gallery");
 								prelink.classList.add('exunprocessed');
-								prelink.style.textDecoration = 'none';
-								prelink.setAttribute('target', '_blank');
+								prelink.setAttribute("target", "_blank");
 							}
 						}
 						Parser.linkify(post);
@@ -4078,7 +4076,7 @@
 								}
 							}
 						}
-						if (link.classList.contains('exgallery')) {
+						if (link.classList.contains('ex-linkified-gallery')) {
 							if (link.classList.contains('exunprocessed')) {
 								site = conf['Gallery Link'];
 								if (site.value !== "Original") {
@@ -4091,7 +4089,7 @@
 
 								info = Helper.get_url_info(link.href);
 								if (info === null) {
-									link.classList.remove('exgallery');
+									link.classList.remove('ex-linkified-gallery');
 								}
 								else {
 									if (info.type === "s") {
@@ -4286,7 +4284,7 @@
 						node.previousSibling.classList &&
 						node.previousSibling.classList.contains("ex-site-tag")
 					) {
-						node.className = "ex-link-events exgallery exunprocessed";
+						node.className = "ex-link-events ex-linkified ex-linkified-gallery exunprocessed";
 						$.remove(node.previousSibling);
 
 						node = Helper.Post.get_post_container(node);
