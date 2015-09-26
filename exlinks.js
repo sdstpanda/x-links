@@ -3,8 +3,8 @@
 	"use strict";
 
 	var fetch, domains, options, conf, tempconf, pageconf, regex, img, cat, d, t, $, $$,
-		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Parser, Options, Config, Main,
-		Helper, HttpRequest, Filter, Theme, EasyList;
+		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Options, Config, Main,
+		Helper, HttpRequest, Linkifier, Filter, Theme, EasyList;
 
 	img = {};
 	cat = {
@@ -470,9 +470,6 @@
 				return node;
 			}
 			return null;
-		},
-		get_linkified_links: function (parent) {
-			return $$("a.ex-linkified-gallery[href]", parent);
 		},
 		get_url_info: function (url) {
 			var m = /\/g\/(\d+)\/([0-9a-f]+)/.exec(url);
@@ -1790,12 +1787,12 @@
 			return (Config.mode === '4chan' && conf['Lowercase on 4chan']) ? text.toLowerCase() : text;
 		}
 	};
-	Parser = {
-		postbody: 'blockquote',
-		prelinks: 'a:not(.quotelink)',
-		image: '.file',
-		unformatted: function (uid) {
-			return $$("a.ex-linkified-gallery.exlinks-gid[data-exlinks-gid='" + uid + "'][data-ex-linkified-status=processed]");
+	Linkifier = {
+		get_links: function (parent) {
+			return $$("a.ex-linkified-gallery[href]", parent);
+		},
+		get_links_unformatted: function (gid, parent) {
+			return $$("a.ex-linkified-gallery.exlinks-gid[data-exlinks-gid='" + gid + "'][data-ex-linkified-status=processed]", parent);
 		},
 		linkify: function (post) {
 			var ws = /^\s*$/,
@@ -2061,36 +2058,22 @@
 			return (opt.value === "Original") ? domain : opt.value;
 		},
 		site: function () {
-			var curSite = d.URL,
-				curDocType = d.doctype,
-				curType;
+			var site = d.URL,
+				doctype = d.doctype,
+				type;
 
-			if (/archive\.moe/i.test(curSite)) {
-				curType = [
-					"<!DOCTYPE ",
-					curDocType.name,
-					(curDocType.publicId ? ' PUBLIC "' + curDocType.publicId + '"' : ''),
-					(!curDocType.publicId && curDocType.systemId ? ' SYSTEM' : ''),
-					(curDocType.systemId ? ' "' + curDocType.systemId + '"' : ''),
-					'>'
-				].join('');
+			if (/archive\.moe/i.test(site)) {
+				type = "<!DOCTYPE " +
+					doctype.name +
+					(doctype.publicId ? " PUBLIC \"" + doctype.publicId + "\"" : "") +
+					(!doctype.publicId && doctype.systemId ? " SYSTEM" : "") +
+					(doctype.systemId ? " \"" + doctype.systemId + "\"" : "") +
+					">";
 
-				if (/<!DOCTYPE html>/.test(curType)) {
-					Config.mode = 'foolz';
-					Parser.postbody = '.text';
-					Parser.prelinks = 'a:not(.backlink)';
-					Parser.image = '.thread_image_box';
-				}
-				else {
-					Config.mode = 'fuuka';
-					Parser.image = '.thumb';
-				}
+				Config.mode = (/<!DOCTYPE html>/.test(type)) ? "foolz" : "fuuka";
 			}
-			else if (/boards\.38chan\.net/i.test(curSite)) {
-				Config.mode = '38chan';
-				Parser.postbody = '.post:not(.hidden)>.body';
-				Parser.prelinks = 'a:not([onclick])';
-				Parser.image = '.fileinfo';
+			else if (/boards\.38chan\.net/i.test(site)) {
+				Config.mode = "38chan";
 			}
 		},
 		save: function () {
@@ -3177,7 +3160,7 @@
 			Main.off_linkify(EasyList.on_linkify);
 		},
 		populate: function () {
-			EasyList.on_linkify(Helper.get_linkified_links());
+			EasyList.on_linkify(Linkifier.get_links());
 			Main.on_linkify(EasyList.on_linkify);
 		},
 		set_empty: function (empty) {
@@ -3821,7 +3804,7 @@
 				return [ uid, 'f' ];
 			}
 
-			links = Parser.unformatted(uid);
+			links = Linkifier.get_links_unformatted(uid);
 			for (i = 0, ii = links.length; i < ii; ++i) {
 				link = links[i];
 				type = Helper.get_type_from_node(link);
@@ -3861,8 +3844,8 @@
 				uid = queue[i];
 				data = Database.get(uid);
 				if (data) {
-					links = Parser.unformatted(uid);
-					if (!data.hasOwnProperty('error')) {
+					links = Linkifier.get_links_unformatted(uid);
+					if (!Object.prototype.hasOwnProperty.call(data, "error")) {
 						Debug.value.add('formatlinks');
 						for (j = 0, jj = links.length; j < jj; ++j) {
 							link = links[j];
@@ -4045,7 +4028,7 @@
 								link.setAttribute("data-ex-linkified-status", "unprocessed");
 							}
 						}
-						Parser.linkify(post_body);
+						Linkifier.linkify(post_body);
 						post.classList.add('ex-post-linkified');
 					}
 				}
