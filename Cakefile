@@ -4,6 +4,7 @@ fs       = require 'fs'
 {minify} = require 'html-minifier'
 ugly     = require 'uglify-js'
 pkg      = require './package.json'
+CleanCSS = require 'clean-css'
 
 
 VERSION   = pkg.version
@@ -58,7 +59,8 @@ task 'build', (options) ->
 	input = fs.readFileSync INFILE, 'utf8'
 	images = fs.readFileSync IMAGEJSON, 'utf8'
 	style = fs.readFileSync STYLEFILE, 'utf8'
-	style = minify style, { collapseWhitespace: true }
+	# style = minify style, { collapseWhitespace: true }
+	style = new CleanCSS({}).minify(style).styles
 	stylebuf = new Buffer style, 'utf8'
 	styleb64 = stylebuf.toString('base64')
 	input = input.replace "\#DETAILS\#", html.details

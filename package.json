@@ -5,7 +5,8 @@
   "description": "Userscript for pretty linkification of E-Hentai & ExHentai links on 4chan & friends",
   "dependencies": {
     "html-minifier": "~0.6.9",
-    "uglify-js": "~2.4.15"
+    "uglify-js": "~2.4.15",
+	"clean-css": "~3.4.4"
   },
   "devDependencies": {
     "coffee-script": "~1.8.0"
