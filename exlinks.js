@@ -2959,25 +2959,30 @@
 
 			var no_extras = true,
 				filters = Filter[mode],
-				info, matches, text, frag, segment, cache, i, t, n1, n2;
+				info, matches, text, frag, segment, cache, c, i, t, n1, n2;
 
-			if (filters.length === 0) {
-				return Filter.None;
-			}
 			if (extras && extras.length > 0) {
 				filters = filters.concat(extras);
 				no_extras = false;
 			}
+			if (filters.length === 0) {
+				return Filter.None;
+			}
 
 			// Cache for tags
 			text = node.textContent;
-			if (no_extras && (cache = Filter.cache[mode]) !== undefined && (n1 = cache[text]) !== undefined) {
-				if (n1 === null) {
+			if (no_extras && (cache = Filter.cache[mode]) !== undefined && (c = cache[text]) !== undefined) {
+				if (c === null) {
 					return Filter.None;
 				}
 
+				// Results
+				if (results !== null) {
+					Filter.append_match_datas(c[0], results);
+				}
+
 				// Clone
-				n1 = n1.cloneNode(true);
+				n1 = c[1].cloneNode(true);
 				node.innerHTML = "";
 				while ((n2 = n1.firstChild) !== null) {
 					$.add(node, n2);
@@ -3033,7 +3038,7 @@
 			node.innerHTML = "";
 			$.add(node, frag);
 			if (cache !== undefined) {
-				cache[text] = node;
+				cache[text] = [ info, node ];
 			}
 			return Filter.hl_return(info.bad, node);
 		},
@@ -4042,6 +4047,7 @@
 						n.classList.remove("ex-filter-good");
 						n.classList.remove("ex-filter-bad");
 					}
+					console.log("highlight node " + mode);
 					Filter.highlight(mode, n, data, results, EasyList.custom_filters);
 				}
 			}
@@ -4098,7 +4104,7 @@
 				EasyList.update_ordering();
 			},
 			display_mode: function () {
-				EasyList.settings.display_mode = parseInt(this.value) || 0;
+				EasyList.settings.display_mode = parseInt(this.value, 10) || 0;
 				EasyList.settings_save();
 				EasyList.update_display_mode(false);
 			},
