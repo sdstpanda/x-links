@@ -828,7 +828,6 @@
 				href: url,
 				target: "_blank"
 			});
-			button.setAttribute("data-action", "fetch");
 			button.setAttribute("data-ex-link-events", "gallery_fetch");
 			return button;
 		},
@@ -841,53 +840,55 @@
 				event.preventDefault();
 			}
 		},
-		show: function () {
-			var uid = Helper.get_id_from_node(this),
-				details, domain;
+		events: {
+			mouseover: function () {
+				var uid = Helper.get_id_from_node(this),
+					details, domain;
 
-			if (uid === null) return;
-			details = $.id('exblock-details-uid-' + uid);
-			if (details === null) {
-				domain = Helper.get_domain(this.href);
-				details = UI.details(uid, domain);
-			}
-
-			details.style.display = "table";
-		},
-		hide: function () {
-			var uid = Helper.get_id_from_node(this),
-				details, domain;
-
-			if (uid === null) return;
-			details = $.id('exblock-details-uid-' + uid);
-			if (details === null) {
-				domain = Helper.get_domain(this.href);
-				details = UI.details(uid, domain);
-			}
-
-			details.style.display = "none";
-		},
-		move: function (e) {
-			var uid = Helper.get_id_from_node(this),
-				details;
-
-			if (uid === null) return;
-			details = $.id('exblock-details-uid-' + uid);
-
-			if (details) {
-				if (details.offsetWidth + e.clientX + 20 < window.innerWidth - 8) {
-					details.style.left = (e.clientX + 12) + 'px';
+				if (uid === null) return;
+				details = $.id('exblock-details-uid-' + uid);
+				if (details === null) {
+					domain = Helper.get_domain(this.href);
+					details = UI.details(uid, domain);
 				}
-				else {
-					details.style.left = (window.innerWidth - details.offsetWidth - 16) + 'px';
+
+				details.style.display = "table";
+			},
+			mouseout: function () {
+				var uid = Helper.get_id_from_node(this),
+					details, domain;
+
+				if (uid === null) return;
+				details = $.id('exblock-details-uid-' + uid);
+				if (details === null) {
+					domain = Helper.get_domain(this.href);
+					details = UI.details(uid, domain);
 				}
-				if (details.offsetHeight + e.clientY + 22 > window.innerHeight) {
-					details.style.top = (e.clientY - details.offsetHeight - 8) + 'px';
+
+				details.style.display = "none";
+			},
+			mousemove: function (e) {
+				var uid = Helper.get_id_from_node(this),
+					details;
+
+				if (uid === null) return;
+				details = $.id('exblock-details-uid-' + uid);
+
+				if (details) {
+					if (details.offsetWidth + e.clientX + 20 < window.innerWidth - 8) {
+						details.style.left = (e.clientX + 12) + 'px';
+					}
+					else {
+						details.style.left = (window.innerWidth - details.offsetWidth - 16) + 'px';
+					}
+					if (details.offsetHeight + e.clientY + 22 > window.innerHeight) {
+						details.style.top = (e.clientY - details.offsetHeight - 8) + 'px';
+					}
+					else {
+						details.style.top = (e.clientY + 22) + 'px';
+					}
 				}
-				else {
-					details.style.top = (e.clientY + 22) + 'px';
-				}
-			}
+			},
 		},
 		popup: function (event) {
 			event.preventDefault();
@@ -1545,62 +1546,68 @@
 	};
 	Sauce = {
 		UI: {
-			toggle: function (event) {
-				event.preventDefault();
+			events: {
+				click: function (event) {
+					event.preventDefault();
 
-				var sha1 = this.getAttribute("data-sha1"),
-					results = Helper.get_exresults_from_exsauce(this),
-					hover;
+					var sha1 = this.getAttribute("data-sha1"),
+						results = Helper.get_exresults_from_exsauce(this),
+						hover;
 
-				if (results !== null) {
-					if (results.style.display === "table") {
-						results.style.display = "none";
-						if (conf['Show Short Results'] === true) {
-							$.on(this, [
-								[ 'mouseover', Sauce.UI.show ],
-								[ 'mousemove', Sauce.UI.move ],
-								[ 'mouseout', Sauce.UI.hide ]
-							]);
+					if (results !== null) {
+						hover = $.id("exlinks-exsauce-hover-" + sha1);
+
+						if (results.style.display === "table") {
+							results.style.display = "none";
+
+							if (conf['Show Short Results']) {
+								if (hover === null) hover = Sauce.UI.hover(sha1);
+								hover.style.setProperty("display", "table", "important");
+								Sauce.UI.events.mousemove.call(this, event);
+							}
 						}
-					}
-					else {
-						results.style.display = "table";
-						if (conf['Show Short Results'] === true) {
-							$.off(this, [
-								[ 'mouseover', Sauce.UI.show ],
-								[ 'mousemove', Sauce.UI.move ],
-								[ 'mouseout', Sauce.UI.hide ]
-							]);
-							hover = $.id('exlinks-exsauce-hover-' + sha1);
+						else {
+							results.style.display = "table";
+
 							if (hover !== null) {
 								hover.style.setProperty("display", "none", "important");
 							}
 						}
 					}
+				},
+				mouseover: function () {
+					if (conf['Show Short Results']) {
+						var sha1 = this.getAttribute("data-sha1"),
+							results = Helper.get_exresults_from_exsauce(this),
+							hover;
+
+						if (results === null || results.style.display === "none") {
+							hover = $.id("exlinks-exsauce-hover-" + sha1);
+							if (hover === null) hover = Sauce.UI.hover(sha1);
+							hover.style.setProperty("display", "table", "important");
+						}
+					}
+				},
+				mouseout: function () {
+					if (conf['Show Short Results']) {
+						var sha1 = this.getAttribute("data-sha1"),
+							hover = $.id("exlinks-exsauce-hover-" + sha1);
+
+						if (hover !== null) {
+							hover.style.setProperty("display", "none", "important");
+						}
+					}
+				},
+				mousemove: function (event) {
+					if (conf['Show Short Results']) {
+						var sha1 = this.getAttribute("data-sha1"),
+							hover = $.id("exlinks-exsauce-hover-" + sha1);
+
+						if (hover === null || hover.style.display === "none") return;
+						hover.style.left = (event.clientX + 12) + 'px';
+						hover.style.top = (event.clientY + 22) + 'px';
+					}
 				}
-			},
-			show: function () {
-				var sha1 = this.getAttribute("data-sha1"),
-					hover = $.id("exlinks-exsauce-hover-" + sha1);
-
-				if (hover === null) hover = Sauce.UI.hover(sha1);
-				hover.style.setProperty("display", "table", "important");
-			},
-			hide: function () {
-				var sha1 = this.getAttribute("data-sha1"),
-					hover = $.id("exlinks-exsauce-hover-" + sha1);
-
-				if (hover === null) hover = Sauce.UI.hover(sha1);
-				hover.style.setProperty("display", "none", "important");
-			},
-			move: function (event) {
-				var sha1 = this.getAttribute("data-sha1"),
-					hover = $.id("exlinks-exsauce-hover-" + sha1);
-
-				if (hover === null) hover = Sauce.UI.hover(sha1);
-				hover.style.setProperty("display", "table", "important");
-				hover.style.left = (event.clientX + 12) + 'px';
-				hover.style.top = (event.clientY + 22) + 'px';
 			},
 			hover: function (sha1) {
 				var result = Hash.get(sha1, 'sha1'),
@@ -1632,15 +1639,13 @@
 		},
 		format: function (a, result) {
 			var count = result.length,
-				results, n, i, ii;
+				results, link, n, i, ii;
 
 			a.classList.add('exlinks-exsauce-link-valid');
 			a.textContent = Sauce.text('Found: ' + count);
 
 			if (count > 0) {
 				if (conf['Inline Results'] === true) {
-					$.on(a, 'click', Sauce.UI.toggle);
-
 					results = $.create('div', {
 						className: 'exlinks-exsauce-results'
 					});
@@ -1655,8 +1660,10 @@
 					$.add(results, $.create("br"));
 					results.style.setProperty("display", conf['Show Results by Default'] ? "table" : "none", "important");
 					for (i = 0, ii = result.length; i < ii; ++i) {
-						$.add(results, $.tnode(result[i][0]));
-						if (i < ii - 1) $.add(results, $.create('br'));
+						link = Linkifier.create_link(result[i][0]);
+						$.add(results, link);
+						Linkifier.preprocess_link(link);
+						if (i < ii - 1) $.add(results, $.create("br"));
 					}
 
 					if (
@@ -1664,18 +1671,10 @@
 						(n = Helper.Post.get_text_body(n)) !== null
 					) {
 						$.before(n, results);
-						Linkifier.parse_posts([ results ]);
+						Main.update();
 					}
 				}
-				if (conf['Show Results by Default'] === false) {
-					if (conf['Show Short Results'] === true) {
-						$.on(a, [
-							[ 'mouseover', Sauce.UI.show ],
-							[ 'mousemove', Sauce.UI.move ],
-							[ 'mouseout', Sauce.UI.hide ]
-						]);
-					}
-				}
+				Linkifier.change_link_events(a, "exsauce_toggle");
 			}
 			Debug.log('Formatting complete');
 		},
@@ -1754,9 +1753,9 @@
 				Sauce.hash(a, md5);
 			}
 		},
-		click: function (event) {
+		fetch: function (event) {
 			event.preventDefault();
-			$.off(this, 'click', Sauce.click);
+			$.off(this, "click", Sauce.fetch);
 			Sauce.check(this);
 		},
 		label: function (siteonly) {
@@ -1785,6 +1784,45 @@
 		event_listeners: {
 			format: []
 		},
+		link_events: {
+			exsauce_fetch: Sauce.fetch,
+			exsauce_toggle: Sauce.UI.events,
+			exsauce_error: function (event) {
+				event.preventDefault();
+				return false;
+			},
+			gallery_link: UI.events,
+			gallery_error: function (event) {
+				event.preventDefault();
+				return false;
+			},
+			gallery_toggle_actions: function (event) {
+				if (conf['Gallery Actions']) {
+					return UI.toggle.call(this, event);
+				}
+			},
+			gallery_fetch: function (event) {
+				return Linkifier.on_tag_click_to_load.call(this, event);
+			},
+			actions_torrent: function (event) {
+				if (conf['Torrent Popup']) {
+					return UI.popup.call(this, event);
+				}
+			},
+			actions_archiver: function (event) {
+				if (conf['Archiver Popup']) {
+					return UI.popup.call(this, event);
+				}
+			},
+			actions_favorite: function (event) {
+				if (conf['Favorite Autosave']) {
+					return UI.favorite.call(this, event);
+				}
+				else if (conf['Favorite Popup']) {
+					return UI.popup.call(this, event);
+				}
+			},
+		},
 		get_links: function (parent) {
 			return $$("a.ex-linkified-gallery[href]", parent);
 		},
@@ -1801,7 +1839,7 @@
 			selector += "[data-ex-linkified-status=processed]";
 			return $$(selector, parent);
 		},
-		linkify: function (container) {
+		linkify: function (container, results) {
 			var ws = /^\s*$/,
 				nodes = $.textnodes(container),
 				node, text, match, linknode, sp, ml, tn, tl, tu, wbr, i, ii;
@@ -1830,14 +1868,8 @@
 						tn = $.tnode(text.substr(0, sp));
 						tl = text.substr(sp + ml + 1, text.length);
 
-						tu = $.create("a", {
-							className: "ex-link-events ex-linkified ex-linkified-gallery",
-							href: (regex.protocol.test(match[0]) ? "" : "http://") + match[0],
-							target: "_blank",
-							textContent: match[0]
-						});
-						tu.setAttribute("data-ex-linkified-status", "unprocessed");
-						tu.setAttribute("data-ex-link-events", "gallery_link");
+						tu = Linkifier.create_link((regex.protocol.test(match[0]) ? "" : "http://") + match[0]);
+						results.push(tu);
 
 						if (tn.length > 0 && !ws.test(tn.nodeValue)) {
 							linknode.push(tn);
@@ -1853,6 +1885,68 @@
 					if (linknode) {
 						$.replace(node, $.elem(linknode));
 					}
+				}
+			}
+		},
+		create_link: function (text) {
+			return $.create("a", {
+				className: "ex-linkified",
+				href: text,
+				target: "_blank",
+				textContent: text
+			});
+		},
+		preprocess_link: function (node) {
+			var site = conf['Gallery Link'].value,
+				site_re = new RegExp(Helper.regex_escape(site)),
+				info, button;
+
+			if (site !== "Original") {
+				site_re = new RegExp(Helper.regex_escape(site));
+				if (!site_re.test(node.href)) {
+					node.href = node.href.replace(regex.site, site.value);
+				}
+			}
+
+			info = Helper.get_url_info(node.href);
+			if (info === null) {
+				node.classList.remove('ex-linkified-gallery');
+				node.removeAttribute("data-ex-linkified-status");
+			}
+			else {
+				node.classList.add("ex-linkified");
+				node.classList.add("ex-link-events");
+				node.classList.add("ex-linkified-gallery");
+				node.setAttribute("data-ex-linkified-status", "unprocessed");
+				node.setAttribute("data-ex-link-events", "gallery_link");
+
+				if (info.type === "s") {
+					node.setAttribute("data-exlinks-type", info.type);
+					node.setAttribute("data-exlinks-gid", info.gid);
+					node.setAttribute("data-exlinks-page", info.page);
+					node.setAttribute("data-exlinks-page-token", info.page_token);
+					node.classList.add("exlinks-type");
+					node.classList.add("exlinks-gid");
+					node.classList.add("exlinks-page");
+					node.classList.add("exlinks-page-token");
+				}
+				else if (info.type === "g") {
+					node.setAttribute("data-exlinks-type", info.type);
+					node.setAttribute("data-exlinks-gid", info.gid);
+					node.setAttribute("data-exlinks-token", info.token);
+					node.classList.add("exlinks-type");
+					node.classList.add("exlinks-gid");
+					node.classList.add("exlinks-token");
+				}
+
+				node.setAttribute("data-ex-linkified-status", "processed");
+
+				button = UI.button(node.href);
+				$.before(node, button);
+
+				if (conf['Automatic Processing'] === true) {
+					Linkifier.check_link(node);
+					Debug.value.add('processed');
 				}
 			}
 		},
@@ -1904,44 +1998,17 @@
 					button.textContent = button.textContent.replace(/\]\s*$/, c + "]");
 					Filter.highlight_tag(button, link, hl);
 				}
-				$.off(button, "click", Linkifier.on_tag_click_to_load);
-				button.setAttribute("data-action", "toggle");
-				button.setAttribute("data-ex-link-events", "gallery_toggle");
-
-				if (conf['Gallery Actions'] === true) {
-					$.on(button, 'click', UI.toggle);
-				}
+				Linkifier.change_link_events(button, "gallery_toggle_actions");
 			}
 
 			// Actions
 			actions = UI.actions(data, link);
 			$.after(link, actions);
-
-			// Events
-			if (conf['Gallery Details'] === true) {
-				$.on(link, [
-					[ 'mouseover', UI.show ],
-					[ 'mouseout', UI.hide ],
-					[ 'mousemove', UI.move ]
-				]);
-			}
-
-			if (conf['Torrent Popup'] === true) {
-				$.on($("a.ex-actions-link-torrent", actions), "click", UI.popup);
-			}
-			if (conf['Archiver Popup'] === true) {
-				$.on($("a.ex-actions-link-archiver", actions), "click", UI.popup);
-			}
-			if (conf['Favorite Popup'] === true) {
-				$.on($("a.ex-actions-link-favorite", actions), "click", UI.popup);
-			}
 		},
 		format_link_error: function (link) {
 			var button = Helper.get_tag_button_from_link(link);
 			if (button !== null) {
-				$.off(button, "click", Linkifier.on_tag_click_to_load);
-				button.setAttribute("data-action", "error");
-				button.setAttribute("data-ex-link-events", "gallery_error");
+				Linkifier.change_link_events(button, "gallery_error");
 			}
 
 			link.textContent = "Incorrect Gallery Key";
@@ -1949,108 +2016,55 @@
 		},
 		apply_link_events: function (node, check_children) {
 			var nodes = check_children ? $$("a.ex-link-events", node) : [ node ],
-				events, events_name, value, site, info, button, i, ii;
-
-			events = {};
+				events, i, ii;
 
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				node = nodes[i];
-				events_name = node.getAttribute("data-ex-link-events");
-				
-				if (node.classList.contains('ex-site-tag')) {
-					value = node.getAttribute("data-action");
-					if (value === "toggle") {
-						if (conf['Gallery Actions'] === true) {
-							$.on(node, 'click', UI.toggle);
-						}
-					}
-					else if (value === "fetch") {
-						$.on(node, 'click', Linkifier.on_tag_click_to_load);
+				events = node.getAttribute("data-ex-link-events");
+				Linkifier.set_link_events(node, events);
+			}
+		},
+		set_link_events: function (node, new_events) {
+			var events = Linkifier.link_events[new_events],
+				k;
+
+			if (events) {
+				if (typeof(events) === "function") {
+					$.on(node, "click", events);
+				}
+				else {
+					// Array
+					for (k in events) {
+						$.on(node, k, events[k]);
 					}
 				}
-				if (node.classList.contains('ex-actions-link')) {
-					if (node.classList.contains('ex-actions-link-torrent')) {
-						if (conf['Torrent Popup'] === true) {
-							$.on(node, 'click', UI.popup);
-						}
-					}
-					if (node.classList.contains('ex-actions-link-archiver')) {
-						if (conf['Archiver Popup'] === true) {
-							$.on(node, 'click', UI.popup);
-						}
-					}
-					if (node.classList.contains('ex-actions-link-favorite')) {
-						if (conf['Favorite Autosave']) {
-							$.on(node, 'click', UI.favorite);
-						}
-						else if (conf['Favorite Popup'] === true) {
-							$.on(node, 'click', UI.popup);
-						}
+			}
+		},
+		change_link_events: function (node, new_events) {
+			var old_events = node.getAttribute("data-ex-link-events"),
+				events, k;
+
+			if (old_events === new_events) return;
+
+			events = Linkifier.link_events[old_events];
+			if (events) {
+				if (typeof(events) === "function") {
+					$.off(node, "click", events);
+				}
+				else {
+					// Array
+					for (k in events) {
+						$.off(node, k, events[k]);
 					}
 				}
-				if (node.classList.contains('ex-linkified-gallery')) {
-					value = node.getAttribute("data-ex-linkified-status");
-					if (value === "unprocessed") {
-						site = conf['Gallery Link'];
-						if (site.value !== "Original") {
-							if (!new RegExp(site.value).test(node.href)) {
-								node.href = node.href.replace(regex.site, site.value);
-							}
-						}
+			}
 
-						info = Helper.get_url_info(node.href);
-						if (info === null) {
-							node.classList.remove('ex-linkified-gallery');
-							node.removeAttribute("data-ex-linkified-status");
-						}
-						else {
-							if (info.type === "s") {
-								node.setAttribute("data-exlinks-type", info.type);
-								node.setAttribute("data-exlinks-gid", info.gid);
-								node.setAttribute("data-exlinks-page", info.page);
-								node.setAttribute("data-exlinks-page-token", info.page_token);
-								node.classList.add("exlinks-type");
-								node.classList.add("exlinks-gid");
-								node.classList.add("exlinks-page");
-								node.classList.add("exlinks-page-token");
-							}
-							else if (info.type === "g") {
-								node.setAttribute("data-exlinks-type", info.type);
-								node.setAttribute("data-exlinks-gid", info.gid);
-								node.setAttribute("data-exlinks-token", info.token);
-								node.classList.add("exlinks-type");
-								node.classList.add("exlinks-gid");
-								node.classList.add("exlinks-token");
-							}
-
-							node.setAttribute("data-ex-linkified-status", "processed");
-
-							button = UI.button(node.href);
-							$.on(button, "click", Linkifier.on_tag_click_to_load);
-							$.before(node, button);
-
-							if (conf['Automatic Processing'] === true) {
-								Linkifier.check_link(node);
-								Debug.value.add('processed');
-							}
-						}
-					}
-					else if (value === "processed") {
-						if (conf['Automatic Processing'] === true) {
-							Linkifier.check_link(node);
-							Debug.value.add('processed');
-						}
-					}
-					else if (value === "formatted") {
-						if (conf['Gallery Details'] === true) {
-							$.on(node, [
-								[ 'mouseover', UI.show ],
-								[ 'mouseout', UI.hide ],
-								[ 'mousemove', UI.move ]
-							]);
-						}
-					}
-				}
+			if (new_events === null) {
+				node.removeAttribute("data-ex-link-events");
+			}
+			else {
+				node.setAttribute("data-ex-link-events", new_events);
+				Linkifier.set_link_events(node, new_events);
 			}
 		},
 		parse_posts: function (posts) {
@@ -2071,10 +2085,9 @@
 				"; links=" + Debug.value.get("processed") +
 				"; time=" + Debug.timer.stop("process")
 			);
-			Main.update();
 		},
 		parse_post: function (post) {
-			var post_body, post_links, nodes, link, i, ii;
+			var post_body, post_links, links, nodes, link, i, ii;
 
 			// Exsauce
 			if (conf.ExSauce) {
@@ -2097,6 +2110,7 @@
 				if (!post.classList.contains("ex-post-linkified")) {
 					Debug.value.add('linkified');
 
+					links = [];
 					post_links = Helper.Post.get_body_links(post_body);
 					for (i = 0, ii = post_links.length; i < ii; ++i) {
 						link = post_links[i];
@@ -2106,11 +2120,16 @@
 							link.classList.add("ex-linkified-gallery");
 							link.setAttribute("target", "_blank");
 							link.setAttribute("data-ex-linkified-status", "unprocessed");
-							link.setAttribute("data-ex-link-events", "gallery_link");
+							Linkifier.change_link_events(link, "gallery_link");
+							links.push(link);
 						}
 					}
 
-					Linkifier.linkify(post_body);
+					Linkifier.linkify(post_body, links);
+					for (i = 0, ii = links.length; i < ii; ++i) {
+						Linkifier.preprocess_link(links[i]);
+					}
+
 					post.classList.add("ex-post-linkified");
 				}
 			}
@@ -2119,7 +2138,7 @@
 			Linkifier.apply_link_events(post, true);
 		},
 		setup_post_exsauce: function (post) {
-			var file_info, sauce, results;
+			var file_info, sauce;
 
 			// File info
 			file_info = Helper.Post.get_file_info(post);
@@ -2129,17 +2148,19 @@
 			sauce = $(".exlinks-exsauce-link", file_info.options);
 			if (sauce === null) {
 				sauce = $.create("a", {
-					className: "exlinks-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
+					className: "ex-link-events exlinks-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
 					textContent: Sauce.label(false),
 					href: file_info.url,
 					target: "_blank"
 				});
+				sauce.setAttribute("data-ex-link-events", "exsauce_fetch");
 				if (conf["No Underline on Sauce"]) {
 					sauce.classList.add("exlinks-exsauce-link-no-underline");
 				}
 				sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
 				if (/^\.jpe?g$/.test(file_info.type)) {
 					sauce.classList.add("exlinks-exsauce-link-disabled");
+					sauce.setAttribute("data-ex-link-events", "exsauce_error");
 					sauce.title = (
 						"Reverse Image Search doesn't work for JPG images because 4chan manipulates them on upload. " +
 						"There is nothing ExLinks can do about this. " +
@@ -2150,47 +2171,6 @@
 					$.before2(file_info.options, $.tnode(file_info.options_sep), file_info.options_before);
 				}
 				$.before2(file_info.options, sauce, file_info.options_before);
-			}
-
-			// Events
-			if (sauce.classList.contains("exlinks-exsauce-link-disabled")) {
-				$.on(sauce, "click", function (event) {
-					event.preventDefault();
-					return false;
-				});
-			}
-			else if (!sauce.classList.contains('exlinks-exsauce-link-valid')) {
-				$.on(sauce, "click", Sauce.click);
-			}
-			else {
-				if (conf['Show Short Results'] === true) {
-					if (conf['Inline Results'] === true) {
-						results = Helper.get_exresults_from_exsauce(sauce);
-						if (results !== null && results.style.display === 'none') {
-							$.on(sauce, [
-								[ 'mouseover', Sauce.UI.show ],
-								[ 'mousemove', Sauce.UI.move ],
-								[ 'mouseout', Sauce.UI.hide ]
-							]);
-						}
-					}
-					else {
-						$.on(sauce, [
-							[ 'mouseover', Sauce.UI.show ],
-							[ 'mousemove', Sauce.UI.move ],
-							[ 'mouseout', Sauce.UI.hide ]
-						]);
-					}
-				}
-				if (conf['Inline Results'] === true) {
-					$.on(sauce, 'click', Sauce.UI.toggle);
-					if (conf['Hide Results in Quotes'] === true) {
-						results = Helper.get_exresults_from_exsauce(sauce);
-						if (results !== null) {
-							results.style.setProperty("display", "none", "important");
-						}
-					}
-				}
 			}
 		},
 		on_tag_click_to_load: function (event) {
@@ -4340,8 +4320,10 @@
 					) {
 						node.className = "ex-link-events ex-linkified ex-linkified-gallery";
 						node.setAttribute("data-ex-linkified-status", "unprocessed");
-						node.setAttribute("data-ex-link-events", "gallery_link");
+						Linkifier.change_link_events(node, "gallery_link");
 						$.remove(node.previousSibling);
+
+						Linkifier.preprocess_link(node);
 
 						node = Helper.Post.get_post_container(node);
 						if (node !== null) {
@@ -4362,6 +4344,7 @@
 
 			if (post_list.length > 0) {
 				Linkifier.parse_posts(post_list);
+				Main.update();
 			}
 		},
 		observe_post_change: function (node, nodelist) {
@@ -4432,6 +4415,7 @@
 			Debug.log('Initialization complete; time=' + Debug.timer.stop('init'));
 
 			Linkifier.parse_posts(Helper.Post.get_all_posts(d));
+			Main.update();
 
 			if (MutationObserver) {
 				updater = new MutationObserver(Main.observer);
