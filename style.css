@@ -517,11 +517,14 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 }
 
 .exlinks-options-button {
-	margin: 4px 2px;
+	margin: 0.25em 0.125em;
 	display: inline-block !important;
-	padding: 4px;
+	padding: 0.25em;
 	background: rgba(0,0,0,0.05);
-	border-radius: 3px;
+	border-radius: 0.2em;
+}
+.exlinks-options-button.extheme-dark {
+	background: rgba(255,255,255,0.05);
 }
 
 .exlinks-options-title {

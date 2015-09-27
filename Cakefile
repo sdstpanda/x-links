@@ -63,10 +63,13 @@ task 'build', (options) ->
 	style = new CleanCSS({}).minify(style).styles
 	stylebuf = new Buffer style, 'utf8'
 	styleb64 = stylebuf.toString('base64')
-	input = input.replace "\#DETAILS\#", html.details
-	input = input.replace "\#ACTIONS\#", html.actions
-	input = input.replace "\#OPTIONS\#", html.options
-	input = input.replace "\#VERSION\#", VERSION
+	input = input.replace /\#DETAILS\#/g, html.details
+	input = input.replace /\#ACTIONS\#/g, html.actions
+	input = input.replace /\#OPTIONS\#/g, html.options
+	input = input.replace /\#VERSION\#/g, VERSION
+	input = input.replace /\#HOMEPAGE\#/g, pkg.homepage
+	input = input.replace /\#ISSUES\#/g, pkg.bugs.url
+	input = input.replace /\#CHANGELOG\#/g, pkg.custom.changelog_url
 	input = input.replace "img = {}", "img = #{images}"
 	input = input.replace "css = '';", "css = 'data:text/css;base64,#{styleb64}';"
 	input = input.replace /\/\*\s*jshint.*\*\//, ''

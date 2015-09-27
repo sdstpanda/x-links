@@ -297,6 +297,18 @@
 			catch (e) {}
 			return false;
 		},
+		link: function (href, properties) {
+			var elem = d.createElement("a");
+			if (href !== null) {
+				elem.href = href;
+				elem.target = "_blank";
+				elem.rel = "noreferrer";
+			}
+			if (properties) {
+				$.extend(elem, properties);
+			}
+			return elem;
+		},
 		push_many: function (target, new_entries) {
 			var max_push = 1000;
 			if (new_entries.length < max_push) {
@@ -822,11 +834,9 @@
 			return frag.firstChild;
 		},
 		button: function (url) {
-			var button = $.create('a', {
+			var button = $.link(url, {
 				className: 'ex-link-events ex-site-tag',
-				textContent: UI.button.text(url),
-				href: url,
-				target: "_blank"
+				textContent: UI.button.text(url)
 			});
 			button.setAttribute("data-ex-link-events", "gallery_fetch");
 			return button;
@@ -945,11 +955,9 @@
 				tag = $.create("span", {
 					className: "ex-tag-block"
 				});
-				link = $.create("a", {
+				link = $.link("http://" + site + "/tag/" + tags[i].replace(/\ /g, "+"), {
 					textContent: tags[i],
-					className: "ex-tag",
-					href: "http://" + site + "/tag/" + tags[i].replace(/\ /g, "+"),
-					target: "_blank"
+					className: "ex-tag"
 				});
 
 				Filter.highlight("tags", link, data, null);
@@ -990,11 +998,9 @@
 
 				for (i = 0, ii = tags.length; i < ii; ++i) {
 					tag = $.create("span", { className: "ex-tag-block" + namespace_style });
-					link = $.create("a", {
+					link = $.link(url_base + "/tag/" + tags[i].replace(/\ /g, "+"), {
 						textContent: tags[i],
-						className: "ex-tag",
-						href: url_base + "/tag/" + tags[i].replace(/\ /g, "+"),
-						target: "_blank"
+						className: "ex-tag"
 					});
 
 					Filter.highlight("tags", link, data, null);
@@ -1622,9 +1628,8 @@
 				if ((ii = result.length) > 0) {
 					i = 0;
 					while (true) {
-						$.add(hover, $.create("a", {
+						$.add(hover, $.link(result[i][0], {
 							className: "exlinks-exsauce-hover-link",
-							href: result[i][0],
 							textContent: result[i][1]
 						}));
 						if (++i >= ii) break;
@@ -1652,9 +1657,8 @@
 					$.add(results, $.create("strong", { textContent: "Reverse Image Search Results" }));
 					$.add(results, $.create("span", { className: "exlinks-exsauce-results-sep", textContent: "|" }));
 					$.add(results, $.create("span", { className: "exlinks-exsauce-results-label", textContent: "View on:" }));
-					$.add(results, $.create("a", {
+					$.add(results, $.link(a.href, {
 						className: "exlinks-exsauce-results-link",
-						href: a.href,
 						textContent: Sauce.label(true)
 					}));
 					$.add(results, $.create("br"));
@@ -1737,7 +1741,8 @@
 				a.setAttribute('data-sha1', sha1);
 				a.href = 'http://' + conf['Site to Use'].value + '/?f_doujinshi=1&f_manga=1&f_artistcg=1&f_gamecg=1&f_western=1&f_non-h=1&f_imageset=1&f_cosplay=1&f_asianporn=1&f_misc=1&f_search=Search+Keywords&f_apply=Apply+Filter&f_shash=' + sha1 + '&fs_similar=0';
 				if (conf['Search Expunged'] === true) a.href += '&fs_exp=1';
-				a.setAttribute('target', '_blank');
+				a.target = "_blank";
+				a.rel = "noreferrer";
 				result = Hash.get(sha1, 'sha1');
 				if (result) {
 					Debug.log('Cached result found; formatting...');
@@ -1889,10 +1894,8 @@
 			}
 		},
 		create_link: function (text) {
-			return $.create("a", {
+			return $.link(text, {
 				className: "ex-linkified",
-				href: text,
-				target: "_blank",
 				textContent: text
 			});
 		},
@@ -2118,7 +2121,8 @@
 							link.classList.add("ex-link-events");
 							link.classList.add("ex-linkified");
 							link.classList.add("ex-linkified-gallery");
-							link.setAttribute("target", "_blank");
+							link.target = "_blank";
+							link.rel = "noreferrer";
 							link.setAttribute("data-ex-linkified-status", "unprocessed");
 							Linkifier.change_link_events(link, "gallery_link");
 							links.push(link);
@@ -2147,11 +2151,9 @@
 			// Create if not found
 			sauce = $(".exlinks-exsauce-link", file_info.options);
 			if (sauce === null) {
-				sauce = $.create("a", {
+				sauce = $.link(file_info.url, {
 					className: "ex-link-events exlinks-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
-					textContent: Sauce.label(false),
-					href: file_info.url,
-					target: "_blank"
+					textContent: Sauce.label(false)
 				});
 				sauce.setAttribute("data-ex-link-events", "exsauce_fetch");
 				if (conf["No Underline on Sauce"]) {
@@ -2297,7 +2299,10 @@
 				this.textContent = "Cleared!";
 			}
 		},
-		open: function () {
+		open: function (event) {
+			if (event.which && event.which !== 1) return;
+			event.preventDefault();
+
 			pageconf = JSON.parse(JSON.stringify(tempconf));
 
 			var frag = $.frag(UI.html.options()),
@@ -2405,7 +2410,7 @@
 				conflink, conflink2, arrtop, arrbot;
 
 			Main["4chanX3"] = d.documentElement.classList.contains("fourchan-x");
-			conflink = $.create('a', { title: 'ExLinks Settings', className: 'entry' });
+			conflink = $.link("#HOMEPAGE#", { title: "ExLinks Settings", className: "entry" });
 			$.on(conflink, 'click', Options.open);
 
 			if (Config.mode === '4chan') {
@@ -2423,7 +2428,7 @@
 				}
 				else {
 					conflink.textContent = 'ExLinks Settings';
-					conflink.setAttribute('style', 'cursor: pointer; ' + (conflink.getAttribute('style') || ""));
+					conflink.setAttribute('style', 'cursor:pointer;' + (conflink.getAttribute('style') || ""));
 					conflink2 = conflink.cloneNode(true);
 					$.on(conflink2, 'click', Options.open);
 					arrtop = [ $.tnode('['), conflink, $.tnode('] ') ];
@@ -2434,19 +2439,19 @@
 			}
 			else if (Config.mode === 'fuuka') {
 				conflink.textContent = 'exlinks options';
-				conflink.setAttribute('style', 'cursor: pointer; text-decoration: underline;');
+				conflink.setAttribute('style', 'cursor:pointer;text-decoration:underline;');
 				arrtop = [ $.tnode(' [ '), conflink, $.tnode(' ] ') ];
 				$.checked.add($('div'), $.elem(arrtop));
 			}
 			else if (Config.mode === 'foolz') {
 				conflink.textContent = 'ExLinks Options';
-				conflink.setAttribute('style', 'cursor: pointer;');
+				conflink.setAttribute('style', 'cursor:pointer;');
 				arrtop = [ $.tnode(' [ '), conflink, $.tnode(' ] ') ];
 				$.checked.add($('.letters'), $.elem(arrtop));
 			}
 			else if (Config.mode === '38chan') {
 				conflink.textContent = 'exlinks options';
-				conflink.setAttribute('style', 'cursor: pointer;');
+				conflink.setAttribute('style', 'cursor:pointer;');
 				conflink2 = conflink.cloneNode(true);
 				$.on(conflink2, 'click', Options.open);
 				arrtop = [ $.tnode('  [ '), conflink, $.tnode(' ] ') ];
@@ -3295,10 +3300,10 @@
 						$.add(navlink, $.tnode(" ["));
 					}
 
-					n2 = $.create("a", {
+					n2 = $.link(null, {
 						className: "exlinks-easy-list-link",
 						textContent: link_mod("ExLinks Easy List", true),
-						style: "cursor: pointer;"
+						style: "cursor:pointer;"
 					});
 
 					$.add(navlink, n2);
@@ -3308,12 +3313,12 @@
 					// Mobile
 					n1 = $.create("div", {
 						className: "mobile",
-						style: "text-align: center; margin: 0.5em 0;"
+						style: "text-align:center;margin:0.5em 0;"
 					});
 					$.add(n1, n2 = $.create("span", {
 						className: "mobileib button exlinks-easy-list-button"
 					}));
-					$.add(n2, $.create("a", {
+					$.add(n2, $.link(null, {
 						textContent: link_mod("Easy List", false)
 					}));
 					if (mobile_top) {
@@ -3378,13 +3383,13 @@
 			// Close
 			$.add(n3, n4 = $.create("div", { className: "ex-easylist-control-links" }));
 
-			$.add(n4, n5 = $.create("a", {
+			$.add(n4, n5 = $.link(null, {
 				className: "ex-easylist-control-link ex-easylist-control-link-options",
 				textContent: "options"
 			}));
 			$.on(n5, "click", EasyList.on_options_click);
 
-			$.add(n4, n5 = $.create("a", {
+			$.add(n4, n5 = $.link(null, {
 				className: "ex-easylist-control-link",
 				textContent: "close"
 			}));
@@ -3613,10 +3618,8 @@
 			$.add(n3, n4 = $.create("div", { className: "ex-easylist-item-cell ex-easylist-item-cell-image" + theme }));
 
 			// Image
-			$.add(n4, n5 = $.create("a", {
-				className: "ex-easylist-item-image-container" + theme,
-				href: url,
-				target: "_blank"
+			$.add(n4, n5 = $.link(url, {
+				className: "ex-easylist-item-image-container" + theme
 			}));
 
 			$.add(n5, n6 = $.create("div", {
@@ -3644,19 +3647,15 @@
 				className: "ex-easylist-item-title" + theme
 			}));
 
-			$.add(n5, n6 = $.create("a", {
+			$.add(n5, n6 = $.link(url, {
 				className: "ex-easylist-item-title-tag-link" + theme,
-				textContent: UI.button.text(domain),
-				href: url,
-				target: "_blank"
+				textContent: UI.button.text(domain)
 			}));
 			n6.setAttribute("data-original", n6.textContent);
 
-			$.add(n5, n6 = $.create("a", {
+			$.add(n5, n6 = $.link(url, {
 				className: "ex-easylist-item-title-link" + theme,
-				textContent: Helper.normalize_api_string(data.title),
-				href: url,
-				target: "_blank"
+				textContent: Helper.normalize_api_string(data.title)
 			}));
 			n6.setAttribute("data-original", n6.textContent);
 
@@ -3670,11 +3669,9 @@
 
 			$.add(n4, n5 = $.create("div", { className: "ex-easylist-item-upload-info" + theme }));
 			$.add(n5, $.tnode("Uploaded by "));
-			$.add(n5, n6 = $.create("a", {
+			$.add(n5, n6 = $.link(url_base + "/uploader/" + data.uploader, {
 				className: "ex-easylist-item-uploader" + theme,
-				textContent: data.uploader,
-				href: url_base + "/uploader/" + data.uploader,
-				target: "_blank"
+				textContent: data.uploader
 			}));
 			n6.setAttribute("data-original", n6.textContent);
 			$.add(n5, $.tnode(" on "));
@@ -3699,10 +3696,8 @@
 				className: "ex-easylist-item-info" + theme,
 			}));
 
-			$.add(n5, n6 = $.create("a", {
-				className: "ex-easylist-item-info-button exlinks-btn exlinks-btn-eh exlinks-btn-" + cat[data.category].short + theme,
-				href: url_base + "/" +  cat[data.category].short,
-				target: "_blank"
+			$.add(n5, n6 = $.link(url_base + "/" + cat[data.category].short, {
+				className: "ex-easylist-item-info-button exlinks-btn exlinks-btn-eh exlinks-btn-" + cat[data.category].short + theme
 			}));
 			$.add(n6, $.create("div", {
 				className: "exlinks-noise",
@@ -3785,11 +3780,9 @@
 					$.add(n2, n3 = $.create("span", {
 						className: "ex-tag-block" + namespace_style
 					}));
-					$.add(n3, n4 = $.create("a", {
+					$.add(n3, n4 = $.link(url_base + "/tag/" + tags[i].replace(/\ /g, "+"), {
 						textContent: tags[i],
-						className: "ex-tag ex-tag-color-inherit ex-easylist-item-tag",
-						href: url_base + "/tag/" + tags[i].replace(/\ /g, "+"),
-						target: "_blank"
+						className: "ex-tag ex-tag-color-inherit ex-easylist-item-tag"
 					}));
 					n4.setAttribute("data-original", n4.textContent);
 
@@ -4361,16 +4354,16 @@
 			}
 		},
 		create_menu_link: function (menu) {
-			var link = $.create("a", {
+			var link = $.link("#HOMEPAGE#", {
 				className: "entry",
 				textContent: "ExLinks Settings"
 			});
 			link.style.order = 112;
 
 			$.on(link, [
-				[ "click", function () {
+				[ "click", function (event) {
 					$.remove(menu);
-					Options.open();
+					return Options.open(event);
 				} ],
 				[ "mouseover", function () {
 					var entries = $$('.entry', menu),
