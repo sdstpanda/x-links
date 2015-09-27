@@ -1057,7 +1057,7 @@
 		go: {},
 		cooldown: 0,
 		working: false,
-		full_timer: null,
+		full_active: false,
 		full_queue: [],
 		full_version: 1,
 		queue: function (type) {
@@ -1073,6 +1073,10 @@
 				return Object.keys(API.g).length;
 			}
 			return 0;
+		},
+		queue_gallery: function (gid, token) {
+		},
+		queue_gallery_page: function (gid, page_token, page) {
 		},
 		request: function (type) {
 			var limit = 0,
@@ -1116,6 +1120,7 @@
 					}
 				}
 			}
+
 			if (request !== null) {
 				if (!API.working && Date.now() > API.cooldown) {
 					API.working = true;
@@ -1200,14 +1205,7 @@
 			});
 		},
 		request_full_info: function (id, token, site, cb) {
-			if (Database.check(id)) {
-				var data = Database.get(id);
-				if (data !== null && API.data_has_full(data)) {
-					cb(null, data);
-					return;
-				}
-			}
-			if (API.full_timer === null) {
+			if (!API.full_active) {
 				API.execute_full_request(id, token, site, cb);
 			}
 			else {
@@ -1215,27 +1213,40 @@
 			}
 		},
 		on_request_full_next: function () {
-			API.full_timer = null;
+			API.full_active = false;
 			if (API.full_queue.length > 0) {
 				var d = API.full_queue.shift();
 				API.execute_full_request(d[0], d[1], d[2], d[3]);
 			}
 		},
 		execute_full_request: function (id, token, site, cb) {
-			var callback = function (err, full_data) {
-				API.full_timer = setTimeout(API.on_request_full_next, 200);
+			API.full_active = true;
 
-				var data = Database.get(id);
-				if (data !== null) {
-					data.full = full_data;
-					Database.set(data);
+			var data = Database.get(id);
+			if (data !== null && API.data_has_full(data)) {
+				cb(null, data);
+				API.on_request_full_next();
+				return;
+			}
+
+			var callback = function (err, full_data) {
+				setTimeout(API.on_request_full_next, 200);
+
+				if (err === null) {
+					var data = Database.get(id);
+					if (data !== null) {
+						data.full = full_data;
+						Database.set(data);
+						cb(err, data);
+						API.complete_full_requests(id, data);
+					}
+					else {
+						cb("Could not update data", null);
+					}
 				}
 				else {
-					err = "Could not update data";
-					data = null;
+					cb(err, null);
 				}
-
-				cb(err, data);
 			};
 
 			HttpRequest({
@@ -1270,6 +1281,20 @@
 					callback("Connection aborted", null);
 				}
 			});
+		},
+		complete_full_requests: function (id, data) {
+			var queue = API.full_queue,
+				cb, i, ii;
+
+			for (i = 0, ii = queue.length; i < ii; ) {
+				if (queue[i][0] === id) {
+					cb = queue.splice(i, 1)[3];
+					cb(null, data);
+					--ii;
+					continue;
+				}
+				++i;
+			}
 		},
 		parse_full_info: function (html) {
 			var data = {
@@ -2212,6 +2237,7 @@
 					}
 					else {
 						API.queue.add("s", uid, page_token, page);
+						API.queue_gallery_page(uid, page_token, page);
 					}
 				}
 			}
@@ -2222,6 +2248,7 @@
 				else {
 					if (token) {
 						API.queue.add('g', uid, token);
+						API.queue_gallery(uid, token);
 					}
 				}
 			}
@@ -4207,43 +4234,6 @@
 				$.add(container, node);
 			};
 		})(),
-		check: function (uid) {
-			var check = Database.check(uid),
-				links, link, type, token, page, i, ii;
-
-			if (check) {
-				Main.queue.push(uid);
-				return [ uid, 'f' ];
-			}
-
-			links = Linkifier.get_links_unformatted(uid);
-			for (i = 0, ii = links.length; i < ii; ++i) {
-				link = links[i];
-				type = Helper.get_type_from_node(link);
-				if (type === 's') {
-					page = Helper.get_page_from_node(link);
-					token = Helper.get_page_token_from_node(link);
-				}
-				else if (type === 'g') {
-					token = Helper.get_token_from_node(link);
-					break;
-				}
-			}
-
-			if (type === 's') {
-				if (page && token) {
-					API.queue.add('s', uid, token, page);
-					return [ uid, type ];
-				}
-			}
-			else if (type === 'g') {
-				if (token) {
-					API.queue.add('g', uid, token);
-					return [ uid, type ];
-				}
-			}
-			return null;
-		},
 		flush_queue: function () {
 			var queue = Main.queue,
 				update = false,
