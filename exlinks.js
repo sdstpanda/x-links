@@ -1312,98 +1312,96 @@
 		}
 	};
 	Cache = {
-		type: null,
-		init: function () {
-			var res = [],
-				key, json, i, ii;
+		type: window.localStorage,
+		get_key: function (cache_type, key) {
+			var json = Helper.json_parse_safe(cache_type.getItem(key));
 
-			Cache.type = conf['Disable Local Storage Cache'] ? sessionStorage : localStorage;
-
-			for (i = 0, ii = Cache.type.length; i < ii; ++i) {
-				key = Cache.type.key(i);
-				if (new RegExp("^" + Helper.regex_escape(Main.namespace) + "(gallery|md5|sha1)").test(key)) {
-					json = Helper.json_parse_safe(Cache.type.getItem(key));
-					if (!(json && typeof(json) === "object" && Date.now() <= json.added + json.TTL)) {
-						res.push(key);
-					}
-				}
-			}
-			ii = res.length;
-			if (ii > 0) {
-				for (i = 0; i < ii; ++i) {
-					Cache.type.removeItem(res[i]);
-				}
-				Debug.log("Purged " + ii + " old entries from cache");
-			}
-		},
-		get: function (uid, type) {
-			var key = Main.namespace + (type || "gallery") + "-" + uid,
-				json = Helper.json_parse_safe(Cache.type.getItem(key));
-
-			if (json && typeof(json) === "object" && Date.now() <= json.added + json.TTL) {
+			if (json && typeof(json) === "object" && Date.now() < json.expires) {
 				return json.data;
 			}
 
-			Cache.type.removeItem(key);
-			return false;
+			cache_type.removeItem(key);
+			return null;
+		},
+		init: function () {
+			var re_matcher = new RegExp("^" + Helper.regex_escape(Main.namespace) + "(?:gallery|md5|sha1)-"),
+				removed = 0,
+				keys = [],
+				cache_type, key, data, i, ii;
+
+			if (conf['Disable Local Storage Cache']) {
+				Cache.type = window.sessionStorage;
+			}
+			cache_type = Cache.type;
+
+			for (i = 0, ii = cache_type.length; i < ii; ++i) {
+				key = cache_type.key(i);
+				if (re_matcher.test(key)) {
+					keys.push(key);
+				}
+			}
+
+			for (i = 0, ii = keys.length; i < ii; ++i) {
+				data = Cache.get_key(cache_type, keys[i]);
+				if (data === null) {
+					++removed;
+				}
+			}
+
+			if (removed > 0) {
+				Debug.log("Purged " + removed + " old entries from cache");
+			}
+		},
+		get: function (uid, type) {
+			return Cache.get_key(Cache.type, Main.namespace + type + "-" + uid);
 		},
 		set: function (data, type, hash, ttl) {
-			var key, keyid, TTL, limit, date, value;
-			if (!type) {
-				type = 'gallery';
-				keyid = data.gid;
-				limit = Date.now() - (12 * t.HOUR);
-				date = new Date(parseInt(data.posted, 10) * 1000);
-				if (date > limit) {
-					TTL = date - limit;
-				}
-				else {
-					TTL = 12 * t.HOUR;
-				}
+			var key = Main.namespace + type + "-" + hash,
+				now = Date.now();
+
+			if (ttl === 0) {
+				ttl = ((now - parseInt(data.posted, 10) < 12 * t.HOUR) ? 1 : 12) * t.HOUR; // Update more frequently for recent uploads
 			}
-			else {
-				keyid = hash;
-				TTL = ttl;
-			}
-			key = Main.namespace + type + '-' + keyid;
-			value = {
-				"added": Date.now(),
-				"TTL": TTL,
-				"data": data
-			};
-			Cache.type.setItem(key, JSON.stringify(value));
+
+			Cache.type.setItem(key, JSON.stringify({
+				expires: now + ttl,
+				data: data
+			}));
 		},
 		load: function () {
-			var re_matcher = new RegExp("^" + Helper.regex_escape(Main.namespace) + "gallery"),
+			var re_matcher = new RegExp("^" + Helper.regex_escape(Main.namespace) + "gallery-"),
+				cache_type = Cache.type,
 				key, data, i, ii;
 
-			for (i = 0, ii = Cache.type.length; i < ii; ++i) {
-				key = Cache.type.key(i);
+			for (i = 0, ii = cache_type.length; i < ii; ++i) {
+				key = cache_type.key(i);
 				if (re_matcher.test(key)) {
-					data = Cache.get(/\d+/.exec(key));
-					if (data) Database.set(data);
+					data = Cache.get_key(cache_type, key);
+					if (data !== null) {
+						Database.set_nocache(data);
+					}
 				}
 			}
 		},
 		clear: function () {
-			var re_matcher = new RegExp("^" + Helper.regex_escape(Main.namespace) + "(gallery|md5|sha1)"),
+			var re_matcher = new RegExp("^" + Helper.regex_escape(Main.namespace) + "(?:gallery|md5|sha1)-"),
 				types = [ window.localStorage, window.sessionStorage ],
 				results = [],
-				remove, type, key, i, ii, j, jj;
+				remove, cache_type, key, i, ii, j, jj;
 
 			for (i = 0, ii = types.length; i < ii; ++i) {
-				type = types[i];
+				cache_type = types[i];
 				remove = [];
 
-				for (j = 0, jj = type.length; j < jj; ++j) {
-					key = type.key(j);
+				for (j = 0, jj = cache_type.length; j < jj; ++j) {
+					key = cache_type.key(j);
 					if (re_matcher.test(key)) {
 						remove.push(key);
 					}
 				}
 
 				for (j = 0, jj = remove.length; j < jj; ++j) {
-					type.removeItem(remove[j]);
+					cache_type.removeItem(remove[j]);
 				}
 
 				results.push(jj);
@@ -1424,8 +1422,8 @@
 			var data = Database.data[uid];
 			if (data) return data;
 
-			data = Cache.get(uid);
-			if (data) {
+			data = Cache.get(uid, "gallery");
+			if (data !== null) {
 				Database.data[data.gid] = data;
 				return data;
 			}
@@ -1434,7 +1432,10 @@
 		},
 		set: function (data) {
 			Database.data[data.gid] = data;
-			Cache.set(data);
+			Cache.set(data, "gallery", data.gid, 0);
+		},
+		set_nocache: function (data) {
+			Database.data[data.gid] = data;
 		},
 		init: function () {
 			if (conf['Populate Database on Load'] === true) {
@@ -1452,7 +1453,7 @@
 			}
 			else {
 				result = Cache.get(hash, type);
-				if (result) {
+				if (result !== null) {
 					Hash[type][hash] = result;
 					return result;
 				}
