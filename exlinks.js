@@ -1105,7 +1105,7 @@
 						"Content-Type": "application/json"
 					},
 					onload: function (xhr) {
-						if (xhr.readyState === 4 && xhr.status === 200) {
+						if (xhr.status === 200) {
 							var response = Helper.json_parse_safe(xhr.responseText),
 								okay = false,
 								k;
@@ -1121,12 +1121,23 @@
 								Debug.log("API response; time=" + Debug.timer("apirequest"), response);
 								API.response(response, request);
 								setTimeout(API.request_complete, API.delays.okay);
-							}
-							else {
-								Debug.log("API request error; waiiting five seconds before trying again. (time=" + Debug.timer("apirequest") + ")", xhr);
-								setTimeout(API.request_complete, API.delays.fail);
+								return;
 							}
 						}
+
+						// Error
+						Debug.log("API request error; waiiting five seconds before trying again. (time=" + Debug.timer("apirequest") + ")", xhr);
+						setTimeout(API.request_complete, API.delays.fail);
+					},
+					onerror: function (xhr) {
+						// Error
+						Debug.log("API request error; waiiting five seconds before trying again. (time=" + Debug.timer("apirequest") + ")", xhr);
+						setTimeout(API.request_complete, API.delays.fail);
+					},
+					onabort: function (xhr) {
+						// Error
+						Debug.log("API request abort; waiiting five seconds before trying again. (time=" + Debug.timer("apirequest") + ")", xhr);
+						setTimeout(API.request_complete, API.delays.fail);
 					}
 				});
 			}
@@ -1213,25 +1224,23 @@
 				method: "GET",
 				url: "http://" + site + "/g/" + id + "/" + token + "/",
 				onload: function (xhr) {
-					if (xhr.readyState === 4) {
-						if (xhr.status === 200) {
-							var html = Helper.html_parse_safe(xhr.responseText, null);
-							if (html === null) {
-								callback("Error parsing html", null);
-							}
-							else {
-								html = API.parse_full_info(html);
-								if (html === null) {
-									callback("Error parsing info", null);
-								}
-								else {
-									callback(null, html);
-								}
-							}
+					if (xhr.status === 200) {
+						var html = Helper.html_parse_safe(xhr.responseText, null);
+						if (html === null) {
+							callback("Error parsing html", null);
 						}
 						else {
-							callback("Bad status " + xhr.status, null);
+							html = API.parse_full_info(html);
+							if (html === null) {
+								callback("Error parsing info", null);
+							}
+							else {
+								callback(null, html);
+							}
 						}
+					}
+					else {
+						callback("Bad status " + xhr.status, null);
 					}
 				},
 				onerror: function () {
@@ -1678,47 +1687,70 @@
 			Debug.log('Formatting complete');
 		},
 		lookup: function (a, sha1) {
-			a.textContent = Sauce.text('Checking');
+			a.textContent = Sauce.text("Checking");
 
 			HttpRequest({
 				method: "GET",
 				url: a.href,
 				onload: function (xhr) {
-					var result = [],
-						html = Helper.html_parse_safe(xhr.responseText, null),
-						links, link, i, ii;
+					if (xhr.status === 200) {
+						var result = [],
+							html = Helper.html_parse_safe(xhr.responseText, null),
+							links, link, i, ii;
 
-					if (html !== null) {
-						links = $$('div.it5 a,div.id2 a', html);
+						if (html !== null) {
+							links = $$("div.it5 a,div.id2 a", html);
 
-						for (i = 0, ii = links.length; i < ii; ++i) {
-							link = links[i];
-							result.push([ link.href, link.textContent ]);
+							for (i = 0, ii = links.length; i < ii; ++i) {
+								link = links[i];
+								result.push([ link.href, link.textContent ]);
+							}
+
+							Hash.set("sha1", sha1, result);
+							Debug.log("Lookup successful; formatting...");
+							if (conf["Show Short Results"]) Sauce.UI.hover(sha1);
+							Sauce.format(a, result);
 						}
-
-						Hash.set("sha1", sha1, result);
-						Debug.log('Lookup successful; formatting...');
-						if (conf['Show Short Results']) Sauce.UI.hover(sha1);
-						Sauce.format(a, result);
 					}
+					else {
+						a.textContent = Sauce.text("Error: lookup/" + xhr.status);
+					}
+				},
+				onerror: function () {
+					a.textContent = Sauce.text("Error: lookup/connection");
+				},
+				onabort: function () {
+					a.textContent = Sauce.text("Error: lookup/aborted");
 				}
 			});
 		},
 		hash: function (a, md5) {
-			Debug.log('Fetching image ' + a.href);
-			a.textContent = Sauce.text('Loading');
+			Debug.log("Fetching image " + a.href);
+			a.textContent = Sauce.text("Loading");
+
 			HttpRequest({
 				method: "GET",
 				url: a.href,
 				overrideMimeType: "text/plain; charset=x-user-defined",
 				headers: { "Content-Type": "image/jpeg" },
 				onload: function (xhr) {
-					var sha1 = SHA1.hash(xhr.responseText);
-					a.textContent = Sauce.text('Hashing');
-					a.setAttribute('data-sha1', sha1);
-					Hash.set("md5", md5, sha1);
-					Debug.log('SHA-1 hash for image: ' + sha1);
-					Sauce.check(a);
+					if (xhr.status === 200) {
+						var sha1 = SHA1.hash(xhr.responseText);
+						a.textContent = Sauce.text("Hashing");
+						a.setAttribute("data-sha1", sha1);
+						Hash.set("md5", md5, sha1);
+						Debug.log("SHA-1 hash for image: " + sha1);
+						Sauce.check(a);
+					}
+					else {
+						a.textContent = Sauce.text("Error: hash/" + xhr.status);
+					}
+				},
+				onerror: function () {
+					a.textContent = Sauce.text("Error: hash/connection");
+				},
+				onabort: function () {
+					a.textContent = Sauce.text("Error: hash/aborted");
 				}
 			});
 		},
