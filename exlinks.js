@@ -350,6 +350,7 @@
 		}
 	});
 	Debug = {
+		started: false,
 		log: function () {},
 		timer: function () {},
 		timer_log: function (label, timer) {
@@ -360,9 +361,11 @@
 
 			value = (timer === undefined) ? "???ms" : (t - timer).toFixed(3) + "ms";
 
+			if (!Debug.started) return [ label, value ];
 			Debug.log(label, value);
 		},
 		init: function () {
+			Debug.started = true;
 			if (!conf['Debug Mode']) {
 				Debug.timer_log = function () {};
 				return;
@@ -1324,10 +1327,11 @@
 			return null;
 		},
 		init: function () {
-			var re_matcher = new RegExp("^" + Helper.regex_escape(Main.namespace) + "(?:gallery|md5|sha1)-"),
+			var re_matcher = new RegExp("^" + Helper.regex_escape(Main.namespace) + "(gallery|md5|sha1)-"),
 				removed = 0,
 				keys = [],
-				cache_type, key, data, i, ii;
+				populate = conf['Populate Database on Load'],
+				cache_type, key, data, m, i, ii;
 
 			if (conf['Disable Local Storage Cache']) {
 				Cache.type = window.sessionStorage;
@@ -1336,15 +1340,24 @@
 
 			for (i = 0, ii = cache_type.length; i < ii; ++i) {
 				key = cache_type.key(i);
-				if (re_matcher.test(key)) {
-					keys.push(key);
+				if ((m = re_matcher.exec(key)) !== null) {
+					keys.push(key, m[1]);
 				}
 			}
 
 			for (i = 0, ii = keys.length; i < ii; ++i) {
 				data = Cache.get_key(cache_type, keys[i]);
+				++i;
 				if (data === null) {
 					++removed;
+				}
+				else if (populate) {
+					key = keys[i];
+					if (key === "gallery") {
+						Database.set_nocache(data);
+					}
+					else { // if (key === "md5" || key === "sha1") {
+					}
 				}
 			}
 
@@ -1367,21 +1380,6 @@
 				expires: now + ttl,
 				data: data
 			}));
-		},
-		load: function () {
-			var re_matcher = new RegExp("^" + Helper.regex_escape(Main.namespace) + "gallery-"),
-				cache_type = Cache.type,
-				key, data, i, ii;
-
-			for (i = 0, ii = cache_type.length; i < ii; ++i) {
-				key = cache_type.key(i);
-				if (re_matcher.test(key)) {
-					data = Cache.get_key(cache_type, key);
-					if (data !== null) {
-						Database.set_nocache(data);
-					}
-				}
-			}
 		},
 		clear: function () {
 			var re_matcher = new RegExp("^" + Helper.regex_escape(Main.namespace) + "(?:gallery|md5|sha1)-"),
@@ -1436,11 +1434,6 @@
 		},
 		set_nocache: function (data) {
 			Database.data[data.gid] = data;
-		},
-		init: function () {
-			if (conf['Populate Database on Load'] === true) {
-				Cache.load();
-			}
 		}
 	};
 	Hash = {
@@ -4438,12 +4431,13 @@
 			Debug.timer_log("init.ready.full duration", "init");
 		},
 		init: function () {
+			var t = Debug.timer_log("init.pre duration", timing.start);
 			Config.init();
 			Debug.init();
 			Cache.init();
-			Database.init();
 			API.init();
 			UI.init();
+			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
 			$.ready(Main.ready);
 		},
