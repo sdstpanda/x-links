@@ -4412,15 +4412,12 @@
 			var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver,
 				updater, css, style;
 
-			Debug.timer.start('init');
+			Debug.timer.start("init");
 			Config.site();
 			Options.init();
 
-			css = '';
-			style = $.create('link', {
-				rel: "stylesheet",
-				type: "text/css",
-				href: css
+			style = $.create("style", {
+				textContent: "#STYLESHEET#"
 			});
 			$.add(d.head, style);
 

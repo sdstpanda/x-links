@@ -61,8 +61,6 @@ task 'build', (options) ->
 	style = fs.readFileSync STYLEFILE, 'utf8'
 	# style = minify style, { collapseWhitespace: true }
 	style = new CleanCSS({}).minify(style).styles
-	stylebuf = new Buffer style, 'utf8'
-	styleb64 = stylebuf.toString('base64')
 	input = input.replace /\#DETAILS\#/g, html.details
 	input = input.replace /\#ACTIONS\#/g, html.actions
 	input = input.replace /\#OPTIONS\#/g, html.options
@@ -70,8 +68,8 @@ task 'build', (options) ->
 	input = input.replace /\#HOMEPAGE\#/g, pkg.homepage
 	input = input.replace /\#ISSUES\#/g, pkg.bugs.url
 	input = input.replace /\#CHANGELOG\#/g, pkg.custom.changelog_url
+	input = input.replace /\"\#STYLESHEET\#\"/g, (JSON.stringify style)
 	input = input.replace "img = {}", "img = #{images}"
-	input = input.replace "css = '';", "css = 'data:text/css;base64,#{styleb64}';"
 	input = input.replace /\/\*\s*jshint.*\*\//, ''
 	if options.uglify
 		{uglify} = options
