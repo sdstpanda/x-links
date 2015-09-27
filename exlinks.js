@@ -1,10 +1,24 @@
 /* jshint eqnull:true, noarg:true, noempty:true, eqeqeq:true, bitwise:false, strict:true, undef:true, curly:false, browser:true, devel:true, newcap:false, maxerr:50 */
-(function() {
+(function () {
 	"use strict";
 
-	var fetch, domains, options, conf, tempconf, pageconf, regex, img, cat, d, t, $, $$,
+	var timing, fetch, domains, options, conf, tempconf, pageconf, regex, img, cat, d, t, $, $$,
 		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Options, Config, Main,
 		Helper, HttpRequest, Linkifier, Filter, Theme, EasyList;
+
+	timing = (function () {
+		var perf = window.performance,
+			now, fn;
+
+		if (!perf || !(now = perf.now || perf.mozNow || perf.msNow || perf.oNow || perf.webkitNow)) {
+			perf = Date;
+			now = perf.now;
+		}
+
+		fn = function () { return now.call(perf); };
+		fn.start = now.call(perf);
+		return fn;
+	})();
 
 	img = {};
 	cat = {
@@ -336,59 +350,52 @@
 		}
 	});
 	Debug = {
-		on: false,
-		timer: {},
-		value: {},
-		init: function () {
-			if (conf['Debug Mode'] === true) {
-				Debug.on = true;
-			}
-			$.extend(Debug.timer, {
-				start: function (name) {
-					if (Debug.on) {
-						Debug.timer[name] = Date.now();
-					}
-				},
-				stop: function (name) {
-					if (Debug.on) {
-						Debug.timer[name] = Date.now() - Debug.timer[name];
-						return Debug.timer[name] + 'ms';
-					}
-				}
-			});
-			$.extend(Debug.value, {
-				add: function (name, value) {
-					if (Debug.on) {
-						if (!Debug.value[name]) {
-							Debug.value[name] = 0;
-						}
-						if (value) {
-							Debug.value[name] += value;
-						}
-						else {
-							++Debug.value[name];
-						}
-					}
-				},
-				get: function (name) {
-					if (Debug.on) {
-						var ret = Debug.value[name];
-						Debug.value[name] = 0;
-						return ret || 0;
-					}
-				},
-				set: function (name, value) {
-					if (Debug.on) {
-						Debug.value[name] = value;
-					}
-				}
-			});
+		log: function () {},
+		timer: function () {},
+		timer_log: function (label, timer) {
+			var t = timing(),
+				value;
+
+			if (typeof(timer) === "string") timer = Debug.timer.timer_names[timer];
+
+			value = (timer === undefined) ? "???ms" : (t - timer).toFixed(3) + "ms";
+
+			Debug.log(label, value);
 		},
-		log: function () {
-			if (Debug.on) {
+		init: function () {
+			if (!conf['Debug Mode']) {
+				Debug.timer_log = function () {};
+				return;
+			}
+
+			// Find timing
+			var timer_names = {},
+				perf = window.performance,
+				now;
+
+			if (!perf || !(now = perf.now || perf.mozNow || perf.msNow || perf.oNow || perf.webkitNow)) {
+				perf = Date;
+				now = perf.now;
+			}
+
+			// Debug functions
+			Debug.log = function () {
 				var args = [ "ExLinks " + Main.version + ":" ].concat(Array.prototype.slice.call(arguments));
 				console.log.apply(console, args);
-			}
+			};
+			Debug.timer = function (name, dont_format) {
+				var t1 = now.call(perf),
+					t2;
+
+				t2 = timer_names[name];
+				timer_names[name] = t1;
+
+				if (dont_format) {
+					return (t2 === undefined) ? -1 : (t1 - t2);
+				}
+				return (t2 === undefined) ? "???ms" : (t1 - t2).toFixed(3) + "ms";
+			};
+			Debug.timer.timer_names = timer_names;
 		}
 	};
 	Helper = {
@@ -1110,8 +1117,8 @@
 				if (!API.working && Date.now() > API.cooldown) {
 					API.working = true;
 					API.cooldown = Date.now();
-					Debug.timer.start('apirequest');
-					Debug.log('API request', request);
+					Debug.timer("apirequest");
+					Debug.log("API request", request);
 					HttpRequest({
 						method: 'POST',
 						url: 'http://' + domains.gehentai + '/api.php',
@@ -1125,11 +1132,11 @@
 								json = Helper.json_parse_safe(xhr.responseText) || {};
 
 								if (Object.keys(json).length > 0) {
-									Debug.log('API response; time=' + Debug.timer.stop('apirequest'), json);
+									Debug.log('API response; time=' + Debug.timer("apirequest"), json);
 									API.response(type, json);
 								}
 								else {
-									Debug.log('API request error; waiiting five seconds before trying again. (time=' + Debug.timer.stop('apirequest') + ')', xhr);
+									Debug.log('API request error; waiiting five seconds before trying again. (time=' + Debug.timer("apirequest") + ')', xhr);
 									// API.cooldown = Date.now() + (5 * t.SECOND);
 									setTimeout(Main.update, 5000);
 								}
@@ -1952,7 +1959,6 @@
 
 				if (conf['Automatic Processing'] === true) {
 					Linkifier.check_link(node);
-					Debug.value.add('processed');
 				}
 			}
 		},
@@ -2076,7 +2082,7 @@
 		parse_posts: function (posts) {
 			var post, i, ii;
 
-			Debug.timer.start("process");
+			Debug.timer("process");
 
 			for (i = 0, ii = posts.length; i < ii; ++i) {
 				post = posts[i];
@@ -2084,13 +2090,7 @@
 				Linkifier.apply_link_events(post, true);
 			}
 
-			Debug.log(
-				"Total posts=" + posts.length +
-				"; linkified=" + Debug.value.get("linkified") +
-				"; processed=" + Debug.value.get("posts") +
-				"; links=" + Debug.value.get("processed") +
-				"; time=" + Debug.timer.stop("process")
-			);
+			Debug.log("Total posts=" + posts.length + "; time=" + Debug.timer("process"));
 		},
 		parse_post: function (post) {
 			var post_body, post_links, links, nodes, link, i, ii;
@@ -2111,11 +2111,7 @@
 			// Content
 			post_body = Helper.Post.get_text_body(post) || post;
 			if (regex.url.test(post_body.innerHTML)) {
-				Debug.value.add('posts');
-
 				if (!post.classList.contains("ex-post-linkified")) {
-					Debug.value.add('linkified');
-
 					links = [];
 					post_links = Helper.Post.get_body_links(post_body);
 					for (i = 0, ii = post_links.length; i < ii; ++i) {
@@ -4409,10 +4405,11 @@
 			$.add(d.head, font);
 		},
 		ready: function () {
-			var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver,
-				updater, css, style;
+			Debug.timer("init");
 
-			Debug.timer.start("init");
+			var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver,
+				updater, style;
+
 			Config.site();
 			Options.init();
 
@@ -4424,7 +4421,7 @@
 			Theme.prepare();
 			EasyList.init();
 
-			Debug.log('Initialization complete; time=' + Debug.timer.stop('init'));
+			Debug.timer_log("init.ready duration", "init");
 
 			Linkifier.parse_posts(Helper.Post.get_all_posts(d));
 			Main.update();
@@ -4436,6 +4433,8 @@
 			else {
 				$.on(d.body, "DOMNodeInserted", Main.dom);
 			}
+
+			Debug.timer_log("init.ready.full duration", "init");
 		},
 		init: function () {
 			Config.init();
@@ -4444,11 +4443,13 @@
 			Database.init();
 			API.init();
 			UI.init();
+			Debug.timer_log("init duration", timing.start);
 			$.ready(Main.ready);
 		},
 	};
 
 	Main.init();
+	Debug.timer_log("init.full duration", timing.start);
 
 })();
 
