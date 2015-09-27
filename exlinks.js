@@ -749,8 +749,8 @@
 			tagspace = $('.ex-details-tags', frag);
 			content.style.setProperty("display", "table", "important");
 			$.add(tagspace, UI.create_tags(domain, data.tags, data));
-			n = $(".ex-details", frag);
-			$.add(d.body, frag);
+			n = frag.firstChild;
+			Main.hovering(n);
 
 			// Full info
 			if (conf['Extended Info']) {
@@ -1640,7 +1640,7 @@
 					}
 				}
 				hover.style.setProperty("display", "table", "important");
-				$.add(d.body, hover);
+				Main.hovering(hover);
 
 				return hover;
 			}
@@ -4191,10 +4191,22 @@
 		}
 	};
 	Main = {
-		namespace: 'exlinks-',
-		version: '#VERSION#',
+		namespace: "exlinks-",
+		version: "#VERSION#",
 		queue: [],
 		font_inserted: false,
+		hovering: (function () {
+			var container = null;
+			return function (node) {
+				if (container === null) {
+					container = $.create("div", {
+						className: "exlinks-hovering-elements"
+					});
+					$.add(d.body, container);
+				}
+				$.add(container, node);
+			};
+		})(),
 		check: function (uid) {
 			var check = Database.check(uid),
 				links, link, type, token, page, i, ii;
