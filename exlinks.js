@@ -1369,18 +1369,17 @@
 			cache_type.removeItem(key);
 			return null;
 		},
-		get: function (uid, type) {
-			return Cache.get_key(Cache.type, Main.namespace + type + "-" + uid);
+		get: function (type, key) {
+			return Cache.get_key(Cache.type, Main.namespace + type + "-" + key);
 		},
-		set: function (data, type, hash, ttl) {
-			var key = Main.namespace + type + "-" + hash,
-				now = Date.now();
+		set: function (type, key, data, ttl) {
+			var now = Date.now();
 
 			if (ttl === 0) {
 				ttl = ((now - parseInt(data.posted, 10) < 12 * t.HOUR) ? 1 : 12) * t.HOUR; // Update more frequently for recent uploads
 			}
 
-			Cache.type.setItem(key, JSON.stringify({
+			Cache.type.setItem(Main.namespace + type + "-" + key, JSON.stringify({
 				expires: now + ttl,
 				data: data
 			}));
@@ -1424,7 +1423,7 @@
 			var data = Database.data[uid];
 			if (data) return data;
 
-			data = Cache.get(uid, "gallery");
+			data = Cache.get("gallery", uid);
 			if (data !== null) {
 				Database.data[data.gid] = data;
 				return data;
@@ -1434,7 +1433,7 @@
 		},
 		set: function (data) {
 			Database.data[data.gid] = data;
-			Cache.set(data, "gallery", data.gid, 0);
+			Cache.set("gallery", data.gid, data, 0);
 		},
 		set_nocache: function (data) {
 			Database.data[data.gid] = data;
@@ -1452,7 +1451,7 @@
 			value = hash_data[key];
 			if (value) return value;
 
-			value = Cache.get(key, type);
+			value = Cache.get(type, key);
 			if (value !== null) {
 				hash_data[key] = value;
 				return value;
@@ -1463,7 +1462,7 @@
 		set: function (type, key, value) {
 			var ttl = (type === "md5") ? 365 * t.DAY : 12 * t.HOUR;
 			Hash.data[type][key] = value;
-			Cache.set(value, type, key, ttl);
+			Cache.set(type, key, value, ttl);
 		},
 		set_nocache: function (type, key, value) {
 			Hash.data[type][key] = value;
