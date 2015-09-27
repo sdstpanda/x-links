@@ -690,7 +690,8 @@
 	};
 	Nodes = {
 		details: {},
-		sauce_hover: {}
+		sauce_hover: {},
+		options_overlay: null
 	};
 	HttpRequest = (function () {
 		try {
@@ -1616,7 +1617,7 @@
 				mousemove: function (event) {
 					if (conf['Show Short Results']) {
 						var sha1 = this.getAttribute("data-sha1"),
-							hover = Nodes.sauce_hover[sha1];;
+							hover = Nodes.sauce_hover[sha1];
 
 						if (hover === undefined || hover.style.display === "none") return;
 						hover.style.left = (event.clientX + 12) + "px";
@@ -1655,14 +1656,12 @@
 			var count = result.length,
 				results, link, n, i, ii;
 
-			a.classList.add('exlinks-exsauce-link-valid');
-			a.textContent = Sauce.text('Found: ' + count);
+			a.classList.add("exlinks-exsauce-link-valid");
+			a.textContent = Sauce.text("Found: " + count);
 
 			if (count > 0) {
-				if (conf['Inline Results'] === true) {
-					results = $.create('div', {
-						className: 'exlinks-exsauce-results'
-					});
+				if (conf["Inline Results"] === true) {
+					results = $.create("div", { className: "exlinks-exsauce-results" });
 					$.add(results, $.create("strong", { textContent: "Reverse Image Search Results" }));
 					$.add(results, $.create("span", { className: "exlinks-exsauce-results-sep", textContent: "|" }));
 					$.add(results, $.create("span", { className: "exlinks-exsauce-results-label", textContent: "View on:" }));
@@ -1671,11 +1670,13 @@
 						textContent: Sauce.label(true)
 					}));
 					$.add(results, $.create("br"));
-					results.style.setProperty("display", conf['Show Results by Default'] ? "table" : "none", "important");
+					results.style.setProperty("display", conf["Show Results by Default"] ? "table" : "none", "important");
+
 					for (i = 0, ii = result.length; i < ii; ++i) {
 						link = Linkifier.create_link(result[i][0]);
 						$.add(results, link);
-						Linkifier.preprocess_link(link);
+						Linkifier.preprocess_link(link, true);
+						Linkifier.apply_link_events(link);
 						if (i < ii - 1) $.add(results, $.create("br"));
 					}
 
@@ -1689,7 +1690,8 @@
 				}
 				Linkifier.change_link_events(a, "exsauce_toggle");
 			}
-			Debug.log('Formatting complete');
+
+			Debug.log("Formatting complete");
 		},
 		lookup: function (a, sha1) {
 			a.textContent = Sauce.text("Checking");
@@ -1931,7 +1933,7 @@
 				textContent: text
 			});
 		},
-		preprocess_link: function (node) {
+		preprocess_link: function (node, auto_load) {
 			var site = conf['Gallery Link'].value,
 				site_re = new RegExp(Helper.regex_escape(site)),
 				info, button;
@@ -1979,7 +1981,7 @@
 				button = UI.button(node.href);
 				$.before(node, button);
 
-				if (conf['Automatic Processing'] === true) {
+				if (auto_load) {
 					Linkifier.check_link(node);
 				}
 			}
@@ -2115,7 +2117,8 @@
 			Debug.log("Total posts=" + posts.length + "; time=" + Debug.timer("process"));
 		},
 		parse_post: function (post) {
-			var post_body, post_links, links, nodes, link, i, ii;
+			var auto_load_links = conf["Automatic Processing"],
+				post_body, post_links, links, nodes, link, i, ii;
 
 			// Exsauce
 			if (conf.ExSauce) {
@@ -2152,7 +2155,7 @@
 
 					Linkifier.linkify(post_body, links);
 					for (i = 0, ii = links.length; i < ii; ++i) {
-						Linkifier.preprocess_link(links[i]);
+						Linkifier.preprocess_link(links[i], auto_load_links);
 					}
 
 					post.classList.add("ex-post-linkified");
@@ -2283,14 +2286,20 @@
 		save: function (e) {
 			e.preventDefault();
 			Config.save();
-			$.remove($.id('exlinks-overlay'));
-			d.body.style.overflow = 'visible';
+			if (Nodes.options_overlay !== null) {
+				$.remove(Nodes.options_overlay);
+				Nodes.options_overlay = null;
+			}
+			d.documentElement.classList.remove("exlinks-options-overlaying");
 		},
 		close: function (e) {
 			e.preventDefault();
 			tempconf = JSON.parse(JSON.stringify(pageconf));
-			$.remove($.id('exlinks-overlay'));
-			d.body.style.overflow = 'visible';
+			if (Nodes.options_overlay !== null) {
+				$.remove(Nodes.options_overlay);
+				Nodes.options_overlay = null;
+			}
+			d.documentElement.classList.remove("exlinks-options-overlaying");
 		},
 		on_change: function () {
 			var option = this,
@@ -2327,28 +2336,41 @@
 			if (event.which && event.which !== 1) return;
 			event.preventDefault();
 
+			// Create
+			var overlay = $.frag(UI.html.options()).firstChild;
+
+			// Config
 			pageconf = JSON.parse(JSON.stringify(tempconf));
 
-			var frag = $.frag(UI.html.options()),
-				over = frag.firstChild;
+			// Set global
+			if (Nodes.options_overlay !== null) {
+				$.remove(Nodes.options_overlay);
+			}
+			Nodes.options_overlay = overlay;
 
-			Theme.apply(frag);
-			$.add(d.body, frag);
-			$.on($.id('exlinks-options-save'), 'click', Options.save);
-			$.on($.id('exlinks-options-cancel'), 'click', Options.close);
-			$.on(over, 'click', Options.close);
-			$.on($.id('exlinks-options'), 'click', function (e) { e.stopPropagation(); });
-			d.body.style.overflow = 'hidden';
+			// Theme
+			Theme.apply(overlay);
 
-			Options.gen($.id('exlinks-options-general'), options.general);
-			Options.gen($.id('exlinks-options-actions'), options.actions);
-			Options.gen($.id('exlinks-options-sauce'), options.sauce);
-			Options.gen($.id('exlinks-options-domains'), options.domains);
-			Options.gen($.id('exlinks-options-debug'), options.debug, {
+			// Options
+			Options.gen($(".exlinks-options-table-general", overlay), options.general);
+			Options.gen($(".exlinks-options-table-actions", overlay), options.actions);
+			Options.gen($(".exlinks-options-table-sauce", overlay), options.sauce);
+			Options.gen($(".exlinks-options-table-domains", overlay), options.domains);
+			Options.gen($(".exlinks-options-table-filter", overlay), options.filter);
+			Options.gen($(".exlinks-options-table-debug", overlay), options.debug, {
 				"Clear Stored Data": [ "button", false, "Clear all stored data <em>except</em> for settings", "Clear", Options.on_data_clear ],
 			});
-			Options.gen($.id('exlinks-options-filter'), options.filter);
-			$.on($("input.exlinks-options-color-input[type=color]"), 'change', Filter.settings_color_change);
+
+			// Events
+			$.on($(".exlinks-options-button-link-save", overlay), "click", Options.save);
+			$.on($(".exlinks-options-button-link-cancel", overlay), "click", Options.close);
+			$.on(overlay, "click", Options.close);
+			$.on($(".exlinks-options", overlay), "click", function (event) { event.stopPropagation(); });
+			$.on($("input.exlinks-options-color-input[type=color]", overlay), 'change', Filter.settings_color_change);
+
+			// Add to body
+			$.add(d.body, overlay);
+			d.documentElement.classList.add("exlinks-options-overlaying");
 		},
 		gen: function (target) {
 			var theme = Theme.get(),
@@ -3097,6 +3119,10 @@
 					i, ii;
 
 				for (i = 0, ii = nodes.length; i < ii; ++i) {
+					nodes[i].classList.add("extheme-dark");
+				}
+
+				if (node.classList && node.classList.contains("extheme")) {
 					nodes[i].classList.add("extheme-dark");
 				}
 			}
@@ -4310,7 +4336,7 @@
 						Linkifier.change_link_events(node, "gallery_link");
 						$.remove(node.previousSibling);
 
-						Linkifier.preprocess_link(node);
+						Linkifier.preprocess_link(node, conf["Automatic Processing"]);
 
 						node = Helper.Post.get_post_container(node);
 						if (node !== null) {
