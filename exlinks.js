@@ -3278,9 +3278,9 @@
 		queue_timer: null,
 		custom_filters: [],
 		node_sort_order_keys: {
-			thread: [ "data-index", 1 ],
-			upload: [ "data-date-uploaded", -1 ],
-			rating: [ "data-rating", -1 ]
+			thread: [ "data-ex-index", 1 ],
+			upload: [ "data-ex-date-uploaded", -1 ],
+			rating: [ "data-ex-rating", -1 ]
 		},
 		display_mode_names: [
 			"full",
@@ -3653,13 +3653,13 @@
 				hl_res, n1, n2, n3, n4, n5, n6, n7, i;
 
 			n1 = $.create("div", { className: "ex-easylist-item" + theme });
-			n1.setAttribute("data-index", index);
-			n1.setAttribute("data-gid", data.gid);
-			n1.setAttribute("data-token", data.token);
-			n1.setAttribute("data-rating", data.rating);
-			n1.setAttribute("data-date-uploaded", data.posted);
-			n1.setAttribute("data-category", data.category.toLowerCase());
-			n1.setAttribute("data-domain", domain);
+			n1.setAttribute("data-ex-index", index);
+			n1.setAttribute("data-ex-gid", data.gid);
+			n1.setAttribute("data-ex-token", data.token);
+			n1.setAttribute("data-ex-rating", data.rating);
+			n1.setAttribute("data-ex-date-uploaded", data.posted);
+			n1.setAttribute("data-ex-category", data.category.toLowerCase());
+			n1.setAttribute("data-ex-domain", domain);
 
 			$.add(n1, n2 = $.create("div", { className: "ex-easylist-item-table-container" + theme }));
 			$.add(n2, n3 = $.create("div", { className: "ex-easylist-item-table" + theme }));
@@ -3701,20 +3701,20 @@
 				className: "ex-easylist-item-title-tag-link" + theme,
 				textContent: UI.button.text(domain)
 			}));
-			n6.setAttribute("data-original", n6.textContent);
+			n6.setAttribute("data-ex-original", n6.textContent);
 
 			$.add(n5, n6 = $.link(url, {
 				className: "ex-easylist-item-title-link" + theme,
 				textContent: Helper.normalize_api_string(data.title)
 			}));
-			n6.setAttribute("data-original", n6.textContent);
+			n6.setAttribute("data-ex-original", n6.textContent);
 
 			if (data.title_jpn) {
 				$.add(n4, n5 = $.create("span", {
 					className: "ex-easylist-item-title-jp" + theme,
 					textContent: Helper.normalize_api_string(data.title_jpn)
 				}));
-				n5.setAttribute("data-original", n5.textContent);
+				n5.setAttribute("data-ex-original", n5.textContent);
 			}
 
 			$.add(n4, n5 = $.create("div", { className: "ex-easylist-item-upload-info" + theme }));
@@ -3723,7 +3723,7 @@
 				className: "ex-easylist-item-uploader" + theme,
 				textContent: data.uploader
 			}));
-			n6.setAttribute("data-original", n6.textContent);
+			n6.setAttribute("data-ex-original", n6.textContent);
 			$.add(n5, $.tnode(" on "));
 			$.add(n5, $.create("span", {
 				className: "ex-easylist-item-upload-date" + theme,
@@ -3834,7 +3834,7 @@
 						textContent: tags[i],
 						className: "ex-tag ex-tag-color-inherit ex-easylist-item-tag"
 					}));
-					n4.setAttribute("data-original", n4.textContent);
+					n4.setAttribute("data-ex-original", n4.textContent);
 
 					if (i < ii - 1) $.add(n3, $.tnode(","));
 				}
@@ -3883,8 +3883,8 @@
 					if (list[i].bad) ++bad;
 				}
 
-				node.setAttribute("data-filter-matches-" + k, list.length - bad);
-				node.setAttribute("data-filter-matches-" + k + "-bad", bad);
+				node.setAttribute("data-ex-filter-matches-" + k, list.length - bad);
+				node.setAttribute("data-ex-filter-matches-" + k + "-bad", bad);
 			}
 		},
 		get_category_ordering: function () {
@@ -3901,19 +3901,19 @@
 			return cat_order;
 		},
 		get_node_filter_group: function (node) {
-			var v1 = parseInt(node.getAttribute("data-filter-matches-title"), 10) || 0,
-				v2 = parseInt(node.getAttribute("data-filter-matches-title-bad"), 10) || 0,
-				v3 = parseInt(node.getAttribute("data-filter-matches-uploader"), 10) || 0,
-				v4 = parseInt(node.getAttribute("data-filter-matches-uploader-bad"), 10) || 0,
-				v5 = parseInt(node.getAttribute("data-filter-matches-tags"), 10) || 0,
-				v6 = parseInt(node.getAttribute("data-filter-matches-tags-bad"), 10) || 0;
+			var v1 = parseInt(node.getAttribute("data-ex-filter-matches-title"), 10) || 0,
+				v2 = parseInt(node.getAttribute("data-ex-filter-matches-title-bad"), 10) || 0,
+				v3 = parseInt(node.getAttribute("data-ex-filter-matches-uploader"), 10) || 0,
+				v4 = parseInt(node.getAttribute("data-ex-filter-matches-uploader-bad"), 10) || 0,
+				v5 = parseInt(node.getAttribute("data-ex-filter-matches-tags"), 10) || 0,
+				v6 = parseInt(node.getAttribute("data-ex-filter-matches-tags-bad"), 10) || 0;
 
 			v2 += v4 + v6;
 			if (v2 > 0) return -v2;
 			return v1 + v3 + v5;
 		},
 		get_node_category_group: function (node, ordering) {
-			var k = node.getAttribute("data-category") || "";
+			var k = node.getAttribute("data-ex-category") || "";
 			return ordering[k in ordering ? k : ""];
 		},
 		update_display_mode: function (first) {
@@ -3976,7 +3976,7 @@
 				};
 				item.order.push(
 					parseFloat(n.getAttribute(attr)) || 0,
-					parseFloat(n.getAttribute("data-index")) || 0
+					parseFloat(n.getAttribute("data-ex-index")) || 0
 				);
 				items.push(item);
 			}
@@ -4038,7 +4038,7 @@
 				for (j = 0, jj = nodes.length; j < jj; ++j) {
 					n = nodes[j];
 					if (!first) {
-						n.textContent = n.getAttribute("data-original") || "";
+						n.textContent = n.getAttribute("data-ex-original") || "";
 						n.classList.remove("ex-filter-good");
 						n.classList.remove("ex-filter-bad");
 					}
@@ -4052,7 +4052,7 @@
 
 				if (link !== null && n !== null) {
 					if (!first) {
-						n.textContent = n.getAttribute("data-original") || "";
+						n.textContent = n.getAttribute("data-ex-original") || "";
 						n.classList.remove("ex-filter-good");
 						n.classList.remove("ex-filter-bad");
 					}
@@ -4135,15 +4135,15 @@
 
 			var node = this,
 				tags_container = $(".ex-easylist-item-tags", this),
-				gid = this.getAttribute("data-gid") || "",
-				token = this.getAttribute("data-token") || "",
-				domain = this.getAttribute("data-site");
+				gid = this.getAttribute("data-ex-gid") || "",
+				token = this.getAttribute("data-ex-token") || "",
+				domain = this.getAttribute("data-ex-site");
 
 			if (!domain) domain = domains.exhentai;
 
 			API.request_full_info(gid, token, domain, function (err, data) {
 				if (err === null && tags_container !== null) {
-					var domain = node.getAttribute("data-domain") || domains.exhentai,
+					var domain = node.getAttribute("data-ex-domain") || domains.exhentai,
 						n, hl_res;
 
 					n = EasyList.create_full_tags(domain, data, Theme.get());
