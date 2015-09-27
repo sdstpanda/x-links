@@ -4,7 +4,7 @@
 
 	var timing, fetch, domains, options, conf, tempconf, pageconf, regex, img, cat, d, t, $, $$,
 		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Options, Config, Main,
-		Helper, HttpRequest, Linkifier, Filter, Theme, EasyList;
+		Helper, Nodes, HttpRequest, Linkifier, Filter, Theme, EasyList;
 
 	timing = (function () {
 		var perf = window.performance,
@@ -688,6 +688,10 @@
 			return fns;
 		})()
 	};
+	Nodes = {
+		details: {},
+		sauce_hover: {}
+	};
 	HttpRequest = (function () {
 		try {
 			if (GM_xmlhttpRequest && typeof(GM_xmlhttpRequest) === "function") {
@@ -761,6 +765,7 @@
 			$.add(tagspace, UI.create_tags(domain, data.tags, data));
 			n = frag.firstChild;
 			Main.hovering(n);
+			Nodes.details[uid] = n;
 
 			// Full info
 			if (conf['Extended Info']) {
@@ -869,8 +874,8 @@
 					details, domain;
 
 				if (uid === null) return;
-				details = $.id('exblock-details-uid-' + uid);
-				if (details === null) {
+				details = Nodes.details[uid];
+				if (details === undefined) {
 					domain = Helper.get_domain(this.href);
 					details = UI.details(uid, domain);
 				}
@@ -882,8 +887,8 @@
 					details, domain;
 
 				if (uid === null) return;
-				details = $.id('exblock-details-uid-' + uid);
-				if (details === null) {
+				details = Nodes.details[uid];
+				if (details === undefined) {
 					domain = Helper.get_domain(this.href);
 					details = UI.details(uid, domain);
 				}
@@ -895,9 +900,9 @@
 					details;
 
 				if (uid === null) return;
-				details = $.id('exblock-details-uid-' + uid);
 
-				if (details) {
+				details = Nodes.details[uid];
+				if (details !== undefined) {
 					if (details.offsetWidth + e.clientX + 20 < window.innerWidth - 8) {
 						details.style.left = (e.clientX + 12) + 'px';
 					}
@@ -1565,13 +1570,13 @@
 						hover;
 
 					if (results !== null) {
-						hover = $.id("exlinks-exsauce-hover-" + sha1);
+						hover = Nodes.sauce_hover[sha1];
 
 						if (results.style.display === "table") {
 							results.style.display = "none";
 
 							if (conf['Show Short Results']) {
-								if (hover === null) hover = Sauce.UI.hover(sha1);
+								if (hover === undefined) hover = Sauce.UI.hover(sha1);
 								hover.style.setProperty("display", "table", "important");
 								Sauce.UI.events.mousemove.call(this, event);
 							}
@@ -1579,7 +1584,7 @@
 						else {
 							results.style.display = "table";
 
-							if (hover !== null) {
+							if (hover !== undefined) {
 								hover.style.setProperty("display", "none", "important");
 							}
 						}
@@ -1592,8 +1597,8 @@
 							hover;
 
 						if (results === null || results.style.display === "none") {
-							hover = $.id("exlinks-exsauce-hover-" + sha1);
-							if (hover === null) hover = Sauce.UI.hover(sha1);
+							hover = Nodes.sauce_hover[sha1];
+							if (hover === undefined) hover = Sauce.UI.hover(sha1);
 							hover.style.setProperty("display", "table", "important");
 						}
 					}
@@ -1601,9 +1606,9 @@
 				mouseout: function () {
 					if (conf['Show Short Results']) {
 						var sha1 = this.getAttribute("data-sha1"),
-							hover = $.id("exlinks-exsauce-hover-" + sha1);
+							hover = Nodes.sauce_hover[sha1];
 
-						if (hover !== null) {
+						if (hover !== undefined) {
 							hover.style.setProperty("display", "none", "important");
 						}
 					}
@@ -1611,11 +1616,11 @@
 				mousemove: function (event) {
 					if (conf['Show Short Results']) {
 						var sha1 = this.getAttribute("data-sha1"),
-							hover = $.id("exlinks-exsauce-hover-" + sha1);
+							hover = Nodes.sauce_hover[sha1];;
 
-						if (hover === null || hover.style.display === "none") return;
-						hover.style.left = (event.clientX + 12) + 'px';
-						hover.style.top = (event.clientY + 22) + 'px';
+						if (hover === undefined || hover.style.display === "none") return;
+						hover.style.left = (event.clientX + 12) + "px";
+						hover.style.top = (event.clientY + 22) + "px";
 					}
 				}
 			},
@@ -1623,9 +1628,8 @@
 				var result = Hash.get("sha1", sha1),
 					hover, i, ii;
 
-				hover = $.create('div', {
-					className: 'exlinks-exsauce-hover post reply post_wrapper ex-fake-post',
-					id: 'exlinks-exsauce-hover-' + sha1
+				hover = $.create("div", {
+					className: "exlinks-exsauce-hover post reply post_wrapper ex-fake-post"
 				});
 				hover.setAttribute("data-sha1", sha1);
 
@@ -1642,6 +1646,7 @@
 				}
 				hover.style.setProperty("display", "table", "important");
 				Main.hovering(hover);
+				Nodes.sauce_hover[sha1] = hover;
 
 				return hover;
 			}
