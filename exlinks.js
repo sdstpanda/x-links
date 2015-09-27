@@ -1051,158 +1051,118 @@
 		}
 	};
 	API = {
-		s: {},
-		so: {},
-		g: {},
-		go: {},
-		cooldown: 0,
+		queue: {
+			gallery: [],
+			gallery_page: []
+		},
+		delays: {
+			okay: 200,
+			fail: 5000,
+			full: 200
+		},
+		limit: 25,
+		active: false,
 		working: false,
 		full_active: false,
 		full_queue: [],
 		full_version: 1,
-		queue: function (type) {
-			if (type === 's') {
-				for (var k in API.g) {
-					if (API.s[k]) {
-						delete API.s[k];
-					}
-				}
-				return Object.keys(API.s).length;
-			}
-			else if (type === 'g') {
-				return Object.keys(API.g).length;
-			}
-			return 0;
-		},
 		queue_gallery: function (gid, token) {
+			API.queue.gallery.push([ parseInt(gid, 10), token ]);
 		},
 		queue_gallery_page: function (gid, page_token, page) {
+			API.queue.gallery_page.push([ parseInt(gid, 10), page_token, parseInt(page, 10) ]);
 		},
-		request: function (type) {
-			var limit = 0,
-				request = null,
-				j, k;
+		request: function () {
+			if (API.active) return;
 
-			if (type === 's') {
+			var request = null,
+				queue, entries;
+
+			if ((queue = API.queue.gallery_page).length > 0) {
+				entries = queue.splice(0, API.limit);
 				request = {
-					"method": "gtoken",
-					"pagelist": []
+					method: "gtoken",
+					pagelist: entries
 				};
-				for (j in API.s) {
-					if (limit < 25) {
-						request.pagelist.push([
-							parseInt(j, 10),
-							API.s[j][0],
-							parseInt(API.s[j][1], 10)
-						]);
-						++limit;
-					}
-					else {
-						API.queue.add('so', j, API.s[j][0], API.s[j][1]);
-					}
-				}
 			}
-			else if (type === 'g') {
+			else if ((queue = API.queue.gallery).length > 0) {
+				entries = queue.splice(0, API.limit);
 				request = {
-					"method": "gdata",
-					"gidlist": []
+					method: "gdata",
+					gidlist: entries
 				};
-				for (k in API.g) {
-					if (limit < 25) {
-						request.gidlist.push([
-							parseInt(k, 10),
-							API.g[k]
-						]);
-						++limit;
-					}
-					else {
-						API.queue.add('go', k, API.g[k]);
-					}
-				}
 			}
 
 			if (request !== null) {
-				if (!API.working && Date.now() > API.cooldown) {
-					API.working = true;
-					API.cooldown = Date.now();
-					Debug.timer("apirequest");
-					Debug.log("API request", request);
-					HttpRequest({
-						method: 'POST',
-						url: 'http://' + domains.gehentai + '/api.php',
-						data: JSON.stringify(request),
-						headers: {
-							'Content-Type': 'application/json'
-						},
-						onload: function (xhr) {
-							var json = null;
-							if (xhr.readyState === 4 && xhr.status === 200) {
-								json = Helper.json_parse_safe(xhr.responseText) || {};
+				API.active = true;
+				Debug.timer("apirequest");
+				Debug.log("API request", request);
+				HttpRequest({
+					method: "POST",
+					url: "http://" + domains.gehentai + "/api.php",
+					data: JSON.stringify(request),
+					headers: {
+						"Content-Type": "application/json"
+					},
+					onload: function (xhr) {
+						if (xhr.readyState === 4 && xhr.status === 200) {
+							var response = Helper.json_parse_safe(xhr.responseText),
+								okay = false,
+								k;
 
-								if (Object.keys(json).length > 0) {
-									Debug.log('API response; time=' + Debug.timer("apirequest"), json);
-									API.response(type, json);
-								}
-								else {
-									Debug.log('API request error; waiiting five seconds before trying again. (time=' + Debug.timer("apirequest") + ')', xhr);
-									// API.cooldown = Date.now() + (5 * t.SECOND);
-									setTimeout(Main.update, 5000);
+							if (response !== null && typeof(response) === "object") {
+								for (k in response) {
+									okay = true;
+									break;
 								}
 							}
+
+							if (okay) {
+								Debug.log("API response; time=" + Debug.timer("apirequest"), response);
+								API.response(response, request);
+								setTimeout(API.request_complete, API.delays.okay);
+							}
+							else {
+								Debug.log("API request error; waiiting five seconds before trying again. (time=" + Debug.timer("apirequest") + ")", xhr);
+								setTimeout(API.request_complete, API.delays.fail);
+							}
 						}
-					});
-				}
+					}
+				});
 			}
 		},
-		response: function (type, json) {
-			var arr, i, ii;
-			if (type === 's') {
-				arr = json.tokenlist;
-				for (i = 0, ii = arr.length; i < ii; ++i) {
-					API.queue.add('g', arr[i].gid, arr[i].token);
+		request_complete: function () {
+			API.active = false;
+			API.request();
+		},
+		response: function (response, request) {
+			var array, data, i, ii;
+
+			if (request.method === "gtoken") {
+				array = response.tokenlist;
+				if (array) {
+					for (i = 0, ii = array.length; i < ii; ++i) {
+						data = array[i];
+						if (!("error" in data)) {
+							API.queue_gallery(data.gid, data.token);
+						}
+					}
 				}
-				API.queue.clear('s');
-				if (Object.keys(API.so).length > 0) {
-					API.s = API.so;
-					API.queue.clear('so');
-				}
-				API.working = false;
 			}
-			else if (type === 'g') {
-				arr = json.gmetadata;
-				for (i = 0, ii = arr.length; i < ii; ++i) {
-					Database.set(arr[i]);
-					Main.queue.push(arr[i].gid);
+			else { // if (request.method === "gdata") {
+				array = response.gmetadata;
+				if (array) {
+					for (i = 0, ii = array.length; i < ii; ++i) {
+						data = array[i];
+						if (!("error" in data)) {
+							Database.set(data);
+							Main.queue.push(data.gid);
+						}
+					}
 				}
-				API.queue.clear('g');
-				if (Object.keys(API.go).length > 0) {
-					API.g = API.go;
-					API.queue.clear('go');
-				}
-				API.working = false;
 			}
+
 			Main.update();
-		},
-		init: function () {
-			$.extend(API.queue, {
-				add: function (type, uid, token, page) {
-					if (type === 's') {
-						API.s[uid] = [ token, page ];
-					}
-					else if (type === 'so') {
-						API.so[uid] = [ token, page ];
-					}
-					else if (type === 'g') {
-						API.g[uid] = token;
-					}
-					else if (type === 'go') {
-						API.go[uid] = token;
-					}
-				},
-				clear: function (type) {
-					API[type] = {};
-				}
-			});
 		},
 		request_full_info: function (id, token, site, cb) {
 			if (!API.full_active) {
@@ -1438,10 +1398,6 @@
 	};
 	Database = {
 		data: {},
-		check: function (uid) {
-			var data = Database.get(uid);
-			return data ? data.token : null;
-		},
 		get: function (uid) { // , debug
 			// Use this if you want to break database gets randomly for debugging
 			// if (arguments[1] === true && Math.random() > 0.8) return false;
@@ -2213,41 +2169,42 @@
 			}
 		},
 		check_link: function (link) {
-			var type = Helper.get_type_from_node(link),
-				uid = Helper.get_id_from_node(link),
-				token = Helper.get_token_from_node(link),
-				page, page_token, check;
+			var uid = Helper.get_id_from_node(link),
+				type, page, token, data;
+
+			if (!uid) return;
+
+			type = Helper.get_type_from_node(link);
 
 			if (type === "s") {
-				page = Helper.get_page_from_node(link);
-				page_token = Helper.get_page_token_from_node(link);
-				if (page !== null) {
-					check = Database.check(uid);
-					if (check && token) {
-						type = "g";
-						token = check;
-						link.setAttribute("data-exlinks-type", type);
-						link.setAttribute("data-exlinks-token", token);
-						link.removeAttribute("data-exlinks-page");
-						link.removeAttribute("data-exlinks-page-token");
-						link.classList.add("exlinks-token");
-						link.classList.remove("exlinks-page");
-						link.classList.remove("exlinks-page-token");
-						Main.queue.push(uid);
-					}
-					else {
-						API.queue.add("s", uid, page_token, page);
-						API.queue_gallery_page(uid, page_token, page);
-					}
-				}
-			}
-			if (type === "g") {
-				if (Database.check(uid)) {
+				data = Database.get(uid);
+				if (data !== null) {
+					type = "g";
+					link.setAttribute("data-exlinks-type", type);
+					link.setAttribute("data-exlinks-token", data.token);
+					link.removeAttribute("data-exlinks-page");
+					link.removeAttribute("data-exlinks-page-token");
+					link.classList.add("exlinks-token");
+					link.classList.remove("exlinks-page");
+					link.classList.remove("exlinks-page-token");
 					Main.queue.push(uid);
 				}
 				else {
+					page = Helper.get_page_from_node(link);
+					token = Helper.get_page_token_from_node(link);
+					if (page && token) {
+						API.queue_gallery_page(uid, token, page);
+					}
+				}
+			}
+
+			if (type === "g") {
+				if (Database.get(uid) !== null) {
+					Main.queue.push(uid);
+				}
+				else {
+					token = Helper.get_token_from_node(link);
 					if (token) {
-						API.queue.add('g', uid, token);
 						API.queue_gallery(uid, token);
 					}
 				}
@@ -4260,15 +4217,7 @@
 		},
 		update: function () {
 			Main.flush_queue();
-
-			if (!API.working) {
-				if (API.queue('s')) {
-					API.request('s');
-				}
-				else if (API.queue('g')) {
-					API.request('g');
-				}
-			}
+			API.request();
 		},
 		dom: function (event) {
 			var node = event.target;
@@ -4435,7 +4384,6 @@
 			Config.init();
 			Debug.init();
 			Cache.init();
-			API.init();
 			UI.init();
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
