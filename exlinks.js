@@ -334,6 +334,18 @@
 				}
 			}
 		},
+		scroll_focus: function (element) {
+			// Focus
+			var n = $.create("textarea");
+			$.prepend(element, n);
+			n.focus();
+			n.blur();
+			$.remove(n);
+
+			// Scroll to top
+			element.scrollTop = 0;
+			element.scrollLeft = 0;
+		},
 		checked: {
 			prepend: function (parent, child) {
 				if (parent && child) return parent.insertBefore(child, parent.firstChild);
@@ -2337,7 +2349,8 @@
 			event.preventDefault();
 
 			// Create
-			var overlay = $.frag(UI.html.options()).firstChild;
+			var overlay = $.frag(UI.html.options()).firstChild,
+				scroll_node = $(".exlinks-options-content", overlay);
 
 			// Config
 			pageconf = JSON.parse(JSON.stringify(tempconf));
@@ -2371,6 +2384,11 @@
 			// Add to body
 			$.add(d.body, overlay);
 			d.documentElement.classList.add("exlinks-options-overlaying");
+
+			// Focus
+			if (scroll_node !== null) {
+				$.scroll_focus(scroll_node);
+			}
 		},
 		gen: function (target) {
 			var theme = Theme.get(),
@@ -3603,15 +3621,7 @@
 			d.documentElement.classList.add("ex-easylist-overlaying");
 
 			// Focus
-			n = $.create("textarea");
-			$.add(EasyList.overlay, n);
-			n.focus();
-			n.blur();
-			$.remove(n);
-
-			// Scroll to top
-			EasyList.overlay.scrollTop = 0;
-			EasyList.overlay.scrollLeft = 0;
+			$.scroll_focus(EasyList.overlay);
 		},
 		disable: function () {
 			if (EasyList.overlay.parentNode !== null) {
