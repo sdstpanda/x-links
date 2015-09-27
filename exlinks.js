@@ -1906,6 +1906,7 @@
 				}
 				$.off(button, "click", Linkifier.on_tag_click_to_load);
 				button.setAttribute("data-action", "toggle");
+				button.setAttribute("data-ex-link-events", "gallery_toggle");
 
 				if (conf['Gallery Actions'] === true) {
 					$.on(button, 'click', UI.toggle);
@@ -1940,19 +1941,22 @@
 			if (button !== null) {
 				$.off(button, "click", Linkifier.on_tag_click_to_load);
 				button.setAttribute("data-action", "error");
+				button.setAttribute("data-ex-link-events", "gallery_error");
 			}
 
 			link.textContent = "Incorrect Gallery Key";
-			link.setAttribute("data-ex-linkified-status", "formatted");
+			link.setAttribute("data-ex-linkified-status", "formatted_error");
 		},
 		apply_link_events: function (node, check_children) {
 			var nodes = check_children ? $$("a.ex-link-events", node) : [ node ],
-				events, value, site, info, button, i, ii;
+				events, events_name, value, site, info, button, i, ii;
 
 			events = {};
 
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				node = nodes[i];
+				events_name = node.getAttribute("data-ex-link-events");
+				
 				if (node.classList.contains('ex-site-tag')) {
 					value = node.getAttribute("data-action");
 					if (value === "toggle") {
