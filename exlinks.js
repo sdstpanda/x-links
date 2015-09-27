@@ -764,6 +764,9 @@
 				});
 			}
 
+			// Fonts
+			Main.insert_custom_fonts();
+
 			// Done
 			return n;
 		},
@@ -3811,6 +3814,8 @@
 				EasyList.current_map[gid] = info;
 				EasyList.current.push(info);
 
+				Main.insert_custom_fonts();
+
 				$.add(EasyList.items_container, n);
 			}
 		},
@@ -4189,6 +4194,7 @@
 		namespace: 'exlinks-',
 		version: '#VERSION#',
 		queue: [],
+		font_inserted: false,
 		check: function (uid) {
 			var check = Database.check(uid),
 				links, link, type, token, page, i, ii;
@@ -4380,26 +4386,30 @@
 
 			$.add(menu, link);
 		},
+		insert_custom_fonts: function () {
+			if (Main.font_inserted) return;
+			Main.font_inserted = true;
+			var font = $.create("link", {
+				rel: "stylesheet",
+				type: "text/css",
+				href: "//fonts.googleapis.com/css?family=Source+Sans+Pro:900"
+			});
+			$.add(d.head, font);
+		},
 		ready: function () {
 			var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver,
-				updater, css, font, style;
+				updater, css, style;
 
 			Debug.timer.start('init');
 			Config.site();
 			Options.init();
 
 			css = '';
-			font = $.create('link', {
-				rel: "stylesheet",
-				type: "text/css",
-				href: "//fonts.googleapis.com/css?family=Source+Sans+Pro:900"
-			});
 			style = $.create('link', {
 				rel: "stylesheet",
 				type: "text/css",
 				href: css
 			});
-			$.add(d.head, font);
 			$.add(d.head, style);
 
 			Theme.prepare();
