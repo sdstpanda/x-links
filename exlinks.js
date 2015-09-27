@@ -825,10 +825,11 @@
 			var button = $.create('a', {
 				className: 'ex-link-events ex-site-tag',
 				textContent: UI.button.text(url),
-				href: url
+				href: url,
+				target: "_blank"
 			});
 			button.setAttribute("data-action", "fetch");
-			button.setAttribute('target', '_blank');
+			button.setAttribute("data-ex-link-events", "gallery_fetch");
 			return button;
 		},
 		toggle: function (event) {
@@ -1836,6 +1837,7 @@
 							textContent: match[0]
 						});
 						tu.setAttribute("data-ex-linkified-status", "unprocessed");
+						tu.setAttribute("data-ex-link-events", "gallery_link");
 
 						if (tn.length > 0 && !ws.test(tn.nodeValue)) {
 							linknode.push(tn);
@@ -2048,37 +2050,13 @@
 			}
 		},
 		parse_posts: function (posts) {
-			var post, post_body, post_links, link, i, ii, j, jj;
+			var post, i, ii;
 
 			Debug.timer.start("process");
 
 			for (i = 0, ii = posts.length; i < ii; ++i) {
 				post = posts[i];
 				Linkifier.parse_post(post);
-
-				post_body = Helper.Post.get_text_body(post) || post;
-				if (regex.url.test(post_body.innerHTML)) {
-					Debug.value.add('posts');
-
-					if (!post.classList.contains('ex-post-linkified')) {
-						Debug.value.add('linkified');
-
-						post_links = Helper.Post.get_body_links(post_body);
-						for (j = 0, jj = post_links.length; j < jj; ++j) {
-							link = post_links[j];
-							if (regex.url.test(link.href)) {
-								link.classList.add("ex-link-events");
-								link.classList.add("ex-linkified");
-								link.classList.add("ex-linkified-gallery");
-								link.setAttribute("target", "_blank");
-								link.setAttribute("data-ex-linkified-status", "unprocessed");
-							}
-						}
-						Linkifier.linkify(post_body);
-						post.classList.add('ex-post-linkified');
-					}
-				}
-
 				Linkifier.apply_link_events(post, true);
 			}
 
@@ -2124,6 +2102,7 @@
 							link.classList.add("ex-linkified-gallery");
 							link.setAttribute("target", "_blank");
 							link.setAttribute("data-ex-linkified-status", "unprocessed");
+							link.setAttribute("data-ex-link-events", "gallery_link");
 						}
 					}
 
@@ -4357,6 +4336,7 @@
 					) {
 						node.className = "ex-link-events ex-linkified ex-linkified-gallery";
 						node.setAttribute("data-ex-linkified-status", "unprocessed");
+						node.setAttribute("data-ex-link-events", "gallery_link");
 						$.remove(node.previousSibling);
 
 						node = Helper.Post.get_post_container(node);
