@@ -1316,18 +1316,8 @@
 	};
 	Cache = {
 		type: window.localStorage,
-		get_key: function (cache_type, key) {
-			var json = Helper.json_parse_safe(cache_type.getItem(key));
-
-			if (json && typeof(json) === "object" && Date.now() < json.expires) {
-				return json.data;
-			}
-
-			cache_type.removeItem(key);
-			return null;
-		},
 		init: function () {
-			var re_matcher = new RegExp("^" + Helper.regex_escape(Main.namespace) + "(gallery|md5|sha1)-"),
+			var re_matcher = new RegExp("^" + Helper.regex_escape(Main.namespace) + "(gallery|md5|sha1)-([^-]+)"),
 				removed = 0,
 				keys = [],
 				populate = conf['Populate Database on Load'],
@@ -1341,7 +1331,7 @@
 			for (i = 0, ii = cache_type.length; i < ii; ++i) {
 				key = cache_type.key(i);
 				if ((m = re_matcher.exec(key)) !== null) {
-					keys.push(key, m[1]);
+					keys.push(key, m);
 				}
 			}
 
@@ -1352,18 +1342,32 @@
 					++removed;
 				}
 				else if (populate) {
-					key = keys[i];
-					if (key === "gallery") {
+					m = keys[i];
+					if (m[1] === "gallery") {
 						Database.set_nocache(data);
 					}
 					else { // if (key === "md5" || key === "sha1") {
+						Hash.set_nocache(m[1], m[2], data);
 					}
 				}
 			}
 
+			if (populate) {
+				Debug.log("Preloaded " + (ii / 2 - removed) + " entries from cache");
+			}
 			if (removed > 0) {
 				Debug.log("Purged " + removed + " old entries from cache");
 			}
+		},
+		get_key: function (cache_type, key) {
+			var json = Helper.json_parse_safe(cache_type.getItem(key));
+
+			if (json && typeof(json) === "object" && Date.now() < json.expires) {
+				return json.data;
+			}
+
+			cache_type.removeItem(key);
+			return null;
 		},
 		get: function (uid, type) {
 			return Cache.get_key(Cache.type, Main.namespace + type + "-" + uid);
@@ -1437,25 +1441,32 @@
 		}
 	};
 	Hash = {
-		md5: {},
-		sha1: {},
-		get: function (hash, type) {
-			var result;
-			if (Hash[type][hash]) {
-				return Hash[type][hash];
-			}
-			else {
-				result = Cache.get(hash, type);
-				if (result !== null) {
-					Hash[type][hash] = result;
-					return result;
-				}
-				return false;
-			}
+		data: {
+			md5: {},
+			sha1: {},
 		},
-		set: function (data, type, hash) {
-			var ttl = (type === 'md5') ? 365 * t.DAY : 12 * t.HOUR;
-			Cache.set(data, type, hash, ttl);
+		get: function (type, key) {
+			var hash_data = Hash.data[type],
+				value;
+
+			value = hash_data[key];
+			if (value) return value;
+
+			value = Cache.get(key, type);
+			if (value !== null) {
+				hash_data[key] = value;
+				return value;
+			}
+
+			return null;
+		},
+		set: function (type, key, value) {
+			var ttl = (type === "md5") ? 365 * t.DAY : 12 * t.HOUR;
+			Hash.data[type][key] = value;
+			Cache.set(value, type, key, ttl);
+		},
+		set_nocache: function (type, key, value) {
+			Hash.data[type][key] = value;
 		}
 	};
 	SHA1 = {
@@ -1620,7 +1631,7 @@
 				}
 			},
 			hover: function (sha1) {
-				var result = Hash.get(sha1, 'sha1'),
+				var result = Hash.get("sha1", sha1),
 					hover, i, ii;
 
 				hover = $.create('div', {
@@ -1629,7 +1640,7 @@
 				});
 				hover.setAttribute("data-sha1", sha1);
 
-				if ((ii = result.length) > 0) {
+				if (result !== null && (ii = result.length) > 0) {
 					i = 0;
 					while (true) {
 						$.add(hover, $.link(result[i][0], {
@@ -1705,7 +1716,7 @@
 							result.push([ link.href, link.textContent ]);
 						}
 
-						Hash.set(result, 'sha1', sha1);
+						Hash.set("sha1", sha1, result);
 						Debug.log('Lookup successful; formatting...');
 						if (conf['Show Short Results']) Sauce.UI.hover(sha1);
 						Sauce.format(a, result);
@@ -1725,7 +1736,7 @@
 					var sha1 = SHA1.hash(xhr.responseText);
 					a.textContent = Sauce.text('Hashing');
 					a.setAttribute('data-sha1', sha1);
-					Hash.set(sha1, 'md5', md5);
+					Hash.set("md5", md5, sha1);
 					Debug.log('SHA-1 hash for image: ' + sha1);
 					Sauce.check(a);
 				}
@@ -1738,7 +1749,7 @@
 			}
 			else {
 				md5 = a.getAttribute('data-md5');
-				sha1 = Hash.get(md5, 'md5');
+				sha1 = Hash.get("md5", md5);
 			}
 			if (sha1) {
 				Debug.log('SHA-1 hash found');
@@ -1747,8 +1758,8 @@
 				if (conf['Search Expunged'] === true) a.href += '&fs_exp=1';
 				a.target = "_blank";
 				a.rel = "noreferrer";
-				result = Hash.get(sha1, 'sha1');
-				if (result) {
+				result = Hash.get("sha1", sha1);
+				if (result !== null) {
 					Debug.log('Cached result found; formatting...');
 					Sauce.format(a, result);
 				}
