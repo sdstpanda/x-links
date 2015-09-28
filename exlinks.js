@@ -3337,7 +3337,7 @@
 				}
 
 				if (node.classList && node.classList.contains("extheme")) {
-					nodes[i].classList.add("extheme-dark");
+					node.classList.add("extheme-dark");
 				}
 			}
 		},
