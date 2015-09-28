@@ -10,17 +10,17 @@ CleanCSS = require 'clean-css'
 VERSION   = pkg.version
 HEADER    = """
 // ==UserScript==
-// @name           ExLinks
-// @namespace      hupotronic
-// @author         Hupo
+// @name           #{pkg.name}
+// @namespace      #{pkg.custom.namespace}
+// @author         #{pkg.author}
 // @version        #{VERSION}
-// @description    Makes e-hentai/exhentai links more useful.
+// @description    #{pkg.description}
 // @include        http://boards.4chan.org/*
 // @include        https://boards.4chan.org/*
 // @include        http://boards.38chan.net/*
 // @include        https://archive.moe/*
-// @updateURL      https://github.com/Hupotronic/ExLinks/raw/stable/ExLinks.user.js
-// @downloadURL    https://github.com/Hupotronic/ExLinks/raw/stable/ExLinks.user.js
+// @updateURL      #{pkg.custom.update_url}
+// @downloadURL    #{pkg.custom.download_url}
 // @grant          GM_xmlhttpRequest
 // @run-at         document-start
 // ==/UserScript==
@@ -44,6 +44,7 @@ task 'build', (options) ->
 	jsp = ugly.parser
 	pro = ugly.uglify
 	OUTPUT = options.output || OUTFILE
+	output_meta = OUTPUT.replace /\.user\./, ".meta."
 	html = {}
 	store = (path) ->
 		dest = {}
@@ -82,6 +83,8 @@ task 'build', (options) ->
 		input = pro.gen_code(ast)
 	input = HEADER+"\n"+input
 	fs.writeFileSync OUTPUT, input, 'utf8', (err) ->
+		throw err if err
+	fs.writeFileSync output_meta, HEADER, 'utf8', (err) ->
 		throw err if err
 	log 'Build successful!'
 
