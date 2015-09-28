@@ -1283,10 +1283,9 @@
 				function (err, data, last) {
 					if (err === null) {
 						Database.set(data);
-						Main.queue.push(data.gid);
 					}
 					if (last) {
-						Main.flush_queue(false);
+						Linkifier.check_incomplete();
 					}
 				}
 			);
@@ -1800,31 +1799,31 @@
 
 			if (count > 0) {
 				if (conf["Inline Results"] === true) {
-					results = $.create("div", { className: "exlinks-exsauce-results" });
-					$.add(results, $.create("strong", { textContent: "Reverse Image Search Results" }));
-					$.add(results, $.create("span", { className: "exlinks-exsauce-results-sep", textContent: "|" }));
-					$.add(results, $.create("span", { className: "exlinks-exsauce-results-label", textContent: "View on:" }));
-					$.add(results, $.link(a.href, {
-						className: "exlinks-exsauce-results-link",
-						textContent: Sauce.label(true)
-					}));
-					$.add(results, $.create("br"));
-					results.style.setProperty("display", conf["Show Results by Default"] ? "table" : "none", "important");
-
-					for (i = 0, ii = result.length; i < ii; ++i) {
-						link = Linkifier.create_link(result[i][0]);
-						$.add(results, link);
-						Linkifier.preprocess_link(link, true);
-						Linkifier.apply_link_events(link);
-						if (i < ii - 1) $.add(results, $.create("br"));
-					}
-
 					if (
 						(n = Helper.Post.get_post_container(a)) !== null &&
 						(n = Helper.Post.get_text_body(n)) !== null
 					) {
+						results = $.create("div", { className: "exlinks-exsauce-results" });
+						$.add(results, $.create("strong", { textContent: "Reverse Image Search Results" }));
+						$.add(results, $.create("span", { className: "exlinks-exsauce-results-sep", textContent: "|" }));
+						$.add(results, $.create("span", { className: "exlinks-exsauce-results-label", textContent: "View on:" }));
+						$.add(results, $.link(a.href, {
+							className: "exlinks-exsauce-results-link",
+							textContent: Sauce.label(true)
+						}));
+						$.add(results, $.create("br"));
+						results.style.setProperty("display", conf["Show Results by Default"] ? "table" : "none", "important");
+
+						for (i = 0, ii = result.length; i < ii; ++i) {
+							link = Linkifier.create_link(result[i][0]);
+							$.add(results, link);
+							Linkifier.preprocess_link(link, true);
+							Linkifier.apply_link_events(link);
+							if (i < ii - 1) $.add(results, $.create("br"));
+						}
+
 						$.before(n, results);
-						Main.flush_queue(true);
+						Linkifier.check_incomplete();
 					}
 				}
 				Linkifier.change_link_events(a, "exsauce_toggle");
@@ -2102,6 +2101,10 @@
 		}
 	};
 	Linkifier = {
+		incomplete: {
+			s: {},
+			g: {}
+		},
 		event_queue: {
 			format: []
 		},
@@ -2148,21 +2151,79 @@
 				}
 			},
 		},
+		check_incomplete: function () {
+			var list = Linkifier.incomplete.s,
+				update = false,
+				info, data, links, token, page, i, ii, k;
+
+			for (k in list) {
+				info = list[k];
+				links = info[1];
+				data = Database.get(k);
+				if (data === null) {
+					if (info[0]) {
+						// Data
+						for (i = 0, ii = links.length; i < ii; ++i) {
+							if (
+								(page = Helper.get_page_from_node(links[i])) &&
+								(token = Helper.get_page_token_from_node(links[i]))
+							) {
+								API.queue_gallery_page(k, token, page);
+								info[0] = false;
+								update = true;
+								break;
+							}
+						}
+						// Something went wrong
+						if (i === ii) {
+							delete list[k];
+						}
+					}
+				}
+				else {
+					// Format
+					Linkifier.format(links, data);
+					delete list[k];
+				}
+			}
+
+			list = Linkifier.incomplete.g;
+			for (k in list) {
+				info = list[k];
+				links = info[1];
+				data = Database.get(k);
+				if (data === null) {
+					if (info[0]) {
+						// Data
+						for (i = 0, ii = links.length; i < ii; ++i) {
+							token = Helper.get_token_from_node(links[i]);
+							if (token) {
+								API.queue_gallery(k, token);
+								info[0] = false;
+								update = true;
+								break;
+							}
+						}
+						// Something went wrong
+						if (i === ii) {
+							delete list[k];
+						}
+					}
+				}
+				else {
+					// Format
+					Linkifier.format(links, data);
+					delete list[k];
+				}
+			}
+
+			return update;
+		},
 		get_links: function (parent) {
 			return $$("a.ex-linkified-gallery[href]", parent);
 		},
 		get_links_formatted: function (parent) {
 			return $$("a.ex-linkified-gallery[data-ex-linkified-status=formatted]", parent);
-		},
-		get_links_unformatted: function (gid, parent) {
-			var selector = "a.ex-linkified-gallery.exlinks-gid";
-			if (gid !== null) {
-				selector += "[data-exlinks-gid='";
-				selector += gid;
-				selector += "']";
-			}
-			selector += "[data-ex-linkified-status=processed]";
-			return $$(selector, parent);
 		},
 		linkify: function (container, results) {
 			var ws = /^\s*$/,
@@ -2498,48 +2559,24 @@
 			var n = Helper.get_link_from_tag_button(this);
 			if (n !== null) {
 				Linkifier.check_link(n);
-				Main.flush_queue(true);
+				Linkifier.check_incomplete();
 			}
 		},
 		check_link: function (link) {
-			var uid = Helper.get_id_from_node(link),
-				type, page, token, data;
+			var uid, type, list;
 
-			if (!uid) return;
+			if (
+				(uid = Helper.get_id_from_node(link)) &&
+				(type = Helper.get_type_from_node(link)) &&
+				Object.prototype.hasOwnProperty.call(Linkifier.incomplete, type)
+			) {
+				list = Linkifier.incomplete[type];
 
-			type = Helper.get_type_from_node(link);
-
-			if (type === "s") {
-				data = Database.get(uid);
-				if (data !== null) {
-					type = "g";
-					link.setAttribute("data-exlinks-type", type);
-					link.setAttribute("data-exlinks-token", data.token);
-					link.removeAttribute("data-exlinks-page");
-					link.removeAttribute("data-exlinks-page-token");
-					link.classList.add("exlinks-token");
-					link.classList.remove("exlinks-page");
-					link.classList.remove("exlinks-page-token");
-					Main.queue.push(uid);
+				if (uid in list) {
+					list[uid][1].push(link);
 				}
 				else {
-					page = Helper.get_page_from_node(link);
-					token = Helper.get_page_token_from_node(link);
-					if (page && token) {
-						API.queue_gallery_page(uid, token, page);
-					}
-				}
-			}
-
-			if (type === "g") {
-				if (Database.get(uid) !== null) {
-					Main.queue.push(uid);
-				}
-				else {
-					token = Helper.get_token_from_node(link);
-					if (token) {
-						API.queue_gallery(uid, token);
-					}
+					list[uid] = [ true, [ link ] ];
 				}
 			}
 		},
@@ -4550,29 +4587,6 @@
 				$.add(container, node);
 			};
 		})(),
-		flush_queue: function (allow_updates) {
-			var queue = Main.queue,
-				update = false,
-				uid, data, i, ii;
-
-			for (i = 0, ii = queue.length; i < ii; ++i) {
-				uid = queue[i];
-				data = Database.get(uid);
-				if (data === null) {
-					update = true;
-				}
-				else {
-					Linkifier.format(Linkifier.get_links_unformatted(uid), data);
-				}
-			}
-
-			Linkifier.trigger("format");
-
-			Main.queue = [];
-			if (update && allow_updates) {
-				API.request();
-			}
-		},
 		dom: function (event) {
 			var node = event.target;
 			Main.observer([{
@@ -4648,7 +4662,7 @@
 
 			if (post_list.length > 0) {
 				Linkifier.parse_posts(post_list);
-				Main.flush_queue(true);
+				Linkifier.check_incomplete();
 			}
 		},
 		observe_post_change: function (node, nodelist) {
@@ -4721,7 +4735,7 @@
 			Debug.timer_log("init.ready duration", "init");
 
 			Linkifier.parse_posts(Helper.Post.get_all_posts(d));
-			Main.flush_queue(false);
+			Linkifier.check_incomplete();
 			API.request();
 
 			if (MutationObserver) {
