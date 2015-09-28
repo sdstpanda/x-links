@@ -1286,7 +1286,7 @@
 						Main.queue.push(data.gid);
 					}
 					if (last) {
-						Main.update();
+						Main.flush_queue(false);
 					}
 				}
 			);
@@ -1297,9 +1297,6 @@
 				function (err, data, last) {
 					if (err === null) {
 						API.queue_gallery(data.gid, data.token);
-					}
-					if (last) {
-						Main.update();
 					}
 				}
 			);
@@ -1827,7 +1824,7 @@
 						(n = Helper.Post.get_text_body(n)) !== null
 					) {
 						$.before(n, results);
-						Main.update();
+						Main.flush_queue(true);
 					}
 				}
 				Linkifier.change_link_events(a, "exsauce_toggle");
@@ -2501,7 +2498,7 @@
 			var n = Helper.get_link_from_tag_button(this);
 			if (n !== null) {
 				Linkifier.check_link(n);
-				Main.update();
+				Main.flush_queue(true);
 			}
 		},
 		check_link: function (link) {
@@ -4553,7 +4550,7 @@
 				$.add(container, node);
 			};
 		})(),
-		flush_queue: function () {
+		flush_queue: function (allow_updates) {
 			var queue = Main.queue,
 				update = false,
 				uid, data, i, ii;
@@ -4572,14 +4569,9 @@
 			Linkifier.trigger("format");
 
 			Main.queue = [];
-
-			if (update) {
-				Main.update();
+			if (update && allow_updates) {
+				API.request();
 			}
-		},
-		update: function () {
-			Main.flush_queue();
-			API.request();
 		},
 		dom: function (event) {
 			var node = event.target;
@@ -4656,7 +4648,7 @@
 
 			if (post_list.length > 0) {
 				Linkifier.parse_posts(post_list);
-				Main.update();
+				Main.flush_queue(true);
 			}
 		},
 		observe_post_change: function (node, nodelist) {
@@ -4729,7 +4721,8 @@
 			Debug.timer_log("init.ready duration", "init");
 
 			Linkifier.parse_posts(Helper.Post.get_all_posts(d));
-			Main.update();
+			Main.flush_queue(false);
+			API.request();
 
 			if (MutationObserver) {
 				updater = new MutationObserver(Main.observer);
