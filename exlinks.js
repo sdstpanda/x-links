@@ -533,16 +533,19 @@
 		},
 		Post: (function () {
 			var specific, fns, post_selector, post_body_selector, post_parent_find, get_file_info,
-				belongs_to, body_links, file_ext;
+				belongs_to, body_links, file_ext, file_name;
 
 			specific = function (obj) {
 				var m = Config.mode;
 				return obj[Object.prototype.hasOwnProperty.call(obj, m) ? m : ""];
 			};
 			file_ext = function (url) {
-				var i = url.indexOf("#"),
-					m = /\.[^\.]*$/.exec(i < 0 ? url : url.substr(0, i));
+				var m = /\.[^\.]*$/.exec(url);
 				return (m === null) ? "" : m[0].toLowerCase();
+			};
+			file_name = function (url) {
+				url = url.split("/");
+				return url[url.length - 1];
 			};
 
 			post_selector = {
@@ -579,7 +582,7 @@
 			get_file_info = {
 				"4chan": function (post) {
 					var n = $(".file", post),
-						ft, img, a1;
+						ft, img, a1, url, i;
 
 					if (n === null || !specific(belongs_to).call(null, n, post)) return null;
 
@@ -589,6 +592,9 @@
 
 					if (ft === null || img === null || a1 === null) return null;
 
+					url = a1.href;
+					if ((i = url.indexOf("#")) >= 0) url = url.substr(0, i);
+
 					return {
 						image: img,
 						image_link: img.parentNode,
@@ -597,14 +603,15 @@
 						options_before: null,
 						options_class: "",
 						options_sep: " ",
-						url: a1.href,
-						type: file_ext(a1.href),
+						url: url,
+						type: file_ext(url),
+						name: file_name(url),
 						md5: img.getAttribute("data-md5") || null
 					};
 				},
 				"foolz": function (post) {
 					var n = $(".thread_image_box", post),
-						ft, img, a1;
+						ft, img, a1, url;
 
 					if (n === null || !specific(belongs_to).call(null, n, post)) return null;
 
@@ -614,6 +621,9 @@
 
 					if (ft === null || img === null || a1 === null) return null;
 
+					url = a1.href;
+					if ((i = url.indexOf("#")) >= 0) url = url.substr(0, i);
+
 					return {
 						image: img,
 						image_link: img.parentNode,
@@ -622,14 +632,15 @@
 						options_before: $("a[download]", ft),
 						options_class: "btnr parent",
 						options_sep: "",
-						url: a1.href,
-						type: file_ext(a1.href),
+						url: url,
+						type: file_ext(url),
+						name: file_name(url),
 						md5: img.getAttribute("data-md5") || null
 					};
 				},
 				"38chan": function (post) {
 					var img = $("img", post),
-						ft, a1, n;
+						ft, a1, n, url;
 
 					if (img === null || !specific(belongs_to).call(null, img, post) || img.parentNode.tagName !== "A") return null;
 
@@ -641,6 +652,9 @@
 
 					if (ft === null || a1 === null) return null;
 
+					url = a1.href;
+					if ((i = url.indexOf("#")) >= 0) url = url.substr(0, i);
+
 					return {
 						image: img,
 						image_link: img.parentNode,
@@ -649,8 +663,9 @@
 						options_before: null,
 						options_class: "",
 						options_sep: " ",
-						url: a1.href,
-						type: file_ext(a1.href),
+						url: url,
+						type: file_ext(url),
+						name: file_name(url),
 						md5: null
 					};
 				}
@@ -931,7 +946,7 @@
 				y += (y >= win_height / 2) ? -(rect.height + 20) : 20;
 
 				details.style.left = x + "px";
-				details.style.top = y + "px";console.log(rect.width);
+				details.style.top = y + "px";
 			}
 		},
 		popup: function (event) {
@@ -1481,14 +1496,6 @@
 	};
 	SHA1 = {
 		// SHA-1 JS implementation originally created by Chris Verness; http://movable-type.co.uk/scripts/sha1.html
-		data: function (image) {
-			var string = '',
-				i, ii;
-			for (i = 0, ii = image.length; i < ii; ++i) {
-					string += String.fromCharCode(image[i].charCodeAt(0) & 0xff);
-			}
-			return string;
-		},
 		f: function (s, x, y, z) {
 			switch (s) {
 				case 0: return (x & y) ^ (~x & z);
@@ -1511,27 +1518,28 @@
 		},
 		hash: function (image) {
 			var H0, H1, H2, H3, H4, K, M, N, W, T,
-				a, b, c, d, e, i, j, l, s, msg;
+				a, b, c, d, e, i, j, l, s;
 
-			K = [ 0x5A827999, 0x6ED9EBA1, 0x8F1BBCDC, 0xCA62C1D6 ];
-			msg = SHA1.data(image) + String.fromCharCode(0x80);
+			K = new Uint32Array([ 0x5A827999, 0x6ED9EBA1, 0x8F1BBCDC, 0xCA62C1D6 ]);
+			image[image.length - 1] = 0x80; // this is valid because the typed array always contains 1 extra padding byte
 
-			l = msg.length / 4 + 2;
+			l = image.length / 4 + 2;
 			N = Math.ceil(l / 16);
 			M = [];
 
 			for (i = 0; i < N; ++i) {
 				M[i] = [];
 				for (j = 0; j < 16; ++j) {
-					M[i][j] = (msg.charCodeAt(i * 64 + j * 4) << 24) |
-						(msg.charCodeAt(i * 64 + j * 4 + 1) << 16) |
-						(msg.charCodeAt(i * 64 + j * 4 + 2) << 8) |
-						(msg.charCodeAt(i * 64 + j * 4 + 3));
+					M[i][j] =
+						(image[i * 64 + j * 4] << 24) |
+						(image[i * 64 + j * 4 + 1] << 16) |
+						(image[i * 64 + j * 4 + 2] << 8) |
+						(image[i * 64 + j * 4 + 3]);
 				}
 			}
 
-			M[N - 1][14] = Math.floor(((msg.length - 1) * 8) / Math.pow(2, 32));
-			M[N - 1][15] = ((msg.length - 1) * 8) & 0xffffffff;
+			M[N - 1][14] = Math.floor(((image.length - 1) * 8) / Math.pow(2, 32));
+			M[N - 1][15] = ((image.length - 1) * 8) & 0xffffffff;
 
 			H0 = 0x67452301;
 			H1 = 0xefcdab89;
@@ -1576,6 +1584,12 @@
 		}
 	};
 	Sauce = {
+		similar_uploading: false,
+		delays: {
+			similar_okay: 2500,
+			similar_error: 3000,
+			similar_retry: 5000,
+		},
 		UI: {
 			events: {
 				click: function (event) {
@@ -1733,23 +1747,12 @@
 				url: a.href,
 				onload: function (xhr) {
 					if (xhr.status === 200) {
-						var result = [],
-							html = Helper.html_parse_safe(xhr.responseText, null),
-							links, link, i, ii;
+						var results = Sauce.get_results(xhr.responseText);
 
-						if (html !== null) {
-							links = $$("div.it5 a,div.id2 a", html);
-
-							for (i = 0, ii = links.length; i < ii; ++i) {
-								link = links[i];
-								result.push([ link.href, link.textContent ]);
-							}
-
-							Hash.set("sha1", sha1, result);
-							Debug.log("Lookup successful; formatting...");
-							if (conf["Show Short Results"]) Sauce.UI.hover(sha1);
-							Sauce.format(a, result);
-						}
+						Debug.log("Lookup successful; formatting...");
+						Hash.set("sha1", sha1, results);
+						if (conf["Show Short Results"]) Sauce.UI.hover(sha1);
+						Sauce.format(a, results);
 					}
 					else {
 						a.textContent = Sauce.text("Error: lookup/" + xhr.status);
@@ -1763,71 +1766,228 @@
 				}
 			});
 		},
+		lookup_similar: function (a, image) {
+			var type = "jpeg",
+				m = /\.(png|gif)$/.exec(a.href || ""),
+				form_data = new FormData(),
+				blob, error_fn, reset_uploading;
+
+			if (m !== null) type = m[1];
+
+			blob = new Blob([ image ], { type: "image/" + type });
+
+			form_data.append("sfile", blob, a.getAttribute("data-ex-filename") || "image." + type);
+			form_data.append("fs_similar", "on");
+			if (conf["Search Expunged"]) {
+				form_data.append("fs_exp", "on");
+			}
+
+			reset_uploading = function () {
+				Sauce.similar_uploading = false;
+			};
+			error_fn = function (msg) {
+				return function () {
+					setTimeout(reset_uploading, Sauce.delays.similar_error);
+					a.textContent = Sauce.text("Error: " + msg);
+				};
+			};
+
+			a.textContent = Sauce.text("Uploading");
+
+			Sauce.similar_uploading = true;
+			HttpRequest({
+				method: "POST",
+				url: "http://" + conf["Site to Use"].value.replace(/(e.hentai)/i, "ul.$1") + "/image_lookup.php",
+				data: form_data,
+				onload: function (xhr) {
+					if (xhr.status === 200) {
+						var m = xhr.finalUrl.match(/f_shash=(([0-9a-f]{40}|corrupt)(?:;(?:[0-9a-f]{40}|monotone))*)/),
+							md5, sha1, results;
+
+						if (m && (sha1 = m[2]) !== "corrupt") {
+							results = Sauce.get_results(xhr.responseText);
+
+							a.href = xhr.finalUrl;
+
+							if (/monotone/.test(m[1]) && results.length === 0) {
+								a.textContent = Sauce.text("Error: monotone");
+								a.setAttribute("title", "Similarity scan can only be performed on color images");
+							}
+							else {
+								md5 = a.getAttribute("data-md5");
+								if (md5) {
+									Hash.set("md5", md5, sha1);
+								}
+
+								a.removeAttribute("title");
+								a.setAttribute("data-ex-similar", m[1]);
+								a.setAttribute("data-sha1", sha1);
+
+								Debug.log("Lookup successful (" + m[1] + "); formatting...");
+								Hash.set("sha1", sha1, results);
+								if (conf["Show Short Results"]) Sauce.UI.hover(sha1);
+								Sauce.format(a, results);
+							}
+
+							setTimeout(reset_uploading, Sauce.delays.similar_okay);
+						}
+						else {
+							if (/please\s+wait\s+a\s+bit\s+longer\s+between\s+each\s+file\s+search/i.test(xhr.responseText)) {
+								a.textContent = Sauce.text("Error: wait longer");
+								a.setAttribute("title", "Click again to retry");
+								$.on(a, "click", Sauce.fetch_similar);
+								setTimeout(reset_uploading, Sauce.delays.similar_retry);
+							}
+							else {
+								error_fn("unknown").call(null);
+							}
+						}
+					}
+					else {
+						error_fn("similar/" + xhr.status).call(null);
+					}
+				},
+				onerror: error_fn("similar/check/connection"),
+				onabort: error_fn("similar/check/aborted"),
+				upload: {
+					onload: function () {
+						a.textContent = Sauce.text("Checking");
+					},
+					onerror: error_fn("similar/upload/connection"),
+					onabort: error_fn("similar/upload/aborted")
+				}
+			});
+		},
+		get_results: function (response_text) {
+			var results = [],
+				html = Helper.html_parse_safe(response_text, null),
+				links, link, i, ii;
+
+			if (html !== null) {
+				links = $$("div.it5 a,div.id2 a", html);
+
+				for (i = 0, ii = links.length; i < ii; ++i) {
+					link = links[i];
+					results.push([ link.href, link.textContent ]);
+				}
+			}
+
+			return results;
+		},
+		get_image: function (url, callback) {
+			HttpRequest({
+				method: "GET",
+				url: url,
+				overrideMimeType: "text/plain; charset=x-user-defined",
+				onload: function (xhr) {
+					if (xhr.status === 200) {
+						var text = xhr.responseText,
+							ta = new Uint8Array(text.length + 1),
+							i, ii;
+
+						for (i = 0, ii = text.length; i < ii; ++i) {
+							ta[i] = text.charCodeAt(i);
+						}
+
+						callback(null, ta, ii);
+					}
+					else {
+						callback(xhr.status, null, 0);
+					}
+				},
+				onerror: function () {
+					callback("connection error", null, 0);
+				},
+				onabort: function () {
+					callback("aborted", null, 0);
+				}
+			});
+		},
 		hash: function (a, md5) {
 			Debug.log("Fetching image " + a.href);
 			a.textContent = Sauce.text("Loading");
 
-			HttpRequest({
-				method: "GET",
-				url: a.href,
-				overrideMimeType: "text/plain; charset=x-user-defined",
-				headers: { "Content-Type": "image/jpeg" },
-				onload: function (xhr) {
-					if (xhr.status === 200) {
-						var sha1 = SHA1.hash(xhr.responseText);
-						a.textContent = Sauce.text("Hashing");
-						a.setAttribute("data-sha1", sha1);
-						Hash.set("md5", md5, sha1);
-						Debug.log("SHA-1 hash for image: " + sha1);
-						Sauce.check(a);
+			Sauce.get_image(a.href, function (err, data) {
+				if (err !== null) {
+					a.textContent = Sauce.text("Error: hash/" + err);
+				}
+				else {
+					var sha1 = SHA1.hash(data);
+					a.textContent = Sauce.text("Hashing");
+					a.setAttribute("data-sha1", sha1);
+					Hash.set("md5", md5, sha1);
+					Debug.log("SHA-1 hash for image: " + sha1);
+					var res = Sauce.check(a);
+					if (res !== true && res !== null) {
+						Debug.log('No cached result found; performing a lookup...');
+						Sauce.lookup(a, res);
 					}
-					else {
-						a.textContent = Sauce.text("Error: hash/" + xhr.status);
-					}
-				},
-				onerror: function () {
-					a.textContent = Sauce.text("Error: hash/connection");
-				},
-				onabort: function () {
-					a.textContent = Sauce.text("Error: hash/aborted");
 				}
 			});
 		},
 		check: function (a) {
-			var md5, sha1, result;
-			if (a.hasAttribute('data-sha1')) {
-				sha1 = a.getAttribute('data-sha1');
+			var sha1 = a.getAttribute("data-sha1") || Hash.get("md5", a.getAttribute("data-md5") || "") || null,
+				results;
+
+			if (!sha1) return null;
+
+			Debug.log('SHA-1 hash found');
+			a.setAttribute('data-sha1', sha1);
+			a.href = 'http://' + conf['Site to Use'].value + '/?f_doujinshi=1&f_manga=1&f_artistcg=1&f_gamecg=1&f_western=1&f_non-h=1&f_imageset=1&f_cosplay=1&f_asianporn=1&f_misc=1&f_search=Search+Keywords&f_apply=Apply+Filter&f_shash=' + sha1 + '&fs_similar=0';
+			if (conf['Search Expunged'] === true) a.href += '&fs_exp=1';
+			a.target = "_blank";
+			a.rel = "noreferrer";
+
+			results = Hash.get("sha1", sha1);
+			if (results !== null) {
+				Debug.log('Cached result found; formatting...');
+				Sauce.format(a, results);
+				return true;
 			}
-			else {
-				md5 = a.getAttribute('data-md5');
-				sha1 = Hash.get("md5", md5);
-			}
-			if (sha1) {
-				Debug.log('SHA-1 hash found');
-				a.setAttribute('data-sha1', sha1);
-				a.href = 'http://' + conf['Site to Use'].value + '/?f_doujinshi=1&f_manga=1&f_artistcg=1&f_gamecg=1&f_western=1&f_non-h=1&f_imageset=1&f_cosplay=1&f_asianporn=1&f_misc=1&f_search=Search+Keywords&f_apply=Apply+Filter&f_shash=' + sha1 + '&fs_similar=0';
-				if (conf['Search Expunged'] === true) a.href += '&fs_exp=1';
-				a.target = "_blank";
-				a.rel = "noreferrer";
-				result = Hash.get("sha1", sha1);
-				if (result !== null) {
-					Debug.log('Cached result found; formatting...');
-					Sauce.format(a, result);
-				}
-				else {
-					Debug.log('No cached result found; performing a lookup...');
-					Sauce.lookup(a, sha1);
-				}
-			}
-			else {
-				Debug.log('No SHA-1 hash found; fetching image...');
-				Sauce.hash(a, md5);
-			}
+
+			return sha1;
 		},
 		fetch: function (event) {
 			event.preventDefault();
 			$.off(this, "click", Sauce.fetch);
-			Sauce.check(this);
+			var res = Sauce.check(this);
+
+			if (res !== true) {
+				if (res === null) {
+					Debug.log('No SHA-1 hash found; fetching image...');
+					res = this.getAttribute("data-md5");
+					if (res) Sauce.hash(this, res);
+				}
+				else { // res = sha1
+					Debug.log('No cached result found; performing a lookup...');
+					Sauce.lookup(this, res);
+				}
+			}
+		},
+		fetch_similar: function (event) {
+			event.preventDefault();
+
+			var res = Sauce.check(this),
+				a = this;
+
+			if (res !== true) {
+				// Can search?
+				if (Sauce.similar_uploading) return;
+				$.off(this, "click", Sauce.fetch_similar);
+
+				// Load image and upload
+				a.textContent = Sauce.text("Loading");
+
+				Sauce.get_image(this.href, function (err, image, image_size) {
+					if (err !== null) {
+						a.textContent = "Error: similar/" + err;
+					}
+					else {
+						image = image.subarray(0, image_size);
+						Sauce.lookup_similar(a, image);
+					}
+				});
+			}
 		},
 		label: function (siteonly) {
 			var label = (conf['Site to Use'].value === domains.exhentai) ? 'ExHentai' : 'E-Hentai';
@@ -1857,6 +2017,7 @@
 		},
 		link_events: {
 			exsauce_fetch: Sauce.fetch,
+			exsauce_fetch_similarity: Sauce.fetch_similar,
 			exsauce_toggle: Sauce.UI.events,
 			exsauce_error: function (event) {
 				event.preventDefault();
@@ -2206,24 +2367,31 @@
 
 			// Create if not found
 			sauce = $(".exlinks-exsauce-link", file_info.options);
-			if (sauce === null) {
+			if (sauce === null && /^\.(png|gif|jpe?g)$/i.test(file_info.type)) {
 				sauce = $.link(file_info.url, {
 					className: "ex-link-events exlinks-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
 					textContent: Sauce.label(false)
 				});
 				sauce.setAttribute("data-ex-link-events", "exsauce_fetch");
+				sauce.setAttribute("data-ex-filename", file_info.name);
 				if (conf["No Underline on Sauce"]) {
 					sauce.classList.add("exlinks-exsauce-link-no-underline");
 				}
 				sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
-				if (/^\.jpe?g$/.test(file_info.type)) {
-					sauce.classList.add("exlinks-exsauce-link-disabled");
-					sauce.setAttribute("data-ex-link-events", "exsauce_error");
-					sauce.title = (
-						"Reverse Image Search doesn't work for JPG images because 4chan manipulates them on upload. " +
-						"There is nothing ExLinks can do about this. " +
-						"All complaints can be directed at 4chan staff."
-					);
+				if (/^\.jpe?g$/i.test(file_info.type)) {
+					if (/Firefox/i.test("" + navigator.userAgent)) {
+						sauce.setAttribute("data-ex-link-events", "exsauce_fetch_similarity");
+						sauce.title = "This will only work on colored images";
+					}
+					else {
+						sauce.classList.add("exlinks-exsauce-link-disabled");
+						sauce.setAttribute("data-ex-link-events", "exsauce_error");
+						sauce.title = (
+							"Reverse Image Search doesn't work for JPG images because 4chan manipulates them on upload. " +
+							"There is nothing ExLinks can do about this. " +
+							"All complaints can be directed at 4chan staff."
+						);
+					}
 				}
 				if (file_info.options_sep) {
 					$.before2(file_info.options, $.tnode(file_info.options_sep), file_info.options_before);
@@ -4077,7 +4245,6 @@
 						n.classList.remove("ex-filter-good");
 						n.classList.remove("ex-filter-bad");
 					}
-					console.log("highlight node " + mode);
 					Filter.highlight(mode, n, data, results, EasyList.custom_filters);
 				}
 			}
