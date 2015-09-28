@@ -239,10 +239,13 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 
 .exlinks-exsauce-hover {
 	opacity: 0.93;
+	display: block !important;
+	font-size: inherit !important;
 	position: fixed !important;
 	z-index: 993 !important;
-	padding: 8px !important;
-	border-radius: 4px !important;
+	padding: 0.5em !important;
+	margin: 0 !important;
+	border-radius: 0.25em !important;
 	width: auto !important;
 }
 
@@ -289,14 +292,19 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 
 /* Details */
 .ex-details {
-	font-size: 13px !important;
 	opacity: 0.93;
+	display: block !important;
+	font-size: inherit !important;
 	position: fixed !important;
 	z-index: 994 !important;
-	padding: 8px !important;
-	border-radius: 8px !important;
+	padding: 0.5em !important;
+	margin: 0 !important;
+	border-radius: 0.5em !important;
 	text-align: center !important;
 	width: 60% !important;
+	min-width: 600px !important;
+	box-sizing: border-box !important;
+	-moz-box-sizing: border-box !important;
 }
 
 .ex-details-thumbnail {

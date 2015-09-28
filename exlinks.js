@@ -893,7 +893,7 @@
 					details = UI.details(uid, domain);
 				}
 
-				details.style.display = "table";
+				details.style.display = "";
 			},
 			mouseout: function () {
 				var uid = Helper.get_id_from_node(this),
@@ -906,30 +906,33 @@
 					details = UI.details(uid, domain);
 				}
 
-				details.style.display = "none";
+				details.style.setProperty("display", "none", "important");
 			},
-			mousemove: function (e) {
-				var uid = Helper.get_id_from_node(this),
-					details;
+			mousemove: function (event) {
+				var uid, details;
 
-				if (uid === null) return;
-
-				details = Nodes.details[uid];
-				if (details !== undefined) {
-					if (details.offsetWidth + e.clientX + 20 < window.innerWidth - 8) {
-						details.style.left = (e.clientX + 12) + 'px';
-					}
-					else {
-						details.style.left = (window.innerWidth - details.offsetWidth - 16) + 'px';
-					}
-					if (details.offsetHeight + e.clientY + 22 > window.innerHeight) {
-						details.style.top = (e.clientY - details.offsetHeight - 8) + 'px';
-					}
-					else {
-						details.style.top = (e.clientY + 22) + 'px';
-					}
+				if (
+					(uid = Helper.get_id_from_node(this)) === null ||
+					(details = Nodes.details[uid]) === undefined
+				) {
+					return;
 				}
-			},
+
+				var w = window,
+					de = d.documentElement,
+					x = event.clientX,
+					y = event.clientY,
+					win_width = (de.clientWidth || w.innerWidth || 0),
+					win_height = (de.clientHeight || w.innerHeight || 0),
+					rect = details.getBoundingClientRect();
+
+				x -= rect.width / 2;
+				x = Math.max(1, Math.min(win_width - rect.width - 1, x));
+				y += (y >= win_height / 2) ? -(rect.height + 20) : 20;
+
+				details.style.left = x + "px";
+				details.style.top = y + "px";console.log(rect.width);
+			}
 		},
 		popup: function (event) {
 			event.preventDefault();
@@ -1590,7 +1593,7 @@
 
 							if (conf['Show Short Results']) {
 								if (hover === undefined) hover = Sauce.UI.hover(sha1);
-								hover.style.setProperty("display", "table", "important");
+								hover.style.display = "";
 								Sauce.UI.events.mousemove.call(this, event);
 							}
 						}
@@ -1612,7 +1615,7 @@
 						if (results === null || results.style.display === "none") {
 							hover = Nodes.sauce_hover[sha1];
 							if (hover === undefined) hover = Sauce.UI.hover(sha1);
-							hover.style.setProperty("display", "table", "important");
+							hover.style.display = "";
 						}
 					}
 				},
@@ -1628,12 +1631,30 @@
 				},
 				mousemove: function (event) {
 					if (conf['Show Short Results']) {
-						var sha1 = this.getAttribute("data-sha1"),
-							hover = Nodes.sauce_hover[sha1];
+						var hover = Nodes.sauce_hover[this.getAttribute("data-sha1")];
 
 						if (hover === undefined || hover.style.display === "none") return;
-						hover.style.left = (event.clientX + 12) + "px";
-						hover.style.top = (event.clientY + 22) + "px";
+
+						hover.style.left = "0px";
+						hover.style.top = "0px";
+
+						var w = window,
+							de = d.documentElement,
+							x = event.clientX,
+							y = event.clientY,
+							win_width = (de.clientWidth || w.innerWidth || 0),
+							win_height = (de.clientHeight || w.innerHeight || 0),
+							rect = hover.getBoundingClientRect();
+
+						x -= rect.width / 2;
+						x = Math.max(1, Math.min(win_width - rect.width - 1, x));
+						y += 20;
+						if (y + rect.height >= win_height) {
+							y = event.clientY - (rect.height + 20);
+						}
+
+						hover.style.left = x + "px";
+						hover.style.top = y + "px";
 					}
 				}
 			},
@@ -1657,7 +1678,6 @@
 						$.add(hover, $.create("br"));
 					}
 				}
-				hover.style.setProperty("display", "table", "important");
 				Main.hovering(hover);
 				Nodes.sauce_hover[sha1] = hover;
 
