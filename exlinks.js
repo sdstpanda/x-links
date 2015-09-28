@@ -611,7 +611,7 @@
 				},
 				"foolz": function (post) {
 					var n = $(".thread_image_box", post),
-						ft, img, a1, url;
+						ft, img, a1, url, i;
 
 					if (n === null || !specific(belongs_to).call(null, n, post)) return null;
 
@@ -640,7 +640,7 @@
 				},
 				"38chan": function (post) {
 					var img = $("img", post),
-						ft, a1, n, url;
+						ft, a1, n, url, i;
 
 					if (img === null || !specific(belongs_to).call(null, img, post) || img.parentNode.tagName !== "A") return null;
 
@@ -1090,129 +1090,222 @@
 		}
 	};
 	API = {
-		queue: {
-			gallery: [],
-			gallery_page: []
-		},
-		delays: {
-			okay: 200,
-			fail: 5000,
-			full: 200
-		},
-		limit: 25,
-		active: false,
-		working: false,
+		Request: (function () {
+			var Queue, error_fn, queue_add, queue_get, trigger, perform_request, call_callbacks;
+
+			Queue = {
+				gallery: {
+					data: [],
+					callbacks: [],
+					limit: 25,
+					active: false,
+					delays: { okay: 200, fail: 5000 },
+					setup: function (entries) {
+						return {
+							method: "POST",
+							url: "http://" + domains.gehentai + "/api.php",
+							headers: { "Content-Type": "application/json" },
+							data: JSON.stringify({
+								method: "gdata",
+								gidlist: entries
+							})
+						};
+					},
+					response: function (text) {
+						var response = Helper.json_parse_safe(text);
+						return (response !== null && typeof(response) === "object") ? (response.gmetadata || null) : null;
+					}
+				},
+				gallery_page: {
+					data: [],
+					callbacks: [],
+					limit: 25,
+					active: false,
+					delays: { okay: 200, fail: 5000 },
+					setup: function (entries) {
+						return {
+							method: "POST",
+							url: "http://" + domains.gehentai + "/api.php",
+							headers: { "Content-Type": "application/json" },
+							data: JSON.stringify({
+								method: "gtoken",
+								pagelist: entries
+							})
+						};
+					},
+					response: function (text) {
+						var response = Helper.json_parse_safe(text);
+						return (response !== null && typeof(response) === "object") ? (response.tokenlist || null) : null;
+					}
+				}
+			};
+
+			error_fn = function (q, names, callbacks, msg) {
+				return function (xhr) {
+					Debug.log("API.request[" + names.join(",") + "] error: " + msg + "; time=" + Debug.timer("apirequest_" + names.join("_")), xhr);
+
+					var i = 0,
+						ii = callbacks.length - 1;
+
+					for (; i < ii; ++i) {
+						callbacks[i].call(null, msg, null, false);
+					}
+					callbacks[i].call(null, msg, null, true);
+
+					setTimeout(function () {
+						q.active = false;
+						trigger.call(null, names);
+					}, q.delays.fail);
+				};
+			};
+
+			queue_add = function (name, data, callback) {
+				var q = Queue[name];
+				q.data.push(data);
+				q.callbacks.push(callback);
+			};
+			queue_get = function (names) {
+				var entries, callbacks, q, d, i, ii;
+
+				for (i = 0, ii = names.length; i < ii; ++i) {
+					q = Queue[names[i]];
+					if (q.active) return null;
+					d = q.data;
+					if (d.length > 0) {
+						while (++i < ii) {
+							if (Queue[names[i]].active) return null;
+						}
+
+						entries = d.splice(0, q.limit);
+						callbacks = q.callbacks.splice(0, entries.length);
+						return [ q, names, callbacks, q.setup.call(null, entries) ];
+					}
+				}
+
+				return null;
+			};
+
+			trigger = function (names) {
+				var q_data = queue_get.call(null, names);
+				if (q_data !== null) {
+					perform_request.apply(null, q_data);
+					return true;
+				}
+				return false;
+			};
+
+			perform_request = function (q, names, callbacks, xhr_data) {
+				q.active = true;
+
+				var timer_name = "apirequest_" + names.join("_");
+
+				xhr_data.onerror = error_fn(q, names, callbacks, "Connection error");
+				xhr_data.onabort = error_fn(q, names, callbacks, "Connection aborted");
+				xhr_data.onload = function (xhr) {
+					Debug.log("API.Request[" + names.join(",") + "].response; time=" + Debug.timer(timer_name));
+
+					var err, response;
+					if (xhr.status === 200) {
+						response = q.response(xhr.responseText);
+						if (response !== null) {
+							call_callbacks.call(null, q, names, callbacks, response);
+							return;
+						}
+
+						err = "Invalid response";
+					}
+					else {
+						err = "Invalid status: " + xhr.status;
+					}
+
+					// Error
+					error_fn(q, names, callbacks, err).call(null, q, names, callbacks, xhr);
+				};
+
+
+				Debug.timer(timer_name);
+				Debug.log("API.Request[" + names.join(",") + "]", xhr_data);
+				HttpRequest(xhr_data);
+			};
+
+			call_callbacks = function (q, names, callbacks, response) {
+				var i = 0,
+					ii = callbacks.length,
+					data, err;
+
+				if (response.length >= ii) {
+					--ii;
+					for (; i < ii; ++i) {
+						data = response[i];
+						callbacks[i].call(null, data.error || null, data, false);
+					}
+					data = response[i];
+					callbacks[i].call(null, data.error || null, data, true);
+				}
+				else {
+					ii = response.length || 0;
+					for (; i < ii; ++i) {
+						data = response[i];
+						callbacks[i].call(null, data.error || null, data, false);
+					}
+					err = "Data not found";
+					ii = callbacks.length - 1;
+					for (; i < ii; ++i) {
+						callbacks[i].call(null, err, null, false);
+					}
+					callbacks[i].call(null, err, null, true);
+				}
+
+				setTimeout(function () {
+					q.active = false;
+					trigger.call(null, names);
+				}, q.delays.okay);
+			};
+
+			return {
+				queue: queue_add,
+				get: function (name, data, callback) {
+					var q = Queue[name];
+					if (q.active) return false;
+
+					perform_request.call(null, q, [ name ], [ callback ], q.setup.call(null, [ data ]));
+					return true;
+				},
+				trigger: trigger
+			};
+		})(),
 		full_active: false,
 		full_queue: [],
 		full_version: 1,
 		queue_gallery: function (gid, token) {
-			API.queue.gallery.push([ parseInt(gid, 10), token ]);
+			API.Request.queue("gallery",
+				[ parseInt(gid, 10), token ],
+				function (err, data, last) {
+					if (err === null) {
+						Database.set(data);
+						Main.queue.push(data.gid);
+					}
+					if (last) {
+						Main.update();
+					}
+				}
+			);
 		},
 		queue_gallery_page: function (gid, page_token, page) {
-			API.queue.gallery_page.push([ parseInt(gid, 10), page_token, parseInt(page, 10) ]);
+			API.Request.queue("gallery_page",
+				[ parseInt(gid, 10), page_token, parseInt(page, 10) ],
+				function (err, data, last) {
+					if (err === null) {
+						API.queue_gallery(data.gid, data.token);
+					}
+					if (last) {
+						Main.update();
+					}
+				}
+			);
 		},
 		request: function () {
-			if (API.active) return;
-
-			var request = null,
-				queue, entries;
-
-			if ((queue = API.queue.gallery_page).length > 0) {
-				entries = queue.splice(0, API.limit);
-				request = {
-					method: "gtoken",
-					pagelist: entries
-				};
-			}
-			else if ((queue = API.queue.gallery).length > 0) {
-				entries = queue.splice(0, API.limit);
-				request = {
-					method: "gdata",
-					gidlist: entries
-				};
-			}
-
-			if (request !== null) {
-				API.active = true;
-				Debug.timer("apirequest");
-				Debug.log("API request", request);
-				HttpRequest({
-					method: "POST",
-					url: "http://" + domains.gehentai + "/api.php",
-					data: JSON.stringify(request),
-					headers: {
-						"Content-Type": "application/json"
-					},
-					onload: function (xhr) {
-						if (xhr.status === 200) {
-							var response = Helper.json_parse_safe(xhr.responseText),
-								okay = false,
-								k;
-
-							if (response !== null && typeof(response) === "object") {
-								for (k in response) {
-									okay = true;
-									break;
-								}
-							}
-
-							if (okay) {
-								Debug.log("API response; time=" + Debug.timer("apirequest"), response);
-								API.response(response, request);
-								setTimeout(API.request_complete, API.delays.okay);
-								return;
-							}
-						}
-
-						// Error
-						Debug.log("API request error; waiiting five seconds before trying again. (time=" + Debug.timer("apirequest") + ")", xhr);
-						setTimeout(API.request_complete, API.delays.fail);
-					},
-					onerror: function (xhr) {
-						// Error
-						Debug.log("API request error; waiiting five seconds before trying again. (time=" + Debug.timer("apirequest") + ")", xhr);
-						setTimeout(API.request_complete, API.delays.fail);
-					},
-					onabort: function (xhr) {
-						// Error
-						Debug.log("API request abort; waiiting five seconds before trying again. (time=" + Debug.timer("apirequest") + ")", xhr);
-						setTimeout(API.request_complete, API.delays.fail);
-					}
-				});
-			}
-		},
-		request_complete: function () {
-			API.active = false;
-			API.request();
-		},
-		response: function (response, request) {
-			var array, data, i, ii;
-
-			if (request.method === "gtoken") {
-				array = response.tokenlist;
-				if (array) {
-					for (i = 0, ii = array.length; i < ii; ++i) {
-						data = array[i];
-						if (!("error" in data)) {
-							API.queue_gallery(data.gid, data.token);
-						}
-					}
-				}
-			}
-			else { // if (request.method === "gdata") {
-				array = response.gmetadata;
-				if (array) {
-					for (i = 0, ii = array.length; i < ii; ++i) {
-						data = array[i];
-						if (!("error" in data)) {
-							Database.set(data);
-							Main.queue.push(data.gid);
-						}
-					}
-				}
-			}
-
-			Main.update();
+			API.Request.trigger([ "gallery_page", "gallery" ]);
 		},
 		request_full_info: function (id, token, site, cb) {
 			if (!API.full_active) {
