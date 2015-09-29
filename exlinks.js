@@ -1813,7 +1813,9 @@
 						}
 
 						$.before(n, results);
-						Linkifier.check_incomplete();
+						if (Linkifier.check_incomplete()) {
+							API.request();
+						}
 					}
 				}
 				Linkifier.change_link_events(a, "exsauce_toggle");
