@@ -797,7 +797,7 @@
 
 			// Full info
 			if (conf['Extended Info']) {
-				API.request_full_info(data.gid, data.token, domain, function (err) {
+				API.get_full_gallery_info(data.gid, data.token, domain, function (err) {
 					if (err === null) {
 						UI.display_full(data);
 					}
@@ -1090,6 +1090,7 @@
 		}
 	};
 	API = {
+		full_version: 1,
 		Request: (function () {
 			var Queue, error_fn, queue_add, queue_get, trigger, perform_request, call_callbacks;
 
@@ -1136,6 +1137,27 @@
 					response: function (text) {
 						var response = Helper.json_parse_safe(text);
 						return (response !== null && typeof(response) === "object") ? (response.tokenlist || null) : null;
+					}
+				},
+				gallery_full: {
+					data: [],
+					callbacks: [],
+					limit: 1,
+					active: false,
+					delays: { okay: 200, fail: 5000 },
+					setup: function (entries) {
+						var e = entries[0];
+						return {
+							method: "GET",
+							url: "http://" + e[0] + "/g/" + e[1] + "/" + e[2] + "/",
+						};
+					},
+					response: function (text) {
+						var html = Helper.html_parse_safe(text, null);
+						if (html !== null) {
+							return [ API.parse_full_info(html) ];
+						}
+						return null;
 					}
 				}
 			};
@@ -1266,7 +1288,11 @@
 				queue: queue_add,
 				get: function (name, data, callback) {
 					var q = Queue[name];
-					if (q.active) return false;
+					if (q.active) {
+						q.data.push(data);
+						q.callbacks.push(callback);
+						return false;
+					}
 
 					perform_request.call(null, q, [ name ], [ callback ], q.setup.call(null, [ data ]));
 					return true;
@@ -1274,9 +1300,6 @@
 				trigger: trigger
 			};
 		})(),
-		full_active: false,
-		full_queue: [],
-		full_version: 1,
 		queue_gallery: function (gid, token) {
 			API.Request.queue("gallery",
 				[ parseInt(gid, 10), token ],
@@ -1293,7 +1316,7 @@
 		queue_gallery_page: function (gid, page_token, page) {
 			API.Request.queue("gallery_page",
 				[ parseInt(gid, 10), page_token, parseInt(page, 10) ],
-				function (err, data, last) {
+				function (err, data) {
 					if (err === null) {
 						API.queue_gallery(data.gid, data.token);
 					}
@@ -1303,95 +1326,26 @@
 		request: function () {
 			API.Request.trigger([ "gallery_page", "gallery" ]);
 		},
-		request_full_info: function (id, token, site, cb) {
-			if (!API.full_active) {
-				API.execute_full_request(id, token, site, cb);
-			}
-			else {
-				API.full_queue.push([ id, token, site, cb ]);
-			}
-		},
-		on_request_full_next: function () {
-			API.full_active = false;
-			if (API.full_queue.length > 0) {
-				var d = API.full_queue.shift();
-				API.execute_full_request(d[0], d[1], d[2], d[3]);
-			}
-		},
-		execute_full_request: function (id, token, site, cb) {
-			API.full_active = true;
-
-			var data = Database.get(id);
-			if (data !== null && API.data_has_full(data)) {
-				cb(null, data);
-				API.on_request_full_next();
-				return;
-			}
-
-			var callback = function (err, full_data) {
-				setTimeout(API.on_request_full_next, 200);
-
-				if (err === null) {
-					var data = Database.get(id);
-					if (data !== null) {
-						data.full = full_data;
-						Database.set(data);
-						cb(err, data);
-						API.complete_full_requests(id, data);
-					}
-					else {
-						cb("Could not update data", null);
-					}
-				}
-				else {
-					cb(err, null);
-				}
-			};
-
-			HttpRequest({
-				method: "GET",
-				url: "http://" + site + "/g/" + id + "/" + token + "/",
-				onload: function (xhr) {
-					if (xhr.status === 200) {
-						var html = Helper.html_parse_safe(xhr.responseText, null);
-						if (html === null) {
-							callback("Error parsing html", null);
+		get_full_gallery_info: function (id, token, site, cb) {
+			API.Request.get("gallery_full",
+				[ site, id, token ],
+				function (err, full_data) {
+					if (err === null) {
+						var data = Database.get(id);
+						if (data !== null) {
+							data.full = full_data;
+							Database.set(data);
+							cb(null, data);
 						}
 						else {
-							html = API.parse_full_info(html);
-							if (html === null) {
-								callback("Error parsing info", null);
-							}
-							else {
-								callback(null, html);
-							}
+							cb("Could not update data", null);
 						}
 					}
 					else {
-						callback("Bad status " + xhr.status, null);
+						cb(err, null);
 					}
-				},
-				onerror: function () {
-					callback("Connection error", null);
-				},
-				onabort: function () {
-					callback("Connection aborted", null);
 				}
-			});
-		},
-		complete_full_requests: function (id, data) {
-			var queue = API.full_queue,
-				cb, i, ii;
-
-			for (i = 0, ii = queue.length; i < ii; ) {
-				if (queue[i][0] === id) {
-					cb = queue.splice(i, 1)[3];
-					cb(null, data);
-					--ii;
-					continue;
-				}
-				++i;
-			}
+			);
 		},
 		parse_full_info: function (html) {
 			var data = {
@@ -4474,7 +4428,7 @@
 
 			if (!domain) domain = domains.exhentai;
 
-			API.request_full_info(gid, token, domain, function (err, data) {
+			API.get_full_gallery_info(gid, token, domain, function (err, data) {
 				if (err === null && tags_container !== null) {
 					var domain = node.getAttribute("data-ex-domain") || domains.exhentai,
 						n, hl_res;
