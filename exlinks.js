@@ -465,6 +465,14 @@
 		get_type_from_node: function (node) {
 			return node.getAttribute("data-exlinks-type") || "";
 		},
+		get_info_from_node: function (node) {
+			var attr = node.getAttribute("data-ex-info");
+			try {
+				return JSON.parse(attr);
+			}
+			catch (e) {}
+			return null;
+		},
 		get_tag_button_from_link: function (node) {
 			// Assume the button is the previous (or previous-previous) sibling
 			if (
@@ -517,11 +525,10 @@
 		},
 		get_url_info: function (url) {
 			var match = /^(https?):\/*((?:[\w-]+\.)*)([\w-]+\.[\w]+)((?:[\/\?\#][\w\W]*)?)/.exec(url),
-				domain_full, domain, remaining, m;
+				domain, remaining, m;
 
 			if (match === null) return null;
 
-			domain_full = match[2].toLowerCase();
 			domain = match[3].toLowerCase();
 			remaining = match[4];
 
@@ -529,10 +536,10 @@
 				m = /^\/g\/(\d+)\/([0-9a-f]+)/.exec(remaining);
 				if (m !== null) {
 					return {
+						site: "ehentai",
 						type: "g",
 						gid: parseInt(m[1], 10),
 						token: m[2],
-						domain_full: domain_full,
 						domain: domain
 					};
 				}
@@ -540,11 +547,11 @@
 				m = /^\/s\/([0-9a-f]+)\/(\d+)\-(\d+)/.exec(remaining);
 				if (m !== null) {
 					return {
+						site: "ehentai",
 						type: "s",
 						gid: parseInt(m[2], 10),
 						page: parseInt(m[3], 10),
 						page_token: m[1],
-						domain_full: domain_full,
 						domain: domain
 					};
 				}
@@ -553,9 +560,9 @@
 				m = /^\/g\/(\d+)/.exec(remaining);
 				if (m !== null) {
 					return {
-						type: "nhentai",
+						site: "ehentai",
+						type: "gallery",
 						gid: parseInt(m[1], 10),
-						domain_full: domain_full,
 						domain: domain
 					};
 				}
@@ -564,9 +571,9 @@
 				m = /^\/(?:galleries|reader|smalltn)\/(\d+)/.exec(remaining);
 				if (m !== null) {
 					return {
-						type: "hitomi",
+						site: "hitomi",
+						type: "gallery",
 						gid: parseInt(m[1], 10),
-						domain_full: domain_full,
 						domain: domain
 					};
 				}
@@ -1076,8 +1083,8 @@
 				nodes, namespace, namespace_style, tags, tag, link, site, i, j, n, t, ii;
 
 			nodes = $$(
-				".ex-actions-tags.exlinks-gid[data-exlinks-gid='" + data.gid + "']," +
-				".ex-details-tags.exlinks-gid[data-exlinks-gid='" + data.gid + "']"
+				".ex-actions-tags[data-ex-id='ehentai_" + data.gid + "']," +
+				".ex-details-tags[data-ex-id='ehentai_" + data.gid + "']"
 			);
 
 			if (nodes.length === 0 || Object.keys(data.full.tags).length === 0) return;
@@ -2334,22 +2341,19 @@
 				node.setAttribute("data-ex-link-events", "gallery_link");
 
 				if (info.type === "s") {
+					node.setAttribute("data-ex-info", JSON.stringify(info));
+					node.setAttribute("data-ex-id", info.site + "_" + info.gid);
 					node.setAttribute("data-exlinks-type", info.type);
 					node.setAttribute("data-exlinks-gid", info.gid);
 					node.setAttribute("data-exlinks-page", info.page);
 					node.setAttribute("data-exlinks-page-token", info.page_token);
-					node.classList.add("exlinks-type");
-					node.classList.add("exlinks-gid");
-					node.classList.add("exlinks-page");
-					node.classList.add("exlinks-page-token");
 				}
 				else if (info.type === "g") {
+					node.setAttribute("data-ex-info", JSON.stringify(info));
+					node.setAttribute("data-ex-id", info.site + "_" + info.gid);
 					node.setAttribute("data-exlinks-type", info.type);
 					node.setAttribute("data-exlinks-gid", info.gid);
 					node.setAttribute("data-exlinks-token", info.token);
-					node.classList.add("exlinks-type");
-					node.classList.add("exlinks-gid");
-					node.classList.add("exlinks-token");
 				}
 
 				node.setAttribute("data-ex-linkified-status", "processed");
@@ -4977,7 +4981,9 @@
 
 			if (post_list.length > 0) {
 				Linkifier.parse_posts(post_list);
-				Linkifier.check_incomplete();
+				if (Linkifier.check_incomplete()) {
+					API.request();
+				}
 			}
 		},
 		observe_post_change: function (node, nodelist) {
