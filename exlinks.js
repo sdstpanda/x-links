@@ -2134,8 +2134,20 @@
 	};
 	Linkifier = {
 		incomplete: {
-			s: {},
-			g: {}
+			types: [ "ehentai" ],
+			ehentai: {
+				types: [ "s", "g" ],
+				unchecked: { s: {}, g: {} },
+				checked: { s: {}, g: {} },
+				missing: {
+					s: function (id, info) {
+						API.queue_gallery_page(id, info.page_token, info.page);
+					},
+					g: function (id, info) {
+						API.queue_gallery(id, info.token);
+					}
+				}
+			}
 		},
 		event_queue: {
 			format: []
@@ -2184,70 +2196,47 @@
 			},
 		},
 		check_incomplete: function () {
-			var list = Linkifier.incomplete.s,
-				update = false,
-				entry, info, data, links, i, ii, k;
+			var incomplete = Linkifier.incomplete,
+				api_request = false,
+				obj, list1, list2, entry, data, t1, t2, fn_missing, i, ii, j, jj, k, m, n;
 
-			for (k in list) {
-				entry = list[k];
-				links = entry[1];
-				data = Database.get(k);
-				if (data === null) {
-					if (entry[0]) {
-						// Data
-						for (i = 0, ii = links.length; i < ii; ++i) {
-							info = Helper.get_info_from_node(links[i]);
-							if (info !== null) {
-								API.queue_gallery_page(k, info.page_token, info.page);
-								entry[0] = false;
-								update = true;
-								break;
-							}
-						}
-						// Something went wrong
-						if (i === ii) {
-							delete list[k];
+			t1 = incomplete.types;
+			for (i = 0, ii = t1.length; i < ii; ++i) {
+				obj = incomplete[t1[i]];
+				t2 = obj.types;
+				for (j = 0, jj = t2.length; j < jj; ++j) {
+					m = t2[j];
+					fn_missing = obj.missing[m];
+
+					list1 = obj.checked[m];
+					for (k in list1) {
+						entry = list1[k];
+						data = Database.get(k);
+						if (data !== null) {
+							Linkifier.format(entry[1], data);
+							delete list1[k];
 						}
 					}
-				}
-				else {
-					// Format
-					Linkifier.format(links, data);
-					delete list[k];
+
+					list2 = obj.unchecked[m];
+					for (k in list2) {
+						entry = list2[k];
+						data = Database.get(k);
+						if (data !== null) {
+							Linkifier.format(entry[1], data);
+						}
+						else {
+							api_request = true;
+							fn_missing.call(null, k, entry[0]);
+							list1[k] = entry;
+							entry[0] = null;
+						}
+						delete list2[k];
+					}
 				}
 			}
 
-			list = Linkifier.incomplete.g;
-			for (k in list) {
-				entry = list[k];
-				links = entry[1];
-				data = Database.get(k);
-				if (data === null) {
-					if (entry[0]) {
-						// Data
-						for (i = 0, ii = links.length; i < ii; ++i) {
-							info = Helper.get_info_from_node(links[i]);
-							if (info !== null) {
-								API.queue_gallery(k, info.token);
-								entry[0] = false;
-								update = true;
-								break;
-							}
-						}
-						// Something went wrong
-						if (i === ii) {
-							delete list[k];
-						}
-					}
-				}
-				else {
-					// Format
-					Linkifier.format(links, data);
-					delete list[k];
-				}
-			}
-
-			return update;
+			return api_request;
 		},
 		get_links: function (parent) {
 			return $$("a.ex-linkified-gallery[href]", parent);
@@ -2338,7 +2327,7 @@
 				$.before(node, button);
 
 				if (auto_load) {
-					Linkifier.check_link(node);
+					Linkifier.check_link(node, info);
 				}
 			}
 		},
@@ -2568,25 +2557,29 @@
 		on_tag_click_to_load: function (event) {
 			event.preventDefault();
 
-			var n = Helper.get_link_from_tag_button(this);
-			if (n !== null) {
-				Linkifier.check_link(n);
+			var link, info;
+
+			if (
+				(link = Helper.get_link_from_tag_button(this)) !== null &&
+				(info = Helper.get_info_from_node(link)) !== null
+			) {
+				Linkifier.check_link(link, info);
 				Linkifier.check_incomplete();
 			}
 		},
-		check_link: function (link) {
-			var info = Helper.get_info_from_node(link),
-				id, list;
+		check_link: function (link, info) {
+			var id, obj, lists, list;
 
-			if (Object.prototype.hasOwnProperty.call(Linkifier.incomplete, info.type)) {
-				list = Linkifier.incomplete[info.type];
-
-				id = info.gid;
-				if (id in list) {
-					list[id][1].push(link);
+			if (
+				(obj = Linkifier.incomplete[info.site]) !== undefined &&
+				(lists = obj.unchecked[info.type]) !== undefined
+			) {
+				list = lists[info.gid];
+				if (list !== undefined) {
+					list[1].push(link);
 				}
 				else {
-					list[id] = [ true, [ link ] ];
+					lists[info.gid] = [ info, [ link ] ];
 				}
 			}
 		},
