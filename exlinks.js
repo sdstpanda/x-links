@@ -450,20 +450,10 @@
 				return def;
 			}
 		},
-		get_id_from_node: function (node) {
-			return node.getAttribute("data-exlinks-gid") || "";
-		},
-		get_token_from_node: function (node) {
-			return node.getAttribute("data-exlinks-token") || "";
-		},
-		get_page_from_node: function (node) {
-			return node.getAttribute("data-exlinks-page") || "";
-		},
-		get_page_token_from_node: function (node) {
-			return node.getAttribute("data-exlinks-page-token") || "";
-		},
-		get_type_from_node: function (node) {
-			return node.getAttribute("data-exlinks-type") || "";
+		get_uid_from_node: function (node) {
+			var a = node.getAttribute("data-ex-id"),
+				i;
+			return (a && (i = a.indexOf("_")) >= 0) ? a.substr(i + 1) : "";
 		},
 		get_info_from_node: function (node) {
 			var attr = node.getAttribute("data-ex-info");
@@ -963,11 +953,10 @@
 		},
 		events: {
 			mouseover: function () {
-				var uid = Helper.get_id_from_node(this),
-					details, domain;
+				var uid = Helper.get_uid_from_node(this),
+					details = Nodes.details[uid],
+					domain;
 
-				if (uid === null) return;
-				details = Nodes.details[uid];
 				if (details === undefined) {
 					domain = Helper.get_full_domain(this.href);
 					details = UI.details(uid, domain);
@@ -976,11 +965,10 @@
 				details.style.display = "";
 			},
 			mouseout: function () {
-				var uid = Helper.get_id_from_node(this),
-					details, domain;
+				var uid = Helper.get_uid_from_node(this),
+					details = Nodes.details[uid],
+					domain;
 
-				if (uid === null) return;
-				details = Nodes.details[uid];
 				if (details === undefined) {
 					domain = Helper.get_full_domain(this.href);
 					details = UI.details(uid, domain);
@@ -989,14 +977,10 @@
 				details.style.setProperty("display", "none", "important");
 			},
 			mousemove: function (event) {
-				var uid, details;
+				var uid = Helper.get_uid_from_node(this),
+					details = Nodes.details[uid];
 
-				if (
-					(uid = Helper.get_id_from_node(this)) === null ||
-					(details = Nodes.details[uid]) === undefined
-				) {
-					return;
-				}
+				if (details === undefined) return;
 
 				var w = window,
 					de = d.documentElement,
@@ -2201,22 +2185,20 @@
 		check_incomplete: function () {
 			var list = Linkifier.incomplete.s,
 				update = false,
-				info, data, links, token, page, i, ii, k;
+				entry, info, data, links, i, ii, k;
 
 			for (k in list) {
-				info = list[k];
-				links = info[1];
+				entry = list[k];
+				links = entry[1];
 				data = Database.get(k);
 				if (data === null) {
-					if (info[0]) {
+					if (entry[0]) {
 						// Data
 						for (i = 0, ii = links.length; i < ii; ++i) {
-							if (
-								(page = Helper.get_page_from_node(links[i])) &&
-								(token = Helper.get_page_token_from_node(links[i]))
-							) {
-								API.queue_gallery_page(k, token, page);
-								info[0] = false;
+							info = Helper.get_info_from_node(links[i]);
+							if (info !== null) {
+								API.queue_gallery_page(k, info.page_token, info.page);
+								entry[0] = false;
 								update = true;
 								break;
 							}
@@ -2236,17 +2218,17 @@
 
 			list = Linkifier.incomplete.g;
 			for (k in list) {
-				info = list[k];
-				links = info[1];
+				entry = list[k];
+				links = entry[1];
 				data = Database.get(k);
 				if (data === null) {
-					if (info[0]) {
+					if (entry[0]) {
 						// Data
 						for (i = 0, ii = links.length; i < ii; ++i) {
-							token = Helper.get_token_from_node(links[i]);
-							if (token) {
-								API.queue_gallery(k, token);
-								info[0] = false;
+							info = Helper.get_info_from_node(links[i]);
+							if (info !== null) {
+								API.queue_gallery(k, info.token);
+								entry[0] = false;
 								update = true;
 								break;
 							}
@@ -2343,17 +2325,10 @@
 				if (info.type === "s") {
 					node.setAttribute("data-ex-info", JSON.stringify(info));
 					node.setAttribute("data-ex-id", info.site + "_" + info.gid);
-					node.setAttribute("data-exlinks-type", info.type);
-					node.setAttribute("data-exlinks-gid", info.gid);
-					node.setAttribute("data-exlinks-page", info.page);
-					node.setAttribute("data-exlinks-page-token", info.page_token);
 				}
 				else if (info.type === "g") {
 					node.setAttribute("data-ex-info", JSON.stringify(info));
 					node.setAttribute("data-ex-id", info.site + "_" + info.gid);
-					node.setAttribute("data-exlinks-type", info.type);
-					node.setAttribute("data-exlinks-gid", info.gid);
-					node.setAttribute("data-exlinks-token", info.token);
 				}
 
 				node.setAttribute("data-ex-linkified-status", "processed");
@@ -2379,7 +2354,7 @@
 				link = links[i];
 
 				if (!has_data) {
-					gid = Helper.get_id_from_node(link);
+					gid = Helper.get_uid_from_node(link);
 					data = Database.get(gid);
 					if (data === null) continue;
 					error = Object.prototype.hasOwnProperty.call(data, "error");
@@ -2599,20 +2574,18 @@
 			}
 		},
 		check_link: function (link) {
-			var uid, type, list;
+			var info = Helper.get_info_from_node(link),
+				id, list;
 
-			if (
-				(uid = Helper.get_id_from_node(link)) &&
-				(type = Helper.get_type_from_node(link)) &&
-				Object.prototype.hasOwnProperty.call(Linkifier.incomplete, type)
-			) {
-				list = Linkifier.incomplete[type];
+			if (Object.prototype.hasOwnProperty.call(Linkifier.incomplete, info.type)) {
+				list = Linkifier.incomplete[info.type];
 
-				if (uid in list) {
-					list[uid][1].push(link);
+				id = info.gid;
+				if (id in list) {
+					list[id][1].push(link);
 				}
 				else {
-					list[uid] = [ true, [ link ] ];
+					list[id] = [ true, [ link ] ];
 				}
 			}
 		},
@@ -4821,11 +4794,14 @@
 
 			for (i = 0, ii = links.length; i < ii; ++i) {
 				link = links[i];
-				if ((uid = Helper.get_id_from_node(link)) !== null) {
-					if (!(uid in EasyList.queue_map) && !(uid in EasyList.current_map)) {
-						EasyList.queue.push(uid);
-						EasyList.queue_map[uid] = link;
-					}
+				uid = Helper.get_uid_from_node(link);
+				if (
+					uid &&
+					!(uid in EasyList.queue_map) &&
+					!(uid in EasyList.current_map)
+				) {
+					EasyList.queue.push(uid);
+					EasyList.queue_map[uid] = link;
 				}
 			}
 
