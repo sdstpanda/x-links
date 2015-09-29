@@ -1431,9 +1431,10 @@
 		}
 	};
 	Cache = {
+		namespace: "exlinks-cache-",
 		type: window.localStorage,
 		init: function () {
-			var re_matcher = new RegExp("^" + Helper.regex_escape(Main.namespace) + "(gallery|md5|sha1)-([^-]+)"),
+			var re_matcher = new RegExp("^" + Helper.regex_escape(Cache.namespace) + "(gallery|md5|sha1)-([^-]+)"),
 				removed = 0,
 				keys = [],
 				populate = conf['Populate Database on Load'],
@@ -1521,7 +1522,7 @@
 			return null;
 		},
 		get: function (type, key) {
-			return Cache.get_key(Cache.type, Main.namespace + type + "-" + key);
+			return Cache.get_key(Cache.type, Cache.namespace + type + "-" + key);
 		},
 		set: function (type, key, data, ttl) {
 			var now = Date.now();
@@ -1530,13 +1531,13 @@
 				ttl = ((now - parseInt(data.posted, 10) < 12 * t.HOUR) ? 1 : 12) * t.HOUR; // Update more frequently for recent uploads
 			}
 
-			Cache.type.setItem(Main.namespace + type + "-" + key, JSON.stringify({
+			Cache.type.setItem(Cache.namespace + type + "-" + key, JSON.stringify({
 				expires: now + ttl,
 				data: data
 			}));
 		},
 		clear: function () {
-			var re_matcher = new RegExp("^" + Helper.regex_escape(Main.namespace) + "(?:gallery|md5|sha1)-"),
+			var re_matcher = new RegExp("^" + Helper.regex_escape(Cache.namespace)),
 				types = [ window.localStorage, window.sessionStorage ],
 				results = [],
 				remove, cache_type, key, i, ii, j, jj;
@@ -3136,6 +3137,7 @@
 		}
 	};
 	Config = {
+		namespace: "exlinks-settings-",
 		mode: "4chan", // foolz, fuuka, 38chan
 		domain: function (domain, opt) {
 			return (opt.value === "Original") ? domain : opt.value;
@@ -3162,7 +3164,7 @@
 		save: function () {
 			for (var i in options) {
 				for (var k in options[i]) {
-					localStorage.setItem(Main.namespace + 'user-' + k, JSON.stringify(tempconf[k]));
+					localStorage.setItem(Config.namespace + k, JSON.stringify(tempconf[k]));
 				}
 			}
 		},
@@ -3170,14 +3172,14 @@
 			var temp, option, i, k;
 			for (i in options) {
 				for (k in options[i]) {
-					temp = localStorage.getItem(Main.namespace + 'user-' + k);
+					temp = localStorage.getItem(Config.namespace + k);
 					if (temp) {
 						conf[k] = Helper.json_parse_safe(temp, false);
 					}
 					else {
 						option = JSON.stringify(options[i][k][1]);
 						conf[k] = JSON.parse(option);
-						localStorage.setItem(Main.namespace + 'user-' + k, option);
+						localStorage.setItem(Config.namespace + k, option);
 					}
 				}
 			}
@@ -3900,6 +3902,7 @@
 		}
 	};
 	EasyList = {
+		namespace: "exlinks-easylist-",
 		overlay: null,
 		options_container: null,
 		items_container: null,
@@ -3928,11 +3931,11 @@
 			display_mode: 0 // 0 = full, 1 = compact, 2 = minimal
 		},
 		settings_save: function () {
-			localStorage.setItem(Main.namespace + "easylist-settings", JSON.stringify(EasyList.settings));
+			localStorage.setItem(EasyList.namespace + "settings", JSON.stringify(EasyList.settings));
 		},
 		settings_load: function () {
 			// Load
-			var value = localStorage.getItem(Main.namespace + "easylist-settings"),
+			var value = localStorage.getItem(EasyList.namespace + "settings"),
 				settings = EasyList.settings,
 				k;
 
@@ -4866,7 +4869,6 @@
 		}
 	};
 	Main = {
-		namespace: "exlinks-",
 		version: "#VERSION#",
 		queue: [],
 		font_inserted: false,
