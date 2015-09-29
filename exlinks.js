@@ -117,7 +117,7 @@
 		}
 	};
 	regex = {
-		url: /(https?:\/*)?(forums|gu|g|u)?\.?e[\-x]hentai\.org\/[^\ \n<>\'\"]*/i,
+		url: /(https?:\/*)?(forums|gu|g|u)?\.?e[\-x]hentai\.org\/[^\ \n<>\'\"]*/ig,
 		protocol: /https?\:\/*/,
 		fjord: /abortion|bestiality|incest|lolicon|shotacon|toddlercon/,
 		site_exhentai: /exhentai\.org/i,
@@ -2216,53 +2216,42 @@
 			return $$("a.ex-linkified-gallery[data-ex-linkified-status=formatted]", parent);
 		},
 		linkify: function (container, results) {
-			var ws = /^\s*$/,
-				nodes = $.textnodes(container),
-				node, text, match, linknode, sp, ml, tn, tl, tu, wbr, i, ii;
+			var ddw = Linkifier.deep_dom_wrap,
+				re_link = regex.url,
+				re_ignore = /(?:\binlined?\b|\bex(?:links)?-)/;
 
-			if (nodes.length > 0) {
-				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					node = nodes[i];
-					if (regex.url.test(node.textContent)) {
-						wbr = i;
-						while (nodes[wbr] && nodes[wbr].nextSibling && nodes[wbr].nextSibling.tagName === "WBR") {
-							nodes[wbr].parentNode.removeChild(nodes[wbr].nextSibling);
-							++wbr;
-							if (nodes[wbr]) {
-								node.textContent += nodes[wbr].textContent;
-								nodes[wbr].textContent = "";
-							}
+			ddw(
+				container,
+				"a",
+				function (text, pos) {
+					re_link.lastIndex = pos;
+					var m = re_link.exec(text);
+					if (m === null) return null;
+					return [ m.index , m.index + m[0].length, m ];
+				},
+				function (node) {
+					if (node.tagName === "BR" || node.tagName === "A") {
+						return ddw.EL_TYPE_NO_PARSE | ddw.EL_TYPE_LINE_BREAK;
+					}
+					else if (node.tagName === "WBR") {
+						return ddw.EL_TYPE_NO_PARSE;
+					}
+					else if (node.tagName === "DIV") {
+						if (re_ignore.test(node.className)) {
+							return ddw.EL_TYPE_NO_PARSE | ddw.EL_TYPE_LINE_BREAK;
 						}
+						return ddw.EL_TYPE_LINE_BREAK;
 					}
-					text = node.textContent;
-					match = regex.url.exec(text);
-					tl = "";
-					linknode = match ? [] : null;
-					while (match) {
-						sp = text.search(regex.url);
-						ml = match[0].length - 1;
-						tn = $.tnode(text.substr(0, sp));
-						tl = text.substr(sp + ml + 1, text.length);
-
-						tu = Linkifier.create_link((regex.protocol.test(match[0]) ? "" : "http://") + match[0]);
-						results.push(tu);
-
-						if (tn.length > 0 && !ws.test(tn.nodeValue)) {
-							linknode.push(tn);
-						}
-						linknode.push(tu);
-
-						text = tl;
-						match = regex.url.exec(text);
-					}
-					if (tl.length > 0) {
-						linknode.push($.tnode(tl));
-					}
-					if (linknode) {
-						$.replace(node, $.elem(linknode));
-					}
-				}
-			}
+					return ddw.EL_TYPE_PARSE;
+				},
+				function (node, match) {
+					node.href = match[2][0];
+					node.target = "_blank";
+					node.rel = "noreferrer";
+					results.push(node);
+				},
+				false
+			);
 		},
 		create_link: function (text) {
 			return $.link(text, {
@@ -2472,12 +2461,14 @@
 
 			// Content
 			post_body = Helper.Post.get_text_body(post) || post;
+			regex.url.lastIndex = 0;
 			if (regex.url.test(post_body.innerHTML)) {
 				if (!post.classList.contains("ex-post-linkified")) {
 					links = [];
 					post_links = Helper.Post.get_body_links(post_body);
 					for (i = 0, ii = post_links.length; i < ii; ++i) {
 						link = post_links[i];
+						regex.url.lastIndex = 0;
 						if (regex.url.test(link.href)) {
 							link.classList.add("ex-link-events");
 							link.classList.add("ex-linkified");
@@ -2600,7 +2591,290 @@
 
 				Linkifier.event_queue[event_name] = [];
 			}
-		}
+		},
+		deep_dom_wrap: (function () {
+
+			// Internal helper class
+			var Offset = function (text_offset, node) {
+				this.text_offset = text_offset;
+				this.node = node;
+				this.node_text_length = node.nodeValue.length;
+			};
+
+
+
+			// Main function
+			var deep_dom_wrap = function (container, tag, matcher, element_checker, setup_function, quick) {
+				var text = "",
+					offsets = [],
+					d = document,
+					count = 0,
+					match_pos = 0,
+					node, par, next, check, match,
+					pos_start, pos_end, offset_start, offset_end,
+					prefix, suffix, link_base, link_node, relative_node, relative_par, clone, i, n1, n2, len, offset_current, offset_node;
+
+
+				// Create a string of the container's contents (similar to but not exactly the same as node.textContent)
+				// Also lists all text nodes into the offsets array
+				par = container;
+				node = container.firstChild;
+				if (node === null) return 0; // Quick exit for empty container
+				while (true) {
+					if (node !== null) {
+						if (node.nodeType === 3) { // TEXT_NODE
+							// Add to list and text
+							offsets.push(new Offset(text.length, node));
+							text += node.nodeValue;
+						}
+						else if (node.nodeType === 1) { // ELEMENT_NODE
+							// Action callback
+							check = element_checker.call(null, node);
+							// Line break
+							if ((check & deep_dom_wrap.EL_TYPE_LINE_BREAK) !== 0) {
+								text += "\n";
+							}
+							// Parse
+							if ((check & deep_dom_wrap.EL_TYPE_NO_PARSE) === 0) {
+								par = node;
+								node = node.firstChild;
+								continue;
+							}
+						}
+
+						// Next
+						node = node.nextSibling;
+					}
+					else {
+						// Done?
+						if (par === container) break;
+
+						// Move up
+						node = par;
+						par = node.parentNode;
+						node = node.nextSibling;
+					}
+				}
+
+				// Quick mode: just find all the matches
+				if (quick) {
+					// Match the text
+					match = matcher.call(null, text, match_pos);
+					if (match === null) return count;
+
+					++count;
+
+					match_pos = match[1];
+				}
+
+				// Loop to find all links
+				while (true) {
+					// Match the text
+					match = matcher.call(null, text, match_pos);
+					if (match === null) break;
+					++count;
+
+
+
+					// Find the beginning and ending text nodes
+					pos_start = match[0];
+					pos_end = match[1];
+
+					for (offset_start = 1; offset_start < offsets.length; ++offset_start) {
+						if (offsets[offset_start].text_offset > pos_start) break;
+					}
+					for (offset_end = offset_start; offset_end < offsets.length; ++offset_end) {
+						if (offsets[offset_end].text_offset > pos_end) break;
+					}
+					--offset_start;
+					--offset_end;
+
+
+
+					// Vars to create the link
+					prefix = text.substr(offsets[offset_start].text_offset, pos_start - offsets[offset_start].text_offset);
+					suffix = text.substr(pos_end, offsets[offset_end].text_offset + offsets[offset_end].node_text_length - pos_end);
+					link_base = d.createElement(tag);
+					link_node = link_base;
+					relative_node = null;
+
+					// Prefix update
+					i = offset_start;
+					offset_current = offsets[i];
+					offset_node = offset_current.node;
+					if (prefix.length > 0) {
+						// Insert prefix
+						n1 = d.createTextNode(prefix);
+						offset_node.parentNode.insertBefore(n1, offset_node);
+
+						// Update text
+						offset_node.nodeValue = offset_node.nodeValue.substr(prefix.length);
+
+						// Set first relative
+						relative_node = n1;
+						relative_par = n1.parentNode;
+
+						// Update offset for next search
+						len = prefix.length;
+						offset_current.text_offset += len;
+						offset_current.node_text_length -= len;
+					}
+					else {
+						// Set first relative
+						relative_node = offset_node.previousSibling;
+						relative_par = offset_node.parentNode;
+					}
+
+					// Loop over ELEMENT_NODEs; add TEXT_NODEs to the link, remove empty nodes where necessary
+					// The only reason the par variable is necessary is because some nodes are removed during this process
+					for (; i < offset_end; ++i) {
+						// Next
+						node = offsets[i].node;
+						next = node.nextSibling;
+						par = node.parentNode;
+
+						// Add text
+						link_node.appendChild(node);
+
+						// Node loop
+						while (true) {
+							if (next) {
+								if (next.nodeType == 3) { // TEXT_NODE
+									// Done
+									break;
+								}
+								else if (next.nodeType == 1) { // ELEMENT_NODE
+									// Deeper
+									node = next;
+									next = node.firstChild;
+									par = node;
+
+									// Update link node
+									clone = node.cloneNode(false);
+									link_node.appendChild(clone);
+									link_node = clone;
+
+									continue;
+								}
+								else {
+									// Some other node type; continue anyway
+									node = next;
+									next = node.nextSibling;
+
+									// Update link node
+									link_node.appendChild(node);
+
+									continue;
+								}
+							}
+
+							// Shallower
+							node = par;
+							next = node.nextSibling;
+							par = node.parentNode;
+
+							if (node.firstChild === null) par.removeChild(node);
+
+							// Update link node
+							if (link_node !== link_base) {
+								// Simply move up tree (link_node still has a parent)
+								link_node = link_node.parentNode;
+							}
+							else {
+								// Create a new wrapper node (link_node has no parent; it's the link_base)
+								clone = node.cloneNode(false);
+								for (n1 = link_base.firstChild; n1; n1 = n2) {
+									n2 = n1.nextSibling;
+									clone.appendChild(n1);
+								}
+								link_base.appendChild(clone);
+								link_node = link_base;
+
+								// Placement relatives
+								relative_node = (next !== null) ? next.previousSibling : null;
+								relative_par = par;
+							}
+						}
+					}
+
+					// Suffix update
+					offset_current = offsets[i];
+					offset_node = offset_current.node;
+					if (suffix.length > 0) {
+						// Insert suffix
+						n1 = d.createTextNode(suffix);
+						if ((n2 = offset_node.nextSibling) !== null) {
+							offset_node.parentNode.insertBefore(n1, n2);
+						}
+						else {
+							offset_node.parentNode.appendChild(n1);
+						}
+
+						// Update text
+						len = offset_node.nodeValue.length - suffix.length;
+						offset_node.nodeValue = offset_node.nodeValue.substr(0, len);
+
+						// Update offset for next search
+						offset_current.text_length += len;
+						offset_current.node_text_length -= len;
+						offset_current.node = n1;
+					}
+
+					// Add the last segment
+					par = offset_node.parentNode;
+					link_node.appendChild(offset_node);
+
+
+
+					// Setup function
+					if (setup_function !== null) setup_function.call(null, link_base, match);
+
+
+
+					// Find the proper relative node
+					relative_node = (relative_node !== null) ? relative_node.nextSibling : relative_par.firstChild;
+
+					// Insert link
+					if (relative_node !== null) {
+						// Insert before it
+						relative_par.insertBefore(link_base, relative_node);
+					}
+					else {
+						// Add to end
+						relative_par.appendChild(link_base);
+					}
+
+					// Remove empty suffix tags
+					while (par.firstChild === null) {
+						node = par;
+						par = par.parentNode;
+						par.removeChild(node);
+					}
+
+
+
+					// Update match position
+					offsets[offset_end].text_offset = pos_end;
+					match_pos = pos_end;
+				}
+
+				// Done
+				return count;
+			};
+
+
+
+			// Element type constants
+			deep_dom_wrap.EL_TYPE_PARSE = 0;
+			deep_dom_wrap.EL_TYPE_NO_PARSE = 1;
+			deep_dom_wrap.EL_TYPE_LINE_BREAK = 2;
+
+
+
+			// Return the function
+			return deep_dom_wrap;
+
+		})()
 	};
 	Options = {
 		save: function (e) {
