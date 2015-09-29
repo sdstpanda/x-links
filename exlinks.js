@@ -2,7 +2,7 @@
 (function () {
 	"use strict";
 
-	var timing, fetch, domains, options, conf, tempconf, pageconf, regex, img, cat, d, t, $, $$,
+	var timing, fetch, domains, domain_info, options, conf, tempconf, pageconf, regex, img, cat, d, t, $, $$,
 		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Options, Config, Main,
 		Helper, Nodes, HttpRequest, Linkifier, Filter, Theme, EasyList;
 
@@ -36,7 +36,16 @@
 	};
 	domains = {
 		exhentai: "exhentai.org",
-		gehentai: "g.e-hentai.org"
+		gehentai: "g.e-hentai.org",
+		ehentai: "e-hentai.org",
+		nhentai: "nhentai.net",
+		hitomi: "hitomi.la"
+	};
+	domain_info = {
+		"exhentai.org": { tag: "Ex", g_domain: "exhentai.org" },
+		"e-hentai.org": { tag: "EH", g_domain: "g.e-hentai.org" },
+		"nhentai.net": { tag: "n", g_domain: "nhentai.net" },
+		"hitomi.la": { tag: "Hi", g_domain: "hitomi.la" }
 	};
 	fetch = {
 		original: { value: "Original" },
@@ -117,7 +126,7 @@
 		}
 	};
 	regex = {
-		url: /(?:https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[\-x]hentai\.org)\/[^<>\s\'\"]*/ig,
+		url: /(?:https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)\/[^<>\s\'\"]*/ig,
 		protocol: /https?\:\/*/,
 		fjord: /abortion|bestiality|incest|lolicon|shotacon|toddlercon/,
 		site_exhentai: /exhentai\.org/i,
@@ -507,30 +516,71 @@
 			return null;
 		},
 		get_url_info: function (url) {
-			var m = /\/g\/(\d+)\/([0-9a-f]+)/.exec(url);
-			if (m !== null) {
-				return {
-					type: "g",
-					gid: parseInt(m[1], 10),
-					token: m[2]
-				};
-			}
+			var match = /^(https?):\/*((?:[\w-]+\.)*)([\w-]+\.[\w]+)((?:[\/\?\#][\w\W]*)?)/.exec(url),
+				domain_full, domain, remaining, m;
 
-			m = /\/s\/([0-9a-f]+)\/(\d+)\-(\d+)/.exec(url);
-			if (m !== null) {
-				return {
-					type: "s",
-					gid: parseInt(m[2], 10),
-					page: parseInt(m[3], 10),
-					page_token: m[1]
-				};
+			if (match === null) return null;
+
+			domain_full = match[2].toLowerCase();
+			domain = match[3].toLowerCase();
+			remaining = match[4];
+
+			if (domain === domains.exhentai || domain === domains.ehentai) {
+				m = /^\/g\/(\d+)\/([0-9a-f]+)/.exec(remaining);
+				if (m !== null) {
+					return {
+						type: "g",
+						gid: parseInt(m[1], 10),
+						token: m[2],
+						domain_full: domain_full,
+						domain: domain
+					};
+				}
+
+				m = /^\/s\/([0-9a-f]+)\/(\d+)\-(\d+)/.exec(remaining);
+				if (m !== null) {
+					return {
+						type: "s",
+						gid: parseInt(m[2], 10),
+						page: parseInt(m[3], 10),
+						page_token: m[1],
+						domain_full: domain_full,
+						domain: domain
+					};
+				}
+			}
+			else if (domain === domains.nhentai) {
+				m = /^\/g\/(\d+)/.exec(remaining);
+				if (m !== null) {
+					return {
+						type: "nhentai",
+						gid: parseInt(m[1], 10),
+						domain_full: domain_full,
+						domain: domain
+					};
+				}
+			}
+			else if (domain === domains.hitomi) {
+				m = /^\/(?:galleries|reader|smalltn)\/(\d+)/.exec(remaining);
+				if (m !== null) {
+					return {
+						type: "hitomi",
+						gid: parseInt(m[1], 10),
+						domain_full: domain_full,
+						domain: domain
+					};
+				}
 			}
 
 			return null;
 		},
-		get_domain: function (url) {
+		get_full_domain: function (url) {
 			var m = /^https?:\/*([\w\-]+(?:\.[\w\-]+)*)/i.exec(url);
 			return (m === null) ? "" : m[1];
+		},
+		get_domain: function (url) {
+			var m = /^https?:\/*(?:[\w-]+\.)*([\w-]+\.[\w]+)/i.exec(url);
+			return (m === null) ? "" : m[1].toLowerCase();
 		},
 		Post: (function () {
 			var specific, fns, post_selector, post_body_selector, post_parent_find, get_file_info,
@@ -816,45 +866,49 @@
 		},
 		actions: function (data, link) {
 			var data_alt = {},
-				tagstring = data.tags.join(','),
 				uid = data.gid,
 				token = data.token,
 				key = data.archiver_key,
-				domain, user, sites, button, frag, n;
+				fjord = regex.fjord.test(data.tags.join(',')),
+				domain, domain_full, sites, button, frag, n;
+
+			domain = Helper.get_domain(link.href);
 
 			if (conf['Smart Links'] === true) {
-				if (regex.fjord.test(tagstring)) {
-					if (regex.site_gehentai.test(link.href)) {
+				if (fjord) {
+					if (domain === domains.ehentai) {
+						domain = domains.exhentai;
 						link.href = link.href.replace(regex.site_gehentai, domains.exhentai);
 						if ((button = Helper.get_tag_button_from_link(link)) !== null) {
 							button.href = link.href;
-							button.textContent = UI.button.text(link.href);
+							button.textContent = UI.button_text(domain);
 						}
 					}
 				}
 				else {
-					if (regex.site_exhentai.test(link.href)) {
+					if (domain === domains.exhentai) {
+						domain = domains.ehentai;
 						link.href = link.href.replace(regex.site_exhentai, domains.gehentai);
 						if ((button = Helper.get_tag_button_from_link(link)) !== null) {
 							button.href = link.href;
-							button.textContent = UI.button.text(link.href);
+							button.textContent = UI.button_text(domain);
 						}
 					}
 				}
 			}
 
-			data_alt.datetext = UI.date(new Date(parseInt(data.posted, 10) * 1000));
-			domain = Helper.get_domain(link.href);
+			domain_full = domain_info[domain].g_domain;
+
 			sites = [
-				Config.domain(domain, conf['Torrent Link']),
-				Config.domain(domain, conf['Hentai@Home Link']),
-				Config.domain(domain, conf['Archiver Link']),
-				Config.domain(domain, conf['Favorite Link']),
-				Config.domain(domain, conf['Uploader Link']),
-				Config.domain(domain, conf['Stats Link']),
-				Config.domain(domain, conf['Tag Links'])
+				Config.domain(domain_full, conf['Torrent Link']),
+				Config.domain(domain_full, conf['Hentai@Home Link']),
+				Config.domain(fjord && domain === domains.ehentai? domains.exhentai : domain_full, conf['Archiver Link']),
+				Config.domain(domain_full, conf['Favorite Link']),
+				Config.domain(domain_full, conf['Uploader Link']),
+				Config.domain(domain_full, conf['Stats Link']),
+				Config.domain(domain_full, conf['Tag Links'])
 			];
-			user = data.uploader || 'Unknown';
+
 			data_alt.url = {
 				ge: "http://" + domains.gehentai + "/g/" + uid + "/" + token + "/",
 				ex: "http://" + domains.exhentai + "/g/" + uid + "/" + token + "/",
@@ -862,16 +916,15 @@
 				hh: "http://" + sites[1] + "/hathdler.php?gid=" + uid + "&t=" + token,
 				arc: "http://" + sites[2] + "/archiver.php?gid=" + uid + "&token=" + token + "&or=" + key,
 				fav: "http://" + sites[3] + "/gallerypopups.php?gid=" + uid + "&t=" + token + "&act=addfav",
-				user: "http://" + sites[4] + "/uploader/" + user.replace(/\ /g, '+'),
+				user: "http://" + sites[4] + "/uploader/" + (data.uploader || "Unknown").replace(/\ /g, "+"),
 				stats: "http://" + sites[5] + "/stats.php?gid=" + uid + "&t=" + token
 			};
-			if (regex.site_gehentai.test(data_alt.url.arc) && regex.fjord.test(tagstring)) {
-				data_alt.url.arc = data_alt.url.arc.replace(regex.site_gehentai, 'exhentai');
-			}
+
+			data_alt.datetext = UI.date(new Date(parseInt(data.posted, 10) * 1000));
 
 			frag = $.frag(UI.html.actions(data, data_alt));
 
-			if ((n = $('.ex-actions-link-uploader', frag)) !== null) {
+			if ((n = $(".ex-actions-link-uploader", frag)) !== null) {
 				Filter.highlight("uploader", n, data, null);
 			}
 
@@ -880,13 +933,17 @@
 
 			return frag.firstChild;
 		},
-		button: function (url) {
+		button: function (url, domain) {
 			var button = $.link(url, {
 				className: 'ex-link-events ex-site-tag',
-				textContent: UI.button.text(url)
+				textContent: UI.button_text(domain)
 			});
 			button.setAttribute("data-ex-link-events", "gallery_fetch");
 			return button;
+		},
+		button_text: function (domain) {
+			var d = domain_info[domain];
+			return (d !== undefined ? "[" + d.tag + "]" : "[?]");
 		},
 		toggle: function (event) {
 			if (!event.which || event.which === 1) {
@@ -905,7 +962,7 @@
 				if (uid === null) return;
 				details = Nodes.details[uid];
 				if (details === undefined) {
-					domain = Helper.get_domain(this.href);
+					domain = Helper.get_full_domain(this.href);
 					details = UI.details(uid, domain);
 				}
 
@@ -918,7 +975,7 @@
 				if (uid === null) return;
 				details = Nodes.details[uid];
 				if (details === undefined) {
-					domain = Helper.get_domain(this.href);
+					domain = Helper.get_full_domain(this.href);
 					details = UI.details(uid, domain);
 				}
 
@@ -991,15 +1048,6 @@
 				pad(d.getUTCDate(), ' ') +
 				pad(d.getUTCHours(), ':') +
 				pad(d.getUTCMinutes(), '');
-		},
-		init: function () {
-			$.extend(UI.button, {
-				text: function (url) {
-					if (regex.site_exhentai.test(url)) return '[Ex]';
-					if (regex.site_gehentai.test(url)) return '[EH]';
-					return '[?]';
-				}
-			});
 		},
 		create_tags: function (site, tags, data) {
 			var tagfrag = d.createDocumentFragment(),
@@ -1074,7 +1122,7 @@
 					(link = $("a[href]", n)) !== null &&
 					!regex.site_exhentai.test(link.getAttribute("href"))
 				) {
-					site = Config.domain(Helper.get_domain(link.href), conf['Stats Link']);
+					site = Config.domain(Helper.get_full_domain(link.href), conf['Stats Link']);
 					t = (i < nodes.length) ? tagfrag.cloneNode(true) : tagfrag;
 					tags = $$("a[href]", t);
 					for (j = 0; j < tags.length; ++j) {
@@ -2306,7 +2354,7 @@
 
 				node.setAttribute("data-ex-linkified-status", "processed");
 
-				button = UI.button(node.href);
+				button = UI.button(node.href, info.domain);
 				$.before(node, button);
 
 				if (auto_load) {
@@ -2742,11 +2790,11 @@
 						// Node loop
 						while (true) {
 							if (next) {
-								if (next.nodeType == 3) { // TEXT_NODE
+								if (next.nodeType === Node.TEXT_NODE) {
 									// Done
 									break;
 								}
-								else if (next.nodeType == 1) { // ELEMENT_NODE
+								else if (next.nodeType === Node.ELEMENT_NODE) {
 									// Deeper
 									node = next;
 									next = node.firstChild;
@@ -4248,7 +4296,7 @@
 			if (cl.contains(cls) !== visible) cl.toggle(cls);
 		},
 		create_gallery_nodes: function (data, theme, index, domain) {
-			var url_base = "http://" + domain,
+			var url_base = "http://" + domain_info[domain].g_domain,
 				url = url_base + "/g/" + data.gid + "/" + data.token + "/",
 				hl_res, n1, n2, n3, n4, n5, n6, n7, i;
 
@@ -4299,7 +4347,7 @@
 
 			$.add(n5, n6 = $.link(url, {
 				className: "ex-easylist-item-title-tag-link" + theme,
-				textContent: UI.button.text(domain)
+				textContent: UI.button_text(domain)
 			}));
 			n6.setAttribute("data-ex-original", n6.textContent);
 
@@ -5020,7 +5068,6 @@
 			Config.init();
 			Debug.init();
 			Cache.init();
-			UI.init();
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
 			$.ready(Main.ready);
