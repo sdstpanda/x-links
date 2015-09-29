@@ -89,6 +89,7 @@
 		debug: {
 			'Debug Mode':                  ['checkbox', false, 'Enable debugger and logging to browser console.'],
 			'Disable Local Storage Cache': ['checkbox', false, 'If set, Session Storage is used for caching instead.'],
+			'Disable Caching':             ['checkbox', false, 'Disable caching completely.'],
 			'Populate Database on Load':   ['checkbox', false, 'Load all cached galleries to database on page load.']
 		},
 		filter: {
@@ -1399,7 +1400,42 @@
 				populate = conf['Populate Database on Load'],
 				cache_type, key, data, m, i, ii;
 
-			if (conf['Disable Local Storage Cache']) {
+			if (conf['Disable Caching']) {
+				Cache.type = (function () {
+					var data = {};
+
+					var fn = {
+						length: 0,
+						key: function (index) {
+							return Object.keys(data)[index];
+						},
+						getItem: function (key) {
+							if (Object.prototype.hasOwnProperty.call(data, key)) {
+								return data[key];
+							}
+							return null;
+						},
+						setItem: function (key, value) {
+							if (!Object.prototype.hasOwnProperty.call(data, key)) {
+								++fn.length;
+							}
+							data[key] = value;
+						},
+						removeItem: function (key) {
+							if (Object.prototype.hasOwnProperty.call(data, key)) {
+								delete data[key];
+								--fn.length;
+							}
+						},
+						clear: function () {
+							data = {};
+							fn.length = 0;
+						}
+					};
+					return fn;
+				})();
+			}
+			else if (conf['Disable Local Storage Cache']) {
 				Cache.type = window.sessionStorage;
 			}
 			cache_type = Cache.type;
