@@ -117,7 +117,7 @@
 		}
 	};
 	regex = {
-		url: /(https?:\/*)?(forums|gu|g|u)?\.?e[\-x]hentai\.org\/[^\ \n<>\'\"]*/ig,
+		url: /(?:https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[\-x]hentai\.org)\/[^<>\s\'\"]*/ig,
 		protocol: /https?\:\/*/,
 		fjord: /abortion|bestiality|incest|lolicon|shotacon|toddlercon/,
 		site_exhentai: /exhentai\.org/i,
@@ -2460,34 +2460,35 @@
 			}
 
 			// Content
-			post_body = Helper.Post.get_text_body(post) || post;
+			post_body = Helper.Post.get_text_body(post);
 			regex.url.lastIndex = 0;
-			if (regex.url.test(post_body.innerHTML)) {
-				if (!post.classList.contains("ex-post-linkified")) {
-					links = [];
-					post_links = Helper.Post.get_body_links(post_body);
-					for (i = 0, ii = post_links.length; i < ii; ++i) {
-						link = post_links[i];
-						regex.url.lastIndex = 0;
-						if (regex.url.test(link.href)) {
-							link.classList.add("ex-link-events");
-							link.classList.add("ex-linkified");
-							link.classList.add("ex-linkified-gallery");
-							link.target = "_blank";
-							link.rel = "noreferrer";
-							link.setAttribute("data-ex-linkified-status", "unprocessed");
-							Linkifier.change_link_events(link, "gallery_link");
-							links.push(link);
-						}
+			if (
+				!post.classList.contains("ex-post-linkified") &&
+				regex.url.test(post_body.innerHTML)
+			) {
+				links = [];
+				post_links = Helper.Post.get_body_links(post_body);
+				for (i = 0, ii = post_links.length; i < ii; ++i) {
+					link = post_links[i];
+					regex.url.lastIndex = 0;
+					if (regex.url.test(link.href)) {
+						link.classList.add("ex-link-events");
+						link.classList.add("ex-linkified");
+						link.classList.add("ex-linkified-gallery");
+						link.target = "_blank";
+						link.rel = "noreferrer";
+						link.setAttribute("data-ex-linkified-status", "unprocessed");
+						Linkifier.change_link_events(link, "gallery_link");
+						links.push(link);
 					}
-
-					Linkifier.linkify(post_body, links);
-					for (i = 0, ii = links.length; i < ii; ++i) {
-						Linkifier.preprocess_link(links[i], auto_load_links);
-					}
-
-					post.classList.add("ex-post-linkified");
 				}
+
+				Linkifier.linkify(post_body, links);
+				for (i = 0, ii = links.length; i < ii; ++i) {
+					Linkifier.preprocess_link(links[i], auto_load_links);
+				}
+
+				post.classList.add("ex-post-linkified");
 			}
 
 			// Events
