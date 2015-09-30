@@ -1222,6 +1222,12 @@
 	};
 	API = {
 		full_version: 1,
+		nhentai_tag_namespaces: {
+			parodies: "parody",
+			characters: "character",
+			artists: "artist",
+			groups: "group"
+		},
 		Request: (function () {
 			var Queue, error_fn, queue_add, queue_get, trigger, perform_request, call_callbacks;
 
@@ -1512,11 +1518,15 @@
 			API.Request.trigger([ "ehentai_page", "ehentai_gallery" ]);
 			API.Request.trigger([ "nhentai_gallery" ]);
 		},
+		data_has_full: function (data) {
+			return data.full && data.full.version >= API.full_version;
+		},
 		parse_full_info: function (html) {
-			var data = {
-				version: API.full_version,
-				tags: {}
-			};
+			var tags = {},
+				data = {
+					version: API.full_version,
+					tags: tags
+				};
 
 			// Tags
 			var pattern = /(.+):/,
@@ -1529,12 +1539,12 @@
 				if (tds.length > 0) {
 					// Namespace
 					namespace = ((m = pattern.exec(tds[0].textContent)) ? m[1].trim() : "");
-					if (!(namespace in data.tags)) {
+					if (!(namespace in tags)) {
 						ns = [];
-						data.tags[namespace] = ns;
+						tags[namespace] = ns;
 					}
 					else {
-						ns = data.tags[namespace];
+						ns = tags[namespace];
 					}
 
 					// Tags
@@ -1543,16 +1553,18 @@
 						// Create tag
 						if ((n = $("a", tds[j])) !== null) {
 							// Add tag
-							data.tags[namespace].push(n.textContent.trim());
+							ns.push(n.textContent.trim());
 						}
+					}
+
+					// Remove if empty
+					if (ns.length === 0) {
+						delete tags[namespace];
 					}
 				}
 			}
 
 			return data;
-		},
-		data_has_full: function (data) {
-			return data.full && data.full.version >= API.full_version;
 		},
 		nhentai_parse_info: function (html) {
 			var info = $("#info", html),
@@ -1619,25 +1631,31 @@
 						(n = nodes[i].firstChild) !== null &&
 						n.nodeType === Node.TEXT_NODE
 					) ? n.nodeValue.trim().replace(/:/, "").toLowerCase() : "";
-					if (tag_ns in data.full.tags) {
-						tag_ns_list = data.full.tags[tag_ns];
-					}
-					else {
-						tag_ns_list = [];
-						data.full.tags[tag_ns] = tag_ns_list;
-					}
 
 					tags = $$(".tag", nodes[i]);
 
+					tag_ns = API.nhentai_tag_namespaces[tag_ns] || tag_ns;
+
 					if (tag_ns === "category") {
 						if (
+							tags.length > 0 &&
 							(n = tags[0].firstChild) !== null &&
 							n.nodeType === Node.TEXT_NODE
 						) {
 							data.category = n.nodeValue.trim().replace(/\b\w/g, to_upper);
 						}
+						tags = [];
 					}
-					else {
+
+					if (tags.length > 0) {
+						if (tag_ns in data.full.tags) {
+							tag_ns_list = data.full.tags[tag_ns];
+						}
+						else {
+							tag_ns_list = [];
+							data.full.tags[tag_ns] = tag_ns_list;
+						}
+
 						for (j = 0, jj = tags.length; j < jj; ++j) {
 							if (
 								(n = tags[j].firstChild) !== null &&
