@@ -455,6 +455,14 @@
 				i;
 			return (a && (i = a.indexOf("_")) >= 0) ? a.substr(i + 1) : "";
 		},
+		get_id_from_node: function (node) {
+			var a = node.getAttribute("data-ex-id"),
+				i;
+			return (a && (i = a.indexOf("_")) >= 0) ? [ a.substr(0, i), a.substr(i + 1) ] : null;
+		},
+		get_id_from_node_full: function (node) {
+			return node.getAttribute("data-ex-id") || "";
+		},
 		get_info_from_node: function (node) {
 			var attr = node.getAttribute("data-ex-info");
 			try {
@@ -813,12 +821,9 @@
 				return str;
 			}
 		},
-		details: function (uid, domain) {
-			var data = Database.get(uid),
-				data_alt = {},
+		details: function (data, domain) {
+			var data_alt = {},
 				frag, tagspace, content, n;
-
-			if (data === null) return $.create("div"); // dummy
 
 			data_alt.jtitle = data.title_jpn ? ('<br /><span class="ex-details-title-jp">' + data.title_jpn + '</span>') : '';
 
@@ -841,7 +846,6 @@
 			$.add(tagspace, UI.create_tags(domain, data.tags, data));
 			n = frag.firstChild;
 			Main.hovering(n);
-			Nodes.details[uid] = n;
 
 			// Full info
 			if (conf['Extended Info']) {
@@ -953,32 +957,51 @@
 		},
 		events: {
 			mouseover: function () {
-				var uid = Helper.get_uid_from_node(this),
-					details = Nodes.details[uid],
-					domain;
+				var full_id = Helper.get_id_from_node_full(this),
+					details = Nodes.details[full_id],
+					domain, data, id;
 
 				if (details === undefined) {
+					id = Helper.get_id_from_node(this);
+					if (
+						id === null ||
+						!Database.valid_namespace(id[0]) ||
+						(data = Database.get(id[0], id[1])) === null
+					) {
+						return;
+					}
+
 					domain = Helper.get_full_domain(this.href);
-					details = UI.details(uid, domain);
+					details = UI.details(data, domain);
+					Nodes.details[full_id] = details;
 				}
 
 				details.style.display = "";
 			},
 			mouseout: function () {
-				var uid = Helper.get_uid_from_node(this),
-					details = Nodes.details[uid],
-					domain;
+				var full_id = Helper.get_id_from_node_full(this),
+					details = Nodes.details[full_id],
+					domain, data, id;
 
 				if (details === undefined) {
+					id = Helper.get_id_from_node(this);
+					if (
+						id === null ||
+						!Database.valid_namespace(id[0]) ||
+						(data = Database.get(id[0], id[1])) === null
+					) {
+						return;
+					}
+
 					domain = Helper.get_full_domain(this.href);
-					details = UI.details(uid, domain);
+					details = UI.details(data, domain);
+					Nodes.details[full_id] = details;
 				}
 
 				details.style.setProperty("display", "none", "important");
 			},
 			mousemove: function (event) {
-				var uid = Helper.get_uid_from_node(this),
-					details = Nodes.details[uid];
+				var details = Nodes.details[Helper.get_id_from_node_full(this)];
 
 				if (details === undefined) return;
 
@@ -1345,7 +1368,7 @@
 				[ parseInt(gid, 10), token ],
 				function (err, data, last) {
 					if (err === null) {
-						Database.set(data);
+						Database.set("ehentai", data);
 					}
 					if (last) {
 						Linkifier.check_incomplete();
@@ -1371,10 +1394,10 @@
 				[ site, id, token ],
 				function (err, full_data) {
 					if (err === null) {
-						var data = Database.get(id);
+						var data = Database.get("ehentai", id);
 						if (data !== null) {
 							data.full = full_data;
-							Database.set(data);
+							Database.set("ehentai", data);
 							cb(null, data);
 						}
 						else {
@@ -1434,7 +1457,7 @@
 		namespace: "exlinks-cache-",
 		type: window.localStorage,
 		init: function () {
-			var re_matcher = new RegExp("^" + Helper.regex_escape(Cache.namespace) + "(gallery|md5|sha1)-([^-]+)"),
+			var re_matcher = new RegExp("^" + Helper.regex_escape(Cache.namespace) + "((?:(ehentai)_)gallery|md5|sha1)-([^-]+)"),
 				removed = 0,
 				keys = [],
 				populate = conf['Populate Database on Load'],
@@ -1495,8 +1518,8 @@
 				}
 				else if (populate) {
 					m = keys[i];
-					if (m[1] === "gallery") {
-						Database.set_nocache(data);
+					if (m[2] !== undefined) {
+						Database.set_nocache(m[2], data);
 					}
 					else { // if (key === "md5" || key === "sha1") {
 						Hash.set_nocache(m[1], m[2], data);
@@ -1564,27 +1587,34 @@
 		}
 	};
 	Database = {
-		data: {},
-		get: function (uid) { // , debug
+		data: {
+			ehentai: {}
+		},
+		valid_namespace: function (namespace) {
+			return (Database.data[namespace] !== undefined);
+		},
+		get: function (namespace, uid) { // , debug
 			// Use this if you want to break database gets randomly for debugging
-			// if (arguments[1] === true && Math.random() > 0.8) return false;
-			var data = Database.data[uid];
-			if (data) return data;
+			// if (arguments[2] === true && Math.random() > 0.8) return false;
+			if(!(namespace in Database.data)){console.log("Invalid namespace", namespace);try{null.null=null;}catch(e){console.log(e.stack);}}
+			var db = Database.data[namespace],
+				data = db[uid];
+			if (data !== undefined) return data;
 
-			data = Cache.get("gallery", uid);
+			data = Cache.get(namespace + "_gallery", uid);
 			if (data !== null) {
-				Database.data[data.gid] = data;
+				db[data.gid] = data;
 				return data;
 			}
 
 			return null;
 		},
-		set: function (data) {
+		set: function (namespace, data) {
 			Database.data[data.gid] = data;
-			Cache.set("gallery", data.gid, data, 0);
+			Cache.set(namespace + "_gallery", data.gid, data, 0);
 		},
-		set_nocache: function (data) {
-			Database.data[data.gid] = data;
+		set_nocache: function (namespace, data) {
+			Database.data[namespace][data.gid] = data;
 		}
 	};
 	Hash = {
@@ -2198,7 +2228,7 @@
 		check_incomplete: function () {
 			var incomplete = Linkifier.incomplete,
 				api_request = false,
-				obj, list1, list2, entry, data, t1, t2, fn_missing, i, ii, j, jj, k, m, n;
+				obj, list1, list2, entry, data, info, t1, t2, fn_missing, i, ii, j, jj, k, m;
 
 			t1 = incomplete.types;
 			for (i = 0, ii = t1.length; i < ii; ++i) {
@@ -2211,7 +2241,8 @@
 					list1 = obj.checked[m];
 					for (k in list1) {
 						entry = list1[k];
-						data = Database.get(k);
+						info = entry[0];
+						data = Database.get(info.site, k);
 						if (data !== null) {
 							Linkifier.format(entry[1], data);
 							delete list1[k];
@@ -2221,15 +2252,15 @@
 					list2 = obj.unchecked[m];
 					for (k in list2) {
 						entry = list2[k];
-						data = Database.get(k);
+						info = entry[0];
+						data = Database.get(info.site, k);
 						if (data !== null) {
 							Linkifier.format(entry[1], data);
 						}
 						else {
 							api_request = true;
-							fn_missing.call(null, k, entry[0]);
+							fn_missing.call(null, k, info);
 							list1[k] = entry;
-							entry[0] = null;
 						}
 						delete list2[k];
 					}
@@ -2334,7 +2365,7 @@
 		format: function (links, data) {
 			var has_data = !!data,
 				events = (Linkifier.event_listeners.format.length > 0) ? Linkifier.event_queue.format : null,
-				error, link, gid, i, ii;
+				error, link, id, i, ii;
 
 			if (has_data) {
 				error = Object.prototype.hasOwnProperty.call(data, "error");
@@ -2344,8 +2375,8 @@
 				link = links[i];
 
 				if (!has_data) {
-					gid = Helper.get_uid_from_node(link);
-					data = Database.get(gid);
+					id = Helper.get_id_from_node(link);
+					data = Database.get(id[0], id[1]);
 					if (data === null) continue;
 					error = Object.prototype.hasOwnProperty.call(data, "error");
 				}
@@ -2561,14 +2592,15 @@
 
 			if (
 				(link = Helper.get_link_from_tag_button(this)) !== null &&
-				(info = Helper.get_info_from_node(link)) !== null
+				(info = Helper.get_info_from_node(link)) !== null &&
+				Database.valid_namespace(info.site)
 			) {
 				Linkifier.check_link(link, info);
 				Linkifier.check_incomplete();
 			}
 		},
 		check_link: function (link, info) {
-			var id, obj, lists, list;
+			var obj, lists, list;
 
 			if (
 				(obj = Linkifier.incomplete[info.site]) !== undefined &&
@@ -3900,10 +3932,9 @@
 		options_container: null,
 		items_container: null,
 		empty_notification: null,
-		current: [],
-		current_map: {},
 		queue: [],
-		queue_map: {},
+		current: [],
+		data_map: {},
 		queue_timer: null,
 		custom_filters: [],
 		node_sort_order_keys: {
@@ -4463,28 +4494,18 @@
 
 			return [ n1, namespace !== "" ];
 		},
-		add_gallery: function (gid, theme) {
-			var data = Database.get(gid),
-				link = EasyList.queue_map[gid],
-				domain, info, n;
-
-			delete EasyList.queue_map[gid];
+		add_gallery: function (entry, theme) {
+			var data = Database.get(entry.namespace, entry.id),
+				n;
 
 			if (data !== null) {
-				domain = Helper.get_domain(link.href || "") || domains.exhentai;
-
-				n = EasyList.create_gallery_nodes(data, theme, EasyList.current.length, domain);
-				info = {
-					gid: gid,
-					node: n
-				};
-
-				EasyList.current_map[gid] = info;
-				EasyList.current.push(info);
+				n = EasyList.create_gallery_nodes(data, theme, EasyList.current.length, entry.domain);
 
 				Main.insert_custom_fonts();
 
 				$.add(EasyList.items_container, n);
+
+				EasyList.current.push(entry);
 			}
 		},
 		add_gallery_complete: function () {
@@ -4689,10 +4710,11 @@
 		},
 		update_all_filters: function () {
 			var list = EasyList.current,
-				hl_res, data, i, ii;
+				hl_res, entry, data, i, ii;
 
 			for (i = 0, ii = list.length; i < ii; ++i) {
-				data = Database.get(list[i].gid);
+				entry = list[i];
+				data = Database.get(entry.namespace, entry.id);
 				if (data !== null) {
 					hl_res = EasyList.update_filters(list[i].node, data, false, false, true);
 					EasyList.tag_filtering_results(list[i].node, hl_res);
@@ -4786,18 +4808,22 @@
 			this.style.visibility = "hidden";
 		},
 		on_linkify: function (links) {
-			var link, uid, i, ii;
+			var link, id, id_key, d, i, ii;
 
 			for (i = 0, ii = links.length; i < ii; ++i) {
 				link = links[i];
-				uid = Helper.get_uid_from_node(link);
-				if (
-					uid &&
-					!(uid in EasyList.queue_map) &&
-					!(uid in EasyList.current_map)
-				) {
-					EasyList.queue.push(uid);
-					EasyList.queue_map[uid] = link;
+				id = Helper.get_id_from_node(link);
+				if (id !== null && Database.valid_namespace(id[0])) {
+					id_key = id[0] + "_" + id[1];
+					if (EasyList.data_map[id_key] === undefined) {
+						d = {
+							domain: Helper.get_domain(link.href || "") || domains.exhentai,
+							namespace: id[0],
+							id: id[1]
+						};
+						EasyList.queue.push(d);
+						EasyList.data_map[id_key] = d;
+					}
 				}
 			}
 
