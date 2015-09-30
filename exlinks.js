@@ -827,7 +827,53 @@
 	UI = {
 		html: {
 			details: function (data, data_alt) { return '#DETAILS#'; },
-			actions: function (data, data_alt) { return '#ACTIONS#'; },
+			actions: function (data, domain) {
+				var gid = data.gid,
+					token = data.token,
+					domain_full = domain_info[domain].g_domain,
+					domain_type = domain_info[domain].type,
+					url, src;
+
+				src = '<div class="ex-actions exlinks-gid exlinks-token" data-ex-id="' + domain_type + '_' + gid + '">';
+				src += '<table class="ex-actions-table"><tbody>';
+				src += '<tr><td style="vertical-align: top;">';
+				src += '<span>' + data.category + '</span>';
+				src += '<span class="ex-actions-sep">|</span>';
+				src += '<span>' + data.filecount + ' files</span>';
+				src += '<span class="ex-actions-sep">|</span>';
+				src += '<span class="ex-actions-label">View on:</span>';
+
+				if (domain_type === "ehentai") {
+					url = domains.gehentai + "/g/" + gid + "/" + token + "/";
+					src += '<a href="http://' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_view_on_eh">e-hentai</a>';
+
+					url = domains.exhentai + "/g/" + gid + "/" + token + "/";
+					src += '<a href="http://' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_view_on_ex">exhentai</a>';
+
+					src += '<span class="ex-actions-sep">|</span>';
+					src += '<span class="ex-actions-label">Uploader:</span>';
+
+					url = Config.domain(domain_full, conf['Uploader Link']) + "/uploader/" + (data.uploader || "Unknown").replace(/\ /g, "+");
+					src += '<a href="http://' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_uploader">' + data.uploader + '</a>';
+
+					src += '<span class="ex-actions-sep">|</span>';
+
+					url = domains.gehentai + "/stats.php?gid=" + gid + "&t=" + token;
+					src += '<a href="http://' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_stats">Stats</a>';
+				}
+				else if (domain_type === "nhentai") {
+					url = domains.nhentai + "/g/" + data.gid + "/";
+					src += '<a href="http://' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_view_on_nh">nhentai</a>';
+				}
+				src += '</td></tr>';
+				src += '</tbody></table>';
+				src += '<div class="ex-actions-tag-block">';
+				src += '<strong class="ex-actions-tag-block-label">Tags:</strong><span class="ex-actions-tags exlinks-gid exlinks-token" data-ex-id="' + domain_type + '_' + gid + '"></span>';
+				src += '</div>';
+				src += '</div>';
+
+				return src;
+			},
 			options: function () { return '#OPTIONS#'; },
 			stars: function (data) {
 				var str = '',
@@ -854,7 +900,7 @@
 				frag, tagspace, content, n;
 
 			data_alt.jtitle = data.title_jpn ? ('<br /><span class="ex-details-title-jp">' + data.title_jpn + '</span>') : '';
-
+			data_alt.site = di.type;
 			data_alt.size = Math.round((data.filesize / 1024 / 1024) * 100) / 100;
 			data_alt.datetext = UI.date(new Date(parseInt(data.posted, 10) * 1000));
 			data_alt.visible = data.expunged ? 'No' : 'Yes';
@@ -894,12 +940,8 @@
 			return n;
 		},
 		actions: function (data, link) {
-			var data_alt = {},
-				uid = data.gid,
-				token = data.token,
-				key = data.archiver_key,
-				fjord = regex.fjord.test(data.tags.join(',')),
-				domain, domain_full, sites, button, frag, n;
+			var fjord = regex.fjord.test(data.tags.join(',')),
+				domain, frag, n;
 
 			domain = Helper.get_domain(link.href);
 
@@ -926,39 +968,14 @@
 				}
 			}
 
-			domain_full = domain_info[domain].g_domain;
-
-			sites = [
-				Config.domain(domain_full, conf['Torrent Link']),
-				Config.domain(domain_full, conf['Hentai@Home Link']),
-				Config.domain(fjord && domain === domains.ehentai? domains.exhentai : domain_full, conf['Archiver Link']),
-				Config.domain(domain_full, conf['Favorite Link']),
-				Config.domain(domain_full, conf['Uploader Link']),
-				Config.domain(domain_full, conf['Stats Link']),
-				Config.domain(domain_full, conf['Tag Links'])
-			];
-
-			data_alt.url = {
-				ge: "http://" + domains.gehentai + "/g/" + uid + "/" + token + "/",
-				ex: "http://" + domains.exhentai + "/g/" + uid + "/" + token + "/",
-				bt: "http://" + sites[0] + "/gallerytorrents.php?gid=" + uid + "&t=" + token,
-				hh: "http://" + sites[1] + "/hathdler.php?gid=" + uid + "&t=" + token,
-				arc: "http://" + sites[2] + "/archiver.php?gid=" + uid + "&token=" + token + "&or=" + key,
-				fav: "http://" + sites[3] + "/gallerypopups.php?gid=" + uid + "&t=" + token + "&act=addfav",
-				user: "http://" + sites[4] + "/uploader/" + (data.uploader || "Unknown").replace(/\ /g, "+"),
-				stats: "http://" + sites[5] + "/stats.php?gid=" + uid + "&t=" + token
-			};
-
-			data_alt.datetext = UI.date(new Date(parseInt(data.posted, 10) * 1000));
-
-			frag = $.frag(UI.html.actions(data, data_alt));
+			frag = $.frag(UI.html.actions(data, domain));
 
 			if ((n = $(".ex-actions-link-uploader", frag)) !== null) {
 				Filter.highlight("uploader", n, data, null);
 			}
 
 			frag.firstChild.style.setProperty("display", conf['Show by Default'] ? "table" : "none", "important");
-			$.add($(".ex-actions-tags", frag), UI.create_tags(sites[6], data.tags, data));
+			$.add($(".ex-actions-tags", frag), UI.create_tags(Config.domain(domain_info[domain].g_domain, conf['Tag Links']), data.tags, data));
 
 			return frag.firstChild;
 		},
@@ -1516,6 +1533,7 @@
 		},
 		nhentai_parse_info: function (html) {
 			var info = $("#info", html),
+				to_upper = function (m) { return m.toUpperCase(); },
 				data, nodes, tags, tag_ns, tag_ns_list, t, m, n, i, ii, j, jj;
 
 			if (info === null) {
@@ -1593,9 +1611,7 @@
 							(n = tags[0].firstChild) !== null &&
 							n.nodeType === Node.TEXT_NODE
 						) {
-							data.category = n.nodeValue.trim().replace(/\b\w/g, function (m) {
-								return m.toUpperCase();
-							});
+							data.category = n.nodeValue.trim().replace(/\b\w/g, to_upper);
 						}
 					}
 					else {
