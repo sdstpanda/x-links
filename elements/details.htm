@@ -6,38 +6,38 @@
 	<!-- Sidepanel -->
 	<div class="ex-details-side-panel">
 		<!-- Category -->
-		<div class="exlinks-btn exlinks-btn-eh exlinks-btn-#{cat[data.category].short}">
+		<span class="exlinks-btn exlinks-btn-eh exlinks-btn-#{data_alt.category_type}">
 			<div class="exlinks-noise">
 				#{cat[data.category].name}
 			</div>
-		</div>
+		</span>
 		<!-- Rating -->
-		<div class="ex-details-side-box">
-			<strong>Rating:</strong><br />
+		<div class="ex-details-side-box ex-details-side-box-rating extheme">
+			<div><strong>Rating:</strong></div>
 			<div class="ex-details-rating exlinks-stars-container">
 				#{UI.html.stars(data.rating)}
 			</div>
-			<span class="ex-details-rating-text">
+			<div class="ex-details-rating-text">
 				(Avg. #{data.rating})
-			</span>
+			</div>
 		</div>
 		<!-- Files -->
-		<div class="ex-details-side-box">
-			<strong>Files:</strong><br />
-			<span class="ex-details-file-count">
+		<div class="ex-details-side-box ex-details-side-box-files extheme">
+			<div><strong>Files:</strong></div>
+			<div class="ex-details-file-count">
 				#{data.filecount} images
-			</span><br />
-			<span class="ex-details-file-size">
+			</div>
+			<div class="ex-details-file-size">
 				(#{data_alt.size} MB)
-			</span>
+			</div>
 		</div>
 		<!-- Torrents -->
-		<div class="ex-details-side-box">
-			<strong>Torrents:</strong> #{data.torrentcount}
+		<div class="ex-details-side-box ex-details-side-box-torrents extheme">
+			<div><strong>Torrents:</strong> #{data.torrentcount}</div>
 		</div>
 		<!-- Visible -->
-		<div class="ex-details-side-box">
-			<strong>Visible:</strong> #{data_alt.visible}
+		<div class="ex-details-side-box ex-details-side-box-visible extheme">
+			<div><strong>Visible:</strong> #{data_alt.visible}</div>
 		</div>
 	</div>
 	<!-- Title -->

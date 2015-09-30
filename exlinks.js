@@ -897,29 +897,41 @@
 			var data_alt = {},
 				di = domain_info[domain],
 				g_domain = di.g_domain,
-				frag, tagspace, content, n;
+				tagspace, content, n, o;
 
 			data_alt.jtitle = data.title_jpn ? ('<br /><span class="ex-details-title-jp">' + data.title_jpn + '</span>') : '';
 			data_alt.site = di.type;
 			data_alt.size = Math.round((data.filesize / 1024 / 1024) * 100) / 100;
 			data_alt.datetext = UI.date(new Date(parseInt(data.posted, 10) * 1000));
 			data_alt.visible = data.expunged ? 'No' : 'Yes';
+			data_alt.category_type = (o = cat[data.category]) === undefined ? "misc" : o.short;
 
-			frag = $.frag(UI.html.details(data, data_alt));
+			content = $.frag(UI.html.details(data, data_alt)).firstChild;
+			Theme.apply(content);
 
-			if ((n = $('.ex-details-title', frag)) !== null) {
+			if ((n = $(".ex-details-title", content)) !== null) {
 				Filter.highlight("title", n, data, null);
 			}
-			if ((n = $('.ex-details-uploader', frag)) !== null) {
+			if ((n = $(".ex-details-uploader", content)) !== null) {
 				Filter.highlight("uploader", n, data, null);
 			}
+			if (data.filesize < 0 && (n = $(".ex-details-file-size", content)) !== null) {
+				$.remove(n);
+			}
+			if (data.torrentcount < 0 && (n = $(".ex-details-side-box-torrents", content)) !== null) {
+				$.remove(n);
+			}
+			if (data.rating < 0 && (n = $(".ex-details-side-box-rating", content)) !== null) {
+				$.remove(n);
+			}
+			if (data.expunged === null && (n = $(".ex-details-side-box-visible", content)) !== null) {
+				$.remove(n);
+			}
 
-			content = frag.firstChild;
-			tagspace = $('.ex-details-tags', frag);
-			content.style.setProperty("display", "table", "important");
+			tagspace = $('.ex-details-tags', content);
 			$.add(tagspace, UI.create_tags_best(g_domain, data));
-			n = frag.firstChild;
-			Main.hovering(n);
+
+			Main.hovering(content);
 
 			// Full info
 			if (conf['Extended Info'] && di.type === "ehentai" && !API.data_has_full(data)) {
@@ -937,7 +949,7 @@
 			Main.insert_custom_fonts();
 
 			// Done
-			return n;
+			return content;
 		},
 		actions: function (data, link) {
 			var fjord = regex.fjord.test(data.tags.join(',')),
@@ -1578,7 +1590,7 @@
 			// Create data
 			data = {
 				category: "",
-				expunged: false,
+				expunged: null,
 				filecount: 0,
 				filesize: -1,
 				full: {

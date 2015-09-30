@@ -2,6 +2,7 @@
 .exlinks-stars-container {
 	position: relative;
 	z-index: 0;
+	white-space: nowrap;
 }
 
 .exlinks-star-none {
@@ -54,13 +55,12 @@
 /* Buttons */
 .exlinks-btn {
 	display: inline-block;
-	padding: 4px 14px;
-	margin-bottom: 0;
-	font-size: 14px;
-	line-height: 20px;
+	padding: 0.3em 1em;
+	font-size: inherit;
+	line-height: 1.6em;
 	color: #333333;
 	text-align: center;
-	text-shadow: 0 1px 1px rgba(255, 255, 255, 0.75);
+	text-shadow: 0 0.08em 0.08em rgba(255, 255, 255, 0.75);
 	vertical-align: middle;
 	cursor: pointer;
 	background-color: #f5f5f5;
@@ -74,24 +74,23 @@
 	border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
 	border-color: #e6e6e6 #e6e6e6 #bfbfbf;
 	border-bottom-color: #a2a2a2;
-	-webkit-border-radius: 4px;
-	-moz-border-radius: 4px;
-	border-radius: 4px;
-	-webkit-box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.05);
-	-moz-box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.05);
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.05);
+	-webkit-border-radius: 0.3em;
+	-moz-border-radius: 0.3em;
+	border-radius: 0.3em;
+	-webkit-box-shadow: inset 0 0.08em 0 rgba(255, 255, 255, 0.2), 0 0.08em 0.16em rgba(0, 0, 0, 0.05);
+	-moz-box-shadow: inset 0 0.08em 0 rgba(255, 255, 255, 0.2), 0 0.08em 0.16em rgba(0, 0, 0, 0.05);
+	box-shadow: inset 0 0.08em 0 rgba(255, 255, 255, 0.2), 0 0.08em 0.16em rgba(0, 0, 0, 0.05);
 }
 .exlinks-btn-eh {
 	font-family: 'Source Sans Pro', Tahoma, sans-serif !important;
 	font-weight: 900;
-	font-size: 12px;
-	width: 62px;
-	padding: 2px 0;
+	font-size: 0.86em;
+	width: 100%;
+	padding: 0.15em 0;
 	color: #FFFFFF !important;
-	box-shadow: 0.0em 0.0em 0.5em rgba(0,0,0,0.5);
-	text-shadow: 1px 1px 0 rgba(0,0,0,0.5), 0 0 0.3em #000;
+	box-shadow: 0 0 0.5em rgba(0,0,0,0.5);
+	text-shadow: 0.09em 0.09em 0 rgba(0,0,0,0.5), 0 0 0.3em #000;
 	-webkit-font-smoothing: antialiased;
-	margin-bottom: 9px;
 }
 .exlinks-btn-doujinshi {
 	background-color: hsl(0, 92%, 27%) !important;
@@ -319,22 +318,28 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 
 .ex-details-side-panel {
 	float: right;
-	margin-left: 8px;
-	font-size: 14px !important;
-	line-height: 1.0em !important;
+	margin-left: 0.5em;
+	font-size: 1.0625em !important;
+	line-height: 1em !important;
 }
 .ex-details-side-box {
-	width: 64px;
+	width: 5.75em;
 	font-size: 0.8em;
-	background-color: rgba(0,0,0,0.2);
-	border-radius: 4px;
+	padding: 0.5em 0;
+	margin: 0.8em 0 0.4em;
+	border-radius: 0.5em;
 	background-clip: padding-box;
-	box-shadow: 0.0em 0.0em 0.5em rgba(0,0,0,0.2);
-	margin-bottom: 9px;
-	padding: 4px 0;
+	background-color: rgba(0,0,0,0.125);
+	box-shadow: 0 0 0.5em rgba(0,0,0,0.125);
+	text-shadow: 0 0.1em 0 rgba(255,255,255,0.5);
 }
-.ex-details-side-box:last-of-type {
-	margin-bottom: 0;
+.ex-details-side-box>div {
+	white-space: nowrap;
+}
+.ex-details-side-box.extheme-dark {
+	background-color: rgba(255,255,255,0.125);
+	box-shadow: 0 0 0.5em rgba(255,255,255,0.125);
+	text-shadow: 0 0.1em 0 rgba(0,0,0,0.5);
 }
 
 .ex-details-title {
@@ -922,9 +927,7 @@ div.ex-easylist-content-inner.post.reply.post_wrapper.extheme-dark {
 .ex-easylist-item-info {
 	display: inline-block;
 	padding: 0 0 0.5em 0.5em;
-}
-.ex-easylist-item-info-button {
-	margin-bottom: 0 !important;
+	width: 4.8em;
 }
 .ex-easylist-item-info-item {
 	font-size: 0.825em;
@@ -933,10 +936,14 @@ div.ex-easylist-content-inner.post.reply.post_wrapper.extheme-dark {
 	max-width: 100%;
 	border-radius: 0.5em;
 	padding: 0.375em 0;
-	background-color: rgba(255,255,255,0.125);
+	background-color: rgba(0,0,0,0.125);
+	box-shadow: 0 0 0.5em rgba(0,0,0,0.125);
+	text-shadow: 0 0.1em 0 rgba(255,255,255,0.5);
 }
 .ex-easylist-item-info-item.extheme-dark {
-	background-color: rgba(0,0,0,0.125);
+	background-color: rgba(255,255,255,0.125);
+	box-shadow: 0 0 0.5em rgba(255,255,255,0.125);
+	text-shadow: 0 0.1em 0 rgba(0,0,0,0.5);
 }
 .ex-easylist-item-info-light {
 	opacity: 0.8;
