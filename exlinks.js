@@ -618,6 +618,101 @@
 				return m.toUpperCase();
 			});
 		},
+		Site: (function () {
+
+			var create_gallery_url = {
+				ehentai: function (data, domain) {
+					return "http://" + domain_info[domain].g_domain + "/g/" + data.gid + "/" + data.token + "/";
+				},
+				nhentai: function (data) {
+					return "http://" + domains.nhentai + "/g/" + data.gid + "/";
+				},
+				hitomi: function (data) {
+					return "https://" + domains.hitomi + "/galleries/" + data.gid + ".html";
+				}
+			};
+			var create_uploader_url = {
+				ehentai: function (data, domain) {
+					return "http://" + domain_info[domain].g_domain + "/uploader/" + (data.uploader || "Unknown").replace(/\s+/g, "+");
+				},
+				nhentai: function () {
+					return "http://" + domains.nhentai + "/";
+				},
+				hitomi: function () {
+					return "https://" + domains.hitomi + "/";
+				}
+			};
+			var create_category_url = {
+				ehentai: function (data, domain) {
+					return "http://" + domain_info[domain].g_domain + "/" + cat[data.category].short;
+				},
+				nhentai: function (data) {
+					return "http://" + domains.nhentai + "/category/" + data.category.toLowerCase() + "/";
+				},
+				hitomi: function (data) {
+					return "https://" + domains.hitomi + "/type/" + data.category.toLowerCase() + "-all-1.html";
+				}
+			};
+			var create_tag_url = {
+				ehentai: function (tag, full_domain) {
+					return "http://" + full_domain + "/tag/" + tag.replace(/\s+/g, "+");
+				},
+				nhentai: function (tag, full_domain) {
+					return "http://" + full_domain + "/tag/" + tag.replace(/\s+/g, "-") + "/";
+				},
+				hitomi: function (tag, full_domain) {
+					return "https://" + full_domain + "/tag/" + tag + "-all-1.html";
+				}
+			};
+			var create_tag_ns_url = {
+				ehentai: function (tag, namespace, full_domain) {
+					return "http://" + full_domain + "/tag/" + namespace + tag.replace(/\s+/g, "+");
+				},
+				nhentai: function (tag, namespace, full_domain) {
+					if (namespace === "tags") namespace = "tag";
+					return "http://" + full_domain + "/" + namespace + "/" + tag.replace(/\s+/g, "-") + "/";
+				},
+				hitomi: function (tag, namespace, full_domain) {
+					if (namespace === "male" || namespace === "female") {
+						return "https://" + full_domain + "/tag/" + namespace + ":" + tag + "-all-1.html";
+					}
+					else if (namespace === "artist") {
+						return "https://" + full_domain + "/artist/" + tag + "-all-1.html";
+					}
+					else if (namespace === "parody") {
+						return "https://" + full_domain + "/series/" + tag + "-all-1.html";
+					}
+					else if (namespace === "language") {
+						return "https://" + full_domain + "/index-" + tag + "-1.html";
+					}
+					else {
+						return "https://" + full_domain + "/tag/" + tag + "-all-1.html";
+					}
+				}
+			};
+
+			return {
+				create_gallery_url: function (data, domain) {
+					var type = domain_info[domain].type;
+					return create_gallery_url[type].call(null, data, domain);
+				},
+				create_uploader_url: function (data, domain) {
+					var type = domain_info[domain].type;
+					return create_uploader_url[type].call(null, data, domain);
+				},
+				create_category_url: function (data, domain) {
+					var type = domain_info[domain].type;
+					return create_category_url[type].call(null, data, domain);
+				},
+				create_tag_url: function (tag, domain_type, full_domain) {
+					return create_tag_url[domain_type].call(null, tag, full_domain);
+				},
+				create_tag_ns_url: function (tag, namespace, domain_type, full_domain) {
+					return create_tag_ns_url[domain_type].call(null, tag, namespace, full_domain);
+				}
+			};
+
+		})(),
 		Post: (function () {
 			var specific, fns, post_selector, post_body_selector, post_parent_find, get_file_info,
 				belongs_to, body_links, file_ext, file_name;
@@ -835,7 +930,6 @@
 			actions: function (data, domain) {
 				var gid = data.gid,
 					token = data.token,
-					domain_full = domain_info[domain].g_domain,
 					domain_type = domain_info[domain].type,
 					url, src;
 
@@ -849,17 +943,17 @@
 				src += '<span class="ex-actions-label">View on:</span>';
 
 				if (domain_type === "ehentai") {
-					url = domains.gehentai + "/g/" + gid + "/" + token + "/";
-					src += '<a href="http://' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_view_on_eh">e-hentai</a>';
+					url = Helper.Site.create_gallery_url(data, domains.ehentai);
+					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_view_on_eh">e-hentai</a>';
 
-					url = domains.exhentai + "/g/" + gid + "/" + token + "/";
-					src += '<a href="http://' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_view_on_ex">exhentai</a>';
+					url = Helper.Site.create_gallery_url(data, domains.exhentai);
+					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_view_on_ex">exhentai</a>';
 
 					src += '<span class="ex-actions-sep">|</span>';
 					src += '<span class="ex-actions-label">Uploader:</span>';
 
-					url = Config.domain(domain_full, conf['Uploader Link']) + "/uploader/" + (data.uploader || "Unknown").replace(/\ /g, "+");
-					src += '<a href="http://' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_uploader">' + data.uploader + '</a>';
+					url = Helper.Site.create_uploader_url(data, domain);
+					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_uploader">' + data.uploader + '</a>';
 
 					src += '<span class="ex-actions-sep">|</span>';
 
@@ -867,8 +961,12 @@
 					src += '<a href="http://' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_stats">Stats</a>';
 				}
 				else if (domain_type === "nhentai") {
-					url = domains.nhentai + "/g/" + data.gid + "/";
-					src += '<a href="http://' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_view_on_nh">nhentai</a>';
+					url = Helper.Site.create_gallery_url(data, domain);
+					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_view_on_nh">nhentai</a>';
+				}
+				else if (domain_type === "hitomi") {
+					url = Helper.Site.create_gallery_url(data, domain);
+					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_view_on_nh">hitomi.la</a>';
 				}
 				src += '</td></tr>';
 				src += '</tbody></table>';
@@ -937,7 +1035,7 @@
 			}
 
 			tagspace = $('.ex-details-tags', content);
-			$.add(tagspace, UI.create_tags_best(g_domain, data));
+			$.add(tagspace, UI.create_tags_best(di.type, g_domain, data));
 
 			Main.hovering(content);
 
@@ -961,7 +1059,7 @@
 		},
 		actions: function (data, link) {
 			var fjord = regex.fjord.test(data.tags.join(',')),
-				domain, button, frag, n;
+				domain, button, frag, di, n;
 
 			domain = Helper.get_domain(link.href);
 
@@ -988,6 +1086,8 @@
 				}
 			}
 
+			di = domain_info[domain];
+
 			frag = $.frag(UI.html.actions(data, domain));
 
 			if ((n = $(".ex-actions-link-uploader", frag)) !== null) {
@@ -995,7 +1095,7 @@
 			}
 
 			frag.firstChild.style.setProperty("display", conf['Show by Default'] ? "table" : "none", "important");
-			$.add($(".ex-actions-tags", frag), UI.create_tags_best(Config.domain(domain_info[domain].g_domain, conf['Tag Links']), data));
+			$.add($(".ex-actions-tags", frag), UI.create_tags_best(di.type, di.g_domain, data));
 
 			return frag.firstChild;
 		},
@@ -1128,7 +1228,7 @@
 				pad(d.getUTCHours(), ':') +
 				pad(d.getUTCMinutes(), '');
 		},
-		create_tags: function (site, data) {
+		create_tags: function (domain, site, data) {
 			var tagfrag = d.createDocumentFragment(),
 				tags = data.tags,
 				theme = Theme.get(),
@@ -1136,7 +1236,7 @@
 
 			for (i = 0, ii = tags.length; i < ii; ++i) {
 				tag = $.create("span", { className: "ex-tag-block" + theme });
-				link = $.link("http://" + site + "/tag/" + tags[i].replace(/\s+/g, "+"), {
+				link = $.link(Helper.Site.create_tag_url(tags[i], domain, site), {
 					textContent: tags[i],
 					className: "ex-tag"
 				});
@@ -1151,10 +1251,9 @@
 
 			return tagfrag;
 		},
-		create_tags_full: function (site, data) {
+		create_tags_full: function (domain, site, data) {
 			var tagfrag = d.createDocumentFragment(),
 				tags_ns = data.full.tags,
-				url_base = "http://" + site,
 				theme = Theme.get(),
 				namespace, namespace_style, tags, tag, link, i, ii;
 
@@ -1175,7 +1274,7 @@
 
 				for (i = 0, ii = tags.length; i < ii; ++i) {
 					tag = $.create("span", { className: "ex-tag-block" + namespace_style });
-					link = $.link(url_base + "/tag/" + tags[i].replace(/\s+/g, "+"), {
+					link = $.link(Helper.Site.create_tag_ns_url(tags[i], namespace, domain, site), {
 						textContent: tags[i],
 						className: "ex-tag"
 					});
@@ -1191,13 +1290,13 @@
 
 			return tagfrag;
 		},
-		create_tags_best: function (site, data) {
+		create_tags_best: function (domain, site, data) {
 			if (data.full) {
 				for (var k in data.full.tags) {
-					return UI.create_tags_full(site, data);
+					return UI.create_tags_full(domain, site, data);
 				}
 			}
-			return UI.create_tags(site, data);
+			return UI.create_tags(domain, site, data);
 		},
 		update_full: function (data) {
 			var tagfrag, nodes, link, site, tags, last, i, ii, j, jj, n, f;
@@ -1210,7 +1309,7 @@
 			ii = nodes.length;
 			if (ii === 0 || Object.keys(data.full.tags).length === 0) return;
 
-			tagfrag = UI.create_tags_full(domains.exhentai, data);
+			tagfrag = UI.create_tags_full("ehentai", domains.exhentai, data);
 
 			i = 0;
 			while (true) {
@@ -4804,8 +4903,7 @@
 			if (cl.contains(cls) !== visible) cl.toggle(cls);
 		},
 		create_gallery_nodes: function (data, theme, index, domain) {
-			var url_base = "http://" + domain_info[domain].g_domain,
-				url = url_base + "/g/" + data.gid + "/" + data.token + "/",
+			var url = Helper.Site.create_gallery_url(data, domain),
 				hl_res, n1, n2, n3, n4, n5, n6, n7, i;
 
 			n1 = $.create("div", { className: "ex-easylist-item" + theme });
@@ -4881,7 +4979,7 @@
 
 			$.add(n4, n5 = $.create("div", { className: "ex-easylist-item-upload-info" + theme }));
 			$.add(n5, $.tnode("Uploaded by "));
-			$.add(n5, n6 = $.link(url_base + "/uploader/" + data.uploader, {
+			$.add(n5, n6 = $.link(Helper.Site.create_uploader_url(data, domain), {
 				className: "ex-easylist-item-uploader" + theme,
 				textContent: data.uploader
 			}));
@@ -4908,7 +5006,7 @@
 				className: "ex-easylist-item-info" + theme,
 			}));
 
-			$.add(n5, n6 = $.link(url_base + "/" + cat[data.category].short, {
+			$.add(n5, n6 = $.link(Helper.Site.create_category_url(data, domain), {
 				className: "ex-easylist-item-info-button exlinks-btn exlinks-btn-eh exlinks-btn-" + cat[data.category].short + theme
 			}));
 			$.add(n6, $.create("div", {
@@ -4961,14 +5059,17 @@
 			return n1;
 		},
 		create_full_tags: function (domain, data, theme) {
-			var url_base = "http://" + domain,
-				n1 = $.create("div", { className: "ex-easylist-item-tag-table" + theme }),
+			var n1 = $.create("div", { className: "ex-easylist-item-tag-table" + theme }),
+				domain_type = domain_info[domain].type,
+				full_domain = domain_info[domain].g_domain,
 				namespace_style = "",
-				all_tags = { "": data.tags },
-				namespace, tags, n2, n3, n4, i, ii;
+				all_tags, namespace, tags, n2, n3, n4, i, ii;
 
 			if (API.data_has_full(data) && Object.keys(data.full.tags).length > 0) {
 				all_tags = data.full.tags;
+			}
+			else {
+				all_tags = { "": data.tags };
 			}
 
 			for (namespace in all_tags) {
@@ -5002,7 +5103,7 @@
 					$.add(n2, n3 = $.create("span", {
 						className: "ex-tag-block" + namespace_style
 					}));
-					$.add(n3, n4 = $.link(url_base + "/tag/" + tags[i].replace(/\ /g, "+"), {
+					$.add(n3, n4 = $.link(Helper.Site.create_tag_url(tags[i], domain_type, full_domain), {
 						textContent: tags[i],
 						className: "ex-tag ex-tag-color-inherit ex-easylist-item-tag"
 					}));
@@ -5300,11 +5401,11 @@
 				tags_container = $(".ex-easylist-item-tags", this),
 				gid = this.getAttribute("data-ex-gid") || "",
 				token = this.getAttribute("data-ex-token") || "",
-				domain = this.getAttribute("data-ex-site");
+				site = this.getAttribute("data-ex-site");
 
-			if (!domain) domain = domains.exhentai;
+			if (!site) site = domains.exhentai;
 
-			API.get_full_gallery_info(gid, token, domain, function (err, data) {
+			API.get_full_gallery_info(gid, token, site, function (err, data) {
 				if (err === null && tags_container !== null) {
 					var domain = node.getAttribute("data-ex-domain") || domains.exhentai,
 						n, hl_res;
