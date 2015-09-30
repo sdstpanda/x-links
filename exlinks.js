@@ -20,6 +20,32 @@
 		return fn;
 	})();
 
+	(function (debug) {
+		try {
+			if (debug) {
+				Function.prototype._w = function () {
+					var fn = this;
+					return function () {
+						try {
+							return fn.apply(this, arguments);
+						}
+						catch (e) {
+							console.log("Exception:", e);
+							throw e;
+						}
+					};
+				};
+			}
+			else {
+				Function.prototype._w = function () { return this; };
+			}
+		}
+		catch (e) {
+			console.log("Exception:", e);
+			throw e;
+		}
+	})(true);
+
 	img = {};
 	cat = {
 		"Artist CG Sets": { "short": "artistcg",  "name": "Artist CG"  },
@@ -2337,22 +2363,14 @@
 				node.removeAttribute("data-ex-linkified-status");
 			}
 			else {
-				node.classList.add("ex-linkified");
 				node.classList.add("ex-link-events");
+				node.classList.add("ex-linkified");
 				node.classList.add("ex-linkified-gallery");
-				node.setAttribute("data-ex-linkified-status", "unprocessed");
 				node.setAttribute("data-ex-link-events", "gallery_link");
-
-				if (info.type === "s") {
-					node.setAttribute("data-ex-info", JSON.stringify(info));
-					node.setAttribute("data-ex-id", info.site + "_" + info.gid);
-				}
-				else if (info.type === "g") {
-					node.setAttribute("data-ex-info", JSON.stringify(info));
-					node.setAttribute("data-ex-id", info.site + "_" + info.gid);
-				}
-
 				node.setAttribute("data-ex-linkified-status", "processed");
+
+				node.setAttribute("data-ex-info", JSON.stringify(info));
+				node.setAttribute("data-ex-id", info.site + "_" + info.gid);
 
 				button = UI.button(node.href, info.domain);
 				$.before(node, button);
