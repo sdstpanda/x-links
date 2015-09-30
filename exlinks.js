@@ -917,15 +917,15 @@
 			content = frag.firstChild;
 			tagspace = $('.ex-details-tags', frag);
 			content.style.setProperty("display", "table", "important");
-			$.add(tagspace, UI.create_tags(g_domain, data.tags, data));
+			$.add(tagspace, UI.create_tags_best(g_domain, data));
 			n = frag.firstChild;
 			Main.hovering(n);
 
 			// Full info
-			if (conf['Extended Info'] && di.type === "ehentai") {
+			if (conf['Extended Info'] && di.type === "ehentai" && !API.data_has_full(data)) {
 				API.get_full_gallery_info(data.gid, data.token, g_domain, function (err) {
 					if (err === null) {
-						UI.display_full(data);
+						UI.update_full(data);
 					}
 					else {
 						Debug.log("Error requesting full information: " + err);
@@ -941,7 +941,7 @@
 		},
 		actions: function (data, link) {
 			var fjord = regex.fjord.test(data.tags.join(',')),
-				domain, frag, n;
+				domain, button, frag, n;
 
 			domain = Helper.get_domain(link.href);
 
@@ -975,7 +975,7 @@
 			}
 
 			frag.firstChild.style.setProperty("display", conf['Show by Default'] ? "table" : "none", "important");
-			$.add($(".ex-actions-tags", frag), UI.create_tags(Config.domain(domain_info[domain].g_domain, conf['Tag Links']), data.tags, data));
+			$.add($(".ex-actions-tags", frag), UI.create_tags_best(Config.domain(domain_info[domain].g_domain, conf['Tag Links']), data));
 
 			return frag.firstChild;
 		},
@@ -1108,14 +1108,15 @@
 				pad(d.getUTCHours(), ':') +
 				pad(d.getUTCMinutes(), '');
 		},
-		create_tags: function (site, tags, data) {
+		create_tags: function (site, data) {
 			var tagfrag = d.createDocumentFragment(),
+				tags = data.tags,
+				theme = Theme.get(),
 				tag, link, i, ii;
+
 			for (i = 0, ii = tags.length; i < ii; ++i) {
-				tag = $.create("span", {
-					className: "ex-tag-block"
-				});
-				link = $.link("http://" + site + "/tag/" + tags[i].replace(/\ /g, "+"), {
+				tag = $.create("span", { className: "ex-tag-block" + theme });
+				link = $.link("http://" + site + "/tag/" + tags[i].replace(/\s+/g, "+"), {
 					textContent: tags[i],
 					className: "ex-tag"
 				});
@@ -1123,30 +1124,26 @@
 				Filter.highlight("tags", link, data, null);
 
 				$.add(tag, link);
-				if (i < ii - 1) $.add(tag, $.tnode(","));
+				$.add(tag, $.tnode(","));
 				$.add(tagfrag, tag);
 			}
+			$.remove(tagfrag.lastChild.lastChild);
+
 			return tagfrag;
 		},
-		display_full: function (data) {
+		create_tags_full: function (site, data) {
 			var tagfrag = d.createDocumentFragment(),
-				url_base = "http://" + domains.exhentai,
+				tags_ns = data.full.tags,
+				url_base = "http://" + site,
 				theme = Theme.get(),
-				nodes, namespace, namespace_style, tags, tag, link, site, i, j, n, t, ii;
+				namespace, namespace_style, tags, tag, link, i, ii;
 
-			nodes = $$(
-				".ex-actions-tags[data-ex-id='ehentai_" + data.gid + "']," +
-				".ex-details-tags[data-ex-id='ehentai_" + data.gid + "']"
-			);
-
-			if (nodes.length === 0 || Object.keys(data.full.tags).length === 0) return;
-
-			for (namespace in data.full.tags) {
-				tags = data.full.tags[namespace];
-				namespace_style = " ex-tag-namespace-" + namespace.replace(/\ /g, "-");
+			for (namespace in tags_ns) {
+				tags = tags_ns[namespace];
+				namespace_style = theme + " ex-tag-namespace-" + namespace.replace(/\s+/g, "-");
 
 				tag = $.create("span", {
-					className: "ex-tag-namespace-block" + theme + namespace_style
+					className: "ex-tag-namespace-block" + namespace_style
 				});
 				link = $.create("span", {
 					textContent: namespace,
@@ -1158,7 +1155,7 @@
 
 				for (i = 0, ii = tags.length; i < ii; ++i) {
 					tag = $.create("span", { className: "ex-tag-block" + namespace_style });
-					link = $.link(url_base + "/tag/" + tags[i].replace(/\ /g, "+"), {
+					link = $.link(url_base + "/tag/" + tags[i].replace(/\s+/g, "+"), {
 						textContent: tags[i],
 						className: "ex-tag"
 					});
@@ -1172,28 +1169,54 @@
 			}
 			$.remove(tagfrag.lastChild.lastChild);
 
-			for (i = 0; i < nodes.length; ) {
+			return tagfrag;
+		},
+		create_tags_best: function (site, data) {
+			if (data.full) {
+				for (var k in data.full.tags) {
+					return UI.create_tags_full(site, data);
+				}
+			}
+			return UI.create_tags(site, data);
+		},
+		update_full: function (data) {
+			var tagfrag, nodes, link, site, tags, last, i, ii, j, jj, n, f;
+
+			nodes = $$(
+				".ex-actions-tags[data-ex-id='ehentai_" + data.gid + "']," +
+				".ex-details-tags[data-ex-id='ehentai_" + data.gid + "']"
+			);
+
+			ii = nodes.length;
+			if (ii === 0 || Object.keys(data.full.tags).length === 0) return;
+
+			tagfrag = UI.create_tags_full(domains.exhentai, data);
+
+			i = 0;
+			while (true) {
 				n = nodes[i];
-				t = tagfrag;
-				++i;
+				f = tagfrag;
+				last = (++i >= ii);
 
 				if (
 					(link = $("a[href]", n)) !== null &&
 					!regex.site_exhentai.test(link.getAttribute("href"))
 				) {
 					site = Config.domain(Helper.get_full_domain(link.href), conf['Stats Link']);
-					t = (i < nodes.length) ? tagfrag.cloneNode(true) : tagfrag;
-					tags = $$("a[href]", t);
-					for (j = 0; j < tags.length; ++j) {
-						tags[j].setAttribute("href", tags[j].getAttribute("href").replace(regex.site_exhentai, site));
+					f = last ? tagfrag : tagfrag.cloneNode(true);
+					tags = $$("a[href]", f);
+					for (j = 0, jj = tags.length; j < jj; ++j) {
+						tags[j].href = tags[j].href.replace(regex.site_exhentai, site);
 					}
 				}
-				else if (i < nodes.length) {
-					t = tagfrag.cloneNode(true);
+				else if (!last) {
+					f = tagfrag.cloneNode(true);
 				}
 
 				n.innerHTML = "";
-				$.add(n, t);
+				$.add(n, f);
+
+				if (last) break;
 			}
 		}
 	};
