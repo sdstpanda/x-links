@@ -914,6 +914,9 @@
 			content = $.frag(UI.html.details(data, data_alt)).firstChild;
 			Theme.apply(content);
 
+			if (data.thumb && (n = $(".ex-details-thumbnail", content)) !== null) {
+				n.style.backgroundImage = "url('" + data.thumb + "')";
+			}
 			if ((n = $(".ex-details-title", content)) !== null) {
 				Filter.highlight("title", n, data, null);
 			}
@@ -4829,13 +4832,19 @@
 				className: "ex-easylist-item-image-outer" + theme
 			}));
 
-			$.add(n6, n7 = $.create("img", {
-				className: "ex-easylist-item-image" + theme,
-				src: data.thumb,
-				alt: "",
-				title: ""
-			}));
-			$.on(n7, "error", EasyList.on_thumbnail_error);
+			if (data.thumb) {
+				$.add(n6, n7 = $.create("img", {
+					className: "ex-easylist-item-image" + theme,
+					src: data.thumb,
+					alt: "",
+					title: ""
+				}));
+				$.on(n7, "error", EasyList.on_thumbnail_error);
+			}
+			else {
+				n6.style.width = "100%";
+				n6.style.height = "100%";
+			}
 
 			$.add(n6, $.create("span", {
 				className: "ex-easylist-item-image-index" + theme,
