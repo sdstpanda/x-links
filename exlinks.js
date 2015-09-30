@@ -1457,15 +1457,20 @@
 			);
 		},
 		nhentai_queue_gallery: function (gid) {
-			API.Request.get("nhentai_gallery",
+			API.Request.queue("nhentai_gallery",
 				gid,
-				function (err, full_data) {
-					console.log("nhentai data", err, full_data);
+				function (err, data) {
+					console.log("data");
+					if (err === null) {
+						Database.set("nhentai", data);
+						Linkifier.check_incomplete();
+					}
 				}
 			);
 		},
 		request: function () {
-			API.Request.trigger([ "gallery_page", "gallery" ]);
+			API.Request.trigger([ "ehentai_page", "ehentai_gallery" ]);
+			API.Request.trigger([ "nhentai_gallery" ]);
 		},
 		parse_full_info: function (html) {
 			var data = {
@@ -1510,7 +1515,131 @@
 			return data.full && data.full.version >= API.full_version;
 		},
 		nhentai_parse_info: function (html) {
-			return { error: "Could not find info" };
+			var info = $("#info", html),
+				data, nodes, tags, tag_ns, tag_ns_list, t, m, n, i, ii, j, jj;
+
+			if (info === null) {
+				return { error: "Could not find info" };
+			}
+
+			// Create data
+			data = {
+				category: "",
+				expunged: false,
+				filecount: 0,
+				filesize: -1,
+				full: {
+					version: API.full_version,
+					tags: {},
+					favorites: 0
+				},
+				gid: 0,
+				posted: 0,
+				rating: -1,
+				tags: [],
+				thumb: "",
+				title: "",
+				title_jpn: "",
+				token: null,
+				torrentcount: -1,
+				uploader: "nhentai"
+			};
+
+			// Image/gid
+			if ((n = $("#cover>a", html)) !== null) {
+				m = /\/g\/(\d+)/.exec(n.href || "");
+				if (m !== null) {
+					data.gid = parseInt(m[1], 10);
+				}
+
+				if ((n = $("img", n)) !== null) {
+					data.thumb = n.getAttribute("src") || "";
+					if (!regex.protocol.test(data.thumb)) {
+						data.thumb = "http:" + data.thumb;
+					}
+				}
+			}
+
+			// Image count
+			data.filecount = $$("#thumbnail-container>.thumb-container", html).length;
+
+			// Titles
+			if ((n = $("h1", info)) !== null) {
+				data.title = n.textContent.trim();
+			}
+			if ((n = $("h2", info)) !== null) {
+				data.title_jpn = n.textContent.trim();
+			}
+
+			// Tags
+			if ((nodes = $$(".field-name", info)).length > 0) {
+				for (i = 0, ii = nodes.length; i < ii; ++i) {
+					tag_ns = (
+						(n = nodes[i].firstChild) !== null &&
+						n.nodeType === Node.TEXT_NODE
+					) ? n.nodeValue.trim().replace(/:/, "").toLowerCase() : "";
+					if (tag_ns in data.full.tags) {
+						tag_ns_list = data.full.tags[tag_ns];
+					}
+					else {
+						tag_ns_list = [];
+						data.full.tags[tag_ns] = tag_ns_list;
+					}
+
+					tags = $$(".tag", nodes[i]);
+
+					if (tag_ns === "category") {
+						if (
+							(n = tags[0].firstChild) !== null &&
+							n.nodeType === Node.TEXT_NODE
+						) {
+							data.category = n.nodeValue.trim().replace(/\b\w/g, function (m) {
+								return m.toUpperCase();
+							});
+						}
+					}
+					else {
+						for (j = 0, jj = tags.length; j < jj; ++j) {
+							if (
+								(n = tags[j].firstChild) !== null &&
+								n.nodeType === Node.TEXT_NODE
+							) {
+								// Add tag
+								t = n.nodeValue.trim();
+								tag_ns_list.push(t);
+								data.tags.push(t);
+							}
+						}
+					}
+				}
+			}
+
+			// Date
+			if ((n = $("date[datetime]", info)) !== null) {
+				// 2014-06-28T23:16:23.847826+00:00
+				m = /^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)\.(\d{6})/i.exec(n.getAttribute("datetime") || "");
+				if (m !== null) {
+					data.posted = new Date(
+						parseInt(m[1], 10),
+						parseInt(m[2], 10) - 1,
+						parseInt(m[3], 10),
+						parseInt(m[4], 10),
+						parseInt(m[5], 10),
+						parseInt(m[6], 10),
+						Math.floor(parseInt(m[7], 10) / 1000)
+					).getTime();
+				}
+			}
+
+			// Favorite count
+			if ((n = $(".buttons>.btn.btn-primary>span>.nobold", info)) !== null) {
+				m = /\d+/.exec(n.textContent);
+				if (m !== null) {
+					data.full.favorites = parseInt(m[0], 10);
+				}
+			}
+
+			return data;
 		}
 	};
 	Cache = {
