@@ -4672,15 +4672,23 @@
 			$.add(n5, n6 = $.create("div", {
 				className: "ex-easylist-item-info-item ex-easylist-item-info-item-rating" + theme
 			}));
-			$.add(n6, $.create("div", {
+			$.add(n6, n7 = $.create("div", {
 				className: "exlinks-stars-container",
 				innerHTML: UI.html.stars(data.rating)
 			}));
-			$.add(n6, $.create("span", {
-				className: "ex-easylist-item-info-light",
-				textContent: "(Avg: " + (parseFloat(data.rating) || 0).toFixed(2) + ")"
-			}));
-
+			if (data.rating >= 0) {
+				$.add(n6, $.create("span", {
+					className: "ex-easylist-item-info-light",
+					textContent: "(Avg: " + (parseFloat(data.rating) || 0).toFixed(2) + ")"
+				}));
+			}
+			else {
+				n7.classList.add("exlinks-stars-container-na");
+				$.add(n6, $.create("span", {
+					className: "ex-easylist-item-info-light",
+					textContent: "(n/a)"
+				}));
+			}
 
 			$.add(n5, n6 = $.create("div", {
 				className: "ex-easylist-item-info-item ex-easylist-item-info-item-files" + theme
@@ -4689,12 +4697,14 @@
 			$.add(n6, $.create("span", {
 				textContent: i + " image" + (i === 1 ? "" : "s")
 			}));
-			$.add(n6, $.create("br"));
-			i = (data.filesize / 1024 / 1024).toFixed(2).replace(/\.?0+$/, "");
-			$.add(n6, $.create("span", {
-				className: "ex-easylist-item-info-light",
-				textContent: "(" + i + " MB)"
-			}));
+			if (data.filesize >= 0) {
+				$.add(n6, $.create("br"));
+				i = (data.filesize / 1024 / 1024).toFixed(2).replace(/\.?0+$/, "");
+				$.add(n6, $.create("span", {
+					className: "ex-easylist-item-info-light",
+					textContent: "(" + i + " MB)"
+				}));
+			}
 
 			// Highlight
 			hl_res = EasyList.update_filters(n1, data, true, false, true);
