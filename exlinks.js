@@ -2,7 +2,7 @@
 (function () {
 	"use strict";
 
-	var timing, fetch, domains, domain_info, options, conf, tempconf, pageconf, regex, img, cat, d, t, $, $$,
+	var timing, domains, domain_info, options, conf, tempconf, pageconf, regex, img, cat, d, t, $, $$,
 		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Options, Config, Main,
 		Helper, Nodes, HttpRequest, Linkifier, Filter, Theme, EasyList;
 
@@ -73,11 +73,6 @@
 		"nhentai.net": { tag: "n", g_domain: "nhentai.net", type: "nhentai" },
 		"hitomi.la": { tag: "Hi", g_domain: "hitomi.la", type: "hitomi" }
 	};
-	fetch = {
-		original: { value: "Original" },
-		gehentai: { value: domains.gehentai },
-		exhentai: { value: domains.exhentai }
-	};
 	options = {
 		general: {
 			'Automatic Processing':        ['checkbox', true,  'Get data and format links automatically.'],
@@ -105,7 +100,7 @@
 			'No Underline on Sauce':       ['checkbox', false,  'Force the ExSauce label to have no underline.'],
 			'Use Custom Label':            ['checkbox', false, 'Use a custom label instead of the site name (e-hentai/exhentai).'],
 			'Custom Label Text':           ['textbox', 'ExSauce', 'The custom label.'],
-			'Site to Use':                 ['saucedomain', fetch.exhentai, 'The domain to use for the reverse image search.']
+			'Lookup Domain':               ['saucedomain', domains.exhentai, 'The site to use for the reverse image search.']
 		},
 		debug: {
 			'Debug Mode':                  ['checkbox', false, 'Enable debugger and logging to browser console.'],
@@ -2528,7 +2523,7 @@
 			Sauce.similar_uploading = true;
 			HttpRequest({
 				method: "POST",
-				url: "http://" + conf["Site to Use"].value.replace(/(e.hentai)/i, "ul.$1") + "/image_lookup.php",
+				url: "http://ul." + conf["Lookup Domain"] + "/image_lookup.php",
 				data: form_data,
 				onload: function (xhr) {
 					if (xhr.status === 200) {
@@ -2664,7 +2659,7 @@
 
 			Debug.log('SHA-1 hash found');
 			a.setAttribute('data-sha1', sha1);
-			a.href = 'http://' + conf['Site to Use'].value + '/?f_doujinshi=1&f_manga=1&f_artistcg=1&f_gamecg=1&f_western=1&f_non-h=1&f_imageset=1&f_cosplay=1&f_asianporn=1&f_misc=1&f_search=Search+Keywords&f_apply=Apply+Filter&f_shash=' + sha1 + '&fs_similar=0';
+			a.href = "http://" + domain_info[conf["Lookup Domain"]].g_domain + "/?f_doujinshi=1&f_manga=1&f_artistcg=1&f_gamecg=1&f_western=1&f_non-h=1&f_imageset=1&f_cosplay=1&f_asianporn=1&f_misc=1&f_search=Search+Keywords&f_apply=Apply+Filter&f_shash=" + sha1 + "&fs_similar=0";
 			if (conf['Search Expunged'] === true) a.href += '&fs_exp=1';
 			a.target = "_blank";
 			a.rel = "noreferrer";
@@ -2721,7 +2716,7 @@
 			}
 		},
 		label: function (siteonly) {
-			var label = (conf['Site to Use'].value === domains.exhentai) ? 'ExHentai' : 'E-Hentai';
+			var label = (conf["Lookup Domain"] === domains.exhentai) ? 'ExHentai' : 'E-Hentai';
 
 			if (!siteonly) {
 				if (conf['Use Custom Label'] === true) {
@@ -3532,18 +3527,12 @@
 		on_change: function () {
 			var option = this,
 				type = option.getAttribute('type'),
-				name = option.name,
-				domain;
+				name = option.name;
 
 			if (!(name in tempconf)) return;
 
 			if (option.tagName === "SELECT") {
-				domain = {
-					"1": fetch.original,
-					"2": fetch.gehentai,
-					"3": fetch.exhentai
-				};
-				tempconf[name] = domain[option.value];
+				tempconf[name] = option.value;
 			}
 			else if (type === "checkbox") {
 				tempconf[name] = (option.checked ? true : false);
@@ -3630,8 +3619,9 @@
 						tr.innerHTML = [
 							'<td>',
 							'<select class="exlinks-options-select extheme" name="' + key + '">',
-								'<option value="2"' + (value.value === domains.gehentai ? ' selected' : '') + '>' + domains.gehentai + '</option>',
-								'<option value="3"' + (value.value === domains.exhentai ? ' selected' : '') + '>' + domains.exhentai + '</option></select>',
+								'<option value="' + domains.ehentai + '"' + (value === domains.ehentai ? ' selected' : '') + '>' + domains.gehentai + '</option>',
+								'<option value="' + domains.exhentai + '"' + (value === domains.exhentai ? ' selected' : '') + '>' + domains.exhentai + '</option>',
+							'</select>',
 							'<strong>' + key + ':</strong> ' + desc +
 							'</td>'
 						].join('');
@@ -3766,9 +3756,9 @@
 						conf[k] = Helper.json_parse_safe(temp, false);
 					}
 					else {
-						option = JSON.stringify(options[i][k][1]);
-						conf[k] = JSON.parse(option);
-						localStorage.setItem(Config.namespace + k, option);
+						option = options[i][k][1];
+						conf[k] = option;
+						localStorage.setItem(Config.namespace + k, JSON.stringify(option));
 					}
 				}
 			}
