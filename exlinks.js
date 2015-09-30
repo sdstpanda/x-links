@@ -95,10 +95,6 @@
 			'Favorite Popup':              ['checkbox', true,  'Use the default pop-up window for favorites.']
 			// 'Favorite Autosave':         ['checkbox', false, 'Autosave to favorites. Overrides normal behavior.']
 		},
-		// favorite: {
-			// 'Favorite Category':           ['favorite', 0, 'The category to use.'],
-			// 'Favorite Comment':            ['textbox', 'ExLinks is awesome', 'The comment to use.']
-		// },
 		sauce: {
 			'Inline Results':              ['checkbox', true,  'Shows the results inlined rather than opening the site. Works with Smart Links.'],
 			'Show Results by Default':     ['checkbox', true,  'Open the inline results by default.'],
@@ -110,16 +106,6 @@
 			'Use Custom Label':            ['checkbox', false, 'Use a custom label instead of the site name (e-hentai/exhentai).'],
 			'Custom Label Text':           ['textbox', 'ExSauce', 'The custom label.'],
 			'Site to Use':                 ['saucedomain', fetch.exhentai, 'The domain to use for the reverse image search.']
-		},
-		domains: {
-			'Gallery Link':                ['domain', fetch.original, 'The domain used for the actual link. Overriden by Smart Links.'],
-			'Torrent Link':                ['domain', fetch.original, 'The domain used for the torrent link in Actions.'],
-			'Hentai@Home Link':            ['domain', fetch.original, 'The domain used for the Hentai@Home link in Actions.'],
-			'Archiver Link':               ['domain', fetch.original, 'The domain used for the Archiver link in Actions.'],
-			'Uploader Link':               ['domain', fetch.original, 'The domain used for the Uploader link in Actions.'],
-			'Favorite Link':               ['domain', fetch.original, 'The domain used for the Favorite link in Actions.'],
-			'Stats Link':                  ['domain', fetch.original, 'The domain used for the Stats link in Actions.'],
-			'Tag Links':                   ['domain', fetch.original, 'The domain used for tag links in Actions.']
 		},
 		debug: {
 			'Debug Mode':                  ['checkbox', false, 'Enable debugger and logging to browser console.'],
@@ -1321,7 +1307,7 @@
 					(link = $("a[href]", n)) !== null &&
 					!regex.site_exhentai.test(link.getAttribute("href"))
 				) {
-					site = Config.domain(Helper.get_full_domain(link.href), conf['Stats Link']);
+					site = Helper.get_full_domain(link.href);
 					f = last ? tagfrag : tagfrag.cloneNode(true);
 					tags = $$("a[href]", f);
 					for (j = 0, jj = tags.length; j < jj; ++j) {
@@ -2931,18 +2917,9 @@
 			});
 		},
 		preprocess_link: function (node, auto_load) {
-			var site = conf['Gallery Link'].value,
-				site_re = new RegExp(Helper.regex_escape(site)),
-				info, button;
+			var info = Helper.get_url_info(node.href),
+				button;
 
-			if (site !== "Original") {
-				site_re = new RegExp(Helper.regex_escape(site));
-				if (!site_re.test(node.href)) {
-					node.href = node.href.replace(regex.site, site.value);
-				}
-			}
-
-			info = Helper.get_url_info(node.href);
 			if (info === null) {
 				node.classList.remove('ex-linkified-gallery');
 				node.removeAttribute("data-ex-linkified-status");
@@ -3607,7 +3584,6 @@
 			Options.gen($(".exlinks-options-table-general", overlay), options.general);
 			Options.gen($(".exlinks-options-table-actions", overlay), options.actions);
 			Options.gen($(".exlinks-options-table-sauce", overlay), options.sauce);
-			Options.gen($(".exlinks-options-table-domains", overlay), options.domains);
 			Options.gen($(".exlinks-options-table-filter", overlay), options.filter);
 			Options.gen($(".exlinks-options-table-debug", overlay), options.debug, {
 				"Clear Stored Data": [ "button", false, "Clear all stored data <em>except</em> for settings", "Clear", Options.on_data_clear ],
@@ -3649,18 +3625,6 @@
 						].join('');
 						$('input', tr).checked = value;
 						$.on($('input', tr), 'change', Options.on_change);
-					}
-					else if (type === 'domain') {
-						tr.innerHTML = [
-							'<td>',
-							'<select class="exlinks-options-select extheme" name="' + key + '">',
-								'<option value="1"' + (value.value === 'Original' ? ' selected' : '') + '>Original</option>',
-								'<option value="2"' + (value.value === domains.gehentai ? ' selected' : '') + '>' + domains.gehentai + '</option>',
-								'<option value="3"' + (value.value === domains.exhentai ? ' selected' : '') + '>' + domains.exhentai + '</option></select>',
-							'<strong>' + key + ':</strong> ' + desc +
-							'</td>'
-						].join('');
-						$.on($('select', tr), 'change', Options.on_change);
 					}
 					else if (type === 'saucedomain') {
 						tr.innerHTML = [
@@ -3767,9 +3731,6 @@
 	Config = {
 		namespace: "exlinks-settings-",
 		mode: "4chan", // foolz, fuuka, 38chan
-		domain: function (domain, opt) {
-			return (opt.value === "Original") ? domain : opt.value;
-		},
 		site: function () {
 			var site = d.URL,
 				doctype = d.doctype,
