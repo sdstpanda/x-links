@@ -561,7 +561,7 @@
 				if (m !== null) {
 					return {
 						site: "ehentai",
-						type: "g",
+						type: "gallery",
 						gid: parseInt(m[1], 10),
 						token: m[2],
 						domain: domain
@@ -572,7 +572,7 @@
 				if (m !== null) {
 					return {
 						site: "ehentai",
-						type: "s",
+						type: "page",
 						gid: parseInt(m[2], 10),
 						page: parseInt(m[3], 10),
 						page_token: m[1],
@@ -1483,7 +1483,7 @@
 		namespace: "exlinks-cache-",
 		type: window.localStorage,
 		init: function () {
-			var re_matcher = new RegExp("^" + Helper.regex_escape(Cache.namespace) + "((?:(ehentai)_)gallery|md5|sha1)-([^-]+)"),
+			var re_matcher = new RegExp("^" + Helper.regex_escape(Cache.namespace) + "((?:([en]hentai|hitomi)_)gallery|md5|sha1)-([^-]+)"),
 				removed = 0,
 				keys = [],
 				populate = conf['Populate Database on Load'],
@@ -1614,7 +1614,9 @@
 	};
 	Database = {
 		data: {
-			ehentai: {}
+			ehentai: {},
+			nhentai: {},
+			hitomi: {}
 		},
 		valid_namespace: function (namespace) {
 			return (Database.data[namespace] !== undefined);
@@ -2192,14 +2194,14 @@
 		incomplete: {
 			types: [ "ehentai" ],
 			ehentai: {
-				types: [ "s", "g" ],
-				unchecked: { s: {}, g: {} },
-				checked: { s: {}, g: {} },
+				types: [ "page", "gallery" ],
+				unchecked: { page: {}, gallery: {} },
+				checked: { page: {}, gallery: {} },
 				missing: {
-					s: function (id, info) {
+					page: function (id, info) {
 						API.queue_gallery_page(id, info.page_token, info.page);
 					},
-					g: function (id, info) {
+					gallery: function (id, info) {
 						API.queue_gallery(id, info.token);
 					}
 				}
