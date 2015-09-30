@@ -1658,9 +1658,9 @@
 		get: function (namespace, uid) { // , debug
 			// Use this if you want to break database gets randomly for debugging
 			// if (arguments[2] === true && Math.random() > 0.8) return false;
-			if(!(namespace in Database.data)){console.log("Invalid namespace", namespace);try{null.null=null;}catch(e){console.log(e.stack);}}
 			var db = Database.data[namespace],
 				data = db[uid];
+
 			if (data !== undefined) return data;
 
 			data = Cache.get(namespace + "_gallery", uid);
