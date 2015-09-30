@@ -613,6 +613,11 @@
 			var m = /^https?:\/*(?:[\w-]+\.)*([\w-]+\.[\w]+)/i.exec(url);
 			return (m === null) ? "" : m[1].toLowerCase();
 		},
+		title_case: function (text) {
+			return text.replace(/\b\w/g, function (m) {
+				return m.toUpperCase();
+			});
+		},
 		Post: (function () {
 			var specific, fns, post_selector, post_body_selector, post_parent_find, get_file_info,
 				belongs_to, body_links, file_ext, file_name;
@@ -1316,16 +1321,35 @@
 					active: false,
 					delays: { okay: 100, fail: 3000 },
 					setup: function (entries) {
-						var e = entries[0];
 						return {
 							method: "GET",
-							url: "http://" + domains.nhentai + "/g/" + e + "/",
+							url: "http://" + domains.nhentai + "/g/" + entries[0] + "/",
 						};
 					},
 					response: function (text) {
 						var html = Helper.html_parse_safe(text, null);
 						if (html !== null) {
 							return [ API.nhentai_parse_info(html) ];
+						}
+						return null;
+					}
+				},
+				hitomi_gallery: {
+					data: [],
+					callbacks: [],
+					limit: 1,
+					active: false,
+					delays: { okay: 100, fail: 3000 },
+					setup: function (entries) {
+						return {
+							method: "GET",
+							url: "https://" + domains.hitomi + "/galleries/" + entries[0] + ".html",
+						};
+					},
+					response: function (text) {
+						var html = Helper.html_parse_safe(text, null);
+						if (html !== null) {
+							return [ API.hitomi_parse_info(html) ];
 						}
 						return null;
 					}
@@ -1518,9 +1542,19 @@
 			API.Request.queue("nhentai_gallery",
 				gid,
 				function (err, data) {
-					console.log("data");
 					if (err === null) {
 						Database.set("nhentai", data);
+						Linkifier.check_incomplete();
+					}
+				}
+			);
+		},
+		hitomi_queue_gallery: function (gid) {
+			API.Request.queue("hitomi_gallery",
+				gid,
+				function (err, data) {
+					if (err === null) {
+						Database.set("hitomi", data);
 						Linkifier.check_incomplete();
 					}
 				}
@@ -1529,6 +1563,7 @@
 		request: function () {
 			API.Request.trigger([ "ehentai_page", "ehentai_gallery" ]);
 			API.Request.trigger([ "nhentai_gallery" ]);
+			API.Request.trigger([ "hitomi_gallery" ]);
 		},
 		data_has_full: function (data) {
 			return data.full && data.full.version >= API.full_version;
@@ -1580,7 +1615,6 @@
 		},
 		nhentai_parse_info: function (html) {
 			var info = $("#info", html),
-				to_upper = function (m) { return m.toUpperCase(); },
 				data, nodes, tags, tag_ns, tag_ns_list, t, m, n, i, ii, j, jj;
 
 			if (info === null) {
@@ -1654,7 +1688,7 @@
 							(n = tags[0].firstChild) !== null &&
 							n.nodeType === Node.TEXT_NODE
 						) {
-							data.category = n.nodeValue.trim().replace(/\b\w/g, to_upper);
+							data.category = Helper.title_case(n.nodeValue.trim());
 						}
 						tags = [];
 					}
@@ -1684,8 +1718,7 @@
 			}
 
 			// Date
-			if ((n = $("date[datetime]", info)) !== null) {
-				// 2014-06-28T23:16:23.847826+00:00
+			if ((n = $("time[datetime]", info)) !== null) {
 				m = /^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)\.(\d{6})/i.exec(n.getAttribute("datetime") || "");
 				if (m !== null) {
 					data.posted = new Date(
@@ -1696,7 +1729,7 @@
 						parseInt(m[5], 10),
 						parseInt(m[6], 10),
 						Math.floor(parseInt(m[7], 10) / 1000)
-					).getTime();
+					).getTime() / 1000;
 				}
 			}
 
@@ -1705,6 +1738,202 @@
 				m = /\d+/.exec(n.textContent);
 				if (m !== null) {
 					data.full.favorites = parseInt(m[0], 10);
+				}
+			}
+
+			return data;
+		},
+		hitomi_parse_info: function (html) {
+			var info = $(".content", html),
+				cellmap = {},
+				re_gender = /\s*(\u2640|\u2642)$/, // \u2640 = female, \u2642 = male
+				tags_full, tags, tag_list, info2, data, nodes, cells, t, m, n, i, ii, j;
+
+			if (
+				info === null ||
+				(info2 = $(".gallery", info)) === null
+			) {
+				return { error: "Could not find info" };
+			}
+
+			// Create data
+			tags = [];
+			tags_full = {};
+			data = {
+				category: "",
+				expunged: null,
+				filecount: 0,
+				filesize: -1,
+				full: {
+					version: API.full_version,
+					tags: tags_full,
+					favorites: -1,
+					thumb_external: ""
+				},
+				gid: 0,
+				posted: 0,
+				rating: -1,
+				tags: tags,
+				thumb: "",
+				title: "",
+				title_jpn: "",
+				token: null,
+				torrentcount: -1,
+				uploader: "hitomi.la"
+			};
+
+			// Image/gid
+			if ((n = $(".cover>a", html)) !== null) {
+				m = /\/reader\/(\d+)/.exec(n.href || "");
+				if (m !== null) {
+					data.gid = parseInt(m[1], 10);
+				}
+
+				if ((n = $("img", n)) !== null) {
+					t = n.getAttribute("src") || "";
+					if (!regex.protocol.test(t)) {
+						t = "https:" + t;
+					}
+					data.full.thumb_external = t; // no cross origin
+				}
+			}
+
+			// Image count
+			data.filecount = $$(".thumbnail-list>li", html).length;
+
+			// Title
+			if ((n = $("h1", info2)) !== null) {
+				data.title = n.textContent.trim();
+			}
+
+			// Cell info
+			cells = $$(".gallery-info>table td", info2);
+			for (i = 0; i < cells.length; i += 2) {
+				cellmap[cells[i].textContent.trim().toLowerCase()] = cells[i + 1];
+			}
+
+			// Language
+			if ((n = cellmap.language) !== undefined) {
+				t = n.textContent.trim();
+				if (t.length > 0 && t !== "N/A") {
+					tags_full.language = [ t ];
+					tags.push(t);
+				}
+			}
+
+			// Parody
+			if ((n = cellmap.series) !== undefined) {
+				t = n.textContent.trim();
+				if (t.length > 0 && t !== "N/A") {
+					tags_full.parody = [ t ];
+					tags.push(t);
+				}
+			}
+
+			// Character
+			if ((n = cellmap.characters) !== undefined) {
+				if ((nodes = $$("li>a", n)).length > 0) {
+					tag_list = [];
+
+					for (i = 0, ii = nodes.length; i < ii; ++i) {
+						t = nodes[i].textContent.trim();
+						if (t.length > 0) {
+							tag_list.push(t);
+							tags.push(t);
+						}
+					}
+
+					if (tag_list.length > 0) {
+						tags_full.character = tag_list;
+					}
+				}
+			}
+
+			// Group
+			if ((n = cellmap.group) !== undefined) {
+				t = n.textContent.trim();
+				if (t.length > 0 && t !== "N/A") {
+					tags_full.group = [ t ];
+					tags.push(t);
+				}
+			}
+
+			// Artists
+			if ((nodes = $$("h2>ul>li>a", info2)).length > 0) {
+				tag_list = [];
+
+				for (i = 0, ii = nodes.length; i < ii; ++i) {
+					t = nodes[i].textContent.trim();
+					if (t.length > 0) {
+						tag_list.push(t);
+						tags.push(t);
+					}
+				}
+
+				if (tag_list.length > 0) {
+					tags_full.artist = tag_list;
+				}
+			}
+
+			// Type
+			if ((n = cellmap.type) !== undefined) {
+				t = n.textContent.trim();
+				if (t.length > 0 && t !== "N/A") {
+					data.category = Helper.title_case(t);
+				}
+			}
+
+			// Tags
+			if ((n = cellmap.tags) !== undefined) {
+				if ((nodes = $$("li>a", n)).length > 0) {
+					tag_list = [ [], [], [] ]; // male, female, tags
+
+					for (i = 0, ii = nodes.length; i < ii; ++i) {
+						t = nodes[i].textContent.trim();
+						if (t.length > 0) {
+							if ((m = re_gender.exec(t)) === null) {
+								j = 2;
+							}
+							else if (m[1] === "\u2640") { // female
+								t = t.substr(0, m.index);
+								j = 1;
+							}
+							else { // male
+								t = t.substr(0, m.index);
+								j = 0;
+							}
+							tag_list[j].push(t);
+						}
+					}
+
+					if (tag_list[0].length > 0) {
+						Array.prototype.push.apply(tags, tag_list[0]);
+						tags_full.male = tag_list[0];
+					}
+					if (tag_list[1].length > 0) {
+						Array.prototype.push.apply(tags, tag_list[1]);
+						tags_full.female = tag_list[1];
+					}
+					if (tag_list[2].length > 0) {
+						Array.prototype.push.apply(tags, tag_list[2]);
+						tags_full.tags = tag_list[2];
+					}
+				}
+			}
+
+			// Date
+			if ((n = $(".date", info)) !== null) {
+				m = /^(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)/i.exec(n.textContent.trim());
+				if (m !== null) {
+					data.posted = new Date(
+						parseInt(m[1], 10),
+						parseInt(m[2], 10) - 1,
+						parseInt(m[3], 10),
+						parseInt(m[4], 10),
+						parseInt(m[5], 10),
+						parseInt(m[6], 10),
+						0
+					).getTime() / 1000;
 				}
 			}
 
@@ -2424,7 +2653,7 @@
 	};
 	Linkifier = {
 		incomplete: {
-			types: [ "ehentai", "nhentai" ],
+			types: [ "ehentai", "nhentai", "hitomi" ],
 			ehentai: {
 				types: [ "page", "gallery" ],
 				unchecked: { page: {}, gallery: {} },
@@ -2445,6 +2674,16 @@
 				missing: {
 					gallery: function (id) {
 						API.nhentai_queue_gallery(id);
+					}
+				}
+			},
+			hitomi: {
+				types: [ "gallery" ],
+				unchecked: { gallery: {} },
+				checked: { gallery: {} },
+				missing: {
+					gallery: function (id) {
+						API.hitomi_queue_gallery(id);
 					}
 				}
 			}
