@@ -68,10 +68,10 @@
 		hitomi: "hitomi.la"
 	};
 	domain_info = {
-		"exhentai.org": { tag: "Ex", g_domain: "exhentai.org" },
-		"e-hentai.org": { tag: "EH", g_domain: "g.e-hentai.org" },
-		"nhentai.net": { tag: "n", g_domain: "nhentai.net" },
-		"hitomi.la": { tag: "Hi", g_domain: "hitomi.la" }
+		"exhentai.org": { tag: "Ex", g_domain: "exhentai.org", type: "ehentai" },
+		"e-hentai.org": { tag: "EH", g_domain: "g.e-hentai.org", type: "ehentai" },
+		"nhentai.net": { tag: "n", g_domain: "nhentai.net", type: "nhentai" },
+		"hitomi.la": { tag: "Hi", g_domain: "hitomi.la", type: "hitomi" }
 	};
 	fetch = {
 		original: { value: "Original" },
@@ -584,7 +584,7 @@
 				m = /^\/g\/(\d+)/.exec(remaining);
 				if (m !== null) {
 					return {
-						site: "ehentai",
+						site: "nhentai",
 						type: "gallery",
 						gid: parseInt(m[1], 10),
 						domain: domain
@@ -849,6 +849,8 @@
 		},
 		details: function (data, domain) {
 			var data_alt = {},
+				di = domain_info[domain],
+				g_domain = di.g_domain,
 				frag, tagspace, content, n;
 
 			data_alt.jtitle = data.title_jpn ? ('<br /><span class="ex-details-title-jp">' + data.title_jpn + '</span>') : '';
@@ -869,13 +871,13 @@
 			content = frag.firstChild;
 			tagspace = $('.ex-details-tags', frag);
 			content.style.setProperty("display", "table", "important");
-			$.add(tagspace, UI.create_tags(domain, data.tags, data));
+			$.add(tagspace, UI.create_tags(g_domain, data.tags, data));
 			n = frag.firstChild;
 			Main.hovering(n);
 
 			// Full info
-			if (conf['Extended Info']) {
-				API.get_full_gallery_info(data.gid, data.token, domain, function (err) {
+			if (conf['Extended Info'] && di.type === "ehentai") {
+				API.get_full_gallery_info(data.gid, data.token, g_domain, function (err) {
 					if (err === null) {
 						UI.display_full(data);
 					}
@@ -992,12 +994,12 @@
 					if (
 						id === null ||
 						!Database.valid_namespace(id[0]) ||
-						(data = Database.get(id[0], id[1])) === null
+						(data = Database.get(id[0], id[1])) === null ||
+						!((domain = Helper.get_domain(this.href)) in domain_info)
 					) {
 						return;
 					}
 
-					domain = Helper.get_full_domain(this.href);
 					details = UI.details(data, domain);
 					Nodes.details[full_id] = details;
 				}
@@ -1014,12 +1016,12 @@
 					if (
 						id === null ||
 						!Database.valid_namespace(id[0]) ||
-						(data = Database.get(id[0], id[1])) === null
+						(data = Database.get(id[0], id[1])) === null ||
+						!((domain = Helper.get_domain(this.href)) in domain_info)
 					) {
 						return;
 					}
 
-					domain = Helper.get_full_domain(this.href);
 					details = UI.details(data, domain);
 					Nodes.details[full_id] = details;
 				}
@@ -1184,7 +1186,7 @@
 			var Queue, error_fn, queue_add, queue_get, trigger, perform_request, call_callbacks;
 
 			Queue = {
-				gallery: {
+				ehentai_gallery: {
 					data: [],
 					callbacks: [],
 					limit: 25,
@@ -1206,7 +1208,7 @@
 						return (response !== null && typeof(response) === "object") ? (response.gmetadata || null) : null;
 					}
 				},
-				gallery_page: {
+				ehentai_page: {
 					data: [],
 					callbacks: [],
 					limit: 25,
@@ -1228,7 +1230,7 @@
 						return (response !== null && typeof(response) === "object") ? (response.tokenlist || null) : null;
 					}
 				},
-				gallery_full: {
+				ehentai_full: {
 					data: [],
 					callbacks: [],
 					limit: 1,
@@ -1245,6 +1247,27 @@
 						var html = Helper.html_parse_safe(text, null);
 						if (html !== null) {
 							return [ API.parse_full_info(html) ];
+						}
+						return null;
+					}
+				},
+				nhentai_gallery: {
+					data: [],
+					callbacks: [],
+					limit: 1,
+					active: false,
+					delays: { okay: 100, fail: 3000 },
+					setup: function (entries) {
+						var e = entries[0];
+						return {
+							method: "GET",
+							url: "http://" + domains.nhentai + "/g/" + e + "/",
+						};
+					},
+					response: function (text) {
+						var html = Helper.html_parse_safe(text, null);
+						if (html !== null) {
+							return [ API.nhentai_parse_info(html) ];
 						}
 						return null;
 					}
@@ -1390,7 +1413,7 @@
 			};
 		})(),
 		queue_gallery: function (gid, token) {
-			API.Request.queue("gallery",
+			API.Request.queue("ehentai_gallery",
 				[ parseInt(gid, 10), token ],
 				function (err, data, last) {
 					if (err === null) {
@@ -1403,7 +1426,7 @@
 			);
 		},
 		queue_gallery_page: function (gid, page_token, page) {
-			API.Request.queue("gallery_page",
+			API.Request.queue("ehentai_page",
 				[ parseInt(gid, 10), page_token, parseInt(page, 10) ],
 				function (err, data) {
 					if (err === null) {
@@ -1412,11 +1435,8 @@
 				}
 			);
 		},
-		request: function () {
-			API.Request.trigger([ "gallery_page", "gallery" ]);
-		},
 		get_full_gallery_info: function (id, token, site, cb) {
-			API.Request.get("gallery_full",
+			API.Request.get("ehentai_full",
 				[ site, id, token ],
 				function (err, full_data) {
 					if (err === null) {
@@ -1435,6 +1455,17 @@
 					}
 				}
 			);
+		},
+		nhentai_queue_gallery: function (gid) {
+			API.Request.get("nhentai_gallery",
+				gid,
+				function (err, full_data) {
+					console.log("nhentai data", err, full_data);
+				}
+			);
+		},
+		request: function () {
+			API.Request.trigger([ "gallery_page", "gallery" ]);
 		},
 		parse_full_info: function (html) {
 			var data = {
@@ -1477,6 +1508,9 @@
 		},
 		data_has_full: function (data) {
 			return data.full && data.full.version >= API.full_version;
+		},
+		nhentai_parse_info: function (html) {
+			return { error: "Could not find info" };
 		}
 	};
 	Cache = {
@@ -2192,7 +2226,7 @@
 	};
 	Linkifier = {
 		incomplete: {
-			types: [ "ehentai" ],
+			types: [ "ehentai", "nhentai" ],
 			ehentai: {
 				types: [ "page", "gallery" ],
 				unchecked: { page: {}, gallery: {} },
@@ -2203,6 +2237,16 @@
 					},
 					gallery: function (id, info) {
 						API.queue_gallery(id, info.token);
+					}
+				}
+			},
+			nhentai: {
+				types: [ "gallery" ],
+				unchecked: { gallery: {} },
+				checked: { gallery: {} },
+				missing: {
+					gallery: function (id) {
+						API.nhentai_queue_gallery(id);
 					}
 				}
 			}
@@ -5094,7 +5138,7 @@
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
 			$.ready(Main.ready);
-		},
+		}
 	};
 
 	Main.init();
