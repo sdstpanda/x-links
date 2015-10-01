@@ -7,7 +7,16 @@ pkg      = require './package.json'
 CleanCSS = require 'clean-css'
 
 
-VERSION   = pkg.version
+CAKEFILE  = 'Cakefile'
+INFILE    = 'exlinks.js'
+ELEMENTS  = './elements'
+IMAGES    = './images'
+IMAGEJSON = 'images.json'
+STYLEFILE = 'style.css'
+OUTFILE   = 'ExLinks.user.js'
+LATEST    = 'latest.js'
+CHANGELOG = 'changelog'
+
 HEADER    =
 """
 // ==UserScript==
@@ -28,15 +37,6 @@ HEADER    =
 // ==/UserScript==
 """
 
-CAKEFILE  = 'Cakefile'
-INFILE    = 'exlinks.js'
-ELEMENTS  = './elements'
-IMAGES    = './images'
-IMAGEJSON = 'images.json'
-STYLEFILE = 'style.css'
-OUTFILE   = 'ExLinks.user.js'
-LATEST    = 'latest.js'
-CHANGELOG = 'changelog'
 
 option '-o', '--output [output]', 'Specify output location.'
 option '-u', '--uglify [uglify]', 'Minify with UglifyJS. Options: "mangle,squeeze"'
@@ -67,7 +67,7 @@ task 'build', (options) ->
 	input = input.replace /\#DETAILS\#/g, html.details
 	input = input.replace /\#ACTIONS\#/g, html.actions
 	input = input.replace /\#OPTIONS\#/g, html.options
-	input = input.replace /\#VERSION\#/g, VERSION
+	input = input.replace /\#VERSION\#/g, pkg.version
 	input = input.replace /\#HOMEPAGE\#/g, pkg.homepage
 	input = input.replace /\#ISSUES\#/g, pkg.bugs.url
 	input = input.replace /\#CHANGELOG\#/g, pkg.custom.changelog_url
@@ -134,7 +134,7 @@ task 'release', (options) ->
 	unless version
 		console.warn 'Version argument not specified. Exiting.'
 		return
-	regexp = RegExp VERSION, 'g'
+	regexp = RegExp pkg.version, 'g'
 	for file in [CAKEFILE, INFILE, OUTFILE]
 		data = fs.readFileSync file, 'utf8'
 		fs.writeFileSync file, data.replace regexp, version
