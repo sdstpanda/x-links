@@ -2,7 +2,7 @@
 (function () {
 	"use strict";
 
-	var timing, domains, domain_info, options, conf, tempconf, pageconf, regex, img, cat, d, t, $, $$,
+	var timing, domains, domain_info, options, conf, regex, img, cat, d, t, $, $$,
 		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Options, Config, Main,
 		Helper, Nodes, HttpRequest, Linkifier, Filter, Theme, EasyList;
 
@@ -146,8 +146,6 @@
 	};
 	d = document;
 	conf = {};
-	tempconf = {};
-	pageconf = {};
 
 	$ = function (selector, root) { // Inspired by 4chan X and jQuery API: https://api.jquery.com/ (functions are not chainable)
 		return (root || d).querySelector(selector);
@@ -3511,8 +3509,11 @@
 		})()
 	};
 	Options = {
+		conf: null,
 		save: function (e) {
 			e.preventDefault();
+			conf = Options.conf;
+			Options.conf = null;
 			Config.save();
 			if (Nodes.options_overlay !== null) {
 				$.remove(Nodes.options_overlay);
@@ -3522,7 +3523,7 @@
 		},
 		close: function (e) {
 			e.preventDefault();
-			tempconf = JSON.parse(JSON.stringify(pageconf));
+			Options.conf = null;
 			if (Nodes.options_overlay !== null) {
 				$.remove(Nodes.options_overlay);
 				Nodes.options_overlay = null;
@@ -3534,16 +3535,16 @@
 				type = option.getAttribute('type'),
 				name = option.name;
 
-			if (!(name in tempconf)) return;
+			if (!(name in Options.conf)) return;
 
 			if (option.tagName === "SELECT") {
-				tempconf[name] = option.value;
+				Options.conf[name] = option.value;
 			}
 			else if (type === "checkbox") {
-				tempconf[name] = (option.checked ? true : false);
+				Options.conf[name] = (option.checked ? true : false);
 			}
 			else if (type === "text" || option.tagName === "TEXTAREA") {
-				tempconf[name] = option.value;
+				Options.conf[name] = option.value;
 			}
 		},
 		on_data_clear: function (event) {
@@ -3563,7 +3564,7 @@
 				scroll_node = $(".exlinks-options-content", overlay);
 
 			// Config
-			pageconf = JSON.parse(JSON.stringify(tempconf));
+			Options.conf = JSON.parse(JSON.stringify(conf));
 
 			// Set global
 			if (Nodes.options_overlay !== null) {
@@ -3608,7 +3609,7 @@
 				for (key in obj) {
 					desc = obj[key][2];
 					type = obj[key][0];
-					value = tempconf[key];
+					value = Options.conf[key];
 					tr = $.create('tr', { className: theme.trim() });
 					if (type === 'checkbox') {
 						tr.innerHTML = [
@@ -3797,7 +3798,7 @@
 				i, k;
 			for (i in options) {
 				for (k in options[i]) {
-					storage.setItem(Config.namespace + k, JSON.stringify(tempconf[k]));
+					storage.setItem(Config.namespace + k, JSON.stringify(conf[k]));
 				}
 			}
 		},
@@ -3820,7 +3821,6 @@
 			if (/presto/i.test(navigator.userAgent)) {
 				conf.ExSauce = false;
 			}
-			tempconf = JSON.parse(JSON.stringify(conf));
 		}
 	};
 	Filter = {
