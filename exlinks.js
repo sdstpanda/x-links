@@ -96,7 +96,10 @@
 			'Show Short Results':          ['checkbox', true,  'Show gallery names when hovering over the link after lookup.'],
 			'Search Expunged':             ['checkbox', false, 'Search expunged galleries as well.'],
 			'Custom Label Text':           ['textbox', '', 'Use a custom label instead of the site name (e-hentai/exhentai).'],
-			'Lookup Domain':               ['saucedomain', domains.exhentai, 'The site to use for the reverse image search.']
+			'Lookup Domain':               ['select', domains.exhentai, 'The site to use for the reverse image search.', [
+				[ domains.gehentai, domains.ehentai ], // [ label_text, value ]
+				[ domains.exhentai, domains.exhentai ]
+			] ]
 		},
 		debug: {
 			'Debug Mode':                  ['checkbox', false, 'Enable debugger and logging to browser console.'],
@@ -105,7 +108,7 @@
 			'Populate Database on Load':   ['checkbox', false, 'Load all cached galleries to database on page load.']
 		},
 		filter: {
-			'Full Highlighting':           ['checkbox', false, 'Highlight all the text instead of just the matching portion.'],
+			'Full Highlighting':           ['checkbox', false, 'Highlight of all the text instead of just the matching portion.'],
 			'Good Tag Marker':             ['textbox', '!', 'The string to mark a good [Ex]/[EH] tag with.'],
 			'Bad Tag Marker':              ['textbox', '', 'The string to mark a bad [Ex]/[EH] tag with.'],
 			'Name Filter': ['textarea', [
@@ -3546,7 +3549,8 @@
 
 			// Create
 			var overlay = $.frag(UI.html.options()).firstChild,
-				scroll_node = $(".exlinks-options-content", overlay);
+				scroll_node = $(".exlinks-options-content", overlay),
+				theme = Theme.get();
 
 			// Config
 			Options.conf = JSON.parse(JSON.stringify(conf));
@@ -3561,11 +3565,11 @@
 			Theme.apply(overlay);
 
 			// Options
-			Options.gen($(".exlinks-options-table-general", overlay), options.general);
-			Options.gen($(".exlinks-options-table-actions", overlay), options.actions);
-			Options.gen($(".exlinks-options-table-sauce", overlay), options.sauce);
-			Options.gen($(".exlinks-options-table-filter", overlay), options.filter);
-			Options.gen($(".exlinks-options-table-debug", overlay), options.debug, {
+			Options.gen($(".exlinks-options-group-general", overlay), theme, options.general);
+			Options.gen($(".exlinks-options-group-actions", overlay), theme, options.actions);
+			Options.gen($(".exlinks-options-group-sauce", overlay), theme, options.sauce);
+			Options.gen($(".exlinks-options-group-filter", overlay), theme, options.filter);
+			Options.gen($(".exlinks-options-group-debug", overlay), theme, options.debug, {
 				"Clear Stored Data": [ "button", false, "Clear all stored data <em>except</em> for settings", "Clear", Options.on_data_clear ],
 			});
 
@@ -3574,7 +3578,8 @@
 			$.on($(".exlinks-options-button-link-cancel", overlay), "click", Options.close);
 			$.on(overlay, "click", Options.close);
 			$.on($(".exlinks-options", overlay), "click", function (event) { event.stopPropagation(); });
-			$.on($("input.exlinks-options-color-input[type=color]", overlay), 'change', Filter.settings_color_change);
+			$.on($("input.exlinks-options-color-input[type=color]", overlay), "change", Filter.settings_color_change);
+			$.on($(".exlinks-options-filter-guide-toggle", overlay), "click", Options.on_toggle_filter_guide);
 
 			// Add to body
 			$.add(d.body, overlay);
@@ -3585,72 +3590,101 @@
 				$.scroll_focus(scroll_node);
 			}
 		},
-		gen: function (target) {
-			var theme = Theme.get(),
-				desc, tr, type, value, obj, key, i, ii;
+		gen: function (container, theme) {
+			var entry, table, row, cell, label, input,
+				values, name, desc, type, value, obj, key, i, ii, j, jj, v;
 
-			for (i = 1, ii = arguments.length; i < ii; ++i) {
+			for (i = 2, ii = arguments.length; i < ii; ++i) {
 				obj = arguments[i];
 				for (key in obj) {
+					name = "exlinks-options-" + key;
 					desc = obj[key][2];
 					type = obj[key][0];
 					value = Options.conf[key];
-					tr = $.create('tr', { className: theme.trim() });
-					if (type === 'checkbox') {
-						tr.innerHTML = [
-							'<td>',
-							'<input class="exlinks-options-checkbox extheme" type="checkbox" id="' + key + '" name="' + key + '" />',
-							'<label for="' + key + '"><strong>' + key + ':</strong> ' + desc + '</label>',
-							'</td>'
-						].join('');
-						$('input', tr).checked = value;
-						$.on($('input', tr), 'change', Options.on_change);
+
+					$.add(container, entry = $.create("div", { className: "exlinks-options-entry" + theme }));
+					$.add(entry, table = $.create("div", { className: "exlinks-options-entry-table" }));
+					$.add(table, row = $.create("div", { className: "exlinks-options-entry-row" }));
+
+					$.add(row, cell = $.create("span", { className: "exlinks-options-entry-cell" }));
+					$.add(cell, label = $.create("label", { className: "exlinks-options-entry-label", htmlFor: name }));
+					label.innerHTML = "<strong>" + key + ":</strong>" + (desc.length > 0 ? " " + desc : "");
+
+					if (type === "checkbox") {
+						$.add(row, cell = $.create("span", { className: "exlinks-options-entry-cell" }));
+						$.add(cell, input = $.create("input", {
+							className: "exlinks-options-entry-input" + theme,
+							type: "checkbox",
+							id: name,
+							checked: value
+						}));
+						input.setAttribute("data-ex-setting-name", key);
+						$.on(input, "change", Options.on_change);
 					}
-					else if (type === 'saucedomain') {
-						tr.innerHTML = [
-							'<td>',
-							'<select class="exlinks-options-select extheme" name="' + key + '">',
-								'<option value="' + domains.ehentai + '"' + (value === domains.ehentai ? ' selected' : '') + '>' + domains.gehentai + '</option>',
-								'<option value="' + domains.exhentai + '"' + (value === domains.exhentai ? ' selected' : '') + '>' + domains.exhentai + '</option>',
-							'</select>',
-							'<strong>' + key + ':</strong> ' + desc +
-							'</td>'
-						].join('');
-						$.on($('select', tr), 'change', Options.on_change);
+					else if (type === "select") {
+						$.add(row, cell = $.create("span", { className: "exlinks-options-entry-cell" }));
+						$.add(cell, input = $.create("select", {
+							className: "exlinks-options-entry-input" + theme
+						}));
+						input.setAttribute("data-ex-setting-name", key);
+						$.on(input, "change", Options.on_change);
+
+						values = obj[key][3];
+						for (j = 0, jj = values.length; j < jj; ++j) {
+							v = values[j];
+							$.add(input, $.create("option", {
+								textContent: v[0],
+								value: v[1],
+								selected: (v[1] === value)
+							}));
+						}
 					}
-					else if (type === 'textbox') {
-						tr.innerHTML = [
-							'<td>',
-							'<input class="exlinks-options-textbox extheme" type="text" id="' + key + '" name="' + key + '" />',
-							'<strong>' + key + ':</strong> ' + desc +
-							'</td>'
-						].join('');
-						$('input', tr).value = value;
-						$.on($('input', tr), 'input', Options.on_change);
+					else if (type === "textbox") {
+						$.add(row, cell = $.create("span", { className: "exlinks-options-entry-cell" }));
+						$.add(cell, input = $.create("input", {
+							className: "exlinks-options-entry-input" + theme,
+							type: "text",
+							id: name,
+							value: value
+						}));
+						input.setAttribute("data-ex-setting-name", key);
+						$.on(input, "change", Options.on_change);
 					}
-					else if (type === 'textarea') {
-						tr.innerHTML = [
-							'<td>',
-							'<strong>' + key + ':</strong> ' + desc + '<br />',
-							'<textarea class="exlinks-options-textarea extheme" wrap="off" autocomplete="off" spellcheck="false" id="' + key + '" name="' + key + '"></textarea>',
-							'</td>'
-						].join('');
-						$('textarea', tr).value = value;
-						$.on($('textarea', tr), 'input', Options.on_change);
+					else if (type === "textarea") {
+						$.add(table, row = $.create("div", { className: "exlinks-options-entry-row" }));
+						$.add(row, cell = $.create("span", { className: "exlinks-options-entry-cell" }));
+						$.add(cell, input = $.create("textarea", {
+							className: "exlinks-options-entry-input exlinks-options-textarea" + theme,
+							wrap: "off",
+							spellcheck: false,
+							id: name,
+							value: value
+						}));
+						input.setAttribute("data-ex-setting-name", key);
+						$.on(input, "change", Options.on_change);
 					}
-					else if (type === 'button') {
-						tr.innerHTML = [
-							'<td>',
-							'<button class="exlinks-options-input-button extheme" id="' + key + '" name="' + key + '">' + (obj[key][3] || '') + '</button>',
-							'<strong>' + key + ':</strong> ' + desc +
-							'</td>'
-						].join('');
-						$.on($('button', tr), 'click', obj[key][4] || Options.on_change);
+					else if (type === "button") {
+						$.add(row, cell = $.create("span", { className: "exlinks-options-entry-cell" }));
+						$.add(cell, input = $.create("button", {
+							className: "exlinks-options-entry-input exlinks-options-input-button" + theme,
+							textContent: (obj[key][3] || '')
+						}));
+						input.setAttribute("data-ex-setting-name", key);
+						$.on(input, "click", obj[key][4] || Options.on_change);
 					}
-					$.add(target, tr);
-					Theme.apply(tr);
 				}
 			}
+		},
+		on_toggle_filter_guide: function (event) {
+			event.preventDefault();
+
+			try {
+				var n = this.parentNode.parentNode.parentNode.nextSibling;
+				if (n.classList.contains("exlinks-options-filter-guide")) {
+					n.classList.toggle("exlinks-options-filter-guide-visible");
+				}
+			}
+			catch (e) {}
 		},
 		init: function () {
 			var oneechan = $.id('OneeChanLink'),

@@ -15,24 +15,34 @@
 					<a class="exlinks-options-button-link-cancel" href="#">Cancel</a>
 				</div>
 			</div>
-			<a class="exlinks-options-title" href="#HOMEPAGE#" target="_blank" rel="noreferrer">ExLinks</a>
-			<span class="exlinks-options-version">#{Main.version}</span>
+			<a class="exlinks-options-title" href="#HOMEPAGE#" target="_blank" rel="noreferrer">ExLinks</a><!--
+			--><span class="exlinks-options-version">#{Main.version}</span>
 		</div>
-		<div class="exlinks-options-content">
-			<span class="exlinks-options-subtitle">General Settings</span>
-			<span class="exlinks-options-subtitle-message">Note: You must reload the page after saving for any changes to take effect.</span><br />
-			<table class="exlinks-options-table exlinks-options-table-general extheme">
-			</table>
-			<span class="exlinks-options-subtitle">Gallery Actions</span>
-			<table class="exlinks-options-table exlinks-options-table-actions extheme">
-			</table>
-			<span class="exlinks-options-subtitle">ExSauce Settings</span>
-			<table class="exlinks-options-table exlinks-options-table-sauce extheme">
-			</table>
-			<span class="exlinks-options-subtitle">Filter Settings</span>
-			<div>
-				Use <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions" target="_blank" rel="noreferrer nofollow">regular expressions</a>, one per line. <span style="opacity: 0.75;">(This is very similar to 4chan-x style filtering)</span><br />
-				Lines starting with a <code>#</code> will be ignored, along with improperly formatted regular expressions.<br />
+		<div class="exlinks-options-content"><div class="exlinks-options-content-inner">
+			<div class="exlinks-options-heading"><div>
+				<span class="exlinks-options-heading-cell exlinks-options-heading-title">General Settings</span>
+				<span class="exlinks-options-heading-cell exlinks-options-heading-subtitle">Note: you must reload the page after saving for some changes to take effect</span>
+			</div></div>
+			<div class="exlinks-options-group exlinks-options-group-general extheme"></div>
+
+			<div class="exlinks-options-heading"><div>
+				<span class="exlinks-options-heading-cell exlinks-options-heading-title">Gallery Actions</span>
+			</div></div>
+			<div class="exlinks-options-group exlinks-options-group-actions extheme"></div>
+
+			<div class="exlinks-options-heading"><div>
+				<span class="exlinks-options-heading-cell exlinks-options-heading-title">ExSauce Settings</span>
+			</div></div>
+			<div class="exlinks-options-group exlinks-options-group-sauce extheme"></div>
+
+			<div class="exlinks-options-heading"><div>
+				<span class="exlinks-options-heading-cell exlinks-options-heading-title">Filter Settings</span>
+				<span class="exlinks-options-heading-cell exlinks-options-heading-subtitle"><a class="exlinks-options-filter-guide-toggle">Click here to toggle the guide</a></span>
+			</div></div><!--
+			--><div class="exlinks-options-filter-guide exlinks-options-group extheme">
+				Lines starting with <code>/</code> will be treated as <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions" target="_blank" rel="noreferrer nofollow">regular expressions</a>. <span style="opacity: 0.75;">(This is very similar to 4chan-x style filtering)</span><br />
+				Lines starting with <code>#</code> are comments and will be ignored.<br />
+				Lines starting with neither <code>#</code> nor <code>/</code> will be treated as a case-insensitive string to match anywhere.<br />
 				For example, <code>/touhou/i</code> will highlight entries containing the string `<code>touhou</code>`, case-insensitive.<br /><br />
 				You can use these settings with each regular expression, separate them with semicolons:<br />
 				<ul>
@@ -41,11 +51,15 @@
 						For example: <code>bad:yes;</code> or <code>bad:no;</code>.
 					</li>
 					<li>
-						Only apply the selector if the category of the gallery matches one from a list.<br />
+						Only apply the filter if the category of the gallery matches one from a list.<br />
 						For example: <code>only:doujinshi,manga;</code>.
+						<div style="font-size: 0.9em; margin-top: 0.1em; opacity: 0.75;">
+							Categories:
+							<span>artistcg, asianporn, cosplay, doujinshi, gamecg, imageset, manga, misc, <span style="white-space: nowrap;">non-h</span>, private, western</span>
+						</div>
 					</li>
 					<li>
-						Only apply the selector if the category of the gallery doesn&quot;t match <strong>any</strong> from a list.<br />
+						Only apply the filter if the category of the gallery doesn&quot;t match <strong>any</strong> from a list.<br />
 						For example: <code>not:western,non-h;</code>.
 					</li>
 					<li>
@@ -62,11 +76,12 @@
 					<input type="color" value="#808080" class="exlinks-options-color-input" /><input type="text" value="#808080" class="exlinks-options-color-input" readonly="readonly" /><input type="text" value="rgba(128,128,128,1)" class="exlinks-options-color-input" readonly="readonly" />
 				</div>
 			</div>
-			<table class="exlinks-options-table exlinks-options-table-filter extheme">
-			</table>
-			<span class="exlinks-options-subtitle">Debugger Settings</span>
-			<table class="exlinks-options-table exlinks-options-table-debug extheme">
-			</table>
-		</div>
+			<div class="exlinks-options-group exlinks-options-group-filter extheme"></div>
+
+			<div class="exlinks-options-heading"><div>
+				<span class="exlinks-options-heading-cell exlinks-options-heading-title">Debugger Settings</span>
+			</div></div>
+			<div class="exlinks-options-group exlinks-options-group-debug extheme"></div>
+		</div></div>
 	</div>
 </div>
