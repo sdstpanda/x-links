@@ -13,12 +13,14 @@ HEADER    = """
 // @name           #{pkg.name}
 // @namespace      #{pkg.custom.namespace}
 // @author         #{pkg.author}
-// @version        #{VERSION}
+// @version        #{pkg.version}
 // @description    #{pkg.description}
 // @include        http://boards.4chan.org/*
 // @include        https://boards.4chan.org/*
 // @include        http://boards.38chan.net/*
 // @include        https://archive.moe/*
+// @include        http://8ch.net/*
+// @include        https://8ch.net/*
 // @updateURL      #{pkg.custom.update_url}
 // @downloadURL    #{pkg.custom.download_url}
 // @grant          GM_xmlhttpRequest

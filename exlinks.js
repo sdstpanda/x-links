@@ -698,9 +698,8 @@
 			var specific, fns, post_selector, post_body_selector, post_parent_find, get_file_info,
 				belongs_to, body_links, file_ext, file_name;
 
-			specific = function (obj) {
-				var m = Config.mode;
-				return obj[Object.prototype.hasOwnProperty.call(obj, m) ? m : ""];
+			specific = function (obj, def) {
+				return obj[Config.mode] || obj[def];
 			};
 			file_ext = function (url) {
 				var m = /\.[^\.]*$/.exec(url);
@@ -714,12 +713,12 @@
 			post_selector = {
 				"4chan": ".postContainer:not(.ex-fake-post)",
 				"foolz": "article:not(.backlink_container)",
-				"38chan": ".post:not(.ex-fake-post)"
+				"tinyboard": ".post:not(.ex-fake-post)"
 			};
 			post_body_selector = {
 				"4chan": "blockquote",
 				"foolz": ".text",
-				"38chan": ".body"
+				"tinyboard": ".body"
 			};
 			post_parent_find = {
 				"4chan": function (node) {
@@ -734,7 +733,7 @@
 					}
 					return null;
 				},
-				"38chan": function (node) {
+				"tinyboard": function (node) {
 					while ((node = node.parentNode) !== null) {
 						if (node.classList.contains("post")) return node;
 					}
@@ -747,7 +746,7 @@
 					var n = $(".file", post),
 						ft, img, a1, url, i;
 
-					if (n === null || !specific(belongs_to).call(null, n, post)) return null;
+					if (n === null || !specific(belongs_to, "").call(null, n, post)) return null;
 
 					ft = $(".fileText", n);
 					img = $("img", n);
@@ -776,7 +775,7 @@
 					var n = $(".thread_image_box", post),
 						ft, img, a1, url, i;
 
-					if (n === null || !specific(belongs_to).call(null, n, post)) return null;
+					if (n === null || !specific(belongs_to, "").call(null, n, post)) return null;
 
 					ft = $(".post_file_controls", post);
 					img = $("img", n);
@@ -801,11 +800,11 @@
 						md5: img.getAttribute("data-md5") || null
 					};
 				},
-				"38chan": function (post) {
+				"tinyboard": function (post) {
 					var img = $("img", post),
 						ft, a1, n, url, i;
 
-					if (img === null || !specific(belongs_to).call(null, img, post) || img.parentNode.tagName !== "A") return null;
+					if (img === null || !specific(belongs_to, "").call(null, img, post) || img.parentNode.tagName !== "A") return null;
 
 					n = $(".fileinfo", post);
 					if (n === null) return null;
@@ -829,7 +828,7 @@
 						url: url,
 						type: file_ext(url),
 						name: file_name(url),
-						md5: null
+						md5: img.getAttribute("data-md5") || null
 					};
 				}
 			};
@@ -848,29 +847,29 @@
 			body_links = {
 				"4chan": "a:not(.quotelink)",
 				"foolz": "a:not(.backlink)",
-				"38chan": "a:not([onclick])"
+				"tinyboard": "a:not([onclick])"
 			};
 
 			fns = {
 				get_post_container: function (node) {
-					return specific(post_parent_find).call(null, node);
+					return specific(post_parent_find, "tinyboard").call(null, node);
 				},
 				get_text_body: function (node) {
-					var selector = specific(post_body_selector);
+					var selector = specific(post_body_selector, "tinyboard");
 					return selector ? $(selector, node) : null;
 				},
 				is_post: function (node) {
-					return $.test(node, specific(post_selector));
+					return $.test(node, specific(post_selector, "tinyboard"));
 				},
 				get_all_posts: function (parent) {
-					var selector = specific(post_selector);
+					var selector = specific(post_selector, "tinyboard");
 					return selector ? $$(selector, parent) : [];
 				},
 				get_file_info: function (post) {
-					return specific(get_file_info).call(null, post);
+					return specific(get_file_info, "tinyboard").call(null, post);
 				},
 				get_body_links: function (post) {
-					var selector = specific(body_links);
+					var selector = specific(body_links, "tinyboard");
 					return selector ? $$(selector, post) : [];
 				}
 			};
@@ -3671,9 +3670,9 @@
 
 			Main["4chanX3"] = d.documentElement.classList.contains("fourchan-x");
 			conflink = $.link("#HOMEPAGE#", { title: "ExLinks Settings", className: "entry" });
-			$.on(conflink, 'click', Options.open);
+			$.on(conflink, "click", Options.open);
 
-			if (Config.mode === '4chan') {
+			if (Config.mode === "4chan") {
 				if (oneechan) {
 					$.add(d.body, conflink);
 				}
@@ -3697,25 +3696,25 @@
 					$.checked.prepend($.id('navbotright'), $.elem(arrbot));
 				}
 			}
-			else if (Config.mode === 'fuuka') {
+			else if (Config.mode === "fuuka") {
 				conflink.textContent = 'exlinks options';
 				conflink.setAttribute('style', 'cursor:pointer;text-decoration:underline;');
 				arrtop = [ $.tnode(' [ '), conflink, $.tnode(' ] ') ];
 				$.checked.add($('div'), $.elem(arrtop));
 			}
-			else if (Config.mode === 'foolz') {
+			else if (Config.mode === "foolz") {
 				conflink.textContent = 'ExLinks Options';
 				conflink.setAttribute('style', 'cursor:pointer;');
 				arrtop = [ $.tnode(' [ '), conflink, $.tnode(' ] ') ];
 				$.checked.add($('.letters'), $.elem(arrtop));
 			}
-			else if (Config.mode === '38chan') {
+			else if (Config.mode === "tinyboard") {
 				conflink.textContent = 'exlinks options';
 				conflink.setAttribute('style', 'cursor:pointer;');
 				conflink2 = conflink.cloneNode(true);
 				$.on(conflink2, 'click', Options.open);
-				arrtop = [ $.tnode('  [ '), conflink, $.tnode(' ] ') ];
-				arrbot = [ $.tnode('  [ '), conflink2, $.tnode(' ] ') ];
+				arrtop = [ $.tnode(' [ '), conflink, $.tnode(' ] ') ];
+				arrbot = [ $.tnode(' [ '), conflink2, $.tnode(' ] ') ];
 				$.checked.add($('.boardlist'), $.elem(arrtop));
 				$.checked.add($('.boardlist.bottom'), $.elem(arrbot));
 			}
@@ -3723,7 +3722,7 @@
 	};
 	Config = {
 		namespace: "exlinks-settings-",
-		mode: "4chan", // foolz, fuuka, 38chan
+		mode: "4chan", // foolz, fuuka, tinyboard
 		linkify: true,
 		site: function () {
 			var site = d.URL,
@@ -3741,8 +3740,13 @@
 				Config.mode = (/<!DOCTYPE html>/.test(type)) ? "foolz" : "fuuka";
 				Config.linkify = false;
 			}
+			else if (/8ch\.net/i.test(site)) {
+				Config.mode = "tinyboard";
+				Config.linkify = false;
+				if ($("form[name=postcontrols]") === null) return false;
+			}
 			else if (/boards\.38chan\.net/i.test(site)) {
-				Config.mode = "38chan";
+				Config.mode = "tinyboard";
 				Config.linkify = false;
 			}
 
@@ -4547,15 +4551,20 @@
 				navlinks, navlink, is_desktop, link_mod,
 				n1, n2, i, ii;
 
-			if (Config.mode === '4chan') {
+			if (Config.mode === "4chan") {
 				navlinks = $$(".navLinks");
 				is_desktop = function (node) { return node.classList.contains("desktop"); };
 				link_mod = function (text) { return text; };
 			}
-			else if (Config.mode === 'foolz') {
+			else if (Config.mode === "foolz") {
 				navlinks = $$(".letters");
 				is_desktop = function () { return true; };
 				link_mod = function (text) { return " " + text + " "; };
+			}
+			else if (Config.mode === "tinyboard") {
+				navlinks = $$(".boardlist");
+				is_desktop = function () { return true; };
+				link_mod = function (text) { return " " + text.toLowerCase() + " "; };
 			}
 			else {
 				navlinks = [];
