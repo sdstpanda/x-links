@@ -975,6 +975,75 @@
 				return str;
 			}
 		},
+		events: {
+			mouseover: function () {
+				var full_id = Helper.get_id_from_node_full(this),
+					details = Nodes.details[full_id],
+					domain, data, id;
+
+				if (details === undefined) {
+					id = Helper.get_id_from_node(this);
+					if (
+						id === null ||
+						!Database.valid_namespace(id[0]) ||
+						(data = Database.get(id[0], id[1])) === null ||
+						!((domain = Helper.get_domain(this.href)) in domain_info)
+					) {
+						return;
+					}
+
+					details = UI.details(data, domain);
+					Nodes.details[full_id] = details;
+				}
+
+				details.classList.remove("ex-details-hidden");
+			},
+			mouseout: function () {
+				var full_id = Helper.get_id_from_node_full(this),
+					details = Nodes.details[full_id],
+					domain, data, id;
+
+				if (details === undefined) {
+					id = Helper.get_id_from_node(this);
+					if (
+						id === null ||
+						!Database.valid_namespace(id[0]) ||
+						(data = Database.get(id[0], id[1])) === null ||
+						!((domain = Helper.get_domain(this.href)) in domain_info)
+					) {
+						return;
+					}
+
+					details = UI.details(data, domain);
+					Nodes.details[full_id] = details;
+				}
+
+				details.classList.add("ex-details-hidden");
+			},
+			mousemove: function (event) {
+				var details = Nodes.details[Helper.get_id_from_node_full(this)];
+
+				if (details === undefined) return;
+
+				var w = window,
+					de = d.documentElement,
+					x = event.clientX,
+					y = event.clientY,
+					win_width = (de.clientWidth || w.innerWidth || 0),
+					win_height = (de.clientHeight || w.innerHeight || 0),
+					rect = details.getBoundingClientRect(),
+					link_rect = this.getBoundingClientRect(),
+					is_low = (link_rect.y + link_rect.height / 2 >= win_height / 2), // (y >= win_height / 2)
+					offset = 20;
+
+				x -= rect.width * 0.25;
+				x = Math.max(1, Math.min(win_width - rect.width - 1, x));
+				y += is_low ? -(rect.height + offset) : offset;
+
+				details.style.left = x + "px";
+				details.style.top = y + "px";
+			}
+		},
 		details: function (data, domain) {
 			var data_alt = {},
 				di = domain_info[domain],
@@ -1097,75 +1166,6 @@
 					actions.classList.toggle("ex-actions-hidden");
 				}
 				event.preventDefault();
-			}
-		},
-		events: {
-			mouseover: function () {
-				var full_id = Helper.get_id_from_node_full(this),
-					details = Nodes.details[full_id],
-					domain, data, id;
-
-				if (details === undefined) {
-					id = Helper.get_id_from_node(this);
-					if (
-						id === null ||
-						!Database.valid_namespace(id[0]) ||
-						(data = Database.get(id[0], id[1])) === null ||
-						!((domain = Helper.get_domain(this.href)) in domain_info)
-					) {
-						return;
-					}
-
-					details = UI.details(data, domain);
-					Nodes.details[full_id] = details;
-				}
-
-				details.classList.remove("ex-details-hidden");
-			},
-			mouseout: function () {
-				var full_id = Helper.get_id_from_node_full(this),
-					details = Nodes.details[full_id],
-					domain, data, id;
-
-				if (details === undefined) {
-					id = Helper.get_id_from_node(this);
-					if (
-						id === null ||
-						!Database.valid_namespace(id[0]) ||
-						(data = Database.get(id[0], id[1])) === null ||
-						!((domain = Helper.get_domain(this.href)) in domain_info)
-					) {
-						return;
-					}
-
-					details = UI.details(data, domain);
-					Nodes.details[full_id] = details;
-				}
-
-				details.classList.add("ex-details-hidden");
-			},
-			mousemove: function (event) {
-				var details = Nodes.details[Helper.get_id_from_node_full(this)];
-
-				if (details === undefined) return;
-
-				var w = window,
-					de = d.documentElement,
-					x = event.clientX,
-					y = event.clientY,
-					win_width = (de.clientWidth || w.innerWidth || 0),
-					win_height = (de.clientHeight || w.innerHeight || 0),
-					rect = details.getBoundingClientRect(),
-					link_rect = this.getBoundingClientRect(),
-					is_low = (link_rect.y + link_rect.height / 2 >= win_height / 2), // (y >= win_height / 2)
-					offset = 20;
-
-				x -= rect.width * 0.25;
-				x = Math.max(1, Math.min(win_width - rect.width - 1, x));
-				y += is_low ? -(rect.height + offset) : offset;
-
-				details.style.left = x + "px";
-				details.style.top = y + "px";
 			}
 		},
 		popup: function (event) {
