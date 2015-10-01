@@ -712,6 +712,16 @@ button.exlinks-options-entry-input {
 	line-height: 1.3em !important;
 }
 
+select.exlinks-options-entry-input {
+	width: auto;
+	height: auto;
+}
+
+label.exlinks-options-entry-label {
+	cursor: pointer;
+	margin-bottom: 0;
+}
+
 .exlinks-options-filter-guide-toggle {
 	cursor: pointer;
 }
@@ -733,9 +743,6 @@ button.exlinks-options-entry-input {
 .exlinks-options code {
 	color: #000;
 	background-color: #fff;
-}
-.exlinks-options label {
-	cursor: pointer;
 }
 
 .exlinks-options-color-input {
