@@ -111,21 +111,17 @@
 			'Full Highlighting':           ['checkbox', false, 'Highlight of all the text instead of just the matching portion.'],
 			'Good Tag Marker':             ['textbox', '!', 'The string to mark a good [Ex]/[EH] tag with.'],
 			'Bad Tag Marker':              ['textbox', '', 'The string to mark a bad [Ex]/[EH] tag with.'],
-			'Name Filter': ['textarea', [
-				'# Highlight all doujinshi and manga galleries with (C82) in the name:',
-				'# /\\(C82\\)/i;only:doujinshi,manga;link-color:red;color:#FF0000'
-			].join('\n'), ''],
-			'Tag Filter': ['textarea', [
+			'Filters': ['textarea', [
+				'# Highlight all doujinshi and manga galleries with (C88) in the name:',
+				'# /\\(C88\\)/i;only:doujinshi,manga;link-color:red;color:#FF0000;title',
 				'# Highlight "english" and "translated" tags in non-western non-non-h galleries:',
-				'# /english|translated/;not:western,non-h;color:#4080f0;link-color:#4080f0;',
+				'# /english|translated/i;not:western,non-h;color:#4080F0;link-color:#4080F0;tag',
 				'# Highlight galleries tagged with "touhou project":',
-				'# /touhou project/;background:rgba(255,128,64,0.5);link-background:rgba(255,128,64,0.5);'
-			].join('\n'), ''],
-			'Uploader Filter': ['textarea', [
+				'# /touhou project/i;background:rgba(255,128,64,0.5);link-background:rgba(255,128,64,0.5);tag;title',
 				'# Highlight links for galleries uploaded by "ExUploader"',
-				'# /ExUploader/i;color:#FFFFFF;link-color:#FFFFFF;',
+				'# /ExUploader/i;color:#FFFFFF;link-color:#FFFFFF;uploader',
 				'# Don\'t highlight anything uploaded by "CGrascal"',
-				'# /CGrascal/i;bad:yes'
+				'# /CGrascal/i;bad:yes;uploader'
 			].join('\n'), '']
 		}
 	};
@@ -3520,8 +3516,8 @@
 		},
 		on_change: function () {
 			var option = this,
-				type = option.getAttribute('type'),
-				name = option.name;
+				type = option.getAttribute("type"),
+				name = option.getAttribute("data-ex-setting-name");
 
 			if (!(name in Options.conf)) return;
 
@@ -3853,9 +3849,7 @@
 		}
 	};
 	Filter = {
-		title: null,
-		tags: null,
-		uploader: null,
+		filters: null,
 		None: 0,
 		Bad: -1,
 		Good: 1,
@@ -3874,9 +3868,8 @@
 			this.bad = false;
 		},
 		init: function () {
-			Filter.title = Filter.parse(conf['Name Filter']);
-			Filter.tags = Filter.parse(conf['Tag Filter']);
-			Filter.uploader = Filter.parse(conf['Uploader Filter']);
+			Filter.filters = Filter.parse(conf.Filters);
+			console.log(Filter.filters);
 		},
 		genregex: function (pattern, flags) {
 			if (flags.indexOf("g") < 0) {
@@ -3956,49 +3949,59 @@
 			return Filter.normalize_flags(flags);
 		},
 		normalize_flags: function (flags) {
-			var norm = {}, any = false;
+			var any = false,
+				good = [ "", "true", "yes" ],
+				norm = {
+					title: true,
+					tags: true,
+					uploader: false,
+				},
+				v;
 
-			if (flags.only) {
-				norm.only = Filter.normalize_split(flags.only);
+			if (flags.title !== undefined || flags.tags !== undefined || flags.tag !== undefined || flags.uploader !== undefined) {
+				norm.title = ((v = flags.title) === undefined ? false : good.indexOf(v.trim().toLowerCase()) >= 0);
+				norm.tags = ((v = flags.tags) === undefined && (v = flags.tag) === undefined ? false : good.indexOf(v.trim().toLowerCase()) >= 0);
+				norm.uploader = ((v = flags.uploader) === undefined ? false : good.indexOf(v.trim().toLowerCase()) >= 0);
 				any = true;
 			}
-			if (flags.not) {
-				norm.not = Filter.normalize_split(flags.not);
+
+			if ((v = flags.only) !== undefined && v.length > 0) {
+				norm.only = Filter.normalize_split(v);
 				any = true;
 			}
-			if ("bad" in flags && ([ "", "true", "yes" ].indexOf(flags.bad.trim().toLowerCase()) >= 0)) {
+			if ((v = flags.not) !== undefined && v.length > 0) {
+				norm.not = Filter.normalize_split(v);
+				any = true;
+			}
+			if ((v = flags.bad) !== undefined && (good.indexOf(v.trim().toLowerCase()) >= 0)) {
 				norm.bad = true;
 				any = true;
 			}
-			if ("color" in flags) {
-				norm.color = flags.color.trim();
+			if ((v = flags.color) !== undefined) {
+				norm.color = v.trim();
 				any = true;
 			}
-			if ("background" in flags) {
-				norm.background = flags.background.trim();
+			if ((v = flags.background) !== undefined) {
+				norm.background = v.trim();
 				any = true;
 			}
-			if ("underline" in flags) {
-				norm.underline = flags.underline.trim();
+			if ((v = flags.underline) !== undefined) {
+				norm.underline = v.trim();
 				any = true;
 			}
-			if ("link-color" in flags) {
+			if ((v = flags["link-color"]) !== undefined) {
 				norm.link = {};
-				norm.link.color = flags["link-color"].trim();
+				norm.link.color = v.trim();
 				any = true;
 			}
-			if ("link-background" in flags) {
-				if (!norm.link) {
-					norm.link = {};
-				}
-				norm.link.background = flags["link-background"].trim();
+			if ((v = flags["link-background"]) !== undefined) {
+				if (norm.link === undefined) norm.link = {};
+				norm.link.background = v.trim();
 				any = true;
 			}
-			if ("link-underline" in flags) {
-				if (!norm.link) {
-					norm.link = {};
-				}
-				norm.link.underline = flags["link-underline"].trim();
+			if ((v = flags["link-underline"]) !== undefined) {
+				if (norm.link === undefined) norm.link = {};
+				norm.link.underline = v.trim();
 				any = true;
 			}
 
@@ -4124,12 +4127,13 @@
 				++i;
 			}
 		},
-		check_multiple: function (text, filters, data) {
+		check_multiple: function (type, text, filters, data) {
 			var info = new Filter.MatchInfo(),
 				filter, match, i;
 
 			for (i = 0; i < filters.length; ++i) {
 				filter = filters[i];
+				if (filter.flags[type] !== true) continue;
 				filter.regex.lastIndex = 0;
 				while (true) {
 					match = Filter.check_single(text, filter, data);
@@ -4178,15 +4182,13 @@
 			return (m === null) ? false : new Filter.Segment(m.index, m.index + m[0].length, filter.flags);
 		},
 		check: function (titlenode, data, extras) {
-			if (Filter.title === null) return [ Filter.None, null ];
+			if (Filter.filters === null) return [ Filter.None, null ];
 
-			var filter_uploader = Filter.uploader,
-				filter_tags = Filter.tags,
+			var filters = Filter.filters,
 				status, str, tags, result, i, info;
 
 			if (extras && extras.length > 0) {
-				filter_uploader = filter_uploader.concat(extras);
-				filter_tags = filter_tags.concat(extras);
+				filters = filters.concat(extras);
 			}
 
 			result = {
@@ -4198,11 +4200,11 @@
 			// Title
 			status = Filter.highlight("title", titlenode, data, result.title, extras);
 
-			// Uploader
-			if (Filter.uploader.length > 0) {
+			if (filters.length > 0) {
+				// Uploader
 				if ((str = data.uploader)) {
 					str = Helper.normalize_api_string(str);
-					info = Filter.check_multiple(str, filter_uploader, data);
+					info = Filter.check_multiple("uploader", str, filters, data);
 					if (info.any) {
 						Filter.append_match_datas(info, result.uploader);
 						if (info.bad) {
@@ -4213,13 +4215,11 @@
 						}
 					}
 				}
-			}
 
-			// Tags
-			if (Filter.tags.length > 0) {
+				// Tags
 				if ((tags = data.tags) && tags.length > 0) {
 					for (i = 0; i < tags.length; ++i) {
-						info = Filter.check_multiple(tags[i], filter_tags, data);
+						info = Filter.check_multiple("tags", tags[i], filters, data);
 						if (info.any) {
 							Filter.append_match_datas(info, result.tags);
 							if (info.bad) {
@@ -4245,13 +4245,13 @@
 
 			return [ status , (status === Filter.None ? null : result) ];
 		},
-		highlight: function (mode, node, data, results, extras) {
-			if (Filter.title === null) {
+		highlight: function (type, node, data, results, extras) {
+			if (Filter.filters === null) {
 				Filter.init();
 			}
 
 			var no_extras = true,
-				filters = Filter[mode],
+				filters = Filter.filters,
 				info, matches, text, frag, segment, cache, c, i, t, n1, n2;
 
 			if (extras && extras.length > 0) {
@@ -4264,7 +4264,7 @@
 
 			// Cache for tags
 			text = node.textContent;
-			if (no_extras && (cache = Filter.cache[mode]) !== undefined && (c = cache[text]) !== undefined) {
+			if (no_extras && (cache = Filter.cache[type]) !== undefined && (c = cache[text]) !== undefined) {
 				if (c === null) {
 					return Filter.None;
 				}
@@ -4284,7 +4284,7 @@
 			}
 
 			// Check filters
-			info = Filter.check_multiple(text, filters, data);
+			info = Filter.check_multiple(type, text, filters, data);
 			if (!info.any) {
 				if (cache !== undefined) {
 					cache[text] = null;
