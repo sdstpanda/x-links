@@ -256,12 +256,19 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 
 /* Actions */
 .ex-actions {
+	display: table;
 	max-width: 100%;
 	width: auto;
 	padding: 4px;
 	margin: 3px 0;
 	border-radius: 4px;
-	background-color: rgba(0,0,0,0.05) !important;
+	background-color: rgba(0,0,0,0.05);
+}
+.ex-actions.ex-actions-hidden {
+	display: none;
+}
+.ex-actions.extheme-dark {
+	background-color: rgba(255,255,255,0.05);
 }
 
 .ex-actions-table {

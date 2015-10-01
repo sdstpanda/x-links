@@ -913,7 +913,7 @@
 					domain_type = domain_info[domain].type,
 					url, src;
 
-				src = '<div class="ex-actions exlinks-gid exlinks-token" data-ex-id="' + domain_type + '_' + gid + '">';
+				src = '<div class="ex-actions ex-actions-hidden exlinks-gid exlinks-token' + Theme.get() + '" data-ex-id="' + domain_type + '_' + gid + '">';
 				src += '<table class="ex-actions-table"><tbody>';
 				src += '<tr><td style="vertical-align: top;">';
 				src += '<span>' + data.category + '</span>';
@@ -1039,7 +1039,7 @@
 		},
 		actions: function (data, link) {
 			var fjord = regex.fjord.test(data.tags.join(',')),
-				domain, button, frag, di, n;
+				domain, button, container, di, n;
 
 			domain = Helper.get_domain(link.href);
 
@@ -1068,16 +1068,16 @@
 
 			di = domain_info[domain];
 
-			frag = $.frag(UI.html.actions(data, domain));
+			container = $.frag(UI.html.actions(data, domain)).firstChild;
 
-			if ((n = $(".ex-actions-link-uploader", frag)) !== null) {
+			if ((n = $(".ex-actions-link-uploader", container)) !== null) {
 				Filter.highlight("uploader", n, data, null);
 			}
 
-			frag.firstChild.style.setProperty("display", conf['Show by Default'] ? "table" : "none", "important");
-			$.add($(".ex-actions-tags", frag), UI.create_tags_best(di.type, di.g_domain, data));
+			if (conf['Show by Default']) container.classList.remove("ex-actions-hidden");
+			$.add($(".ex-actions-tags", container), UI.create_tags_best(di.type, di.g_domain, data));
 
-			return frag.firstChild;
+			return container;
 		},
 		button: function (url, domain) {
 			var button = $.link(url, {
@@ -1095,7 +1095,7 @@
 			if (!event.which || event.which === 1) {
 				var actions = Helper.get_actions_from_link(this, true);
 				if (actions !== null) {
-					actions.style.display = (actions.style.display === "none") ? "table" : "none";
+					actions.classList.toggle("ex-actions-hidden");
 				}
 				event.preventDefault();
 			}
