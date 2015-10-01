@@ -3541,7 +3541,7 @@
 				$.remove(Nodes.options_overlay);
 				Nodes.options_overlay = null;
 			}
-			d.documentElement.classList.remove("exlinks-options-overlaying");
+			d.documentElement.classList.remove("ex-settings-overlaying");
 		},
 		close: function (e) {
 			e.preventDefault();
@@ -3550,7 +3550,7 @@
 				$.remove(Nodes.options_overlay);
 				Nodes.options_overlay = null;
 			}
-			d.documentElement.classList.remove("exlinks-options-overlaying");
+			d.documentElement.classList.remove("ex-settings-overlaying");
 		},
 		on_change: function () {
 			var option = this,
@@ -3583,7 +3583,7 @@
 
 			// Create
 			var overlay = $.frag(UI.html.options()).firstChild,
-				scroll_node = $(".exlinks-options-content", overlay),
+				scroll_node = $(".ex-settings-content", overlay),
 				theme = Theme.get();
 
 			// Config
@@ -3599,25 +3599,25 @@
 			Theme.apply(overlay);
 
 			// Options
-			Options.gen($(".exlinks-options-group-general", overlay), theme, options.general);
-			Options.gen($(".exlinks-options-group-actions", overlay), theme, options.actions);
-			Options.gen($(".exlinks-options-group-sauce", overlay), theme, options.sauce);
-			Options.gen($(".exlinks-options-group-filter", overlay), theme, options.filter);
-			Options.gen($(".exlinks-options-group-debug", overlay), theme, options.debug, {
+			Options.gen($(".ex-settings-group-general", overlay), theme, options.general);
+			Options.gen($(".ex-settings-group-actions", overlay), theme, options.actions);
+			Options.gen($(".ex-settings-group-sauce", overlay), theme, options.sauce);
+			Options.gen($(".ex-settings-group-filter", overlay), theme, options.filter);
+			Options.gen($(".ex-settings-group-debug", overlay), theme, options.debug, {
 				"Clear Stored Data": [ "button", false, "Clear all stored data <em>except</em> for settings", "Clear", Options.on_data_clear ],
 			});
 
 			// Events
-			$.on($(".exlinks-options-button-link-save", overlay), "click", Options.save);
-			$.on($(".exlinks-options-button-link-cancel", overlay), "click", Options.close);
+			$.on($(".ex-settings-button-link-save", overlay), "click", Options.save);
+			$.on($(".ex-settings-button-link-cancel", overlay), "click", Options.close);
 			$.on(overlay, "click", Options.close);
-			$.on($(".exlinks-options", overlay), "click", function (event) { event.stopPropagation(); });
-			$.on($("input.exlinks-options-color-input[type=color]", overlay), "change", Filter.settings_color_change);
-			$.on($(".exlinks-options-filter-guide-toggle", overlay), "click", Options.on_toggle_filter_guide);
+			$.on($(".ex-settings", overlay), "click", function (event) { event.stopPropagation(); });
+			$.on($("input.ex-settings-color-input[type=color]", overlay), "change", Filter.settings_color_change);
+			$.on($(".ex-settings-filter-guide-toggle", overlay), "click", Options.on_toggle_filter_guide);
 
 			// Add to body
 			$.add(d.body, overlay);
-			d.documentElement.classList.add("exlinks-options-overlaying");
+			d.documentElement.classList.add("ex-settings-overlaying");
 
 			// Focus
 			if (scroll_node !== null) {
@@ -3631,23 +3631,23 @@
 			for (i = 2, ii = arguments.length; i < ii; ++i) {
 				obj = arguments[i];
 				for (key in obj) {
-					name = "exlinks-options-" + key;
+					name = "ex-settings-" + key;
 					desc = obj[key][2];
 					type = obj[key][0];
 					value = Options.conf[key];
 
-					$.add(container, entry = $.create("div", { className: "exlinks-options-entry" + theme }));
-					$.add(entry, table = $.create("div", { className: "exlinks-options-entry-table" }));
-					$.add(table, row = $.create("div", { className: "exlinks-options-entry-row" }));
+					$.add(container, entry = $.create("div", { className: "ex-settings-entry" + theme }));
+					$.add(entry, table = $.create("div", { className: "ex-settings-entry-table" }));
+					$.add(table, row = $.create("div", { className: "ex-settings-entry-row" }));
 
-					$.add(row, cell = $.create("span", { className: "exlinks-options-entry-cell" }));
-					$.add(cell, label = $.create("label", { className: "exlinks-options-entry-label", htmlFor: name }));
+					$.add(row, cell = $.create("span", { className: "ex-settings-entry-cell" }));
+					$.add(cell, label = $.create("label", { className: "ex-settings-entry-label", htmlFor: name }));
 					label.innerHTML = "<strong>" + key + ":</strong>" + (desc.length > 0 ? " " + desc : "");
 
 					if (type === "checkbox") {
-						$.add(row, cell = $.create("span", { className: "exlinks-options-entry-cell" }));
+						$.add(row, cell = $.create("span", { className: "ex-settings-entry-cell" }));
 						$.add(cell, input = $.create("input", {
-							className: "exlinks-options-entry-input" + theme,
+							className: "ex-settings-entry-input" + theme,
 							type: "checkbox",
 							id: name,
 							checked: value
@@ -3656,9 +3656,9 @@
 						$.on(input, "change", Options.on_change);
 					}
 					else if (type === "select") {
-						$.add(row, cell = $.create("span", { className: "exlinks-options-entry-cell" }));
+						$.add(row, cell = $.create("span", { className: "ex-settings-entry-cell" }));
 						$.add(cell, input = $.create("select", {
-							className: "exlinks-options-entry-input" + theme
+							className: "ex-settings-entry-input" + theme
 						}));
 						input.setAttribute("data-ex-setting-name", key);
 						$.on(input, "change", Options.on_change);
@@ -3674,9 +3674,9 @@
 						}
 					}
 					else if (type === "textbox") {
-						$.add(row, cell = $.create("span", { className: "exlinks-options-entry-cell" }));
+						$.add(row, cell = $.create("span", { className: "ex-settings-entry-cell" }));
 						$.add(cell, input = $.create("input", {
-							className: "exlinks-options-entry-input" + theme,
+							className: "ex-settings-entry-input" + theme,
 							type: "text",
 							id: name,
 							value: value
@@ -3685,10 +3685,10 @@
 						$.on(input, "change", Options.on_change);
 					}
 					else if (type === "textarea") {
-						$.add(table, row = $.create("div", { className: "exlinks-options-entry-row" }));
-						$.add(row, cell = $.create("span", { className: "exlinks-options-entry-cell" }));
+						$.add(table, row = $.create("div", { className: "ex-settings-entry-row" }));
+						$.add(row, cell = $.create("span", { className: "ex-settings-entry-cell" }));
 						$.add(cell, input = $.create("textarea", {
-							className: "exlinks-options-entry-input" + theme,
+							className: "ex-settings-entry-input" + theme,
 							wrap: "off",
 							spellcheck: false,
 							id: name,
@@ -3698,9 +3698,9 @@
 						$.on(input, "change", Options.on_change);
 					}
 					else if (type === "button") {
-						$.add(row, cell = $.create("span", { className: "exlinks-options-entry-cell" }));
+						$.add(row, cell = $.create("span", { className: "ex-settings-entry-cell" }));
 						$.add(cell, input = $.create("button", {
-							className: "exlinks-options-entry-input" + theme,
+							className: "ex-settings-entry-input" + theme,
 							textContent: (obj[key][3] || '')
 						}));
 						input.setAttribute("data-ex-setting-name", key);
@@ -3714,8 +3714,8 @@
 
 			try {
 				var n = this.parentNode.parentNode.parentNode.nextSibling;
-				if (n.classList.contains("exlinks-options-filter-guide")) {
-					n.classList.toggle("exlinks-options-filter-guide-visible");
+				if (n.classList.contains("ex-settings-filter-guide")) {
+					n.classList.toggle("ex-settings-filter-guide-visible");
 				}
 			}
 			catch (e) {}

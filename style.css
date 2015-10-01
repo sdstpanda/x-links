@@ -543,13 +543,13 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 }
 
 /* Options */
-:root.exlinks-options-overlaying,
-:root.exlinks-options-overlaying body {
+:root.ex-settings-overlaying,
+:root.ex-settings-overlaying body {
 	overflow-x: hidden !important;
 	overflow-y: hidden !important;
 }
 
-.exlinks-options-overlay {
+.ex-settings-overlay {
 	position: fixed;
 	width: 100%;
 	height: 100%;
@@ -560,7 +560,7 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 	z-index: 1000;
 }
 
-.exlinks-options {
+.ex-settings {
 	display: block !important;
 	font-family: sans-serif;
 	position: fixed !important;
@@ -576,60 +576,60 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 	padding-bottom: 64px !important;
 }
 
-.exlinks-options-button {
+.ex-settings-button {
 	margin: 0.25em 0.125em;
 	display: inline-block !important;
 	padding: 0.25em;
 	background: rgba(0,0,0,0.05);
 	border-radius: 0.2em;
 }
-.exlinks-options-button.extheme-dark {
+.ex-settings-button.extheme-dark {
 	background: rgba(255,255,255,0.05);
 }
 
-.exlinks-options-title {
+.ex-settings-title {
 	font-size: 2.0em !important;
 	font-weight: bold !important;
 	text-decoration: none !important;
 }
-.exlinks-options-version {
+.ex-settings-version {
 	margin: 0 4px;
 	opacity: 0.9;
 	vertical-align: 75%;
 	text-decoration: none !important;
 }
 
-.exlinks-options-content {
+.ex-settings-content {
 	overflow-y: scroll;
 	text-align: left;
 	height: 100%;
 	margin-top: 1.125em;
 }
-.exlinks-options-content-inner {
+.ex-settings-content-inner {
 	padding: 0.375em;
 }
-.exlinks-options-nav {
+.ex-settings-nav {
 	text-align: left !important;
 }
-.exlinks-options-nav>div:first-of-type {
+.ex-settings-nav>div:first-of-type {
 	float: right;
 }
 
-.exlinks-options-heading {
+.ex-settings-heading {
 	display: table;
 	width: 100%;
 	padding: 0.25em 0;
 }
-.exlinks-options-heading>div {
+.ex-settings-heading>div {
 	display: table-row;
 	height: 100%;
 }
-.exlinks-options-heading-cell {
+.ex-settings-heading-cell {
 	display: table-cell;
 	height: 100%;
 	width: 100%;
 }
-.exlinks-options-heading-title {
+.ex-settings-heading-title {
 	vertical-align: top;
 	text-align: left;
 	font-size: 1.5em;
@@ -638,76 +638,76 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 	white-space: nowrap;
 	width: 0;
 }
-.exlinks-options-heading-subtitle {
+.ex-settings-heading-subtitle {
 	vertical-align: bottom;
 	text-align: right;
 	padding-left: 0.5em;
 	opacity: 0.6;
 }
 
-.exlinks-options-group {
+.ex-settings-group {
 	border: 1px solid rgba(0,0,0,0.2);
 	border-radius: 0.25em;
 	padding: 0.125em;
 	box-sizing: border-box;
 	-moz-box-sizing: border-box;
 }
-.exlinks-options-group.extheme-dark {
+.ex-settings-group.extheme-dark {
 	border-color: rgba(255,255,255,0.2);
 }
-.exlinks-options-group+.exlinks-options-heading {
+.ex-settings-group+.ex-settings-heading {
 	margin-top: 0.75em;
 }
 
-.exlinks-options-entry {
+.ex-settings-entry {
 }
-.exlinks-options-entry-table {
+.ex-settings-entry-table {
 	display: table;
 	width: 100%;
 	padding: 0.375em 0.25em;
 	box-sizing: border-box;
 	-moz-box-sizing: border-box;
 }
-.exlinks-options-entry-row {
+.ex-settings-entry-row {
 	display: table-row;
 	height: 100%;
 }
-.exlinks-options-entry-cell {
+.ex-settings-entry-cell {
 	vertical-align: middle;
 	text-align: left;
 	display: table-cell;
 	width: 100%;
 	height: 100%;
 }
-.exlinks-options-entry-cell:last-of-type:not(:first-of-type) {
+.ex-settings-entry-cell:last-of-type:not(:first-of-type) {
 	vertical-align: middle;
 	text-align: right;
 	width: 0;
 }
-.exlinks-options-entry-input {
+.ex-settings-entry-input {
 }
-.exlinks-options-entry+.exlinks-options-entry {
+.ex-settings-entry+.ex-settings-entry {
 	border-top: 0.125em solid rgba(0,0,0,0);
 }
-.exlinks-options-entry:nth-child(even)>.exlinks-options-entry-table {
+.ex-settings-entry:nth-child(even)>.ex-settings-entry-table {
 	background-color: rgba(0,0,0,0.05);
 }
-.exlinks-options-entry:nth-child(odd)>.exlinks-options-entry-table {
+.ex-settings-entry:nth-child(odd)>.ex-settings-entry-table {
 	background-color: rgba(0,0,0,0.025);
 }
-.exlinks-options-entry.extheme-dark:nth-child(even)>.exlinks-options-entry-table {
+.ex-settings-entry.extheme-dark:nth-child(even)>.ex-settings-entry-table {
 	background-color: rgba(255,255,255,0.05);
 }
-.exlinks-options-entry.extheme-dark:nth-child(odd)>.exlinks-options-entry-table {
+.ex-settings-entry.extheme-dark:nth-child(odd)>.ex-settings-entry-table {
 	background-color: rgba(255,255,255,0.025);
 }
 
-input.exlinks-options-entry-input[type=text] {
+input.ex-settings-entry-input[type=text] {
 	width: 8em;
 }
-input.exlinks-options-entry-input[type=text],
-select.exlinks-options-entry-input,
-button.exlinks-options-entry-input {
+input.ex-settings-entry-input[type=text],
+select.ex-settings-entry-input,
+button.ex-settings-entry-input {
 	min-width: 8em;
 	box-sizing: border-box;
 	-moz-box-sizing: border-box;
@@ -718,42 +718,42 @@ button.exlinks-options-entry-input {
 	line-height: 1.3em !important;
 }
 
-select.exlinks-options-entry-input {
+select.ex-settings-entry-input {
 	width: auto;
 	height: auto;
 }
 
-label.exlinks-options-entry-label {
+label.ex-settings-entry-label {
 	cursor: pointer;
 	margin-bottom: 0;
 }
 
-.exlinks-options-filter-guide-toggle {
+.ex-settings-filter-guide-toggle {
 	cursor: pointer;
 	text-decoration: none !important;
 }
-.exlinks-options-filter-guide {
+.ex-settings-filter-guide {
 	margin-bottom: 0.25em;
 	padding: 0.375em;
 }
-.exlinks-options-filter-guide:not(.exlinks-options-filter-guide-visible) {
+.ex-settings-filter-guide:not(.ex-settings-filter-guide-visible) {
 	display: none;
 }
 
-.exlinks-options ul {
+.ex-settings ul {
 	padding: 0;
 }
-.exlinks-options ul>li {
+.ex-settings ul>li {
 	margin: 0.75em 2em;
 	list-style: outside none disc;
 }
-.exlinks-options code {
+.ex-settings code {
 	color: #000;
 	background-color: #fff;
 	font-family: Courier, monospace !important;
 }
 
-.exlinks-options-color-input {
+.ex-settings-color-input {
 	padding: 0.25em !important;
 	margin: 0 1em 0 0 !important;
 	display: inline-block;
@@ -765,14 +765,14 @@ label.exlinks-options-entry-label {
 	-moz-box-sizing: border-box !important;
 	cursor: text !important;
 }
-.exlinks-options-color-input:first-of-type {
+.ex-settings-color-input:first-of-type {
 	cursor: pointer !important;
 }
-.exlinks-options-color-input:last-of-type {
+.ex-settings-color-input:last-of-type {
 	width: 11em !important;
 }
 
-textarea.exlinks-options-entry-input {
+textarea.ex-settings-entry-input {
 	display: block;
 	width: 100%;
 	height: 15em;
@@ -784,7 +784,7 @@ textarea.exlinks-options-entry-input {
 	font-size: 0.9em !important;
 	font-family: Courier, monospace !important;
 }
-button.exlinks-options-entry-input {
+button.ex-settings-entry-input {
 	float: right;
 	padding: 0.125em 0.25em;
 	margin: 0;
@@ -798,13 +798,13 @@ button.exlinks-options-entry-input {
 	color: inherit;
 	cursor: pointer;
 }
-button.exlinks-options-entry-input:hover {
+button.ex-settings-entry-input:hover {
 	border-color: rgba(0,0,0,0.5);
 }
-button.exlinks-options-entry-input.extheme-dark {
+button.ex-settings-entry-input.extheme-dark {
 	border-color: rgba(255,255,255,0.25);
 }
-button.exlinks-options-entry-input.extheme-dark:hover {
+button.ex-settings-entry-input.extheme-dark:hover {
 	border-color: rgba(255,255,255,0.5);
 }
 
