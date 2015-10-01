@@ -221,13 +221,20 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 }
 
 .exlinks-exsauce-results {
+	display: table;
 	max-width: 100%;
 	width: auto;
-	padding: 4px;
-	margin: 3px 0;
-	border-radius: 4px;
-	background-color: rgba(0,0,0,0.05) !important;
-	padding: 6px;
+	padding: 0.3em;
+	margin: 0.25em 0;
+	border-radius: 0.375em;
+	background-color: rgba(0,0,0,0.05);
+	padding: 0.5em;
+}
+.exlinks-exsauce-results.exlinks-exsauce-results-hidden {
+	display: none;
+}
+.exlinks-exsauce-results.extheme-dark {
+	background-color: rgba(255,255,255,0.05);
 }
 .exlinks-exsauce-results-sep {
 	display: inline-block;

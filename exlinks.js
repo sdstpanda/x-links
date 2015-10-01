@@ -92,7 +92,6 @@
 		},
 		sauce: {
 			'Inline Results':              ['checkbox', true,  'Shows the results inlined rather than opening the site. Works with Smart Links.'],
-			'Show Results by Default':     ['checkbox', true,  'Open the inline results by default.'],
 			'Hide Results in Quotes':      ['checkbox', true,  'Hide open inline results in inline quotes.'],
 			'Show Short Results':          ['checkbox', true,  'Show gallery names when hovering over the link after lookup (similar to old ExSauce).'],
 			'Search Expunged':             ['checkbox', false, 'Search expunged galleries as well.'],
@@ -2325,9 +2324,7 @@
 					if (results !== null) {
 						hover = Nodes.sauce_hover[sha1];
 
-						if (results.style.display === "table") {
-							results.style.display = "none";
-
+						if (results.classList.toggle("exlinks-exsauce-results-hidden")) {
 							if (conf['Show Short Results']) {
 								if (hover === undefined) hover = Sauce.UI.hover(sha1);
 								hover.classList.remove("exlinks-exsauce-hover-hidden");
@@ -2335,8 +2332,6 @@
 							}
 						}
 						else {
-							results.style.display = "table";
-
 							if (hover !== undefined) {
 								hover.classList.add("exlinks-exsauce-hover-hidden");
 							}
@@ -2349,7 +2344,7 @@
 							results = Helper.get_exresults_from_exsauce(this),
 							hover;
 
-						if (results === null || results.style.display === "none") {
+						if (results === null || results.classList.contains("exlinks-exsauce-results-hidden")) {
 							hover = Nodes.sauce_hover[sha1];
 							if (hover === undefined) hover = Sauce.UI.hover(sha1);
 							hover.classList.remove("exlinks-exsauce-hover-hidden");
@@ -2370,10 +2365,10 @@
 					if (conf['Show Short Results']) {
 						var hover = Nodes.sauce_hover[this.getAttribute("data-sha1")];
 
-						if (hover === undefined || hover.style.display === "none") return;
+						if (hover === undefined || hover.classList.contains("exlinks-exsauce-hover-hidden")) return;
 
-						hover.style.left = "0px";
-						hover.style.top = "0px";
+						hover.style.left = "0";
+						hover.style.top = "0";
 
 						var w = window,
 							de = d.documentElement,
@@ -2423,6 +2418,7 @@
 		},
 		format: function (a, result) {
 			var count = result.length,
+				theme = Theme.get(),
 				results, link, n, i, ii;
 
 			a.classList.add("exlinks-exsauce-link-valid");
@@ -2434,7 +2430,7 @@
 						(n = Helper.Post.get_post_container(a)) !== null &&
 						(n = Helper.Post.get_text_body(n)) !== null
 					) {
-						results = $.create("div", { className: "exlinks-exsauce-results" });
+						results = $.create("div", { className: "exlinks-exsauce-results" + theme });
 						$.add(results, $.create("strong", { textContent: "Reverse Image Search Results" }));
 						$.add(results, $.create("span", { className: "exlinks-exsauce-results-sep", textContent: "|" }));
 						$.add(results, $.create("span", { className: "exlinks-exsauce-results-label", textContent: "View on:" }));
@@ -2443,7 +2439,6 @@
 							textContent: Sauce.label(true)
 						}));
 						$.add(results, $.create("br"));
-						results.style.setProperty("display", conf["Show Results by Default"] ? "table" : "none", "important");
 
 						for (i = 0, ii = result.length; i < ii; ++i) {
 							link = Linkifier.create_link(result[i][0]);
@@ -3077,9 +3072,13 @@
 
 			// Collapse info if it's an inline
 			if (conf['Hide in Quotes']) {
-				nodes = $$('.exlinks-exsauce-results,.ex-actions', post);
+				nodes = $$(".exlinks-exsauce-results", post);
 				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					nodes[i].style.display = "none";
+					nodes[i].classList.add("exlinks-exsauce-results-hidden");
+				}
+				nodes = $$(".ex-actions", post);
+				for (i = 0, ii = nodes.length; i < ii; ++i) {
+					nodes[i].classList.add("ex-actions-hidden");
 				}
 			}
 
