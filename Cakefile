@@ -74,6 +74,9 @@ task 'build', (options) ->
 	input = input.replace /\#ISSUES\#/g, pkg.bugs.url
 	input = input.replace /\#CHANGELOG\#/g, pkg.custom.changelog_url
 	input = input.replace /\"\#STYLESHEET\#\"/g, (JSON.stringify style)
+	input = input.replace /\#TITLE\#/g, pkg.name
+	input = input.replace /\#TITLE_2CHAR\#/g, pkg.custom.name_short
+	input = input.replace /\#PREFIX\#/g, pkg.custom.settings_prefix
 	input = input.replace "img = {}", "img = #{images}"
 	input = input.replace /\/\*\s*jshint.*\*\//, ''
 	if options.uglify

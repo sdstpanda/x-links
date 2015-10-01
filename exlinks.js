@@ -402,7 +402,7 @@
 
 			// Debug functions
 			Debug.log = function () {
-				var args = [ "ExLinks " + Main.version + ":" ].concat(Array.prototype.slice.call(arguments));
+				var args = [ "#TITLE# " + Main.version + ":" ].concat(Array.prototype.slice.call(arguments));
 				console.log.apply(console, args);
 			};
 			Debug.timer = function (name, dont_format) {
@@ -2033,7 +2033,7 @@
 		}
 	};
 	Cache = {
-		namespace: "exlinks-cache-",
+		namespace: "#PREFIX#cache-",
 		type: window.localStorage,
 		init: function () {
 			var re_matcher = new RegExp("^" + Helper.regex_escape(Cache.namespace) + "((?:([en]hentai|hitomi)_)gallery|md5|sha1)-([^-]+)"),
@@ -3173,9 +3173,7 @@
 						sauce.classList.add("hl-exsauce-link-disabled");
 						sauce.setAttribute("data-hl-link-events", "exsauce_error");
 						sauce.title = (
-							"Reverse Image Search doesn't work for JPG images because 4chan manipulates them on upload. " +
-							"There is nothing ExLinks can do about this. " +
-							"All complaints can be directed at 4chan staff."
+							"Reverse Image Search doesn't work for .jpg images because 4chan manipulates them on upload"
 						);
 					}
 				}
@@ -3723,10 +3721,12 @@
 		init: function () {
 			var oneechan = $.id('OneeChanLink'),
 				chanss = $.id('themeoptionsLink'),
+				title = "#TITLE#",
+				title_short = "#TITLE_2CHAR#",
 				conflink, conflink2, arrtop, arrbot;
 
 			Main["4chanX3"] = d.documentElement.classList.contains("fourchan-x");
-			conflink = $.link("#HOMEPAGE#", { title: "ExLinks Settings", className: "entry" });
+			conflink = $.link("#HOMEPAGE#", { title: title, className: "entry" });
 			$.on(conflink, "click", Options.open);
 
 			if (Config.mode === "4chan") {
@@ -3734,7 +3734,7 @@
 					$.add(d.body, conflink);
 				}
 				else if (chanss) {
-					conflink.textContent = 'Ex';
+					conflink.textContent = title_short;
 					conflink.setAttribute('style', 'background-image: url(' + img.options + '); padding-top: 15px !important; opacity: 0.75;');
 					$.on(conflink, [
 						[ 'mouseover', function () { this.style.opacity = 1.0; } ],
@@ -3743,7 +3743,7 @@
 					$.checked.add($.id('navtopright'), conflink);
 				}
 				else {
-					conflink.textContent = 'ExLinks Settings';
+					conflink.textContent = title;
 					conflink.setAttribute('style', 'cursor:pointer;' + (conflink.getAttribute('style') || ""));
 					conflink2 = conflink.cloneNode(true);
 					$.on(conflink2, 'click', Options.open);
@@ -3754,19 +3754,19 @@
 				}
 			}
 			else if (Config.mode === "fuuka") {
-				conflink.textContent = 'exlinks options';
-				conflink.setAttribute('style', 'cursor:pointer;text-decoration:underline;');
+				conflink.textContent = title;
+				conflink.setAttribute('style', 'cursor:pointer;text-transform:lowercase;');
 				arrtop = [ $.tnode(' [ '), conflink, $.tnode(' ] ') ];
 				$.checked.add($('div'), $.elem(arrtop));
 			}
 			else if (Config.mode === "foolz") {
-				conflink.textContent = 'ExLinks Options';
+				conflink.textContent = title;
 				conflink.setAttribute('style', 'cursor:pointer;');
 				arrtop = [ $.tnode(' [ '), conflink, $.tnode(' ] ') ];
 				$.checked.add($('.letters'), $.elem(arrtop));
 			}
 			else if (Config.mode === "tinyboard") {
-				conflink.textContent = 'exlinks options';
+				conflink.textContent = title;
 				conflink.setAttribute('style', 'cursor:pointer;');
 				conflink2 = conflink.cloneNode(true);
 				$.on(conflink2, 'click', Options.open);
@@ -3778,7 +3778,7 @@
 		}
 	};
 	Config = {
-		namespace: "exlinks-settings",
+		namespace: "#PREFIX#settings",
 		mode: "4chan", // foolz, fuuka, tinyboard
 		linkify: true,
 		storage: (function () {
@@ -4605,7 +4605,7 @@
 		}
 	};
 	EasyList = {
-		namespace: "exlinks-easylist-",
+		namespace: "#PREFIX#easylist-",
 		overlay: null,
 		options_container: null,
 		items_container: null,
@@ -4695,7 +4695,7 @@
 
 					n2 = $.link(null, {
 						className: "hl-easylist-link",
-						textContent: link_mod("ExLinks Easy List", true),
+						textContent: link_mod("Easy List", true),
 						style: "cursor:pointer;"
 					});
 
@@ -4766,7 +4766,7 @@
 
 			$.add(n4, $.create("span", {
 				className: "hl-easylist-title-text",
-				textContent: "ExLinks Easy List"
+				textContent: "#TITLE# Easy List"
 			}));
 			$.add(n4, $.create("span", {
 				className: "hl-easylist-subtitle",
@@ -5700,7 +5700,7 @@
 		create_menu_link: function (menu) {
 			var link = $.link("#HOMEPAGE#", {
 				className: "entry",
-				textContent: "ExLinks Settings"
+				textContent: "#TITLE# Settings"
 			});
 			link.style.order = 112;
 

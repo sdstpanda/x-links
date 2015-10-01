@@ -28,7 +28,9 @@
   },
   "homepage": "https://hupotronic.github.io/ExLinks/",
   "custom": {
+    "name_short": "Ex",
     "namespace": "hupotronic",
+    "settings_prefix": "exlinks-",
     "update_url": "https://github.com/Hupotronic/ExLinks/raw/stable/ExLinks.meta.js",
     "download_url": "https://github.com/Hupotronic/ExLinks/raw/stable/ExLinks.user.js",
     "changelog_url": "https://raw.githubusercontent.com/Hupotronic/ExLinks/master/changelog",
