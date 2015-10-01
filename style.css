@@ -1,24 +1,24 @@
 ﻿/* Stars */
-.exlinks-stars-container {
+.ex-stars-container {
 	position: relative;
 	z-index: 0;
 	white-space: nowrap;
 }
-.exlinks-stars-container.exlinks-stars-container-na {
+.ex-stars-container.ex-stars-container-na {
 	opacity: 0.5;
 }
 
-.exlinks-star-none {
+.ex-star-none {
 	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAQAAADYBBcfAAAA5UlEQVR4AZ2VwQmEMBBFfx0S5iwWJCIhhSwhRXgSEesQCVuIzbgCGiLJ4GTzbupjvvqNYFcDd9KgcBFmHCczqEzUOC50meiC6Eo0hS2IG5Rc7HFE9HLRPkQrf6L+IXpQ/n0ZuJigxap7YEAhViEa+Pwr1tDwRZKHvu+asIi15ZZudRJpEyhty/CqDfkWVWixs9KOFpWg3AmuoDNMf/ivkEHLgwrDEr6M8hLWJBd6PiwfdASdjO9hFdZoVg91He2juWuuAF04PYPSrfKiS0WbK3FQF34bMcm03FST3/ItanCrho1/CT96LV7iyUEWwgAAAABJRU5ErkJggg==");
 }
-.exlinks-star-half {
+.ex-star-half {
 	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAADA0lEQVR4AbWWA7PkQBRG+9m28ubZNta2bdu2bdu2bdu2rZ/w7e2t9DKTHVS66gySyZy6X5MZ2/JjWTwx1MWBTbW1ZslMy0YiictyI2zham8BGyu2ki5LWgqbclnDkg7wdbeEnTUDXW6smVBUN6yFH0L9bYRwqJZxLuXC2X10iAqxE8KDRLBmcfZq4IujC9OREu0MVydLLuQ01CzO8V10uLuzOLIS3eDuYiWEgzWLc9moRDw6UAbZyR7wcrcRwsOEZMy8akoM1YeQTe4VjctbS+H58crISfFEgI+dEArpUBWaEpKICv9jSu9oXN1RDq/P1iRqIDfNC8H+DkJmKI3/ENJndKnpgZFtAjCmQzD1Vygmdg/HirEp4LI35+vi/aUGRF3kpXubLBSRLhVz7MCsJFzfmM8HB/VXWYqwCnhlXPbxelN8ut4A+Rk+CA4wWHiYywhJcdniFdLQl4VlwPuMx8gr47Jvt+qR0NtQ4VIhUl0rezbwwaKhMTi3rhDPjlbAq9NV8O5CDXy4UhufrtYkoUF9uFCvTEnKmdBNhwsbC/HiRAW8PlMZ785zcWXkpXmS0F5NNtPQFUhImxJHuXTZyFg8PVwaL46XxcuT5fDqVDnkpnog2E9R+JCoSwSasbpIeLi3KB4fLIGnh4jDJZCT7IYgPzsl4VCzV5cFg8JxZ3se7u3Kx/3dBXiwJx/Zia4I9LXVNyIlkxfr7nU8cGhuAq6tz8DNTZm4uSULt4jMBGcE+tjqnW+m733NvXFuSQIuLE/CpVXJODgnDnP7hvDtCX6e1vqEQ02Oc3IHHxyfE41T82Kwe3IEhrf0hjhiuDmL7cnMWEWc7So6YN3AAGwcGoRJ7b3RuZqzWAKXOtmzc/IGbH6sIs5e1R2xopc3+tb5IRKyoYTkbM+ibKzZUhXhUKPj7F7FAT2qOkJUJc/Nn1HZ2TCdvNsfVhDuJ4INjrNWrjWal7D7oyqVxyRisYK0vqFxcom6TFH6T8SDDa3QcJl6pU0NPsrLxDPjW6xc2VDin+e/Azq4LxX5iaTWAAAAAElFTkSuQmCC");
 }
-.exlinks-star-full {
+.ex-star-full {
 	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAADhElEQVR4AbWWg3IsURRF82zbtm3btm3btmPbtm3btvEJ+93TlbmVigapSVV3D3tlr4NEQdqf5VMVprPjdf0xXdrvSwsbTaClEzqDjnroaHkCTxPo+PpudIigp+UJFNK9OTcEr88O5inlqVOXIMqPxkL54RgRUJdrlYfOB8cGw1dzPnw05uH+0YFcq9x0fr01FqmOa5HisBpfbo7iWuWmU+/DTGR5bEKm+0bovJsqrVY+V6f5bDV/CLCfDyYj2nYD8v13Is93GyIsV+L73bEcKuYexBjNVYk7fj2cjFiHLSgO3c+OfSgK3oWCgG2IJOidMWK/z2vdaJBxa38/vL80DJ+ujWT1GsMSjIfB5zkCrCT8MMqjjrHjMMoi9qE4ZCcK/Dcj3HwZdN5MxOfrw/Hh8hC8PTcQL0/2xbUd3emejYFcqa5oxjyUZiHecjk1B6vXZqZwFyUTYJXxp1EVfwwVMQdRFr4LhYFbkOu1DunOK5BoswjRxnMQqjUVtp9G49nRXlw3V9rM2qKE1Pr1wE1UM9JIyQRYXdIRVMXuZyl3oiiIAb3XIcNlOZIYMMZ4Nlx+TcDLU/3Er7+G0PvHBkHr9RSEma2kBqGakUZKJsAqonejNGw7CgM2IsdrDdKdlsFfexZUH43EnQO9G8GkWNDf7oylbqQGoZqRRkpGMJaO6fZdh2z3lQgymIvP14ZChsXOoeTcV5i991OZto3UIFQz0igkE2Aeq5HhvAxaL/h4+PJ6yb5dRiPTdTWyPddRg1DNSCMlE2Aptovw6epQnqzN20XjxXik2C9DmtNy6kZqEKoZa6olSLZZiHjzuVB5NKJNy5wv67uH+sFLdQbizBcg0Wohtb7QjYnWC5BgOQ+xprMRZTgDLr/H49Y+PganZf/bd3YgwnRmIEJ/FqKMZsNTZRpUH48SutFDcTLCdacjRHMyApTH48WJPlyrzDp/XhsEf5XJCFKbAuefE/D2/EDeiW/ODYDj19HwVRwHr5+j8PVCH5m0cp1XtneD2fNhsHw9Aj+uDsTNPT35DUW/0PXdPRioL0yeDoLhg364tKWL1Fq5zgd7u8PgwUA8PtSzyXw1nteH+7pD53Y/3NvdnX9Oap13d3XjN2i8DxvNK//8nR3dpNLKdR5Y2hFn13WRaGs0THt2bWfsX9JRYq1cJ7s2DxMHbfRdiROKhYmB8oTy/Vde/Pf/AxrB4Rr+1b9fAAAAAElFTkSuQmCC");
 }
 
-.exlinks-star {
+.ex-star {
 	display: inline-block;
 	height: 14px;
 	margin-left: -1px;
@@ -29,34 +29,34 @@
 	position: relative;
 }
 
-.exlinks-star-1 {
+.ex-star-1 {
 	z-index: 4;
 	width: 13px;
 	background-position: 0px 0px;
 }
-.exlinks-star-2 {
+.ex-star-2 {
 	z-index: 3;
 	width: 12px;
 	background-position: -1px 0px;
 }
-.exlinks-star-3 {
+.ex-star-3 {
 	z-index: 2;
 	width: 12px;
 	background-position: -1px 0px;
 }
-.exlinks-star-4 {
+.ex-star-4 {
 	z-index: 1;
 	width: 12px;
 	background-position: -1px 0px;
 }
-.exlinks-star-5 {
+.ex-star-5 {
 	z-index: 0;
 	width: 13px;
 	background-position: -1px 0px;
 }
 
 /* Buttons */
-.exlinks-btn {
+.ex-button {
 	display: inline-block;
 	padding: 0.3em 1em;
 	font-size: inherit;
@@ -80,7 +80,7 @@
 	border-radius: 0.3em;
 	box-shadow: inset 0 0.08em 0 rgba(255, 255, 255, 0.2), 0 0.08em 0.16em rgba(0, 0, 0, 0.05);
 }
-.exlinks-btn-eh {
+.ex-button-eh {
 	font-family: 'Source Sans Pro', Tahoma, sans-serif !important;
 	font-weight: 900;
 	font-size: 0.86em;
@@ -91,7 +91,7 @@
 	text-shadow: 0.09em 0.09em 0 rgba(0,0,0,0.5), 0 0 0.3em #000;
 	-webkit-font-smoothing: antialiased;
 }
-.exlinks-btn-doujinshi {
+.ex-button-doujinshi {
 	background-color: hsl(0, 92%, 27%) !important;
 	background-image: -khtml-gradient(linear, left top, left bottom, from(#f74040), to(#840505));
 	background-image: -moz-linear-gradient(top, #f74040, #840505);
@@ -102,7 +102,7 @@
 	background-image: linear-gradient(#f74040, #840505);
 	border-color: #840505 #840505 hsl(0, 92%, 18.5%);
 }
-.exlinks-btn-manga {
+.ex-button-manga {
 	background-color: hsl(20, 100%, 24%) !important;
 	background-image: -khtml-gradient(linear, left top, left bottom, from(#ff7632), to(#7a2800));
 	background-image: -moz-linear-gradient(top, #ff7632, #7a2800);
@@ -113,7 +113,7 @@
 	background-image: linear-gradient(#ff7632, #7a2800);
 	border-color: #7a2800 #7a2800 hsl(20, 100%, 15%);
 }
-.exlinks-btn-artistcg {
+.ex-button-artistcg {
 	background-color: hsl(52, 100%, 24%) !important;
 	background-image: -khtml-gradient(linear, left top, left bottom, from(#ffe95b), to(#7a6a00));
 	background-image: -moz-linear-gradient(top, #ffe95b, #7a6a00);
@@ -124,7 +124,7 @@
 	background-image: linear-gradient(#ffe95b, #7a6a00);
 	border-color: #7a6a00 #7a6a00 hsl(52, 100%, 13%);
 }
-.exlinks-btn-gamecg {
+.ex-button-gamecg {
 	background-color: hsl(82, 42%, 14%) !important;
 	background-image: -moz-linear-gradient(top, #96ba58, #273214);
 	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #96ba58), color-stop(100%, #273214));
@@ -133,7 +133,7 @@
 	background-image: linear-gradient(#96ba58, #273214);
 	border-color: #273214 #273214 hsl(82, 42%, 4%);
 }
-.exlinks-btn-western {
+.ex-button-western {
 	background-color: hsl(82, 100%, 24%) !important;
 	background-image: -moz-linear-gradient(top, #c3ff5b, #4d7a00);
 	background-image: -ms-linear-gradient(top, #c3ff5b, #4d7a00);
@@ -143,7 +143,7 @@
 	background-image: linear-gradient(#c3ff5b, #4d7a00);
 	border-color: #4d7a00 #4d7a00 hsl(82, 100%, 13%);
 }
-.exlinks-btn-non-h {
+.ex-button-non-h {
 	background-color: hsl(185, 44%, 24%) !important;
 	background-image: -moz-linear-gradient(top, #73c1c8, #225358);
 	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #73c1c8), color-stop(100%, #225358));
@@ -152,7 +152,7 @@
 	background-image: linear-gradient(#73c1c8, #225358);
 	border-color: #225358 #225358 hsl(185, 44%, 14.5%);
 }
-.exlinks-btn-imageset {
+.ex-button-imageset {
 	background-color: hsl(209, 74%, 22%) !important;
 	background-image: -moz-linear-gradient(top, #56a0e5, #0e3961);
 	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #56a0e5), color-stop(100%, #0e3961));
@@ -161,7 +161,7 @@
 	background-image: linear-gradient(#56a0e5, #0e3961);
 	border-color: #0e3961 #0e3961 hsl(209, 74%, 12%);
 }
-.exlinks-btn-cosplay {
+.ex-button-cosplay {
 	background-color: hsl(259, 41%, 27%) !important;
 	background-image: -moz-linear-gradient(top, #a996d3, #3a2861);
 	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #a996d3), color-stop(100%, #3a2861));
@@ -170,7 +170,7 @@
 	background-image: linear-gradient(#a996d3, #3a2861);
 	border-color: #3a2861 #3a2861 hsl(259, 41%, 16%);
 }
-.exlinks-btn-asianporn {
+.ex-button-asianporn {
 	background-color: hsl(321, 76%, 26%) !important;
 	background-image: -moz-linear-gradient(top, #ec78c3, #740f51);
 	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #ec78c3), color-stop(100%, #740f51));
@@ -179,7 +179,7 @@
 	background-image: linear-gradient(#ec78c3, #740f51);
 	border-color: #740f51 #740f51 hsl(321, 76%, 15%);
 }
-.exlinks-btn-misc {
+.ex-button-misc {
 	background-color: hsl(321, 0%, 21%) !important;
 	background-image: -moz-linear-gradient(top, #bfbfbf, #353535);
 	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #bfbfbf), color-stop(100%, #353535));
@@ -190,7 +190,7 @@
 }
 
 /* Noise */
-.exlinks-noise {
+.ex-noise {
 	color: #FFFFFF !important;
 	margin: 0;
 	padding: 2px 0;

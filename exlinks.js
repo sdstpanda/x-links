@@ -903,7 +903,7 @@
 					domain_type = domain_info[domain].type,
 					url, src;
 
-				src = '<div class="ex-actions ex-actions-hidden exlinks-gid exlinks-token' + Theme.get() + '" data-ex-id="' + domain_type + '_' + gid + '">';
+				src = '<div class="ex-actions ex-actions-hidden' + Theme.get() + '" data-ex-id="' + domain_type + '_' + gid + '">';
 				src += '<table class="ex-actions-table"><tbody>';
 				src += '<tr><td style="vertical-align: top;">';
 				src += '<span>' + data.category + '</span>';
@@ -941,7 +941,7 @@
 				src += '</td></tr>';
 				src += '</tbody></table>';
 				src += '<div class="ex-actions-tag-block">';
-				src += '<strong class="ex-actions-tag-block-label">Tags:</strong><span class="ex-actions-tags exlinks-gid exlinks-token" data-ex-id="' + domain_type + '_' + gid + '"></span>';
+				src += '<strong class="ex-actions-tag-block-label">Tags:</strong><span class="ex-actions-tags" data-ex-id="' + domain_type + '_' + gid + '"></span>';
 				src += '</div>';
 				src += '</div>';
 
@@ -961,7 +961,7 @@
 						case 1: star = 'half'; break;
 						case 2: star = 'full'; break;
 					}
-					str += '<div class="exlinks-star exlinks-star-' + (i + 1) + ' exlinks-star-' + star + '"></div>';
+					str += '<div class="ex-star ex-star-' + (i + 1) + ' ex-star-' + star + '"></div>';
 				}
 				return str;
 			}
@@ -4694,7 +4694,7 @@
 					}
 
 					n2 = $.link(null, {
-						className: "exlinks-easy-list-link",
+						className: "ex-easylist-link",
 						textContent: link_mod("ExLinks Easy List", true),
 						style: "cursor:pointer;"
 					});
@@ -4709,7 +4709,7 @@
 						style: "text-align:center;margin:0.5em 0;"
 					});
 					$.add(n1, n2 = $.create("span", {
-						className: "mobileib button exlinks-easy-list-button"
+						className: "mobileib button ex-easylist-button"
 					}));
 					$.add(n2, $.link(null, {
 						textContent: link_mod("Easy List", false)
@@ -5087,10 +5087,10 @@
 			}));
 
 			$.add(n5, n6 = $.link(Helper.Site.create_category_url(data, domain), {
-				className: "ex-easylist-item-info-button exlinks-btn exlinks-btn-eh exlinks-btn-" + cat[data.category].short + theme
+				className: "ex-easylist-item-info-button ex-button ex-button-eh ex-button-" + cat[data.category].short + theme
 			}));
 			$.add(n6, $.create("div", {
-				className: "exlinks-noise",
+				className: "ex-noise",
 				textContent: cat[data.category].name
 			}));
 
@@ -5099,7 +5099,7 @@
 				className: "ex-easylist-item-info-item ex-easylist-item-info-item-rating" + theme
 			}));
 			$.add(n6, n7 = $.create("div", {
-				className: "exlinks-stars-container",
+				className: "ex-stars-container",
 				innerHTML: UI.html.stars(data.rating)
 			}));
 			if (data.rating >= 0) {
@@ -5109,7 +5109,7 @@
 				}));
 			}
 			else {
-				n7.classList.add("exlinks-stars-container-na");
+				n7.classList.add("ex-stars-container-na");
 				$.add(n6, $.create("span", {
 					className: "ex-easylist-item-info-light",
 					textContent: "(n/a)"
@@ -5597,7 +5597,7 @@
 			return function (node) {
 				if (container === null) {
 					container = $.create("div", {
-						className: "exlinks-hovering-elements"
+						className: "ex-hovering-elements"
 					});
 					$.add(d.body, container);
 				}

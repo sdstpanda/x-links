@@ -4,15 +4,15 @@
 	<!-- Sidepanel -->
 	<div class="ex-details-side-panel">
 		<!-- Category -->
-		<span class="exlinks-btn exlinks-btn-eh exlinks-btn-#{data_alt.category_type}">
-			<div class="exlinks-noise">
+		<span class="ex-button ex-button-eh ex-button-#{data_alt.category_type}">
+			<div class="ex-noise">
 				#{cat[data.category].name}
 			</div>
 		</span>
 		<!-- Rating -->
 		<div class="ex-details-side-box ex-details-side-box-rating extheme">
 			<div><strong>Rating:</strong></div>
-			<div class="ex-details-rating exlinks-stars-container">
+			<div class="ex-details-rating ex-stars-container">
 				#{UI.html.stars(data.rating)}
 			</div>
 			<div class="ex-details-rating-text">
@@ -52,7 +52,7 @@
 	<br /><br />
 	<!-- Tags -->
 	<span class="ex-details-tag-block">
-		<strong class="ex-details-tag-block-label">Tags:</strong><span class="ex-details-tags exlinks-gid exlinks-token" data-ex-id="#{data_alt.site}_#{data.gid}"></span>
+		<strong class="ex-details-tag-block-label">Tags:</strong><span class="ex-details-tags" data-ex-id="#{data_alt.site}_#{data.gid}"></span>
 	</span>
 	<div class="ex-details-clear"></div>
 </div>
