@@ -524,6 +524,14 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 	text-decoration: none !important;
 }
 
+/* Hovering shadow */
+.ex-hover-shadow {
+	box-shadow: 0 0 0.125em 0 rgba(0,0,0,0.5);
+}
+.ex-hover-shadow.extheme-dark {
+	box-shadow: 0 0 0.125em 0 rgba(255,255,255,0.5);
+}
+
 /* Options */
 :root.exlinks-options-overlaying,
 :root.exlinks-options-overlaying body {
@@ -788,10 +796,6 @@ div.ex-easylist-content-inner.post.reply.post_wrapper {
 	-moz-box-sizing: border-box !important;
 	position: relative !important;
 	border-radius: 0.5em !important;
-	box-shadow: 0 0 0.25em 0 rgba(0,0,0,0.5);
-}
-div.ex-easylist-content-inner.post.reply.post_wrapper.extheme-dark {
-	box-shadow: 0 0 0.25em 0 rgba(255,255,255,0.5);
 }
 
 .ex-easylist-title {

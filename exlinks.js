@@ -2395,7 +2395,7 @@
 					hover, i, ii;
 
 				hover = $.create("div", {
-					className: "exlinks-exsauce-hover exlinks-exsauce-hover-hidden post reply post_wrapper ex-fake-post" + Theme.get()
+					className: "exlinks-exsauce-hover exlinks-exsauce-hover-hidden post ex-hover-shadow reply post_wrapper ex-fake-post" + Theme.get()
 				});
 				hover.setAttribute("data-sha1", sha1);
 
@@ -4641,7 +4641,7 @@
 			}));
 
 			$.add(n3, n4 = $.create("div", {
-				className: "ex-easylist-content-inner post reply post_wrapper ex-fake-post" + theme
+				className: "ex-easylist-content-inner ex-hover-shadow post reply post_wrapper ex-fake-post" + theme
 			}));
 			$.on(n4, "click", EasyList.on_overlay_content_mouse_event);
 			$.on(n4, "mousedown", EasyList.on_overlay_content_mouse_event);
