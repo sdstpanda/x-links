@@ -813,7 +813,7 @@
 
 					if (ft === null || a1 === null) return null;
 
-					url = a1.href;
+					url = img.parentNode.href || a1.href;
 					if ((i = url.indexOf("#")) >= 0) url = url.substr(0, i);
 
 					return {
@@ -3140,7 +3140,7 @@
 					sauce.classList.add("exlinks-exsauce-link-no-underline");
 				}
 				sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
-				if (/^\.jpe?g$/i.test(file_info.type)) {
+				if (/^\.jpe?g$/i.test(file_info.type) && Config.mode !== "tinyboard") {
 					if (/Firefox/i.test("" + navigator.userAgent)) {
 						sauce.setAttribute("data-ex-link-events", "exsauce_fetch_similarity");
 						sauce.title = "This will only work on colored images";
