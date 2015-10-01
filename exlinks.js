@@ -3650,7 +3650,7 @@
 						$.add(table, row = $.create("div", { className: "exlinks-options-entry-row" }));
 						$.add(row, cell = $.create("span", { className: "exlinks-options-entry-cell" }));
 						$.add(cell, input = $.create("textarea", {
-							className: "exlinks-options-entry-input exlinks-options-textarea" + theme,
+							className: "exlinks-options-entry-input" + theme,
 							wrap: "off",
 							spellcheck: false,
 							id: name,
@@ -3662,7 +3662,7 @@
 					else if (type === "button") {
 						$.add(row, cell = $.create("span", { className: "exlinks-options-entry-cell" }));
 						$.add(cell, input = $.create("button", {
-							className: "exlinks-options-entry-input exlinks-options-input-button" + theme,
+							className: "exlinks-options-entry-input" + theme,
 							textContent: (obj[key][3] || '')
 						}));
 						input.setAttribute("data-ex-setting-name", key);
@@ -3869,7 +3869,6 @@
 		},
 		init: function () {
 			Filter.filters = Filter.parse(conf.Filters);
-			console.log(Filter.filters);
 		},
 		genregex: function (pattern, flags) {
 			if (flags.indexOf("g") < 0) {
