@@ -229,7 +229,7 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 .hl-exsauce-results.hl-exsauce-results-hidden {
 	display: none;
 }
-.hl-exsauce-results.extheme-dark {
+.hl-exsauce-results.hl-theme-dark {
 	background-color: rgba(255,255,255,0.05);
 }
 .hl-exsauce-results-sep {
@@ -271,7 +271,7 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 .hl-actions.hl-actions-hidden {
 	display: none;
 }
-.hl-actions.extheme-dark {
+.hl-actions.hl-theme-dark {
 	background-color: rgba(255,255,255,0.05);
 }
 
@@ -356,7 +356,7 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 .hl-details-side-box>div {
 	white-space: nowrap;
 }
-.hl-details-side-box.extheme-dark {
+.hl-details-side-box.hl-theme-dark {
 	background-color: rgba(255,255,255,0.125);
 	box-shadow: 0 0 0.5em rgba(255,255,255,0.125);
 	text-shadow: 0 0.1em 0 rgba(0,0,0,0.5);
@@ -454,7 +454,7 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 .hl-tag-namespace-block.hl-tag-namespace-block-no-outline>.hl-tag-namespace {
 	border-style: none;
 }
-.hl-tag-namespace-block.extheme-dark>.hl-tag-namespace {
+.hl-tag-namespace-block.hl-theme-dark>.hl-tag-namespace {
 	border-color: rgba(255,255,255,0.4);
 }
 .hl-tag-namespace-block.hl-tag-namespace-language>.hl-tag-namespace {
@@ -479,25 +479,25 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	color: #e0338d;
 }
 
-.hl-tag-namespace-block.hl-tag-namespace-language.extheme-dark>.hl-tag-namespace {
+.hl-tag-namespace-block.hl-tag-namespace-language.hl-theme-dark>.hl-tag-namespace {
 	color: #895cc6;
 }
-.hl-tag-namespace-block.hl-tag-namespace-group.extheme-dark>.hl-tag-namespace {
+.hl-tag-namespace-block.hl-tag-namespace-group.hl-theme-dark>.hl-tag-namespace {
 	color: #e8c44f;
 }
-.hl-tag-namespace-block.hl-tag-namespace-artist.extheme-dark>.hl-tag-namespace {
+.hl-tag-namespace-block.hl-tag-namespace-artist.hl-theme-dark>.hl-tag-namespace {
 	color: #e89c4f;
 }
-.hl-tag-namespace-block.hl-tag-namespace-parody.extheme-dark>.hl-tag-namespace {
+.hl-tag-namespace-block.hl-tag-namespace-parody.hl-theme-dark>.hl-tag-namespace {
 	color: #21eda2;
 }
-.hl-tag-namespace-block.hl-tag-namespace-character.extheme-dark>.hl-tag-namespace {
+.hl-tag-namespace-block.hl-tag-namespace-character.hl-theme-dark>.hl-tag-namespace {
 	color: #6ce769;
 }
-.hl-tag-namespace-block.hl-tag-namespace-male.extheme-dark>.hl-tag-namespace {
+.hl-tag-namespace-block.hl-tag-namespace-male.hl-theme-dark>.hl-tag-namespace {
 	color: #23add0;
 }
-.hl-tag-namespace-block.hl-tag-namespace-female.extheme-dark>.hl-tag-namespace {
+.hl-tag-namespace-block.hl-tag-namespace-female.hl-theme-dark>.hl-tag-namespace {
 	color: #e89cc4;
 }
 
@@ -538,7 +538,7 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 .hl-hover-shadow {
 	box-shadow: 0 0 0.125em 0 rgba(0,0,0,0.5);
 }
-.hl-hover-shadow.extheme-dark {
+.hl-hover-shadow.hl-theme-dark {
 	box-shadow: 0 0 0.125em 0 rgba(255,255,255,0.5);
 }
 
@@ -583,7 +583,7 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	background: rgba(0,0,0,0.05);
 	border-radius: 0.2em;
 }
-.hl-settings-button.extheme-dark {
+.hl-settings-button.hl-theme-dark {
 	background: rgba(255,255,255,0.05);
 }
 
@@ -652,7 +652,7 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	box-sizing: border-box;
 	-moz-box-sizing: border-box;
 }
-.hl-settings-group.extheme-dark {
+.hl-settings-group.hl-theme-dark {
 	border-color: rgba(255,255,255,0.2);
 }
 .hl-settings-group+.hl-settings-heading {
@@ -695,10 +695,10 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 .hl-settings-entry:nth-child(odd)>.hl-settings-entry-table {
 	background-color: rgba(0,0,0,0.025);
 }
-.hl-settings-entry.extheme-dark:nth-child(even)>.hl-settings-entry-table {
+.hl-settings-entry.hl-theme-dark:nth-child(even)>.hl-settings-entry-table {
 	background-color: rgba(255,255,255,0.05);
 }
-.hl-settings-entry.extheme-dark:nth-child(odd)>.hl-settings-entry-table {
+.hl-settings-entry.hl-theme-dark:nth-child(odd)>.hl-settings-entry-table {
 	background-color: rgba(255,255,255,0.025);
 }
 
@@ -801,10 +801,10 @@ button.hl-settings-entry-input {
 button.hl-settings-entry-input:hover {
 	border-color: rgba(0,0,0,0.5);
 }
-button.hl-settings-entry-input.extheme-dark {
+button.hl-settings-entry-input.hl-theme-dark {
 	border-color: rgba(255,255,255,0.25);
 }
-button.hl-settings-entry-input.extheme-dark:hover {
+button.hl-settings-entry-input.hl-theme-dark:hover {
 	border-color: rgba(255,255,255,0.5);
 }
 
@@ -825,7 +825,7 @@ button.hl-settings-entry-input.extheme-dark:hover {
 	overflow-x: hidden;
 	overflow-y: scroll;
 }
-.hl-easylist-overlay.extheme-dark {
+.hl-easylist-overlay.hl-theme-dark {
 	background: rgba(0,0,0,0.5);
 }
 .hl-easylist-content-align {
@@ -931,7 +931,7 @@ div.hl-easylist-content-inner.post.reply.post_wrapper {
 	-moz-box-sizing: border-box;
 	overflow: hidden;
 }
-.hl-easylist-items.extheme-dark {
+.hl-easylist-items.hl-theme-dark {
 	border: 1px solid rgba(255,255,255,0.25);
 }
 .hl-easylist-item {
@@ -940,10 +940,10 @@ div.hl-easylist-content-inner.post.reply.post_wrapper {
 .hl-easylist-item:nth-of-type(2n) {
 	background-color: rgba(0,0,0,0.03125);
 }
-.hl-easylist-item.extheme-dark {
+.hl-easylist-item.hl-theme-dark {
 	background-color: rgba(255,255,255,0.0625);
 }
-.hl-easylist-item.extheme-dark:nth-of-type(2n) {
+.hl-easylist-item.hl-theme-dark:nth-of-type(2n) {
 	background-color: rgba(255,255,255,0.03125);
 }
 
@@ -993,7 +993,7 @@ div.hl-easylist-content-inner.post.reply.post_wrapper {
 	width: 0;
 	height: 100%;
 }
-.hl-easylist-item-image-container.extheme-dark {
+.hl-easylist-item-image-container.hl-theme-dark {
 	background-color: rgba(255,255,255,0.03125);
 }
 .hl-easylist-item-image-outer {
@@ -1021,7 +1021,7 @@ div.hl-easylist-content-inner.post.reply.post_wrapper {
 	color: #000000;
 	text-shadow: 0 0 0.125em #ffffff, 0 0 0.25em #ffffff;
 }
-.hl-easylist-item-image-index.extheme-dark {
+.hl-easylist-item-image-index.hl-theme-dark {
 	color: #ffffff ;
 	text-shadow: 0 0 0.125em #000000, 0 0 0.25em #000000;
 }
@@ -1041,7 +1041,7 @@ div.hl-easylist-content-inner.post.reply.post_wrapper {
 	box-shadow: 0 0 0.5em rgba(0,0,0,0.125);
 	text-shadow: 0 0.1em 0 rgba(255,255,255,0.5);
 }
-.hl-easylist-item-info-item.extheme-dark {
+.hl-easylist-item-info-item.hl-theme-dark {
 	background-color: rgba(255,255,255,0.125);
 	box-shadow: 0 0 0.5em rgba(255,255,255,0.125);
 	text-shadow: 0 0.1em 0 rgba(0,0,0,0.5);
@@ -1059,7 +1059,7 @@ div.hl-easylist-content-inner.post.reply.post_wrapper {
 .hl-easylist-item-title:hover {
 	text-shadow: 0 0 0.25em #ffffff;
 }
-.hl-easylist-item-title.extheme-dark:hover {
+.hl-easylist-item-title.hl-theme-dark:hover {
 	text-shadow: 0 0 0.25em #000000;
 }
 .hl-easylist-item-title-link {
@@ -1256,11 +1256,11 @@ div.hl-easylist-content-inner.post.reply.post_wrapper {
 .hl-easylist-option-button:hover {
 	border-color: rgba(0,0,0,0.25);
 }
-.hl-easylist-option-button.extheme-dark {
+.hl-easylist-option-button.hl-theme-dark {
 	background-color: rgba(0,0,0,0.125);
 	border: 1px solid rgba(255,255,255,0.0625);
 }
-.hl-easylist-option-button.extheme-dark:hover {
+.hl-easylist-option-button.hl-theme-dark:hover {
 	border-color: rgba(255,255,255,0.25);
 }
 .hl-easylist-option-input:checked~.hl-easylist-option-button {
@@ -1268,7 +1268,7 @@ div.hl-easylist-content-inner.post.reply.post_wrapper {
 	border-color: rgba(0,0,0,0.25);
 	color: #000000;
 }
-.hl-easylist-option-input:checked~.hl-easylist-option-button.extheme-dark {
+.hl-easylist-option-input:checked~.hl-easylist-option-button.hl-theme-dark {
 	background-color: rgba(0,0,0,0.5);
 	border-color: rgba(255,255,255,0.25);
 	color: #ffffff;
@@ -1292,14 +1292,14 @@ div.hl-easylist-content-inner.post.reply.post_wrapper {
 	border-color: rgba(0,0,0,0.25) !important;
 }
 
-.hl-easylist-option-textarea.extheme-dark {
+.hl-easylist-option-textarea.hl-theme-dark {
 	background-color: rgba(0,0,0,0.125) !important;
 	border: 1px solid rgba(255,255,255,0.0625) !important;
 	margin: 0 !important;
 	padding: 0.25em !important;
 }
-.hl-easylist-option-textarea.extheme-dark:hover,
-.hl-easylist-option-textarea.extheme-dark:focus {
+.hl-easylist-option-textarea.hl-theme-dark:hover,
+.hl-easylist-option-textarea.hl-theme-dark:focus {
 	background-color: rgba(0,0,0,0.5) !important;
 	border-color: rgba(255,255,255,0.25) !important;
 }

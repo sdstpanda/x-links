@@ -4449,19 +4449,19 @@
 	Theme = {
 		current: "light",
 		get: function () {
-			return (Theme.current === "light" ? " extheme" : " extheme extheme-dark");
+			return (Theme.current === "light" ? " hl-theme" : " hl-theme hl-theme-dark");
 		},
 		apply: function (node) {
 			if (Theme.current !== "light") {
-				var nodes = $$(".extheme", node),
+				var nodes = $$(".hl-theme", node),
 					i, ii;
 
 				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					nodes[i].classList.add("extheme-dark");
+					nodes[i].classList.add("hl-theme-dark");
 				}
 
-				if (node.classList && node.classList.contains("extheme")) {
-					node.classList.add("extheme-dark");
+				if (node.classList && node.classList.contains("hl-theme")) {
+					node.classList.add("hl-theme-dark");
 				}
 			}
 		},
@@ -4515,16 +4515,16 @@
 			var new_theme = Theme.detect();
 			if (new_theme !== null && new_theme !== Theme.current) {
 				if (update_nodes) {
-					var nodes = $$("extheme"),
+					var nodes = $$("hl-theme"),
 						cls, i;
 					if (new_theme === "light") {
-						cls = "extheme-" + Theme.current;
+						cls = "hl-theme-" + Theme.current;
 						for (i = 0; i < nodes.length; ++i) {
 							nodes.classList.remove(cls);
 						}
 					}
 					else {
-						cls = "extheme-" + new_theme;
+						cls = "hl-theme-" + new_theme;
 						for (i = 0; i < nodes.length; ++i) {
 							nodes.classList.add(cls);
 						}
