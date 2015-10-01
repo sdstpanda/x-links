@@ -2395,7 +2395,7 @@
 					hover, i, ii;
 
 				hover = $.create("div", {
-					className: "exlinks-exsauce-hover exlinks-exsauce-hover-hidden post reply post_wrapper ex-fake-post"
+					className: "exlinks-exsauce-hover exlinks-exsauce-hover-hidden post reply post_wrapper ex-fake-post" + Theme.get()
 				});
 				hover.setAttribute("data-sha1", sha1);
 
