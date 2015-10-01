@@ -1322,6 +1322,11 @@
 			artists: "artist",
 			groups: "group"
 		},
+		request_types: {
+			ehentai: [ "ehentai_page", "ehentai_gallery" ],
+			nhentai: [ "nhentai_gallery" ],
+			hitomi: [ "hitomi_gallery" ]
+		},
 		Request: (function () {
 			var Queue, error_fn, queue_add, queue_get, trigger, perform_request, call_callbacks;
 
@@ -1572,14 +1577,18 @@
 			};
 		})(),
 		queue_gallery: function (gid, token) {
+			gid = parseInt(gid, 10);
 			API.Request.queue("ehentai_gallery",
-				[ parseInt(gid, 10), token ],
+				[ gid, token ],
 				function (err, data, last) {
 					if (err === null) {
 						Database.set("ehentai", data);
 					}
+					else {
+						Database.set_error("ehentai", gid, err, data !== null);
+					}
 					if (last) {
-						Linkifier.check_incomplete();
+						Linkifier.check_incomplete("ehentai");
 					}
 				}
 			);
@@ -1621,7 +1630,10 @@
 				function (err, data) {
 					if (err === null) {
 						Database.set("nhentai", data);
-						Linkifier.check_incomplete();
+						Linkifier.check_incomplete("nhentai");
+					}
+					else {
+						Database.set_error("nhentai", gid, err, data !== null);
 					}
 				}
 			);
@@ -1632,15 +1644,18 @@
 				function (err, data) {
 					if (err === null) {
 						Database.set("hitomi", data);
-						Linkifier.check_incomplete();
+						Linkifier.check_incomplete("hitomi");
+					}
+					else {
+						Database.set_error("hitomi", gid, err, data !== null);
 					}
 				}
 			);
 		},
-		request: function () {
-			API.Request.trigger([ "ehentai_page", "ehentai_gallery" ]);
-			API.Request.trigger([ "nhentai_gallery" ]);
-			API.Request.trigger([ "hitomi_gallery" ]);
+		run_request_queue: function () {
+			API.Request.trigger(API.request_types.ehentai);
+			API.Request.trigger(API.request_types.nhentai);
+			API.Request.trigger(API.request_types.hitomi);
 		},
 		data_has_full: function (data) {
 			return data.full && data.full.version >= API.full_version;
@@ -2156,6 +2171,11 @@
 			nhentai: {},
 			hitomi: {}
 		},
+		errors: {
+			ehentai: {},
+			nhentai: {},
+			hitomi: {}
+		},
 		valid_namespace: function (namespace) {
 			return (Database.data[namespace] !== undefined);
 		},
@@ -2181,6 +2201,13 @@
 		},
 		set_nocache: function (namespace, data) {
 			Database.data[namespace][data.gid] = data;
+		},
+		set_error: function (namespace, gid, error/*, cache*/) {
+			Database.errors[namespace][gid] = error;
+		},
+		get_error: function (namespace, gid) {
+			var v = Database.errors[namespace][gid];
+			return v === undefined ? null : v;
 		}
 	};
 	Hash = {
@@ -2446,7 +2473,7 @@
 
 						$.before(n, results);
 						if (Linkifier.check_incomplete()) {
-							API.request();
+							API.run_request_queue();
 						}
 					}
 				}
@@ -2798,14 +2825,23 @@
 				}
 			},
 		},
-		check_incomplete: function () {
+		check_incomplete: function (type) {
 			var incomplete = Linkifier.incomplete,
 				api_request = false,
 				obj, list1, list2, entry, data, info, t1, t2, fn_missing, i, ii, j, jj, k, m;
 
+			i = 0;
 			t1 = incomplete.types;
-			for (i = 0, ii = t1.length; i < ii; ++i) {
+			if (type === undefined) {
+				ii = t1.length;
 				obj = incomplete[t1[i]];
+			}
+			else {
+				ii = 1;
+				obj = incomplete[type];
+			}
+
+			while (true) {
 				t2 = obj.types;
 				for (j = 0, jj = t2.length; j < jj; ++j) {
 					m = t2[j];
@@ -2818,6 +2854,10 @@
 						data = Database.get(info.site, k);
 						if (data !== null) {
 							Linkifier.format(entry[1], data);
+							delete list1[k];
+						}
+						else if ((data = Database.get_error(info.site, k)) !== null) {
+							Linkifier.format_links_error(entry[1], data);
 							delete list1[k];
 						}
 					}
@@ -2838,6 +2878,9 @@
 						delete list2[k];
 					}
 				}
+
+				if (++i >= ii) break;
+				obj = incomplete[t1[i]];
 			}
 
 			return api_request;
@@ -2921,35 +2964,18 @@
 			}
 		},
 		format: function (links, data) {
-			var has_data = !!data,
-				events = (Linkifier.event_listeners.format.length > 0) ? Linkifier.event_queue.format : null,
-				error, link, id, i, ii;
-
-			if (has_data) {
-				error = Object.prototype.hasOwnProperty.call(data, "error");
-			}
+			var events = (Linkifier.event_listeners.format.length > 0) ? Linkifier.event_queue.format : null,
+				link, i, ii;
 
 			for (i = 0, ii = links.length; i < ii; ++i) {
 				link = links[i];
 
-				if (!has_data) {
-					id = Helper.get_id_from_node(link);
-					data = Database.get(id[0], id[1]);
-					if (data === null) continue;
-					error = Object.prototype.hasOwnProperty.call(data, "error");
-				}
-
-				if (error) {
-					Linkifier.format_link_error(link);
-				}
-				else {
-					Linkifier.format_link(link, data);
-				}
+				Linkifier.format_link(link, data);
 
 				if (events !== null) events.push(link);
 			}
 
-			if (!has_data && events !== null) {
+			if (events !== null) {
 				Linkifier.trigger("format");
 			}
 		},
@@ -2975,14 +3001,26 @@
 			actions = UI.actions(data, link);
 			$.after(link, actions);
 		},
-		format_link_error: function (link) {
-			var button = Helper.get_tag_button_from_link(link);
-			if (button !== null) {
-				Linkifier.change_link_events(button, "gallery_error");
-			}
+		format_links_error: function (links, error) {
+			var button, link, msg_data, i, ii;
 
-			link.textContent = "Incorrect Gallery Key";
-			link.setAttribute("data-ex-linkified-status", "formatted_error");
+			msg_data = {
+				className: "ex-linkified-error-message",
+				textContent: " (" + error.trim().replace(/\.$/, "") + ")"
+			};
+
+			for (i = 0, ii = links.length; i < ii; ++i) {
+				link = links[i];
+				button = Helper.get_tag_button_from_link(link);
+				if (button !== null) {
+					Linkifier.change_link_events(button, "gallery_error");
+					button.classList.add("ex-linkified-error");
+				}
+
+				link.classList.add("ex-linkified-error");
+				link.setAttribute("data-ex-linkified-status", "formatted_error");
+				$.add(link, $.create("span", msg_data));
+			}
 		},
 		apply_link_events: function (node, check_children) {
 			var nodes = check_children ? $$("a.ex-link-events", node) : [ node ],
@@ -5639,7 +5677,7 @@
 			if (post_list.length > 0) {
 				Linkifier.parse_posts(post_list);
 				if (Linkifier.check_incomplete()) {
-					API.request();
+					API.run_request_queue();
 				}
 			}
 		},
@@ -5714,7 +5752,7 @@
 
 			Linkifier.parse_posts(Helper.Post.get_all_posts(d));
 			Linkifier.check_incomplete();
-			API.request();
+			API.run_request_queue();
 
 			if (MutationObserver) {
 				updater = new MutationObserver(Main.observer);

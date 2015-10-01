@@ -527,6 +527,12 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 .ex-linkified {
 	text-decoration: none !important;
 }
+.ex-linkified.ex-linkified-error {
+	font-style: italic;
+}
+.ex-linkified-error-message {
+	opacity: 0.75;
+}
 
 /* Hovering shadow */
 .ex-hover-shadow {
