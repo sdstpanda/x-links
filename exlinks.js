@@ -116,9 +116,7 @@
 				'# Highlight "english" and "translated" tags in non-western non-non-h galleries:',
 				'# /english|translated/;not:western,non-h;color:#4080f0;link-color:#4080f0;',
 				'# Highlight galleries tagged with "touhou project":',
-				'# /touhou project/;background:rgba(255,128,64,0.5);link-background:rgba(255,128,64,0.5);',
-				'# Highlight all non-english language tags in doujinshi/manga/artistcg/gamecg galleries:',
-				'# /korean|chinese|italian|vietnamese|thai|spanish|french|german|portuguese|russian|dutch|hungarian|indonesian|finnish|rewrite/;only:doujinshi,manga,artistcg,gamecg;underline:#FF0000;link-underline:#FF0000;'
+				'# /touhou project/;background:rgba(255,128,64,0.5);link-background:rgba(255,128,64,0.5);'
 			].join('\n'), ''],
 			'Uploader Filter': ['textarea', [
 				'# Highlight links for galleries uploaded by "ExUploader"',
