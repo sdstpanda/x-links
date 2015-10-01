@@ -149,8 +149,7 @@
 	tempconf = {};
 	pageconf = {};
 
-	// Inspired by 4chan X and jQuery API: https://api.jquery.com/ (functions are not chainable)
-	$ = function (selector, root) {
+	$ = function (selector, root) { // Inspired by 4chan X and jQuery API: https://api.jquery.com/ (functions are not chainable)
 		return (root || d).querySelector(selector);
 	};
 	$$ = function (selector, root) {
@@ -3728,6 +3727,43 @@
 		namespace: "exlinks-settings-",
 		mode: "4chan", // foolz, fuuka, tinyboard
 		linkify: true,
+		storage: (function () {
+			try {
+				if (!(
+					GM_setValue && typeof(GM_setValue) === "function" &&
+					GM_getValue && typeof(GM_getValue) === "function" &&
+					GM_deleteValue && typeof(GM_deleteValue) === "function" &&
+					GM_listValues && typeof(GM_listValues) === "function"
+				)) {
+					throw "";
+				}
+			}
+			catch (e) {
+				return window.localStorage;
+			}
+
+			return {
+				getItem: function (key) {
+					return GM_getValue(key, null);
+				},
+				setItem: function (key, value) {
+					GM_setValue(key, value);
+				},
+				key: function (index) {
+					return GM_listValues()[index];
+				},
+				removeItem: function (key) {
+					GM_deleteValue(key);
+				},
+				clear: function () {
+					var v = GM_listValues(), k;
+					for (k in v) GM_deleteValue(k);
+				},
+				get length() {
+					return GM_listValues().length;
+				}
+			};
+		})(),
 		site: function () {
 			var site = d.URL,
 				doctype = d.doctype,
@@ -3757,24 +3793,27 @@
 			return true;
 		},
 		save: function () {
-			for (var i in options) {
-				for (var k in options[i]) {
-					localStorage.setItem(Config.namespace + k, JSON.stringify(tempconf[k]));
+			var storage = Config.storage,
+				i, k;
+			for (i in options) {
+				for (k in options[i]) {
+					storage.setItem(Config.namespace + k, JSON.stringify(tempconf[k]));
 				}
 			}
 		},
 		init: function () {
-			var temp, option, i, k;
+			var storage = Config.storage,
+				temp, option, i, k;
 			for (i in options) {
 				for (k in options[i]) {
-					temp = localStorage.getItem(Config.namespace + k);
+					temp = storage.getItem(Config.namespace + k);
 					if (temp) {
 						conf[k] = Helper.json_parse_safe(temp, false);
 					}
 					else {
 						option = options[i][k][1];
 						conf[k] = option;
-						localStorage.setItem(Config.namespace + k, JSON.stringify(option));
+						storage.setItem(Config.namespace + k, JSON.stringify(option));
 					}
 				}
 			}
@@ -4525,11 +4564,11 @@
 			display_mode: 0 // 0 = full, 1 = compact, 2 = minimal
 		},
 		settings_save: function () {
-			localStorage.setItem(EasyList.namespace + "settings", JSON.stringify(EasyList.settings));
+			Config.storage.setItem(EasyList.namespace + "settings", JSON.stringify(EasyList.settings));
 		},
 		settings_load: function () {
 			// Load
-			var value = localStorage.getItem(EasyList.namespace + "settings"),
+			var value = Config.storage.getItem(EasyList.namespace + "settings"),
 				settings = EasyList.settings,
 				k;
 

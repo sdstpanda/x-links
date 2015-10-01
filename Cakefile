@@ -17,7 +17,7 @@ OUTFILE   = 'ExLinks.user.js'
 LATEST    = 'latest.js'
 CHANGELOG = 'changelog'
 
-HEADER    =
+HEADER =
 """
 // ==UserScript==
 // @name        #{pkg.name}
@@ -31,8 +31,10 @@ HEADER    =
 // @homepage    #{pkg.homepage}
 // @supportURL  #{pkg.bugs.url}
 // @updateURL   #{pkg.custom.update_url}
-// @downloadURL #{pkg.custom.download_url}
-// @grant       GM_xmlhttpRequest
+// @downloadURL #{pkg.custom.download_url}\n
+""" +
+(("// @grant       #{a}\n" for a in pkg.custom.gm_permissions).join "") +
+"""
 // @run-at      document-start
 // ==/UserScript==
 """

@@ -39,6 +39,13 @@
       "https://archive.moe/*",
       "http://8ch.net/*",
       "https://8ch.net/*"
+    ],
+    "gm_permissions": [
+      "GM_xmlhttpRequest",
+      "GM_setValue",
+      "GM_getValue",
+      "GM_deleteValue",
+      "GM_listValues"
     ]
   }
 }
