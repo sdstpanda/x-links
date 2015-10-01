@@ -432,6 +432,13 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 	color: inherit !important;
 }
 
+.ex-tag-namespace-first {
+	display: inline-block;
+}
+.ex-tag-namespace-first>.ex-tag-block {
+	display: inline;
+}
+
 .ex-tag-namespace-block {
 	display: inline-block;
 	margin: 0 0.125em;

@@ -1234,7 +1234,7 @@
 			var tagfrag = d.createDocumentFragment(),
 				tags_ns = data.full.tags,
 				theme = Theme.get(),
-				namespace, namespace_style, tags, tag, link, i, ii;
+				namespace, namespace_style, tags, tag, link, tf, i, ii;
 
 			for (namespace in tags_ns) {
 				tags = tags_ns[namespace];
@@ -1247,9 +1247,13 @@
 					textContent: namespace,
 					className: "ex-tag-namespace"
 				});
+				tf = $.create("span", {
+					className: "ex-tag-namespace-first"
+				});
 				$.add(tag, link);
 				$.add(tag, $.tnode(":"));
-				$.add(tagfrag, tag);
+				$.add(tf, tag);
+				$.add(tagfrag, tf);
 
 				for (i = 0, ii = tags.length; i < ii; ++i) {
 					tag = $.create("span", { className: "ex-tag-block" + namespace_style });
@@ -1262,7 +1266,8 @@
 
 					$.add(tag, link);
 					$.add(tag, $.tnode(i === ii - 1 ? ";" : ","));
-					$.add(tagfrag, tag);
+					$.add(tf, tag);
+					tf = tagfrag;
 				}
 			}
 			$.remove(tagfrag.lastChild.lastChild);
