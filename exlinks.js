@@ -117,7 +117,7 @@
 				'# Highlight "english" and "translated" tags in non-western non-non-h galleries:',
 				'# /english|translated/i;not:western,non-h;color:#4080F0;link-color:#4080F0;tag',
 				'# Highlight galleries tagged with "touhou project":',
-				'# /touhou project/i;background:rgba(255,128,64,0.5);link-background:rgba(255,128,64,0.5);tag;title',
+				'# /touhou project/i;bg:rgba(255,128,64,0.5);link-bg:rgba(255,128,64,0.5);tag;title',
 				'# Highlight links for galleries uploaded by "ExUploader"',
 				'# /ExUploader/i;color:#FFFFFF;link-color:#FFFFFF;uploader',
 				'# Don\'t highlight anything uploaded by "CGrascal"',
@@ -4002,7 +4002,10 @@
 				any = true;
 			}
 
-			if ((v = flags.only) !== undefined && v.length > 0) {
+			if (
+				((v = flags.only) !== undefined || (v = flags.category) !== undefined || (v = flags.cat) !== undefined) &&
+				v.length > 0
+			) {
 				norm.only = Filter.normalize_split(v);
 				any = true;
 			}
@@ -4014,29 +4017,29 @@
 				norm.bad = true;
 				any = true;
 			}
-			if ((v = flags.color) !== undefined) {
+			if ((v = flags.color) !== undefined || (v = flags.c) !== undefined) {
 				norm.color = v.trim();
 				any = true;
 			}
-			if ((v = flags.background) !== undefined) {
+			if ((v = flags.background) !== undefined ||  (v = flags.bg) !== undefined) {
 				norm.background = v.trim();
 				any = true;
 			}
-			if ((v = flags.underline) !== undefined) {
+			if ((v = flags.underline) !== undefined || (v = flags.u) !== undefined) {
 				norm.underline = v.trim();
 				any = true;
 			}
-			if ((v = flags["link-color"]) !== undefined) {
+			if ((v = flags["link-color"]) !== undefined || (v = flags["link-c"]) !== undefined || (v = flags.lc) !== undefined) {
 				norm.link = {};
 				norm.link.color = v.trim();
 				any = true;
 			}
-			if ((v = flags["link-background"]) !== undefined) {
+			if ((v = flags["link-background"]) !== undefined || (v = flags["link-bg"]) !== undefined || (v = flags.lbg) !== undefined) {
 				if (norm.link === undefined) norm.link = {};
 				norm.link.background = v.trim();
 				any = true;
 			}
-			if ((v = flags["link-underline"]) !== undefined) {
+			if ((v = flags["link-underline"]) !== undefined || (v = flags["link-u"]) !== undefined || (v = flags.lu) !== undefined) {
 				if (norm.link === undefined) norm.link = {};
 				norm.link.underline = v.trim();
 				any = true;
