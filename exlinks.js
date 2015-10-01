@@ -91,14 +91,11 @@
 			// 'Favorite Autosave':         ['checkbox', false, 'Autosave to favorites. Overrides normal behavior.']
 		},
 		sauce: {
-			'Inline Results':              ['checkbox', true,  'Shows the results inlined rather than opening the site. Works with Smart Links.'],
+			'Inline Results':              ['checkbox', true,  'Shows the results inlined rather than opening the site.'],
 			'Hide Results in Quotes':      ['checkbox', true,  'Hide open inline results in inline quotes.'],
-			'Show Short Results':          ['checkbox', true,  'Show gallery names when hovering over the link after lookup (similar to old ExSauce).'],
+			'Show Short Results':          ['checkbox', true,  'Show gallery names when hovering over the link after lookup.'],
 			'Search Expunged':             ['checkbox', false, 'Search expunged galleries as well.'],
-			'Lowercase on 4chan':          ['checkbox', true,  'Lowercase ExSauce label on 4chan.'],
-			'No Underline on Sauce':       ['checkbox', false,  'Force the ExSauce label to have no underline.'],
-			'Use Custom Label':            ['checkbox', false, 'Use a custom label instead of the site name (e-hentai/exhentai).'],
-			'Custom Label Text':           ['textbox', 'ExSauce', 'The custom label.'],
+			'Custom Label Text':           ['textbox', '', 'Use a custom label instead of the site name (e-hentai/exhentai).'],
 			'Lookup Domain':               ['saucedomain', domains.exhentai, 'The site to use for the reverse image search.']
 		},
 		debug: {
@@ -2424,7 +2421,7 @@
 				results, link, n, i, ii;
 
 			a.classList.add("exlinks-exsauce-link-valid");
-			a.textContent = Sauce.text("Found: " + count);
+			a.textContent = "Found: " + count;
 
 			if (count > 0) {
 				if (conf["Inline Results"] === true) {
@@ -2438,7 +2435,7 @@
 						$.add(results, $.create("span", { className: "exlinks-exsauce-results-label", textContent: "View on:" }));
 						$.add(results, $.link(a.href, {
 							className: "exlinks-exsauce-results-link",
-							textContent: Sauce.label(true)
+							textContent: (conf["Lookup Domain"] === domains.exhentai) ? "exhentai" : "e-hentai"
 						}));
 						$.add(results, $.create("br"));
 
@@ -2462,7 +2459,7 @@
 			Debug.log("Formatting complete");
 		},
 		lookup: function (a, sha1) {
-			a.textContent = Sauce.text("Checking");
+			a.textContent = "Checking";
 
 			HttpRequest({
 				method: "GET",
@@ -2477,14 +2474,14 @@
 						Sauce.format(a, results);
 					}
 					else {
-						a.textContent = Sauce.text("Error: lookup/" + xhr.status);
+						a.textContent = "Error: lookup/" + xhr.status;
 					}
 				},
 				onerror: function () {
-					a.textContent = Sauce.text("Error: lookup/connection");
+					a.textContent = "Error: lookup/connection";
 				},
 				onabort: function () {
-					a.textContent = Sauce.text("Error: lookup/aborted");
+					a.textContent = "Error: lookup/aborted";
 				}
 			});
 		},
@@ -2510,11 +2507,11 @@
 			error_fn = function (msg) {
 				return function () {
 					setTimeout(reset_uploading, Sauce.delays.similar_error);
-					a.textContent = Sauce.text("Error: " + msg);
+					a.textContent = "Error: " + msg;
 				};
 			};
 
-			a.textContent = Sauce.text("Uploading");
+			a.textContent = "Uploading";
 
 			Sauce.similar_uploading = true;
 			HttpRequest({
@@ -2532,7 +2529,7 @@
 							a.href = xhr.finalUrl;
 
 							if (/monotone/.test(m[1]) && results.length === 0) {
-								a.textContent = Sauce.text("Error: monotone");
+								a.textContent = "Error: monotone";
 								a.setAttribute("title", "Similarity scan can only be performed on color images");
 							}
 							else {
@@ -2555,7 +2552,7 @@
 						}
 						else {
 							if (/please\s+wait\s+a\s+bit\s+longer\s+between\s+each\s+file\s+search/i.test(xhr.responseText)) {
-								a.textContent = Sauce.text("Error: wait longer");
+								a.textContent = "Error: wait longer";
 								a.setAttribute("title", "Click again to retry");
 								$.on(a, "click", Sauce.fetch_similar);
 								setTimeout(reset_uploading, Sauce.delays.similar_retry);
@@ -2573,7 +2570,7 @@
 				onabort: error_fn("similar/check/aborted"),
 				upload: {
 					onload: function () {
-						a.textContent = Sauce.text("Checking");
+						a.textContent = "Checking";
 					},
 					onerror: error_fn("similar/upload/connection"),
 					onabort: error_fn("similar/upload/aborted")
@@ -2627,15 +2624,15 @@
 		},
 		hash: function (a, md5) {
 			Debug.log("Fetching image " + a.href);
-			a.textContent = Sauce.text("Loading");
+			a.textContent = "Loading";
 
 			Sauce.get_image(a.href, function (err, data) {
 				if (err !== null) {
-					a.textContent = Sauce.text("Error: hash/" + err);
+					a.textContent = "Error: hash/" + err;
 				}
 				else {
 					var sha1 = SHA1.hash(data);
-					a.textContent = Sauce.text("Hashing");
+					a.textContent = "Hashing";
 					a.setAttribute("data-sha1", sha1);
 					Hash.set("md5", md5, sha1);
 					Debug.log("SHA-1 hash for image: " + sha1);
@@ -2698,7 +2695,7 @@
 				$.off(this, "click", Sauce.fetch_similar);
 
 				// Load image and upload
-				a.textContent = Sauce.text("Loading");
+				a.textContent = "Loading";
 
 				Sauce.get_image(this.href, function (err, image, image_size) {
 					if (err !== null) {
@@ -2711,23 +2708,14 @@
 				});
 			}
 		},
-		label: function (siteonly) {
-			var label = (conf["Lookup Domain"] === domains.exhentai) ? 'ExHentai' : 'E-Hentai';
+		label: function () {
+			var label = conf["Custom Label Text"];
 
-			if (!siteonly) {
-				if (conf['Use Custom Label'] === true) {
-					label = conf['Custom Label Text'];
-				}
+			if (label.length === 0) {
+				label = (conf["Lookup Domain"] === domains.exhentai) ? "exhentai" : "e-hentai";
 			}
-			if (Config.mode === '4chan') {
-				if (conf['Lowercase on 4chan'] === true) {
-					label = label.toLowerCase();
-				}
-			}
+
 			return label;
-		},
-		text: function (text) {
-			return (Config.mode === '4chan' && conf['Lowercase on 4chan']) ? text.toLowerCase() : text;
 		}
 	};
 	Linkifier = {
@@ -3136,13 +3124,10 @@
 			if (sauce === null && /^\.(png|gif|jpe?g)$/i.test(file_info.type)) {
 				sauce = $.link(file_info.url, {
 					className: "ex-link-events exlinks-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
-					textContent: Sauce.label(false)
+					textContent: Sauce.label()
 				});
 				sauce.setAttribute("data-ex-link-events", "exsauce_fetch");
 				sauce.setAttribute("data-ex-filename", file_info.name);
-				if (conf["No Underline on Sauce"]) {
-					sauce.classList.add("exlinks-exsauce-link-no-underline");
-				}
 				sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
 				if (/^\.jpe?g$/i.test(file_info.type) && Config.mode !== "tinyboard") {
 					if (/Firefox/i.test("" + navigator.userAgent)) {

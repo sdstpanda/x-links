@@ -204,8 +204,8 @@
 /* Sauce */
 .exlinks-exsauce-link {
 	white-space: nowrap;
+	text-transform: lowercase;
 }
-.exlinks-exsauce-link-no-underline,
 .exlinks-exsauce-hover-link {
 	text-decoration: none !important;
 }
@@ -240,6 +240,7 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 	text-decoration: none !important;
 	vertical-align: top;
 	margin: 0 0.375em;
+	text-transform: lowercase;
 }
 
 .exlinks-exsauce-hover {
