@@ -713,7 +713,7 @@
 
 			post_selector = {
 				"4chan": ".postContainer:not(.ex-fake-post)",
-				"foolz": "article:not(.ex-fake-post)",
+				"foolz": "article:not(.backlink_container)",
 				"38chan": ".post:not(.ex-fake-post)"
 			};
 			post_body_selector = {
@@ -3085,34 +3085,37 @@
 			}
 
 			// Content
-			post_body = Helper.Post.get_text_body(post);
-			regex.url.lastIndex = 0;
 			if (
 				!post.classList.contains("ex-post-linkified") &&
-				regex.url.test(post_body.innerHTML)
+				(post_body = Helper.Post.get_text_body(post)) !== null
 			) {
-				links = [];
-				post_links = Helper.Post.get_body_links(post_body);
-				for (i = 0, ii = post_links.length; i < ii; ++i) {
-					link = post_links[i];
-					regex.url.lastIndex = 0;
-					if (regex.url.test(link.href)) {
-						link.classList.add("ex-link-events");
-						link.classList.add("ex-linkified");
-						link.classList.add("ex-linkified-gallery");
-						link.target = "_blank";
-						link.rel = "noreferrer";
-						link.setAttribute("data-ex-linkified-status", "unprocessed");
-						Linkifier.change_link_events(link, "gallery_link");
-						links.push(link);
+				regex.url.lastIndex = 0;
+				if (!Config.linkify || regex.url.test(post_body.innerHTML)) {
+					links = [];
+					post_links = Helper.Post.get_body_links(post_body);
+					for (i = 0, ii = post_links.length; i < ii; ++i) {
+						link = post_links[i];
+						regex.url.lastIndex = 0;
+						if (regex.url.test(link.href)) {
+							link.classList.add("ex-link-events");
+							link.classList.add("ex-linkified");
+							link.classList.add("ex-linkified-gallery");
+							link.target = "_blank";
+							link.rel = "noreferrer";
+							link.setAttribute("data-ex-linkified-status", "unprocessed");
+							Linkifier.change_link_events(link, "gallery_link");
+							links.push(link);
+						}
+					}
+
+					if (Config.linkify) {
+						Linkifier.linkify(post_body, links);
+					}
+
+					for (i = 0, ii = links.length; i < ii; ++i) {
+						Linkifier.preprocess_link(links[i], auto_load_links);
 					}
 				}
-
-				Linkifier.linkify(post_body, links);
-				for (i = 0, ii = links.length; i < ii; ++i) {
-					Linkifier.preprocess_link(links[i], auto_load_links);
-				}
-
 				post.classList.add("ex-post-linkified");
 			}
 
@@ -3721,6 +3724,7 @@
 	Config = {
 		namespace: "exlinks-settings-",
 		mode: "4chan", // foolz, fuuka, 38chan
+		linkify: true,
 		site: function () {
 			var site = d.URL,
 				doctype = d.doctype,
@@ -3735,10 +3739,14 @@
 					">";
 
 				Config.mode = (/<!DOCTYPE html>/.test(type)) ? "foolz" : "fuuka";
+				Config.linkify = false;
 			}
 			else if (/boards\.38chan\.net/i.test(site)) {
 				Config.mode = "38chan";
+				Config.linkify = false;
 			}
+
+			return true;
 		},
 		save: function () {
 			for (var i in options) {
@@ -5611,7 +5619,7 @@
 			var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver,
 				updater, style;
 
-			Config.site();
+			if (!Config.site()) return;
 			Options.init();
 
 			style = $.create("style", {
