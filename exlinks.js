@@ -3725,7 +3725,7 @@
 		}
 	};
 	Config = {
-		namespace: "exlinks-settings-",
+		namespace: "exlinks-settings",
 		mode: "4chan", // foolz, fuuka, tinyboard
 		linkify: true,
 		storage: (function () {
@@ -3757,8 +3757,8 @@
 					GM_deleteValue(key);
 				},
 				clear: function () {
-					var v = GM_listValues(), k;
-					for (k in v) GM_deleteValue(k);
+					var v = GM_listValues(), i, ii;
+					for (i = 0, ii = v.length; i < ii; ++i) GM_deleteValue(v[i]);
 				},
 				get length() {
 					return GM_listValues().length;
@@ -3794,33 +3794,43 @@
 			return true;
 		},
 		save: function () {
-			var storage = Config.storage,
+			var temp = {},
 				i, k;
 			for (i in options) {
 				for (k in options[i]) {
-					storage.setItem(Config.namespace + k, JSON.stringify(conf[k]));
+					temp[k] = conf[k];
 				}
 			}
+			Config.storage.setItem(Config.namespace, JSON.stringify(temp));
 		},
 		init: function () {
-			var storage = Config.storage,
-				temp, option, i, k;
+			var update = false,
+				temp, value, i, k;
+
+			if (
+				(temp = Config.storage.getItem(Config.namespace)) === null ||
+				(temp = Helper.json_parse_safe(temp, null)) === null ||
+				typeof(temp) !== "object"
+			) {
+				temp = {};
+			}
+
 			for (i in options) {
 				for (k in options[i]) {
-					temp = storage.getItem(Config.namespace + k);
-					if (temp) {
-						conf[k] = Helper.json_parse_safe(temp, false);
+					value = temp[k];
+					if (value === undefined) {
+						value = options[i][k][1];
+						update = true;
 					}
-					else {
-						option = options[i][k][1];
-						conf[k] = option;
-						storage.setItem(Config.namespace + k, JSON.stringify(option));
-					}
+					conf[k] = value;
 				}
 			}
+
 			if (/presto/i.test(navigator.userAgent)) {
 				conf.ExSauce = false;
 			}
+
+			if (update) Config.save();
 		}
 	};
 	Filter = {
