@@ -26,11 +26,19 @@
   "bugs": {
     "url": "https://github.com/Hupotronic/ExLinks/issues"
   },
-  "homepage": "http://hupotronic.github.io/ExLinks",
+  "homepage": "http://hupotronic.github.io/ExLinks/",
   "custom": {
     "namespace": "hupotronic",
     "update_url": "https://github.com/Hupotronic/ExLinks/raw/stable/ExLinks.meta.js",
     "download_url": "https://github.com/Hupotronic/ExLinks/raw/stable/ExLinks.user.js",
-    "changelog_url": "https://raw.githubusercontent.com/Hupotronic/ExLinks/master/changelog"
+    "changelog_url": "https://raw.githubusercontent.com/Hupotronic/ExLinks/master/changelog",
+    "targets": [
+      "http://boards.4chan.org/*",
+      "https://boards.4chan.org/*",
+      "http://boards.38chan.net/*",
+      "https://archive.moe/*",
+      "http://8ch.net/*",
+      "https://8ch.net/*"
+    ]
   }
 }

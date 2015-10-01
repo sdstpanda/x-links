@@ -8,19 +8,17 @@ CleanCSS = require 'clean-css'
 
 
 VERSION   = pkg.version
-HEADER    = """
+HEADER    =
+"""
 // ==UserScript==
 // @name        #{pkg.name}
 // @namespace   #{pkg.custom.namespace}
 // @author      #{pkg.author}
 // @version     #{pkg.version}
-// @description #{pkg.description}
-// @include     http://boards.4chan.org/*
-// @include     https://boards.4chan.org/*
-// @include     http://boards.38chan.net/*
-// @include     https://archive.moe/*
-// @include     http://8ch.net/*
-// @include     https://8ch.net/*
+// @description #{pkg.description}\n
+""" +
+(("// @include     #{a}\n" for a in pkg.custom.targets).join "") +
+"""
 // @updateURL   #{pkg.custom.update_url}
 // @downloadURL #{pkg.custom.download_url}
 // @grant       GM_xmlhttpRequest
