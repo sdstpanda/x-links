@@ -133,7 +133,7 @@
 	};
 	regex = {
 		url: /(?:https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)\/[^<>\s\'\"]*/ig,
-		protocol: /https?\:\/*/,
+		protocol: /^https?\:\/*/i,
 		fjord: /abortion|bestiality|incest|lolicon|shotacon|toddlercon/,
 		site_exhentai: /exhentai\.org/i,
 		site_gehentai: /g\.e\-hentai\.org/i
@@ -2893,7 +2893,9 @@
 					return ddw.EL_TYPE_PARSE;
 				},
 				function (node, match) {
-					node.href = match[2][0];
+					var url = match[2][0];
+					if (!regex.protocol.test(url)) url = "http://" + url.replace(/^\/+/, "");
+					node.href = url;
 					node.target = "_blank";
 					node.rel = "noreferrer";
 					results.push(node);
