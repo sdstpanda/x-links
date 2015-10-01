@@ -1160,7 +1160,7 @@
 					is_low = (link_rect.y + link_rect.height / 2 >= win_height / 2), // (y >= win_height / 2)
 					offset = 20;
 
-				x -= rect.width / 2;
+				x -= rect.width * 0.25;
 				x = Math.max(1, Math.min(win_width - rect.width - 1, x));
 				y += is_low ? -(rect.height + offset) : offset;
 
