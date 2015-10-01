@@ -448,20 +448,20 @@
 			}
 		},
 		get_uid_from_node: function (node) {
-			var a = node.getAttribute("data-ex-id"),
+			var a = node.getAttribute("data-hl-id"),
 				i;
 			return (a && (i = a.indexOf("_")) >= 0) ? a.substr(i + 1) : "";
 		},
 		get_id_from_node: function (node) {
-			var a = node.getAttribute("data-ex-id"),
+			var a = node.getAttribute("data-hl-id"),
 				i;
 			return (a && (i = a.indexOf("_")) >= 0) ? [ a.substr(0, i), a.substr(i + 1) ] : null;
 		},
 		get_id_from_node_full: function (node) {
-			return node.getAttribute("data-ex-id") || "";
+			return node.getAttribute("data-hl-id") || "";
 		},
 		get_info_from_node: function (node) {
-			var attr = node.getAttribute("data-ex-info");
+			var attr = node.getAttribute("data-hl-info");
 			try {
 				return JSON.parse(attr);
 			}
@@ -473,7 +473,7 @@
 			if (
 				(node = node.previousSibling) !== null &&
 				(node.classList || ((node = node.previousSibling) !== null && node.classList)) &&
-				node.classList.contains("ex-site-tag")
+				node.classList.contains("hl-site-tag")
 			) {
 				return node;
 			}
@@ -484,7 +484,7 @@
 			if (
 				(node = node.nextSibling) !== null &&
 				(node.classList || ((node = node.nextSibling) !== null && node.classList)) &&
-				node.classList.contains("ex-linkified-gallery")
+				node.classList.contains("hl-linkified-gallery")
 			) {
 				return node;
 			}
@@ -500,7 +500,7 @@
 			if (
 				(node = node.nextSibling) !== null &&
 				(node.classList || ((node = node.nextSibling) !== null && node.classList)) &&
-				node.classList.contains("ex-actions")
+				node.classList.contains("hl-actions")
 			) {
 				return node;
 			}
@@ -511,7 +511,7 @@
 
 			if (
 				container !== null &&
-				(node = $(".ex-exsauce-results", container)) !== null &&
+				(node = $(".hl-exsauce-results", container)) !== null &&
 				Helper.Post.get_post_container(node) === container
 			) {
 				return node;
@@ -701,9 +701,9 @@
 			};
 
 			post_selector = {
-				"4chan": ".postContainer:not(.ex-fake-post)",
+				"4chan": ".postContainer:not(.hl-fake-post)",
 				"foolz": "article:not(.backlink_container)",
-				"tinyboard": ".post:not(.ex-fake-post)"
+				"tinyboard": ".post:not(.hl-fake-post)"
 			};
 			post_body_selector = {
 				"4chan": "blockquote",
@@ -903,45 +903,45 @@
 					domain_type = domain_info[domain].type,
 					url, src;
 
-				src = '<div class="ex-actions ex-actions-hidden' + Theme.get() + '" data-ex-id="' + domain_type + '_' + gid + '">';
-				src += '<table class="ex-actions-table"><tbody>';
+				src = '<div class="hl-actions hl-actions-hidden' + Theme.get() + '" data-hl-id="' + domain_type + '_' + gid + '">';
+				src += '<table class="hl-actions-table"><tbody>';
 				src += '<tr><td style="vertical-align: top;">';
 				src += '<span>' + data.category + '</span>';
-				src += '<span class="ex-actions-sep">|</span>';
+				src += '<span class="hl-actions-sep">|</span>';
 				src += '<span>' + data.filecount + ' files</span>';
-				src += '<span class="ex-actions-sep">|</span>';
-				src += '<span class="ex-actions-label">View on:</span>';
+				src += '<span class="hl-actions-sep">|</span>';
+				src += '<span class="hl-actions-label">View on:</span>';
 
 				if (domain_type === "ehentai") {
 					url = Helper.Site.create_gallery_url(data, domains.ehentai);
-					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_view_on_eh">e-hentai</a>';
+					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_view_on_eh">e-hentai</a>';
 
 					url = Helper.Site.create_gallery_url(data, domains.exhentai);
-					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_view_on_ex">exhentai</a>';
+					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_view_on_ex">exhentai</a>';
 
-					src += '<span class="ex-actions-sep">|</span>';
-					src += '<span class="ex-actions-label">Uploader:</span>';
+					src += '<span class="hl-actions-sep">|</span>';
+					src += '<span class="hl-actions-label">Uploader:</span>';
 
 					url = Helper.Site.create_uploader_url(data, domain);
-					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_uploader">' + data.uploader + '</a>';
+					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_uploader">' + data.uploader + '</a>';
 
-					src += '<span class="ex-actions-sep">|</span>';
+					src += '<span class="hl-actions-sep">|</span>';
 
 					url = domains.gehentai + "/stats.php?gid=" + gid + "&t=" + token;
-					src += '<a href="http://' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_stats">Stats</a>';
+					src += '<a href="http://' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_stats">Stats</a>';
 				}
 				else if (domain_type === "nhentai") {
 					url = Helper.Site.create_gallery_url(data, domain);
-					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_view_on_nh">nhentai</a>';
+					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_view_on_nh">nhentai</a>';
 				}
 				else if (domain_type === "hitomi") {
 					url = Helper.Site.create_gallery_url(data, domain);
-					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="ex-link-events ex-actions-link" data-ex-link-events="actions_view_on_nh">hitomi.la</a>';
+					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_view_on_nh">hitomi.la</a>';
 				}
 				src += '</td></tr>';
 				src += '</tbody></table>';
-				src += '<div class="ex-actions-tag-block">';
-				src += '<strong class="ex-actions-tag-block-label">Tags:</strong><span class="ex-actions-tags" data-ex-id="' + domain_type + '_' + gid + '"></span>';
+				src += '<div class="hl-actions-tag-block">';
+				src += '<strong class="hl-actions-tag-block-label">Tags:</strong><span class="hl-actions-tags" data-hl-id="' + domain_type + '_' + gid + '"></span>';
 				src += '</div>';
 				src += '</div>';
 
@@ -961,7 +961,7 @@
 						case 1: star = 'half'; break;
 						case 2: star = 'full'; break;
 					}
-					str += '<div class="ex-star ex-star-' + (i + 1) + ' ex-star-' + star + '"></div>';
+					str += '<div class="hl-star hl-star-' + (i + 1) + ' hl-star-' + star + '"></div>';
 				}
 				return str;
 			}
@@ -987,7 +987,7 @@
 					Nodes.details[full_id] = details;
 				}
 
-				details.classList.remove("ex-details-hidden");
+				details.classList.remove("hl-details-hidden");
 			},
 			mouseout: function () {
 				var full_id = Helper.get_id_from_node_full(this),
@@ -1009,7 +1009,7 @@
 					Nodes.details[full_id] = details;
 				}
 
-				details.classList.add("ex-details-hidden");
+				details.classList.add("hl-details-hidden");
 			},
 			mousemove: function (event) {
 				var details = Nodes.details[Helper.get_id_from_node_full(this)];
@@ -1041,7 +1041,7 @@
 				g_domain = di.g_domain,
 				tagspace, content, n, o;
 
-			data_alt.jtitle = data.title_jpn ? ('<br /><span class="ex-details-title-jp">' + data.title_jpn + '</span>') : '';
+			data_alt.jtitle = data.title_jpn ? ('<br /><span class="hl-details-title-jp">' + data.title_jpn + '</span>') : '';
 			data_alt.site = di.type;
 			data_alt.size = Math.round((data.filesize / 1024 / 1024) * 100) / 100;
 			data_alt.datetext = UI.date(new Date(parseInt(data.posted, 10) * 1000));
@@ -1051,29 +1051,29 @@
 			content = $.frag(UI.html.details(data, data_alt)).firstChild;
 			Theme.apply(content);
 
-			if (data.thumb && (n = $(".ex-details-thumbnail", content)) !== null) {
+			if (data.thumb && (n = $(".hl-details-thumbnail", content)) !== null) {
 				n.style.backgroundImage = "url('" + data.thumb + "')";
 			}
-			if ((n = $(".ex-details-title", content)) !== null) {
+			if ((n = $(".hl-details-title", content)) !== null) {
 				Filter.highlight("title", n, data, null);
 			}
-			if ((n = $(".ex-details-uploader", content)) !== null) {
+			if ((n = $(".hl-details-uploader", content)) !== null) {
 				Filter.highlight("uploader", n, data, null);
 			}
-			if (data.filesize < 0 && (n = $(".ex-details-file-size", content)) !== null) {
+			if (data.filesize < 0 && (n = $(".hl-details-file-size", content)) !== null) {
 				$.remove(n);
 			}
-			if (data.torrentcount < 0 && (n = $(".ex-details-side-box-torrents", content)) !== null) {
+			if (data.torrentcount < 0 && (n = $(".hl-details-side-box-torrents", content)) !== null) {
 				$.remove(n);
 			}
-			if (data.rating < 0 && (n = $(".ex-details-side-box-rating", content)) !== null) {
+			if (data.rating < 0 && (n = $(".hl-details-side-box-rating", content)) !== null) {
 				$.remove(n);
 			}
-			if (data.expunged === null && (n = $(".ex-details-side-box-visible", content)) !== null) {
+			if (data.expunged === null && (n = $(".hl-details-side-box-visible", content)) !== null) {
 				$.remove(n);
 			}
 
-			tagspace = $('.ex-details-tags', content);
+			tagspace = $('.hl-details-tags', content);
 			$.add(tagspace, UI.create_tags_best(di.type, g_domain, data));
 
 			Main.hovering(content);
@@ -1129,21 +1129,21 @@
 
 			container = $.frag(UI.html.actions(data, domain)).firstChild;
 
-			if ((n = $(".ex-actions-link-uploader", container)) !== null) {
+			if ((n = $(".hl-actions-link-uploader", container)) !== null) {
 				Filter.highlight("uploader", n, data, null);
 			}
 
-			if (conf['Show by Default']) container.classList.remove("ex-actions-hidden");
-			$.add($(".ex-actions-tags", container), UI.create_tags_best(di.type, di.g_domain, data));
+			if (conf['Show by Default']) container.classList.remove("hl-actions-hidden");
+			$.add($(".hl-actions-tags", container), UI.create_tags_best(di.type, di.g_domain, data));
 
 			return container;
 		},
 		button: function (url, domain) {
 			var button = $.link(url, {
-				className: 'ex-link-events ex-site-tag',
+				className: 'hl-link-events hl-site-tag',
 				textContent: UI.button_text(domain)
 			});
-			button.setAttribute("data-ex-link-events", "gallery_fetch");
+			button.setAttribute("data-hl-link-events", "gallery_fetch");
 			return button;
 		},
 		button_text: function (domain) {
@@ -1154,7 +1154,7 @@
 			if (!event.which || event.which === 1) {
 				var actions = Helper.get_actions_from_link(this, true);
 				if (actions !== null) {
-					actions.classList.toggle("ex-actions-hidden");
+					actions.classList.toggle("hl-actions-hidden");
 				}
 				event.preventDefault();
 			}
@@ -1205,10 +1205,10 @@
 				tag, link, i, ii;
 
 			for (i = 0, ii = tags.length; i < ii; ++i) {
-				tag = $.create("span", { className: "ex-tag-block" + theme });
+				tag = $.create("span", { className: "hl-tag-block" + theme });
 				link = $.link(Helper.Site.create_tag_url(tags[i], domain, site), {
 					textContent: tags[i],
-					className: "ex-tag"
+					className: "hl-tag"
 				});
 
 				Filter.highlight("tags", link, data, null);
@@ -1229,17 +1229,17 @@
 
 			for (namespace in tags_ns) {
 				tags = tags_ns[namespace];
-				namespace_style = theme + " ex-tag-namespace-" + namespace.replace(/\s+/g, "-");
+				namespace_style = theme + " hl-tag-namespace-" + namespace.replace(/\s+/g, "-");
 
 				tag = $.create("span", {
-					className: "ex-tag-namespace-block" + namespace_style
+					className: "hl-tag-namespace-block" + namespace_style
 				});
 				link = $.create("span", {
 					textContent: namespace,
-					className: "ex-tag-namespace"
+					className: "hl-tag-namespace"
 				});
 				tf = $.create("span", {
-					className: "ex-tag-namespace-first"
+					className: "hl-tag-namespace-first"
 				});
 				$.add(tag, link);
 				$.add(tag, $.tnode(":"));
@@ -1247,10 +1247,10 @@
 				$.add(tagfrag, tf);
 
 				for (i = 0, ii = tags.length; i < ii; ++i) {
-					tag = $.create("span", { className: "ex-tag-block" + namespace_style });
+					tag = $.create("span", { className: "hl-tag-block" + namespace_style });
 					link = $.link(Helper.Site.create_tag_ns_url(tags[i], namespace, domain, site), {
 						textContent: tags[i],
-						className: "ex-tag"
+						className: "hl-tag"
 					});
 
 					Filter.highlight("tags", link, data, null);
@@ -1277,8 +1277,8 @@
 			var tagfrag, nodes, link, site, tags, last, i, ii, j, jj, n, f;
 
 			nodes = $$(
-				".ex-actions-tags[data-ex-id='ehentai_" + data.gid + "']," +
-				".ex-details-tags[data-ex-id='ehentai_" + data.gid + "']"
+				".hl-actions-tags[data-hl-id='ehentai_" + data.gid + "']," +
+				".hl-details-tags[data-hl-id='ehentai_" + data.gid + "']"
 			);
 
 			ii = nodes.length;
@@ -2347,16 +2347,16 @@
 					if (results !== null) {
 						hover = Nodes.sauce_hover[sha1];
 
-						if (results.classList.toggle("ex-exsauce-results-hidden")) {
+						if (results.classList.toggle("hl-exsauce-results-hidden")) {
 							if (conf['Show Short Results']) {
 								if (hover === undefined) hover = Sauce.UI.hover(sha1);
-								hover.classList.remove("ex-exsauce-hover-hidden");
+								hover.classList.remove("hl-exsauce-hover-hidden");
 								Sauce.UI.events.mousemove.call(this, event);
 							}
 						}
 						else {
 							if (hover !== undefined) {
-								hover.classList.add("ex-exsauce-hover-hidden");
+								hover.classList.add("hl-exsauce-hover-hidden");
 							}
 						}
 					}
@@ -2367,10 +2367,10 @@
 							results = Helper.get_exresults_from_exsauce(this),
 							hover;
 
-						if (results === null || results.classList.contains("ex-exsauce-results-hidden")) {
+						if (results === null || results.classList.contains("hl-exsauce-results-hidden")) {
 							hover = Nodes.sauce_hover[sha1];
 							if (hover === undefined) hover = Sauce.UI.hover(sha1);
-							hover.classList.remove("ex-exsauce-hover-hidden");
+							hover.classList.remove("hl-exsauce-hover-hidden");
 						}
 					}
 				},
@@ -2380,7 +2380,7 @@
 							hover = Nodes.sauce_hover[sha1];
 
 						if (hover !== undefined) {
-							hover.classList.add("ex-exsauce-hover-hidden");
+							hover.classList.add("hl-exsauce-hover-hidden");
 						}
 					}
 				},
@@ -2388,7 +2388,7 @@
 					if (conf['Show Short Results']) {
 						var hover = Nodes.sauce_hover[this.getAttribute("data-sha1")];
 
-						if (hover === undefined || hover.classList.contains("ex-exsauce-hover-hidden")) return;
+						if (hover === undefined || hover.classList.contains("hl-exsauce-hover-hidden")) return;
 
 						hover.style.left = "0";
 						hover.style.top = "0";
@@ -2418,7 +2418,7 @@
 					hover, i, ii;
 
 				hover = $.create("div", {
-					className: "ex-exsauce-hover ex-exsauce-hover-hidden post ex-hover-shadow reply post_wrapper ex-fake-post" + Theme.get()
+					className: "hl-exsauce-hover hl-exsauce-hover-hidden post hl-hover-shadow reply post_wrapper hl-fake-post" + Theme.get()
 				});
 				hover.setAttribute("data-sha1", sha1);
 
@@ -2426,7 +2426,7 @@
 					i = 0;
 					while (true) {
 						$.add(hover, $.link(result[i][0], {
-							className: "ex-exsauce-hover-link",
+							className: "hl-exsauce-hover-link",
 							textContent: result[i][1]
 						}));
 						if (++i >= ii) break;
@@ -2444,7 +2444,7 @@
 				theme = Theme.get(),
 				results, link, n, i, ii;
 
-			a.classList.add("ex-exsauce-link-valid");
+			a.classList.add("hl-exsauce-link-valid");
 			a.textContent = "Found: " + count;
 
 			if (count > 0) {
@@ -2453,12 +2453,12 @@
 						(n = Helper.Post.get_post_container(a)) !== null &&
 						(n = Helper.Post.get_text_body(n)) !== null
 					) {
-						results = $.create("div", { className: "ex-exsauce-results" + theme });
+						results = $.create("div", { className: "hl-exsauce-results" + theme });
 						$.add(results, $.create("strong", { textContent: "Reverse Image Search Results" }));
-						$.add(results, $.create("span", { className: "ex-exsauce-results-sep", textContent: "|" }));
-						$.add(results, $.create("span", { className: "ex-exsauce-results-label", textContent: "View on:" }));
+						$.add(results, $.create("span", { className: "hl-exsauce-results-sep", textContent: "|" }));
+						$.add(results, $.create("span", { className: "hl-exsauce-results-label", textContent: "View on:" }));
 						$.add(results, $.link(a.href, {
-							className: "ex-exsauce-results-link",
+							className: "hl-exsauce-results-link",
 							textContent: (conf["Lookup Domain"] === domains.exhentai) ? "exhentai" : "e-hentai"
 						}));
 						$.add(results, $.create("br"));
@@ -2519,7 +2519,7 @@
 
 			blob = new Blob([ image ], { type: "image/" + type });
 
-			form_data.append("sfile", blob, a.getAttribute("data-ex-filename") || "image." + type);
+			form_data.append("sfile", blob, a.getAttribute("data-hl-filename") || "image." + type);
 			form_data.append("fs_similar", "on");
 			if (conf["Search Expunged"]) {
 				form_data.append("fs_exp", "on");
@@ -2563,7 +2563,7 @@
 								}
 
 								a.removeAttribute("title");
-								a.setAttribute("data-ex-similar", m[1]);
+								a.setAttribute("data-hl-similar", m[1]);
 								a.setAttribute("data-sha1", sha1);
 
 								Debug.log("Lookup successful (" + m[1] + "); formatting...");
@@ -2886,10 +2886,10 @@
 			return api_request;
 		},
 		get_links: function (parent) {
-			return $$("a.ex-linkified-gallery[href]", parent);
+			return $$("a.hl-linkified-gallery[href]", parent);
 		},
 		get_links_formatted: function (parent) {
-			return $$("a.ex-linkified-gallery[data-ex-linkified-status=formatted]", parent);
+			return $$("a.hl-linkified-gallery[data-hl-linkified-status=formatted]", parent);
 		},
 		linkify: function (container, results) {
 			var ddw = Linkifier.deep_dom_wrap,
@@ -2933,7 +2933,7 @@
 		},
 		create_link: function (text) {
 			return $.link(text, {
-				className: "ex-linkified",
+				className: "hl-linkified",
 				textContent: text
 			});
 		},
@@ -2942,18 +2942,18 @@
 				button;
 
 			if (info === null) {
-				node.classList.remove('ex-linkified-gallery');
-				node.removeAttribute("data-ex-linkified-status");
+				node.classList.remove('hl-linkified-gallery');
+				node.removeAttribute("data-hl-linkified-status");
 			}
 			else {
-				node.classList.add("ex-link-events");
-				node.classList.add("ex-linkified");
-				node.classList.add("ex-linkified-gallery");
-				node.setAttribute("data-ex-link-events", "gallery_link");
-				node.setAttribute("data-ex-linkified-status", "processed");
+				node.classList.add("hl-link-events");
+				node.classList.add("hl-linkified");
+				node.classList.add("hl-linkified-gallery");
+				node.setAttribute("data-hl-link-events", "gallery_link");
+				node.setAttribute("data-hl-linkified-status", "processed");
 
-				node.setAttribute("data-ex-info", JSON.stringify(info));
-				node.setAttribute("data-ex-id", info.site + "_" + info.gid);
+				node.setAttribute("data-hl-info", JSON.stringify(info));
+				node.setAttribute("data-hl-id", info.site + "_" + info.gid);
 
 				button = UI.button(node.href, info.domain);
 				$.before(node, button);
@@ -2984,7 +2984,7 @@
 
 			// Link title
 			link.textContent = Helper.normalize_api_string(data.title);
-			link.setAttribute("data-ex-linkified-status", "formatted");
+			link.setAttribute("data-hl-linkified-status", "formatted");
 
 			// Button
 			button = Helper.get_tag_button_from_link(link);
@@ -3005,7 +3005,7 @@
 			var button, link, msg_data, i, ii;
 
 			msg_data = {
-				className: "ex-linkified-error-message",
+				className: "hl-linkified-error-message",
 				textContent: " (" + error.trim().replace(/\.$/, "") + ")"
 			};
 
@@ -3014,21 +3014,21 @@
 				button = Helper.get_tag_button_from_link(link);
 				if (button !== null) {
 					Linkifier.change_link_events(button, "gallery_error");
-					button.classList.add("ex-linkified-error");
+					button.classList.add("hl-linkified-error");
 				}
 
-				link.classList.add("ex-linkified-error");
-				link.setAttribute("data-ex-linkified-status", "formatted_error");
+				link.classList.add("hl-linkified-error");
+				link.setAttribute("data-hl-linkified-status", "formatted_error");
 				$.add(link, $.create("span", msg_data));
 			}
 		},
 		apply_link_events: function (node, check_children) {
-			var nodes = check_children ? $$("a.ex-link-events", node) : [ node ],
+			var nodes = check_children ? $$("a.hl-link-events", node) : [ node ],
 				events, i, ii;
 
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				node = nodes[i];
-				events = node.getAttribute("data-ex-link-events");
+				events = node.getAttribute("data-hl-link-events");
 				Linkifier.set_link_events(node, events);
 			}
 		},
@@ -3049,7 +3049,7 @@
 			}
 		},
 		change_link_events: function (node, new_events) {
-			var old_events = node.getAttribute("data-ex-link-events"),
+			var old_events = node.getAttribute("data-hl-link-events"),
 				events, k;
 
 			if (old_events === new_events) return;
@@ -3068,10 +3068,10 @@
 			}
 
 			if (new_events === null) {
-				node.removeAttribute("data-ex-link-events");
+				node.removeAttribute("data-hl-link-events");
 			}
 			else {
-				node.setAttribute("data-ex-link-events", new_events);
+				node.setAttribute("data-hl-link-events", new_events);
 				Linkifier.set_link_events(node, new_events);
 			}
 		},
@@ -3099,19 +3099,19 @@
 
 			// Collapse info if it's an inline
 			if (conf['Hide in Quotes']) {
-				nodes = $$(".ex-exsauce-results", post);
+				nodes = $$(".hl-exsauce-results", post);
 				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					nodes[i].classList.add("ex-exsauce-results-hidden");
+					nodes[i].classList.add("hl-exsauce-results-hidden");
 				}
-				nodes = $$(".ex-actions", post);
+				nodes = $$(".hl-actions", post);
 				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					nodes[i].classList.add("ex-actions-hidden");
+					nodes[i].classList.add("hl-actions-hidden");
 				}
 			}
 
 			// Content
 			if (
-				!post.classList.contains("ex-post-linkified") &&
+				!post.classList.contains("hl-post-linkified") &&
 				(post_body = Helper.Post.get_text_body(post)) !== null
 			) {
 				regex.url.lastIndex = 0;
@@ -3122,12 +3122,12 @@
 						link = post_links[i];
 						regex.url.lastIndex = 0;
 						if (regex.url.test(link.href)) {
-							link.classList.add("ex-link-events");
-							link.classList.add("ex-linkified");
-							link.classList.add("ex-linkified-gallery");
+							link.classList.add("hl-link-events");
+							link.classList.add("hl-linkified");
+							link.classList.add("hl-linkified-gallery");
 							link.target = "_blank";
 							link.rel = "noreferrer";
-							link.setAttribute("data-ex-linkified-status", "unprocessed");
+							link.setAttribute("data-hl-linkified-status", "unprocessed");
 							Linkifier.change_link_events(link, "gallery_link");
 							links.push(link);
 						}
@@ -3141,7 +3141,7 @@
 						Linkifier.preprocess_link(links[i], auto_load_links);
 					}
 				}
-				post.classList.add("ex-post-linkified");
+				post.classList.add("hl-post-linkified");
 			}
 
 			// Events
@@ -3155,23 +3155,23 @@
 			if (file_info === null || file_info.md5 === null) return;
 
 			// Create if not found
-			sauce = $(".ex-exsauce-link", file_info.options);
+			sauce = $(".hl-exsauce-link", file_info.options);
 			if (sauce === null && /^\.(png|gif|jpe?g)$/i.test(file_info.type)) {
 				sauce = $.link(file_info.url, {
-					className: "ex-link-events ex-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
+					className: "hl-link-events hl-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
 					textContent: Sauce.label()
 				});
-				sauce.setAttribute("data-ex-link-events", "exsauce_fetch");
-				sauce.setAttribute("data-ex-filename", file_info.name);
+				sauce.setAttribute("data-hl-link-events", "exsauce_fetch");
+				sauce.setAttribute("data-hl-filename", file_info.name);
 				sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
 				if (/^\.jpe?g$/i.test(file_info.type) && Config.mode !== "tinyboard") {
 					if (/Firefox/i.test("" + navigator.userAgent)) {
-						sauce.setAttribute("data-ex-link-events", "exsauce_fetch_similarity");
+						sauce.setAttribute("data-hl-link-events", "exsauce_fetch_similarity");
 						sauce.title = "This will only work on colored images";
 					}
 					else {
-						sauce.classList.add("ex-exsauce-link-disabled");
-						sauce.setAttribute("data-ex-link-events", "exsauce_error");
+						sauce.classList.add("hl-exsauce-link-disabled");
+						sauce.setAttribute("data-hl-link-events", "exsauce_error");
 						sauce.title = (
 							"Reverse Image Search doesn't work for JPG images because 4chan manipulates them on upload. " +
 							"There is nothing ExLinks can do about this. " +
@@ -3541,7 +3541,7 @@
 				$.remove(Nodes.options_overlay);
 				Nodes.options_overlay = null;
 			}
-			d.documentElement.classList.remove("ex-settings-overlaying");
+			d.documentElement.classList.remove("hl-settings-overlaying");
 		},
 		close: function (e) {
 			e.preventDefault();
@@ -3550,12 +3550,12 @@
 				$.remove(Nodes.options_overlay);
 				Nodes.options_overlay = null;
 			}
-			d.documentElement.classList.remove("ex-settings-overlaying");
+			d.documentElement.classList.remove("hl-settings-overlaying");
 		},
 		on_change: function () {
 			var option = this,
 				type = option.getAttribute("type"),
-				name = option.getAttribute("data-ex-setting-name");
+				name = option.getAttribute("data-hl-setting-name");
 
 			if (!(name in Options.conf)) return;
 
@@ -3583,7 +3583,7 @@
 
 			// Create
 			var overlay = $.frag(UI.html.options()).firstChild,
-				scroll_node = $(".ex-settings-content", overlay),
+				scroll_node = $(".hl-settings-content", overlay),
 				theme = Theme.get();
 
 			// Config
@@ -3599,25 +3599,25 @@
 			Theme.apply(overlay);
 
 			// Options
-			Options.gen($(".ex-settings-group-general", overlay), theme, options.general);
-			Options.gen($(".ex-settings-group-actions", overlay), theme, options.actions);
-			Options.gen($(".ex-settings-group-sauce", overlay), theme, options.sauce);
-			Options.gen($(".ex-settings-group-filter", overlay), theme, options.filter);
-			Options.gen($(".ex-settings-group-debug", overlay), theme, options.debug, {
+			Options.gen($(".hl-settings-group-general", overlay), theme, options.general);
+			Options.gen($(".hl-settings-group-actions", overlay), theme, options.actions);
+			Options.gen($(".hl-settings-group-sauce", overlay), theme, options.sauce);
+			Options.gen($(".hl-settings-group-filter", overlay), theme, options.filter);
+			Options.gen($(".hl-settings-group-debug", overlay), theme, options.debug, {
 				"Clear Stored Data": [ "button", false, "Clear all stored data <em>except</em> for settings", "Clear", Options.on_data_clear ],
 			});
 
 			// Events
-			$.on($(".ex-settings-button-link-save", overlay), "click", Options.save);
-			$.on($(".ex-settings-button-link-cancel", overlay), "click", Options.close);
+			$.on($(".hl-settings-button-link-save", overlay), "click", Options.save);
+			$.on($(".hl-settings-button-link-cancel", overlay), "click", Options.close);
 			$.on(overlay, "click", Options.close);
-			$.on($(".ex-settings", overlay), "click", function (event) { event.stopPropagation(); });
-			$.on($("input.ex-settings-color-input[type=color]", overlay), "change", Filter.settings_color_change);
-			$.on($(".ex-settings-filter-guide-toggle", overlay), "click", Options.on_toggle_filter_guide);
+			$.on($(".hl-settings", overlay), "click", function (event) { event.stopPropagation(); });
+			$.on($("input.hl-settings-color-input[type=color]", overlay), "change", Filter.settings_color_change);
+			$.on($(".hl-settings-filter-guide-toggle", overlay), "click", Options.on_toggle_filter_guide);
 
 			// Add to body
 			$.add(d.body, overlay);
-			d.documentElement.classList.add("ex-settings-overlaying");
+			d.documentElement.classList.add("hl-settings-overlaying");
 
 			// Focus
 			if (scroll_node !== null) {
@@ -3631,36 +3631,36 @@
 			for (i = 2, ii = arguments.length; i < ii; ++i) {
 				obj = arguments[i];
 				for (key in obj) {
-					name = "ex-settings-" + key;
+					name = "hl-settings-" + key;
 					desc = obj[key][2];
 					type = obj[key][0];
 					value = Options.conf[key];
 
-					$.add(container, entry = $.create("div", { className: "ex-settings-entry" + theme }));
-					$.add(entry, table = $.create("div", { className: "ex-settings-entry-table" }));
-					$.add(table, row = $.create("div", { className: "ex-settings-entry-row" }));
+					$.add(container, entry = $.create("div", { className: "hl-settings-entry" + theme }));
+					$.add(entry, table = $.create("div", { className: "hl-settings-entry-table" }));
+					$.add(table, row = $.create("div", { className: "hl-settings-entry-row" }));
 
-					$.add(row, cell = $.create("span", { className: "ex-settings-entry-cell" }));
-					$.add(cell, label = $.create("label", { className: "ex-settings-entry-label", htmlFor: name }));
+					$.add(row, cell = $.create("span", { className: "hl-settings-entry-cell" }));
+					$.add(cell, label = $.create("label", { className: "hl-settings-entry-label", htmlFor: name }));
 					label.innerHTML = "<strong>" + key + ":</strong>" + (desc.length > 0 ? " " + desc : "");
 
 					if (type === "checkbox") {
-						$.add(row, cell = $.create("span", { className: "ex-settings-entry-cell" }));
+						$.add(row, cell = $.create("span", { className: "hl-settings-entry-cell" }));
 						$.add(cell, input = $.create("input", {
-							className: "ex-settings-entry-input" + theme,
+							className: "hl-settings-entry-input" + theme,
 							type: "checkbox",
 							id: name,
 							checked: value
 						}));
-						input.setAttribute("data-ex-setting-name", key);
+						input.setAttribute("data-hl-setting-name", key);
 						$.on(input, "change", Options.on_change);
 					}
 					else if (type === "select") {
-						$.add(row, cell = $.create("span", { className: "ex-settings-entry-cell" }));
+						$.add(row, cell = $.create("span", { className: "hl-settings-entry-cell" }));
 						$.add(cell, input = $.create("select", {
-							className: "ex-settings-entry-input" + theme
+							className: "hl-settings-entry-input" + theme
 						}));
-						input.setAttribute("data-ex-setting-name", key);
+						input.setAttribute("data-hl-setting-name", key);
 						$.on(input, "change", Options.on_change);
 
 						values = obj[key][3];
@@ -3674,36 +3674,36 @@
 						}
 					}
 					else if (type === "textbox") {
-						$.add(row, cell = $.create("span", { className: "ex-settings-entry-cell" }));
+						$.add(row, cell = $.create("span", { className: "hl-settings-entry-cell" }));
 						$.add(cell, input = $.create("input", {
-							className: "ex-settings-entry-input" + theme,
+							className: "hl-settings-entry-input" + theme,
 							type: "text",
 							id: name,
 							value: value
 						}));
-						input.setAttribute("data-ex-setting-name", key);
+						input.setAttribute("data-hl-setting-name", key);
 						$.on(input, "change", Options.on_change);
 					}
 					else if (type === "textarea") {
-						$.add(table, row = $.create("div", { className: "ex-settings-entry-row" }));
-						$.add(row, cell = $.create("span", { className: "ex-settings-entry-cell" }));
+						$.add(table, row = $.create("div", { className: "hl-settings-entry-row" }));
+						$.add(row, cell = $.create("span", { className: "hl-settings-entry-cell" }));
 						$.add(cell, input = $.create("textarea", {
-							className: "ex-settings-entry-input" + theme,
+							className: "hl-settings-entry-input" + theme,
 							wrap: "off",
 							spellcheck: false,
 							id: name,
 							value: value
 						}));
-						input.setAttribute("data-ex-setting-name", key);
+						input.setAttribute("data-hl-setting-name", key);
 						$.on(input, "change", Options.on_change);
 					}
 					else if (type === "button") {
-						$.add(row, cell = $.create("span", { className: "ex-settings-entry-cell" }));
+						$.add(row, cell = $.create("span", { className: "hl-settings-entry-cell" }));
 						$.add(cell, input = $.create("button", {
-							className: "ex-settings-entry-input" + theme,
+							className: "hl-settings-entry-input" + theme,
 							textContent: (obj[key][3] || '')
 						}));
-						input.setAttribute("data-ex-setting-name", key);
+						input.setAttribute("data-hl-setting-name", key);
 						$.on(input, "click", obj[key][4] || Options.on_change);
 					}
 				}
@@ -3714,8 +3714,8 @@
 
 			try {
 				var n = this.parentNode.parentNode.parentNode.nextSibling;
-				if (n.classList.contains("ex-settings-filter-guide")) {
-					n.classList.toggle("ex-settings-filter-guide-visible");
+				if (n.classList.contains("hl-settings-filter-guide")) {
+					n.classList.toggle("hl-settings-filter-guide-visible");
 				}
 			}
 			catch (e) {}
@@ -4320,7 +4320,7 @@
 				while ((n2 = n1.firstChild) !== null) {
 					$.add(node, n2);
 				}
-				return Filter.hl_return(n1.classList.contains("ex-filter-bad"), node);
+				return Filter.hl_return(n1.classList.contains("hl-filter-bad"), node);
 			}
 
 			// Check filters
@@ -4359,8 +4359,8 @@
 					$.add(frag, $.tnode(t));
 				}
 				else {
-					n1 = $.create("span", { className: "ex-filter-text" });
-					n2 = $.create("span", { className: "ex-filter-text-inner", textContent: t });
+					n1 = $.create("span", { className: "hl-filter-text" });
+					n2 = $.create("span", { className: "hl-filter-text-inner", textContent: t });
 					$.add(n1, n2);
 					$.add(frag, n1);
 					Filter.apply_styles(n1, segment.data);
@@ -4377,13 +4377,13 @@
 		},
 		highlight_tag: function (node, link, filter_data) {
 			if (filter_data[0] === Filter.Bad) {
-				node.classList.add("ex-filter-bad");
-				link.classList.add("ex-filter-bad");
-				link.classList.remove("ex-filter-good");
+				node.classList.add("hl-filter-bad");
+				link.classList.add("hl-filter-bad");
+				link.classList.remove("hl-filter-good");
 			}
 			else {
-				node.classList.add("ex-filter-good");
-				link.classList.add("ex-filter-good");
+				node.classList.add("hl-filter-good");
+				link.classList.add("hl-filter-good");
 			}
 
 			// Get styles
@@ -4412,8 +4412,8 @@
 
 			// Apply styles
 			if (color !== null || background !== null || underline !== null) {
-				n1 = $.create("span", { className: "ex-filter-text" });
-				n2 = $.create("span", { className: "ex-filter-text-inner" });
+				n1 = $.create("span", { className: "hl-filter-text" });
+				n2 = $.create("span", { className: "hl-filter-text-inner" });
 				while ((n = node.firstChild) !== null) {
 					$.add(n2, n);
 				}
@@ -4424,11 +4424,11 @@
 		},
 		hl_return: function (bad, node) {
 			if (bad) {
-				node.classList.add("ex-filter-bad");
+				node.classList.add("hl-filter-bad");
 				return Filter.Bad;
 			}
 			else {
-				node.classList.add("ex-filter-good");
+				node.classList.add("hl-filter-good");
 				return Filter.Good;
 			}
 		},
@@ -4543,7 +4543,7 @@
 				return null;
 			}
 
-			n.className = "post reply post_wrapper ex-fake-post";
+			n.className = "post reply post_wrapper hl-fake-post";
 			body.appendChild(n);
 
 			color = Theme.parse_css_color(window.getComputedStyle(doc_el).backgroundColor);
@@ -4616,9 +4616,9 @@
 		queue_timer: null,
 		custom_filters: [],
 		node_sort_order_keys: {
-			thread: [ "data-ex-index", 1 ],
-			upload: [ "data-ex-date-uploaded", -1 ],
-			rating: [ "data-ex-rating", -1 ]
+			thread: [ "data-hl-index", 1 ],
+			upload: [ "data-hl-date-uploaded", -1 ],
+			rating: [ "data-hl-rating", -1 ]
 		},
 		display_mode_names: [
 			"full",
@@ -4694,7 +4694,7 @@
 					}
 
 					n2 = $.link(null, {
-						className: "ex-easylist-link",
+						className: "hl-easylist-link",
 						textContent: link_mod("ExLinks Easy List", true),
 						style: "cursor:pointer;"
 					});
@@ -4709,7 +4709,7 @@
 						style: "text-align:center;margin:0.5em 0;"
 					});
 					$.add(n1, n2 = $.create("span", {
-						className: "mobileib button ex-easylist-button"
+						className: "mobileib button hl-easylist-button"
 					}));
 					$.add(n2, $.link(null, {
 						textContent: link_mod("Easy List", false)
@@ -4737,7 +4737,7 @@
 
 			// Overlay
 			n1 = $.create("div", {
-				className: "ex-easylist-overlay" + theme
+				className: "hl-easylist-overlay" + theme
 			});
 			$.on(n1, "click", EasyList.on_overlay_click);
 			$.on(n1, "mousedown", EasyList.on_overlay_mousedown);
@@ -4745,50 +4745,50 @@
 
 			// Content aligner
 			$.add(n1, n2 = $.create("div", {
-				className: "ex-easylist-content-align"
+				className: "hl-easylist-content-align"
 			}));
 
 			// Content
 			$.add(n2, n3 = $.create("div", {
-				className: "ex-easylist-content"
+				className: "hl-easylist-content"
 			}));
 
 			$.add(n3, n4 = $.create("div", {
-				className: "ex-easylist-content-inner ex-hover-shadow post reply post_wrapper ex-fake-post" + theme
+				className: "hl-easylist-content-inner hl-hover-shadow post reply post_wrapper hl-fake-post" + theme
 			}));
 			$.on(n4, "click", EasyList.on_overlay_content_mouse_event);
 			$.on(n4, "mousedown", EasyList.on_overlay_content_mouse_event);
 			n3 = n4;
 
 			$.add(n3, n4 = $.create("div", {
-				className: "ex-easylist-title"
+				className: "hl-easylist-title"
 			}));
 
 			$.add(n4, $.create("span", {
-				className: "ex-easylist-title-text",
+				className: "hl-easylist-title-text",
 				textContent: "ExLinks Easy List"
 			}));
 			$.add(n4, $.create("span", {
-				className: "ex-easylist-subtitle",
+				className: "hl-easylist-subtitle",
 				textContent: "More porn, less hassle"
 			}));
 
 			// Close
-			$.add(n3, n4 = $.create("div", { className: "ex-easylist-control-links" }));
+			$.add(n3, n4 = $.create("div", { className: "hl-easylist-control-links" }));
 
 			$.add(n4, n5 = $.link(null, {
-				className: "ex-easylist-control-link ex-easylist-control-link-options",
+				className: "hl-easylist-control-link hl-easylist-control-link-options",
 				textContent: "options"
 			}));
 			$.on(n5, "click", EasyList.on_options_click);
 
 			$.add(n4, n5 = $.link(null, {
-				className: "ex-easylist-control-link",
+				className: "hl-easylist-control-link",
 				textContent: "close"
 			}));
 			$.on(n5, "click", EasyList.on_close_click);
 
-			$.add(n3, $.create("div", { className: "ex-easylist-title-line" }));
+			$.add(n3, $.create("div", { className: "hl-easylist-title-line" }));
 
 			// Options
 			EasyList.options_container = EasyList.create_options(theme);
@@ -4796,13 +4796,13 @@
 
 			// Empty notification
 			$.add(n3, n4 = $.create("div", {
-				className: "ex-easylist-empty-notification ex-easylist-empty-notification-visible",
+				className: "hl-easylist-empty-notification hl-easylist-empty-notification-visible",
 				textContent: "No galleries found"
 			}));
 			EasyList.empty_notification = n4;
 
 			// Items list
-			$.add(n3, n4 = $.create("div", { className: "ex-easylist-items" + theme }));
+			$.add(n3, n4 = $.create("div", { className: "hl-easylist-items" + theme }));
 			EasyList.items_container = n4;
 
 			// Setup
@@ -4811,125 +4811,125 @@
 		create_options: function (theme) {
 			var n1, n2, n3, n4, n5, n6, v;
 
-			n1 = $.create("div", { className: "ex-easylist-options" });
-			$.add(n1, n2 = $.create("div", { className: "ex-easylist-option-table" }));
+			n1 = $.create("div", { className: "hl-easylist-options" });
+			$.add(n1, n2 = $.create("div", { className: "hl-easylist-option-table" }));
 
 
-			$.add(n2, n3 = $.create("div", { className: "ex-easylist-option-row" }));
-			$.add(n3, n4 = $.create("div", { className: "ex-easylist-option-cell" }));
-			$.add(n4, $.create("span", { className: "ex-easylist-option-title", textContent: "Sort by:" }));
+			$.add(n2, n3 = $.create("div", { className: "hl-easylist-option-row" }));
+			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
+			$.add(n4, $.create("span", { className: "hl-easylist-option-title", textContent: "Sort by:" }));
 
-			$.add(n3, n4 = $.create("div", { className: "ex-easylist-option-cell" }));
+			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
 
 			v = "thread";
-			$.add(n4, n5 = $.create("label", { className: "ex-easylist-option-label" }));
+			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
 			$.add(n5, n6 = $.create("input", {
-				className: "ex-easylist-option-input",
-				name: "ex-easylist-options-sort-by",
+				className: "hl-easylist-option-input",
+				name: "hl-easylist-options-sort-by",
 				type: "radio",
 				checked: (EasyList.settings.sort_by === v),
 				value: v
 			}));
-			$.add(n5, $.create("span", { className: "ex-easylist-option-button" + theme, textContent: "Appearance in thread" }));
+			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Appearance in thread" }));
 			$.on(n6, "change", EasyList.on_option_change.sort_by);
 
 			v = "upload";
-			$.add(n4, n5 = $.create("label", { className: "ex-easylist-option-label" }));
+			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
 			$.add(n5, n6 = $.create("input", {
-				className: "ex-easylist-option-input",
-				name: "ex-easylist-options-sort-by",
+				className: "hl-easylist-option-input",
+				name: "hl-easylist-options-sort-by",
 				type: "radio",
 				checked: (EasyList.settings.sort_by === v),
 				value: v
 			}));
-			$.add(n5, $.create("span", { className: "ex-easylist-option-button" + theme, textContent: "Upload date" }));
+			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Upload date" }));
 			$.on(n6, "change", EasyList.on_option_change.sort_by);
 
 			v = "rating";
-			$.add(n4, n5 = $.create("label", { className: "ex-easylist-option-label" }));
+			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
 			$.add(n5, n6 = $.create("input", {
-				className: "ex-easylist-option-input",
-				name: "ex-easylist-options-sort-by",
+				className: "hl-easylist-option-input",
+				name: "hl-easylist-options-sort-by",
 				type: "radio",
 				checked: (EasyList.settings.sort_by === v),
 				value: v
 			}));
-			$.add(n5, $.create("span", { className: "ex-easylist-option-button" + theme, textContent: "Rating" }));
+			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Rating" }));
 			$.on(n6, "change", EasyList.on_option_change.sort_by);
 
 
-			$.add(n2, n3 = $.create("div", { className: "ex-easylist-option-row" }));
-			$.add(n3, n4 = $.create("div", { className: "ex-easylist-option-cell" }));
-			$.add(n4, $.create("span", { className: "ex-easylist-option-title", textContent: "Group by:" }));
+			$.add(n2, n3 = $.create("div", { className: "hl-easylist-option-row" }));
+			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
+			$.add(n4, $.create("span", { className: "hl-easylist-option-title", textContent: "Group by:" }));
 
-			$.add(n3, n4 = $.create("div", { className: "ex-easylist-option-cell" }));
+			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
 
-			$.add(n4, n5 = $.create("label", { className: "ex-easylist-option-label" }));
-			$.add(n5, n6 = $.create("input", { className: "ex-easylist-option-input", type: "checkbox", checked: EasyList.settings.group_by_filters }));
-			$.add(n5, $.create("span", { className: "ex-easylist-option-button" + theme, textContent: "Filters" }));
+			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
+			$.add(n5, n6 = $.create("input", { className: "hl-easylist-option-input", type: "checkbox", checked: EasyList.settings.group_by_filters }));
+			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Filters" }));
 			$.on(n6, "change", EasyList.on_option_change.group_by_filters);
 
-			$.add(n4, n5 = $.create("label", { className: "ex-easylist-option-label" }));
-			$.add(n5, n6 = $.create("input", { className: "ex-easylist-option-input", type: "checkbox", checked: EasyList.settings.group_by_category }));
-			$.add(n5, $.create("span", { className: "ex-easylist-option-button" + theme, textContent: "Category" }));
+			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
+			$.add(n5, n6 = $.create("input", { className: "hl-easylist-option-input", type: "checkbox", checked: EasyList.settings.group_by_category }));
+			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Category" }));
 			$.on(n6, "change", EasyList.on_option_change.group_by_category);
 
 
-			$.add(n2, n3 = $.create("div", { className: "ex-easylist-option-row" }));
-			$.add(n3, n4 = $.create("div", { className: "ex-easylist-option-cell" }));
-			$.add(n4, $.create("span", { className: "ex-easylist-option-title", textContent: "Display mode:" }));
+			$.add(n2, n3 = $.create("div", { className: "hl-easylist-option-row" }));
+			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
+			$.add(n4, $.create("span", { className: "hl-easylist-option-title", textContent: "Display mode:" }));
 
-			$.add(n3, n4 = $.create("div", { className: "ex-easylist-option-cell" }));
+			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
 
 			v = 0;
-			$.add(n4, n5 = $.create("label", { className: "ex-easylist-option-label" }));
+			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
 			$.add(n5, n6 = $.create("input", {
-				className: "ex-easylist-option-input",
-				name: "ex-easylist-options-display",
+				className: "hl-easylist-option-input",
+				name: "hl-easylist-options-display",
 				type: "radio",
 				checked: (EasyList.settings.display_mode === v),
 				value: "" + v
 			}));
-			$.add(n5, $.create("span", { className: "ex-easylist-option-button" + theme, textContent: "Full" }));
+			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Full" }));
 			$.on(n6, "change", EasyList.on_option_change.display_mode);
 
 			v = 1;
-			$.add(n4, n5 = $.create("label", { className: "ex-easylist-option-label" }));
+			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
 			$.add(n5, n6 = $.create("input", {
-				className: "ex-easylist-option-input",
-				name: "ex-easylist-options-display",
+				className: "hl-easylist-option-input",
+				name: "hl-easylist-options-display",
 				type: "radio",
 				checked: (EasyList.settings.display_mode === v),
 				value: "" + v
 			}));
-			$.add(n5, $.create("span", { className: "ex-easylist-option-button" + theme, textContent: "Compact" }));
+			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Compact" }));
 			$.on(n6, "change", EasyList.on_option_change.display_mode);
 
 			v = 2;
-			$.add(n4, n5 = $.create("label", { className: "ex-easylist-option-label" }));
+			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
 			$.add(n5, n6 = $.create("input", {
-				className: "ex-easylist-option-input",
-				name: "ex-easylist-options-display",
+				className: "hl-easylist-option-input",
+				name: "hl-easylist-options-display",
 				type: "radio",
 				checked: (EasyList.settings.display_mode === v),
 				value: "" + v
 			}));
-			$.add(n5, $.create("span", { className: "ex-easylist-option-button" + theme, textContent: "Minimal" }));
+			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Minimal" }));
 			$.on(n6, "change", EasyList.on_option_change.display_mode);
 
 
 
-			$.add(n2, n3 = $.create("div", { className: "ex-easylist-option-row" }));
-			$.add(n3, n4 = $.create("div", { className: "ex-easylist-option-cell" }));
-			$.add(n4, $.create("span", { className: "ex-easylist-option-title", textContent: "Custom filters:" }));
+			$.add(n2, n3 = $.create("div", { className: "hl-easylist-option-row" }));
+			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
+			$.add(n4, $.create("span", { className: "hl-easylist-option-title", textContent: "Custom filters:" }));
 
-			$.add(n3, n4 = $.create("div", { className: "ex-easylist-option-cell" }));
-			$.add(n4, n6 = $.create("textarea", { className: "ex-easylist-option-textarea" + theme, value: EasyList.settings.custom_filters, wrap: "off", spellcheck: false, autocomplete: "off" }));
+			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
+			$.add(n4, n6 = $.create("textarea", { className: "hl-easylist-option-textarea" + theme, value: EasyList.settings.custom_filters, wrap: "off", spellcheck: false, autocomplete: "off" }));
 			$.on(n6, "change", EasyList.on_option_change.custom_filters);
 			$.on(n6, "input", EasyList.on_option_change.custom_filters_input);
 
 
-			$.add(n1, $.create("div", { className: "ex-easylist-title-line" }));
+			$.add(n1, $.create("div", { className: "hl-easylist-title-line" }));
 
 			return n1;
 		},
@@ -4938,7 +4938,7 @@
 			if (EasyList.overlay.parentNode !== n) {
 				$.add(n, EasyList.overlay);
 			}
-			d.documentElement.classList.add("ex-easylist-overlaying");
+			d.documentElement.classList.add("hl-easylist-overlaying");
 
 			// Focus
 			$.scroll_focus(EasyList.overlay);
@@ -4947,7 +4947,7 @@
 			if (EasyList.overlay.parentNode !== null) {
 				$.remove(EasyList.overlay);
 			}
-			d.documentElement.classList.remove("ex-easylist-overlaying");
+			d.documentElement.classList.remove("hl-easylist-overlaying");
 
 			EasyList.set_options_visible(false);
 
@@ -4959,60 +4959,60 @@
 		},
 		set_empty: function (empty) {
 			if (EasyList.empty_notification !== null) {
-				var cls = "ex-easylist-empty-notification-visible";
+				var cls = "hl-easylist-empty-notification-visible";
 				if (empty !== EasyList.empty_notification.classList.contains(cls)) {
 					EasyList.empty_notification.classList.toggle(cls);
 				}
 			}
 		},
 		get_options_visible: function () {
-			return EasyList.options_container.classList.contains("ex-easylist-options-visible");
+			return EasyList.options_container.classList.contains("hl-easylist-options-visible");
 		},
 		set_options_visible: function (visible) {
-			var n = $(".ex-easylist-control-link-options", EasyList.overlay),
+			var n = $(".hl-easylist-control-link-options", EasyList.overlay),
 				cl, cls;
 
 			if (n !== null) {
 				cl = n.classList;
-				cls = "ex-easylist-control-link-focus";
+				cls = "hl-easylist-control-link-focus";
 				if (cl.contains(cls) !== visible) cl.toggle(cls);
 			}
 
 			cl = EasyList.options_container.classList;
-			cls = "ex-easylist-options-visible";
+			cls = "hl-easylist-options-visible";
 			if (cl.contains(cls) !== visible) cl.toggle(cls);
 		},
 		create_gallery_nodes: function (data, theme, index, domain) {
 			var url = Helper.Site.create_gallery_url(data, domain),
 				hl_res, n1, n2, n3, n4, n5, n6, n7, i;
 
-			n1 = $.create("div", { className: "ex-easylist-item" + theme });
-			n1.setAttribute("data-ex-index", index);
-			n1.setAttribute("data-ex-gid", data.gid);
-			n1.setAttribute("data-ex-token", data.token);
-			n1.setAttribute("data-ex-rating", data.rating);
-			n1.setAttribute("data-ex-date-uploaded", data.posted);
-			n1.setAttribute("data-ex-category", data.category.toLowerCase());
-			n1.setAttribute("data-ex-domain", domain);
+			n1 = $.create("div", { className: "hl-easylist-item" + theme });
+			n1.setAttribute("data-hl-index", index);
+			n1.setAttribute("data-hl-gid", data.gid);
+			n1.setAttribute("data-hl-token", data.token);
+			n1.setAttribute("data-hl-rating", data.rating);
+			n1.setAttribute("data-hl-date-uploaded", data.posted);
+			n1.setAttribute("data-hl-category", data.category.toLowerCase());
+			n1.setAttribute("data-hl-domain", domain);
 
-			$.add(n1, n2 = $.create("div", { className: "ex-easylist-item-table-container" + theme }));
-			$.add(n2, n3 = $.create("div", { className: "ex-easylist-item-table" + theme }));
+			$.add(n1, n2 = $.create("div", { className: "hl-easylist-item-table-container" + theme }));
+			$.add(n2, n3 = $.create("div", { className: "hl-easylist-item-table" + theme }));
 			n2 = n3;
-			$.add(n2, n3 = $.create("div", { className: "ex-easylist-item-row" + theme }));
-			$.add(n3, n4 = $.create("div", { className: "ex-easylist-item-cell ex-easylist-item-cell-image" + theme }));
+			$.add(n2, n3 = $.create("div", { className: "hl-easylist-item-row" + theme }));
+			$.add(n3, n4 = $.create("div", { className: "hl-easylist-item-cell hl-easylist-item-cell-image" + theme }));
 
 			// Image
 			$.add(n4, n5 = $.link(url, {
-				className: "ex-easylist-item-image-container" + theme
+				className: "hl-easylist-item-image-container" + theme
 			}));
 
 			$.add(n5, n6 = $.create("div", {
-				className: "ex-easylist-item-image-outer" + theme
+				className: "hl-easylist-item-image-outer" + theme
 			}));
 
 			if (data.thumb) {
 				$.add(n6, n7 = $.create("img", {
-					className: "ex-easylist-item-image" + theme,
+					className: "hl-easylist-item-image" + theme,
 					src: data.thumb,
 					alt: "",
 					title: ""
@@ -5025,52 +5025,52 @@
 			}
 
 			$.add(n6, $.create("span", {
-				className: "ex-easylist-item-image-index" + theme,
+				className: "hl-easylist-item-image-index" + theme,
 				textContent: "#" + (index + 1)
 			}));
 
 
 			// Main content
-			$.add(n3, n4 = $.create("div", { className: "ex-easylist-item-cell" + theme }));
+			$.add(n3, n4 = $.create("div", { className: "hl-easylist-item-cell" + theme }));
 
 			$.add(n4, n5 = $.create("div", {
-				className: "ex-easylist-item-title" + theme
+				className: "hl-easylist-item-title" + theme
 			}));
 
 			$.add(n5, n6 = $.link(url, {
-				className: "ex-easylist-item-title-tag-link" + theme,
+				className: "hl-easylist-item-title-tag-link" + theme,
 				textContent: UI.button_text(domain)
 			}));
-			n6.setAttribute("data-ex-original", n6.textContent);
+			n6.setAttribute("data-hl-original", n6.textContent);
 
 			$.add(n5, n6 = $.link(url, {
-				className: "ex-easylist-item-title-link" + theme,
+				className: "hl-easylist-item-title-link" + theme,
 				textContent: Helper.normalize_api_string(data.title)
 			}));
-			n6.setAttribute("data-ex-original", n6.textContent);
+			n6.setAttribute("data-hl-original", n6.textContent);
 
 			if (data.title_jpn) {
 				$.add(n4, n5 = $.create("span", {
-					className: "ex-easylist-item-title-jp" + theme,
+					className: "hl-easylist-item-title-jp" + theme,
 					textContent: Helper.normalize_api_string(data.title_jpn)
 				}));
-				n5.setAttribute("data-ex-original", n5.textContent);
+				n5.setAttribute("data-hl-original", n5.textContent);
 			}
 
-			$.add(n4, n5 = $.create("div", { className: "ex-easylist-item-upload-info" + theme }));
+			$.add(n4, n5 = $.create("div", { className: "hl-easylist-item-upload-info" + theme }));
 			$.add(n5, $.tnode("Uploaded by "));
 			$.add(n5, n6 = $.link(Helper.Site.create_uploader_url(data, domain), {
-				className: "ex-easylist-item-uploader" + theme,
+				className: "hl-easylist-item-uploader" + theme,
 				textContent: data.uploader
 			}));
-			n6.setAttribute("data-ex-original", n6.textContent);
+			n6.setAttribute("data-hl-original", n6.textContent);
 			$.add(n5, $.tnode(" on "));
 			$.add(n5, $.create("span", {
-				className: "ex-easylist-item-upload-date" + theme,
+				className: "hl-easylist-item-upload-date" + theme,
 				textContent: UI.date(new Date(parseInt(data.posted, 10) * 1000))
 			}));
 
-			$.add(n4, n5 = $.create("div", { className: "ex-easylist-item-tags" + theme }));
+			$.add(n4, n5 = $.create("div", { className: "hl-easylist-item-tags" + theme }));
 
 			n6 = EasyList.create_full_tags(domain, data, theme);
 			$.add(n5, n6[0]);
@@ -5080,44 +5080,44 @@
 
 
 			// Right sidebar
-			$.add(n3, n4 = $.create("div", { className: "ex-easylist-item-cell ex-easylist-item-cell-side" + theme }));
+			$.add(n3, n4 = $.create("div", { className: "hl-easylist-item-cell hl-easylist-item-cell-side" + theme }));
 
 			$.add(n4, n5 = $.create("div", {
-				className: "ex-easylist-item-info" + theme,
+				className: "hl-easylist-item-info" + theme,
 			}));
 
 			$.add(n5, n6 = $.link(Helper.Site.create_category_url(data, domain), {
-				className: "ex-easylist-item-info-button ex-button ex-button-eh ex-button-" + cat[data.category].short + theme
+				className: "hl-easylist-item-info-button hl-button hl-button-eh hl-button-" + cat[data.category].short + theme
 			}));
 			$.add(n6, $.create("div", {
-				className: "ex-noise",
+				className: "hl-noise",
 				textContent: cat[data.category].name
 			}));
 
 
 			$.add(n5, n6 = $.create("div", {
-				className: "ex-easylist-item-info-item ex-easylist-item-info-item-rating" + theme
+				className: "hl-easylist-item-info-item hl-easylist-item-info-item-rating" + theme
 			}));
 			$.add(n6, n7 = $.create("div", {
-				className: "ex-stars-container",
+				className: "hl-stars-container",
 				innerHTML: UI.html.stars(data.rating)
 			}));
 			if (data.rating >= 0) {
 				$.add(n6, $.create("span", {
-					className: "ex-easylist-item-info-light",
+					className: "hl-easylist-item-info-light",
 					textContent: "(Avg: " + (parseFloat(data.rating) || 0).toFixed(2) + ")"
 				}));
 			}
 			else {
-				n7.classList.add("ex-stars-container-na");
+				n7.classList.add("hl-stars-container-na");
 				$.add(n6, $.create("span", {
-					className: "ex-easylist-item-info-light",
+					className: "hl-easylist-item-info-light",
 					textContent: "(n/a)"
 				}));
 			}
 
 			$.add(n5, n6 = $.create("div", {
-				className: "ex-easylist-item-info-item ex-easylist-item-info-item-files" + theme
+				className: "hl-easylist-item-info-item hl-easylist-item-info-item-files" + theme
 			}));
 			i = parseInt(data.filecount, 10) || 0;
 			$.add(n6, $.create("span", {
@@ -5127,7 +5127,7 @@
 				$.add(n6, $.create("br"));
 				i = (data.filesize / 1024 / 1024).toFixed(2).replace(/\.?0+$/, "");
 				$.add(n6, $.create("span", {
-					className: "ex-easylist-item-info-light",
+					className: "hl-easylist-item-info-light",
 					textContent: "(" + i + " MB)"
 				}));
 			}
@@ -5139,7 +5139,7 @@
 			return n1;
 		},
 		create_full_tags: function (domain, data, theme) {
-			var n1 = $.create("div", { className: "ex-easylist-item-tag-table" + theme }),
+			var n1 = $.create("div", { className: "hl-easylist-item-tag-table" + theme }),
 				domain_type = domain_info[domain].type,
 				full_domain = domain_info[domain].g_domain,
 				namespace_style = "",
@@ -5156,38 +5156,38 @@
 				tags = all_tags[namespace];
 
 				$.add(n1, n2 = $.create("div", {
-					className: "ex-easylist-item-tag-row" + theme
+					className: "hl-easylist-item-tag-row" + theme
 				}));
 
 				if (namespace !== "") {
-					namespace_style = " ex-tag-namespace-" + namespace.replace(/\ /g, "-");
+					namespace_style = " hl-tag-namespace-" + namespace.replace(/\ /g, "-");
 					$.add(n2, n3 = $.create("div", {
-						className: "ex-easylist-item-tag-cell ex-easylist-item-tag-cell-label" + theme
+						className: "hl-easylist-item-tag-cell hl-easylist-item-tag-cell-label" + theme
 					}));
 					$.add(n3, n4 = $.create("span", {
-						className: "ex-tag-namespace-block ex-tag-namespace-block-no-outline" + namespace_style + theme
+						className: "hl-tag-namespace-block hl-tag-namespace-block-no-outline" + namespace_style + theme
 					}));
 					$.add(n4, $.create("span", {
 						textContent: namespace,
-						className: "ex-tag-namespace"
+						className: "hl-tag-namespace"
 					}));
 					$.add(n3, $.tnode(":"));
 				}
 
 				$.add(n2, n3 = $.create("div", {
-					className: "ex-easylist-item-tag-cell" + theme
+					className: "hl-easylist-item-tag-cell" + theme
 				}));
 				n2 = n3;
 
 				for (i = 0, ii = tags.length; i < ii; ++i) {
 					$.add(n2, n3 = $.create("span", {
-						className: "ex-tag-block" + namespace_style
+						className: "hl-tag-block" + namespace_style
 					}));
 					$.add(n3, n4 = $.link(Helper.Site.create_tag_url(tags[i], domain_type, full_domain), {
 						textContent: tags[i],
-						className: "ex-tag ex-tag-color-inherit ex-easylist-item-tag"
+						className: "hl-tag hl-tag-color-inherit hl-easylist-item-tag"
 					}));
-					n4.setAttribute("data-ex-original", n4.textContent);
+					n4.setAttribute("data-hl-original", n4.textContent);
 
 					if (i < ii - 1) $.add(n3, $.tnode(","));
 				}
@@ -5226,8 +5226,8 @@
 					if (list[i].bad) ++bad;
 				}
 
-				node.setAttribute("data-ex-filter-matches-" + k, list.length - bad);
-				node.setAttribute("data-ex-filter-matches-" + k + "-bad", bad);
+				node.setAttribute("data-hl-filter-matches-" + k, list.length - bad);
+				node.setAttribute("data-hl-filter-matches-" + k + "-bad", bad);
 			}
 		},
 		get_category_ordering: function () {
@@ -5244,19 +5244,19 @@
 			return cat_order;
 		},
 		get_node_filter_group: function (node) {
-			var v1 = parseInt(node.getAttribute("data-ex-filter-matches-title"), 10) || 0,
-				v2 = parseInt(node.getAttribute("data-ex-filter-matches-title-bad"), 10) || 0,
-				v3 = parseInt(node.getAttribute("data-ex-filter-matches-uploader"), 10) || 0,
-				v4 = parseInt(node.getAttribute("data-ex-filter-matches-uploader-bad"), 10) || 0,
-				v5 = parseInt(node.getAttribute("data-ex-filter-matches-tags"), 10) || 0,
-				v6 = parseInt(node.getAttribute("data-ex-filter-matches-tags-bad"), 10) || 0;
+			var v1 = parseInt(node.getAttribute("data-hl-filter-matches-title"), 10) || 0,
+				v2 = parseInt(node.getAttribute("data-hl-filter-matches-title-bad"), 10) || 0,
+				v3 = parseInt(node.getAttribute("data-hl-filter-matches-uploader"), 10) || 0,
+				v4 = parseInt(node.getAttribute("data-hl-filter-matches-uploader-bad"), 10) || 0,
+				v5 = parseInt(node.getAttribute("data-hl-filter-matches-tags"), 10) || 0,
+				v6 = parseInt(node.getAttribute("data-hl-filter-matches-tags-bad"), 10) || 0;
 
 			v2 += v4 + v6;
 			if (v2 > 0) return -v2;
 			return v1 + v3 + v5;
 		},
 		get_node_category_group: function (node, ordering) {
-			var k = node.getAttribute("data-ex-category") || "";
+			var k = node.getAttribute("data-hl-category") || "";
 			return ordering[k in ordering ? k : ""];
 		},
 		update_display_mode: function (first) {
@@ -5267,11 +5267,11 @@
 
 			if (!first) {
 				for (i = 0, ii = list.length; i < ii; ++i) {
-					cl.remove("ex-easylist-" + list[i]);
+					cl.remove("hl-easylist-" + list[i]);
 				}
 			}
 
-			cl.add("ex-easylist-" + mode);
+			cl.add("hl-easylist-" + mode);
 		},
 		update_ordering: function () {
 			var items = [],
@@ -5319,7 +5319,7 @@
 				};
 				item.order.push(
 					parseFloat(n.getAttribute(attr)) || 0,
-					parseFloat(n.getAttribute("data-ex-index")) || 0
+					parseFloat(n.getAttribute("data-hl-index")) || 0
 				);
 				items.push(item);
 			}
@@ -5344,7 +5344,7 @@
 			for (i = 0, ii = items.length; i < ii; ++i) {
 				n = items[i].node;
 				par.appendChild(n);
-				if ((n2 = $(".ex-easylist-item-image-index", n)) !== null) {
+				if ((n2 = $(".hl-easylist-item-image-index", n)) !== null) {
 					n2.textContent = "#" + (i + 1);
 				}
 			}
@@ -5368,10 +5368,10 @@
 			}
 
 			targets = [
-				[ ".ex-easylist-item-title-link", "title", results1 ],
-				[ ".ex-easylist-item-title-jp", "title", results1 ],
-				[ ".ex-easylist-item-uploader", "uploader", results2 ],
-				[ ".ex-easylist-item-tag", "tags", results3 ],
+				[ ".hl-easylist-item-title-link", "title", results1 ],
+				[ ".hl-easylist-item-title-jp", "title", results1 ],
+				[ ".hl-easylist-item-uploader", "uploader", results2 ],
+				[ ".hl-easylist-item-tag", "tags", results3 ],
 			];
 
 			for (i = (tags_only ? 3 : 0), ii = targets.length; i < ii; ++i) {
@@ -5381,23 +5381,23 @@
 				for (j = 0, jj = nodes.length; j < jj; ++j) {
 					n = nodes[j];
 					if (!first) {
-						n.textContent = n.getAttribute("data-ex-original") || "";
-						n.classList.remove("ex-filter-good");
-						n.classList.remove("ex-filter-bad");
+						n.textContent = n.getAttribute("data-hl-original") || "";
+						n.classList.remove("hl-filter-good");
+						n.classList.remove("hl-filter-bad");
 					}
 					Filter.highlight(mode, n, data, results, EasyList.custom_filters);
 				}
 			}
 
 			if (!tags_only) {
-				link = $(".ex-easylist-item-title-link", node);
-				n = $(".ex-easylist-item-title-tag-link", node);
+				link = $(".hl-easylist-item-title-link", node);
+				n = $(".hl-easylist-item-title-tag-link", node);
 
 				if (link !== null && n !== null) {
 					if (!first) {
-						n.textContent = n.getAttribute("data-ex-original") || "";
-						n.classList.remove("ex-filter-good");
-						n.classList.remove("ex-filter-bad");
+						n.textContent = n.getAttribute("data-hl-original") || "";
+						n.classList.remove("hl-filter-good");
+						n.classList.remove("hl-filter-bad");
 					}
 
 					link = link.cloneNode(true);
@@ -5478,16 +5478,16 @@
 			$.off(this, "mouseover", EasyList.on_gallery_mouseover);
 
 			var node = this,
-				tags_container = $(".ex-easylist-item-tags", this),
-				gid = this.getAttribute("data-ex-gid") || "",
-				token = this.getAttribute("data-ex-token") || "",
-				site = this.getAttribute("data-ex-site");
+				tags_container = $(".hl-easylist-item-tags", this),
+				gid = this.getAttribute("data-hl-gid") || "",
+				token = this.getAttribute("data-hl-token") || "",
+				site = this.getAttribute("data-hl-site");
 
 			if (!site) site = domains.exhentai;
 
 			API.get_full_gallery_info(gid, token, site, function (err, data) {
 				if (err === null && tags_container !== null) {
-					var domain = node.getAttribute("data-ex-domain") || domains.exhentai,
+					var domain = node.getAttribute("data-hl-domain") || domains.exhentai,
 						n, hl_res;
 
 					n = EasyList.create_full_tags(domain, data, Theme.get());
@@ -5597,7 +5597,7 @@
 			return function (node) {
 				if (container === null) {
 					container = $.create("div", {
-						className: "ex-hovering-elements"
+						className: "hl-hovering-elements"
 					});
 					$.add(d.body, container);
 				}
@@ -5651,10 +5651,10 @@
 						node.classList.contains("linkified") &&
 						node.previousSibling &&
 						node.previousSibling.classList &&
-						node.previousSibling.classList.contains("ex-site-tag")
+						node.previousSibling.classList.contains("hl-site-tag")
 					) {
-						node.className = "ex-link-events ex-linkified ex-linkified-gallery";
-						node.setAttribute("data-ex-linkified-status", "unprocessed");
+						node.className = "hl-link-events hl-linkified hl-linkified-gallery";
+						node.setAttribute("data-hl-linkified-status", "unprocessed");
 						Linkifier.change_link_events(node, "gallery_link");
 						$.remove(node.previousSibling);
 

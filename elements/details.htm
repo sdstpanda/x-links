@@ -1,58 +1,58 @@
-﻿<div class="ex-details ex-hover-shadow post reply post_wrapper ex-fake-post extheme" data-ex-id="#{data_alt.site}_#{data.gid}">
+﻿<div class="hl-details hl-hover-shadow post reply post_wrapper hl-fake-post extheme" data-hl-id="#{data_alt.site}_#{data.gid}">
 	<!-- Thumbnail -->
-	<div class="ex-details-thumbnail"></div>
+	<div class="hl-details-thumbnail"></div>
 	<!-- Sidepanel -->
-	<div class="ex-details-side-panel">
+	<div class="hl-details-side-panel">
 		<!-- Category -->
-		<span class="ex-button ex-button-eh ex-button-#{data_alt.category_type}">
-			<div class="ex-noise">
+		<span class="hl-button hl-button-eh hl-button-#{data_alt.category_type}">
+			<div class="hl-noise">
 				#{cat[data.category].name}
 			</div>
 		</span>
 		<!-- Rating -->
-		<div class="ex-details-side-box ex-details-side-box-rating extheme">
+		<div class="hl-details-side-box hl-details-side-box-rating extheme">
 			<div><strong>Rating:</strong></div>
-			<div class="ex-details-rating ex-stars-container">
+			<div class="hl-details-rating hl-stars-container">
 				#{UI.html.stars(data.rating)}
 			</div>
-			<div class="ex-details-rating-text">
+			<div class="hl-details-rating-text">
 				(Avg. #{data.rating})
 			</div>
 		</div>
 		<!-- Files -->
-		<div class="ex-details-side-box ex-details-side-box-files extheme">
+		<div class="hl-details-side-box hl-details-side-box-files extheme">
 			<div><strong>Files:</strong></div>
-			<div class="ex-details-file-count">
+			<div class="hl-details-file-count">
 				#{data.filecount} image#{(data.filecount === 1 ? "" : "s")}
 			</div>
-			<div class="ex-details-file-size">
+			<div class="hl-details-file-size">
 				(#{data_alt.size} MB)
 			</div>
 		</div>
 		<!-- Torrents -->
-		<div class="ex-details-side-box ex-details-side-box-torrents extheme">
+		<div class="hl-details-side-box hl-details-side-box-torrents extheme">
 			<div><strong>Torrents:</strong> #{data.torrentcount}</div>
 		</div>
 		<!-- Visible -->
-		<div class="ex-details-side-box ex-details-side-box-visible extheme">
+		<div class="hl-details-side-box hl-details-side-box-visible extheme">
 			<div><strong>Visible:</strong> #{data_alt.visible}</div>
 		</div>
 	</div>
 	<!-- Title -->
-	<a class="ex-details-title" href="#">
+	<a class="hl-details-title" href="#">
 		#{data.title}
 	</a>
 	#{data_alt.jtitle}
 	<br /><br />
 	<!-- Upload info -->
-	<span class="ex-details-upload-info">
-		Uploaded by <strong class="ex-details-uploader">#{data.uploader}</strong> on
-		<strong class="ex-details-upload-date">#{data_alt.datetext}</strong>
+	<span class="hl-details-upload-info">
+		Uploaded by <strong class="hl-details-uploader">#{data.uploader}</strong> on
+		<strong class="hl-details-upload-date">#{data_alt.datetext}</strong>
 	</span>
 	<br /><br />
 	<!-- Tags -->
-	<span class="ex-details-tag-block">
-		<strong class="ex-details-tag-block-label">Tags:</strong><span class="ex-details-tags" data-ex-id="#{data_alt.site}_#{data.gid}"></span>
+	<span class="hl-details-tag-block">
+		<strong class="hl-details-tag-block-label">Tags:</strong><span class="hl-details-tags" data-hl-id="#{data_alt.site}_#{data.gid}"></span>
 	</span>
-	<div class="ex-details-clear"></div>
+	<div class="hl-details-clear"></div>
 </div>
