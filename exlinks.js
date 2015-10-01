@@ -1121,7 +1121,7 @@
 					Nodes.details[full_id] = details;
 				}
 
-				details.style.display = "";
+				details.classList.remove("ex-details-hidden");
 			},
 			mouseout: function () {
 				var full_id = Helper.get_id_from_node_full(this),
@@ -1143,7 +1143,7 @@
 					Nodes.details[full_id] = details;
 				}
 
-				details.style.setProperty("display", "none", "important");
+				details.classList.add("ex-details-hidden");
 			},
 			mousemove: function (event) {
 				var details = Nodes.details[Helper.get_id_from_node_full(this)];
@@ -2330,7 +2330,7 @@
 
 							if (conf['Show Short Results']) {
 								if (hover === undefined) hover = Sauce.UI.hover(sha1);
-								hover.style.display = "";
+								hover.classList.remove("exlinks-exsauce-hover-hidden");
 								Sauce.UI.events.mousemove.call(this, event);
 							}
 						}
@@ -2338,7 +2338,7 @@
 							results.style.display = "table";
 
 							if (hover !== undefined) {
-								hover.style.setProperty("display", "none", "important");
+								hover.classList.add("exlinks-exsauce-hover-hidden");
 							}
 						}
 					}
@@ -2352,7 +2352,7 @@
 						if (results === null || results.style.display === "none") {
 							hover = Nodes.sauce_hover[sha1];
 							if (hover === undefined) hover = Sauce.UI.hover(sha1);
-							hover.style.display = "";
+							hover.classList.remove("exlinks-exsauce-hover-hidden");
 						}
 					}
 				},
@@ -2362,7 +2362,7 @@
 							hover = Nodes.sauce_hover[sha1];
 
 						if (hover !== undefined) {
-							hover.style.setProperty("display", "none", "important");
+							hover.classList.add("exlinks-exsauce-hover-hidden");
 						}
 					}
 				},
@@ -2400,7 +2400,7 @@
 					hover, i, ii;
 
 				hover = $.create("div", {
-					className: "exlinks-exsauce-hover post reply post_wrapper ex-fake-post"
+					className: "exlinks-exsauce-hover exlinks-exsauce-hover-hidden post reply post_wrapper ex-fake-post"
 				});
 				hover.setAttribute("data-sha1", sha1);
 

@@ -250,6 +250,9 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 	border-radius: 0.25em !important;
 	width: auto !important;
 }
+.exlinks-exsauce-hover.exlinks-exsauce-hover-hidden {
+	display: none !important;
+}
 
 /* Actions */
 .ex-actions {
@@ -307,6 +310,9 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 	min-width: 600px !important;
 	box-sizing: border-box !important;
 	-moz-box-sizing: border-box !important;
+}
+.ex-details.ex-details-hidden {
+	display: none !important;
 }
 
 .ex-details-thumbnail {
