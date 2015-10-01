@@ -19,6 +19,8 @@ HEADER    =
 """ +
 (("// @include     #{a}\n" for a in pkg.custom.targets).join "") +
 """
+// @homepage    #{pkg.homepage}
+// @supportURL  #{pkg.bugs.url}
 // @updateURL   #{pkg.custom.update_url}
 // @downloadURL #{pkg.custom.download_url}
 // @grant       GM_xmlhttpRequest

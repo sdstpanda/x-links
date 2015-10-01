@@ -26,7 +26,7 @@
   "bugs": {
     "url": "https://github.com/Hupotronic/ExLinks/issues"
   },
-  "homepage": "http://hupotronic.github.io/ExLinks/",
+  "homepage": "https://hupotronic.github.io/ExLinks/",
   "custom": {
     "namespace": "hupotronic",
     "update_url": "https://github.com/Hupotronic/ExLinks/raw/stable/ExLinks.meta.js",
