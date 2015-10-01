@@ -202,21 +202,21 @@
 }
 
 /* Sauce */
-.exlinks-exsauce-link {
+.ex-exsauce-link {
 	white-space: nowrap;
 	text-transform: lowercase;
 }
-.exlinks-exsauce-hover-link {
+.ex-exsauce-hover-link {
 	text-decoration: none !important;
 }
-a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
+a.ex-exsauce-link.ex-exsauce-link-disabled {
 	text-decoration: line-through !important;
 	cursor: default !important;
 }
-.exlinks-exsauce-link-valid {
+.ex-exsauce-link-valid {
 }
 
-.exlinks-exsauce-results {
+.ex-exsauce-results {
 	display: table;
 	max-width: 100%;
 	width: auto;
@@ -226,24 +226,24 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 	background-color: rgba(0,0,0,0.05);
 	padding: 0.5em;
 }
-.exlinks-exsauce-results.exlinks-exsauce-results-hidden {
+.ex-exsauce-results.ex-exsauce-results-hidden {
 	display: none;
 }
-.exlinks-exsauce-results.extheme-dark {
+.ex-exsauce-results.extheme-dark {
 	background-color: rgba(255,255,255,0.05);
 }
-.exlinks-exsauce-results-sep {
+.ex-exsauce-results-sep {
 	display: inline-block;
 	margin: 0 0.5em;
 }
-.exlinks-exsauce-results-link {
+.ex-exsauce-results-link {
 	text-decoration: none !important;
 	vertical-align: top;
 	margin: 0 0.375em;
 	text-transform: lowercase;
 }
 
-.exlinks-exsauce-hover {
+.ex-exsauce-hover {
 	opacity: 0.93;
 	display: block !important;
 	font-size: inherit !important;
@@ -254,7 +254,7 @@ a.exlinks-exsauce-link.exlinks-exsauce-link-disabled {
 	border-radius: 0.25em !important;
 	width: auto !important;
 }
-.exlinks-exsauce-hover.exlinks-exsauce-hover-hidden {
+.ex-exsauce-hover.ex-exsauce-hover-hidden {
 	display: none !important;
 }
 

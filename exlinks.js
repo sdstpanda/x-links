@@ -511,7 +511,7 @@
 
 			if (
 				container !== null &&
-				(node = $(".exlinks-exsauce-results", container)) !== null &&
+				(node = $(".ex-exsauce-results", container)) !== null &&
 				Helper.Post.get_post_container(node) === container
 			) {
 				return node;
@@ -2347,16 +2347,16 @@
 					if (results !== null) {
 						hover = Nodes.sauce_hover[sha1];
 
-						if (results.classList.toggle("exlinks-exsauce-results-hidden")) {
+						if (results.classList.toggle("ex-exsauce-results-hidden")) {
 							if (conf['Show Short Results']) {
 								if (hover === undefined) hover = Sauce.UI.hover(sha1);
-								hover.classList.remove("exlinks-exsauce-hover-hidden");
+								hover.classList.remove("ex-exsauce-hover-hidden");
 								Sauce.UI.events.mousemove.call(this, event);
 							}
 						}
 						else {
 							if (hover !== undefined) {
-								hover.classList.add("exlinks-exsauce-hover-hidden");
+								hover.classList.add("ex-exsauce-hover-hidden");
 							}
 						}
 					}
@@ -2367,10 +2367,10 @@
 							results = Helper.get_exresults_from_exsauce(this),
 							hover;
 
-						if (results === null || results.classList.contains("exlinks-exsauce-results-hidden")) {
+						if (results === null || results.classList.contains("ex-exsauce-results-hidden")) {
 							hover = Nodes.sauce_hover[sha1];
 							if (hover === undefined) hover = Sauce.UI.hover(sha1);
-							hover.classList.remove("exlinks-exsauce-hover-hidden");
+							hover.classList.remove("ex-exsauce-hover-hidden");
 						}
 					}
 				},
@@ -2380,7 +2380,7 @@
 							hover = Nodes.sauce_hover[sha1];
 
 						if (hover !== undefined) {
-							hover.classList.add("exlinks-exsauce-hover-hidden");
+							hover.classList.add("ex-exsauce-hover-hidden");
 						}
 					}
 				},
@@ -2388,7 +2388,7 @@
 					if (conf['Show Short Results']) {
 						var hover = Nodes.sauce_hover[this.getAttribute("data-sha1")];
 
-						if (hover === undefined || hover.classList.contains("exlinks-exsauce-hover-hidden")) return;
+						if (hover === undefined || hover.classList.contains("ex-exsauce-hover-hidden")) return;
 
 						hover.style.left = "0";
 						hover.style.top = "0";
@@ -2418,7 +2418,7 @@
 					hover, i, ii;
 
 				hover = $.create("div", {
-					className: "exlinks-exsauce-hover exlinks-exsauce-hover-hidden post ex-hover-shadow reply post_wrapper ex-fake-post" + Theme.get()
+					className: "ex-exsauce-hover ex-exsauce-hover-hidden post ex-hover-shadow reply post_wrapper ex-fake-post" + Theme.get()
 				});
 				hover.setAttribute("data-sha1", sha1);
 
@@ -2426,7 +2426,7 @@
 					i = 0;
 					while (true) {
 						$.add(hover, $.link(result[i][0], {
-							className: "exlinks-exsauce-hover-link",
+							className: "ex-exsauce-hover-link",
 							textContent: result[i][1]
 						}));
 						if (++i >= ii) break;
@@ -2444,7 +2444,7 @@
 				theme = Theme.get(),
 				results, link, n, i, ii;
 
-			a.classList.add("exlinks-exsauce-link-valid");
+			a.classList.add("ex-exsauce-link-valid");
 			a.textContent = "Found: " + count;
 
 			if (count > 0) {
@@ -2453,12 +2453,12 @@
 						(n = Helper.Post.get_post_container(a)) !== null &&
 						(n = Helper.Post.get_text_body(n)) !== null
 					) {
-						results = $.create("div", { className: "exlinks-exsauce-results" + theme });
+						results = $.create("div", { className: "ex-exsauce-results" + theme });
 						$.add(results, $.create("strong", { textContent: "Reverse Image Search Results" }));
-						$.add(results, $.create("span", { className: "exlinks-exsauce-results-sep", textContent: "|" }));
-						$.add(results, $.create("span", { className: "exlinks-exsauce-results-label", textContent: "View on:" }));
+						$.add(results, $.create("span", { className: "ex-exsauce-results-sep", textContent: "|" }));
+						$.add(results, $.create("span", { className: "ex-exsauce-results-label", textContent: "View on:" }));
 						$.add(results, $.link(a.href, {
-							className: "exlinks-exsauce-results-link",
+							className: "ex-exsauce-results-link",
 							textContent: (conf["Lookup Domain"] === domains.exhentai) ? "exhentai" : "e-hentai"
 						}));
 						$.add(results, $.create("br"));
@@ -3099,9 +3099,9 @@
 
 			// Collapse info if it's an inline
 			if (conf['Hide in Quotes']) {
-				nodes = $$(".exlinks-exsauce-results", post);
+				nodes = $$(".ex-exsauce-results", post);
 				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					nodes[i].classList.add("exlinks-exsauce-results-hidden");
+					nodes[i].classList.add("ex-exsauce-results-hidden");
 				}
 				nodes = $$(".ex-actions", post);
 				for (i = 0, ii = nodes.length; i < ii; ++i) {
@@ -3155,10 +3155,10 @@
 			if (file_info === null || file_info.md5 === null) return;
 
 			// Create if not found
-			sauce = $(".exlinks-exsauce-link", file_info.options);
+			sauce = $(".ex-exsauce-link", file_info.options);
 			if (sauce === null && /^\.(png|gif|jpe?g)$/i.test(file_info.type)) {
 				sauce = $.link(file_info.url, {
-					className: "ex-link-events exlinks-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
+					className: "ex-link-events ex-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
 					textContent: Sauce.label()
 				});
 				sauce.setAttribute("data-ex-link-events", "exsauce_fetch");
@@ -3170,7 +3170,7 @@
 						sauce.title = "This will only work on colored images";
 					}
 					else {
-						sauce.classList.add("exlinks-exsauce-link-disabled");
+						sauce.classList.add("ex-exsauce-link-disabled");
 						sauce.setAttribute("data-ex-link-events", "exsauce_error");
 						sauce.title = (
 							"Reverse Image Search doesn't work for JPG images because 4chan manipulates them on upload. " +
