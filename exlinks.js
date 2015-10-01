@@ -646,7 +646,7 @@
 			};
 			var create_tag_ns_url = {
 				ehentai: function (tag, namespace, full_domain) {
-					return "http://" + full_domain + "/tag/" + namespace + tag.replace(/\s+/g, "+");
+					return "http://" + full_domain + "/tag/" + namespace + ":" + tag.replace(/\s+/g, "+");
 				},
 				nhentai: function (tag, namespace, full_domain) {
 					if (namespace === "tags") namespace = "tag";
