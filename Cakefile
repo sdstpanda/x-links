@@ -8,11 +8,11 @@ CleanCSS = require 'clean-css'
 
 
 CAKEFILE  = 'Cakefile'
-INFILE    = 'exlinks.js'
+INFILE    = 'h-links.js'
 ELEMENTS  = './elements'
 IMAGES    = './images'
 STYLEFILE = 'style.css'
-OUTFILE   = 'ExLinks.user.js'
+OUTFILE   = 'h-links.user.js'
 LATEST    = 'latest.js'
 CHANGELOG = 'changelog'
 
