@@ -154,7 +154,6 @@
 				obj[k] = properties[k];
 			}
 		}
-		return obj;
 	};
 	$.extend($, {
 		ready: (function () {
@@ -353,20 +352,6 @@
 			// Scroll to top
 			element.scrollTop = 0;
 			element.scrollLeft = 0;
-		},
-		checked: {
-			prepend: function (parent, child) {
-				if (parent && child) return parent.insertBefore(child, parent.firstChild);
-			},
-			add: function (parent, child) {
-				if (parent && child) return parent.appendChild(child);
-			},
-			before: function (root, elem) {
-				if (root && elem) return root.parentNode.insertBefore(elem, root);
-			},
-			after: function (root, elem) {
-				if (root && elem) return root.parentNode.insertBefore(elem, root.nextSibling);
-			}
 		}
 	});
 	Debug = {
