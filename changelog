@@ -1,5 +1,12 @@
 ﻿master
 
+1.0
+- dnsev-h
+  + Major rewrite of ExLinks with a name change to H-links
+  + It's not worthwhile to try and detail every change here; read the commit history
+
+==========
+
 2.3.4
 - Daiz
   + Fix: Another edge case linkification failure now works properly
@@ -14,13 +21,13 @@
 
 2.3.1
 - Daiz
-  - Change: Reverse Image Search is now disabled for JPG images because 4chan manipulates them on upload, effectively making search by file hash useless.
+  + Change: Reverse Image Search is now disabled for JPG images because 4chan manipulates them on upload, effectively making search by file hash useless.
 
 2.3.0
 - nixx
   + Feature: HTTPS support
 - Daiz
-  - Change: HTTPS->HTTP redirection removed
+  + Change: HTTPS->HTTP redirection removed
   + Add: ExLinks now runs on archive.moe (for real this time)
 
 2.2.7
