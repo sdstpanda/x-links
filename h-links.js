@@ -1241,12 +1241,11 @@
 					Filter.highlight("tags", link, data, null);
 
 					$.add(tag, link);
-					$.add(tag, $.tnode(i === ii - 1 ? ";" : ","));
+					if (i < ii - 1) $.add(tag, $.tnode(","));
 					$.add(tf, tag);
 					tf = tagfrag;
 				}
 			}
-			$.remove(tagfrag.lastChild.lastChild);
 
 			return tagfrag;
 		},
