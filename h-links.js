@@ -4488,10 +4488,10 @@
 			n.className = "post reply post_wrapper hl-fake-post";
 			body.appendChild(n);
 
-			color = Theme.parse_css_color(window.getComputedStyle(doc_el).backgroundColor);
+			color = Theme.parse_css_color(Theme.get_computed_style(doc_el).backgroundColor);
 			colors = [
-				Theme.parse_css_color(window.getComputedStyle(body).backgroundColor),
-				Theme.parse_css_color(window.getComputedStyle(n).backgroundColor),
+				Theme.parse_css_color(Theme.get_computed_style(body).backgroundColor),
+				Theme.parse_css_color(Theme.get_computed_style(n).backgroundColor),
 			];
 
 			for (i = 0; i < colors.length; ++i) {
@@ -4512,7 +4512,17 @@
 
 			return (color[0] + color[1] + color[2] < 384) ? "dark" : "light";
 		},
+		get_computed_style: function (node) {
+			try {
+				// https://code.google.com/p/chromium/issues/detail?id=538650
+				return window.getComputedStyle(node);
+			}
+			catch (e) {
+				return node.style;
+			}
+		},
 		parse_css_color: function (color) {
+			color = color || "";
 			if (color !== "transparent") {
 				var m;
 				if ((m = /^rgba?\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*(,\s*([0-9\.]+)\s*)?\)$/.exec(color))) {
@@ -5629,7 +5639,6 @@
 			if (Config.mode === "4chan") {
 				if (mode === "main") {
 					navlinks = $$("#navtopright,#navbotright");
-					console.log(navlinks);
 					exclude_mobile = true;
 					append = false;
 
