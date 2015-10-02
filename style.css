@@ -261,11 +261,10 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 /* Actions */
 .hl-actions {
 	display: table;
-	max-width: 100%;
-	width: auto;
-	padding: 4px;
-	margin: 3px 0;
-	border-radius: 4px;
+	margin: 0.25em 0;
+	vertical-align: middle;
+	padding: 0.25em;
+	border-radius: 0.25em;
 	background-color: rgba(0,0,0,0.05);
 }
 .hl-actions.hl-actions-hidden {
@@ -275,10 +274,7 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	background-color: rgba(255,255,255,0.05);
 }
 
-.hl-actions-table {
-	display: inline-block;
-	vertical-align: top;
-	width: 100%;
+.hl-actions-info {
 }
 
 .hl-actions-label {
@@ -298,10 +294,9 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 }
 
 .hl-actions-tag-block {
-	display: inline-block !important;
 }
 .hl-actions-tag-block-label {
-	margin-right: 0.125em !important;
+	margin-right: 0.125em;
 }
 .hl-actions-tags {
 }

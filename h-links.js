@@ -885,12 +885,12 @@
 			actions: function (data, domain) {
 				var gid = data.gid,
 					token = data.token,
+					theme = Theme.get(),
 					domain_type = domain_info[domain].type,
 					url, src;
 
-				src = '<div class="hl-actions hl-actions-hidden' + Theme.get() + '" data-hl-id="' + domain_type + '_' + gid + '">';
-				src += '<table class="hl-actions-table"><tbody>';
-				src += '<tr><td style="vertical-align: top;">';
+				src = '<div class="hl-actions hl-actions-hidden' + theme + '" data-hl-id="' + domain_type + '_' + gid + '">';
+				src += '<div class="hl-actions-info">';
 				src += '<span>' + data.category + '</span>';
 				src += '<span class="hl-actions-sep">|</span>';
 				src += '<span>' + data.filecount + ' files</span>';
@@ -923,8 +923,7 @@
 					url = Helper.Site.create_gallery_url(data, domain);
 					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_view_on_nh">hitomi.la</a>';
 				}
-				src += '</td></tr>';
-				src += '</tbody></table>';
+				src += '</div>';
 				src += '<div class="hl-actions-tag-block">';
 				src += '<strong class="hl-actions-tag-block-label">Tags:</strong><span class="hl-actions-tags hl-tags" data-hl-id="' + domain_type + '_' + gid + '"></span>';
 				src += '</div>';
