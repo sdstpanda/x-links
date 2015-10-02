@@ -1295,9 +1295,10 @@ div.hl-easylist-content-inner.post.reply.post_wrapper {
 	-moz-box-sizing: border-box;
 	width: 100%;
 	line-height: 1.4em;
-	height: 4.7em;
+	height: 4.8em;
 	min-height: 2em;
 	resize: vertical;
+	font-family: Courier, monospace !important;
 }
 .hl-easylist-option-textarea:hover,
 .hl-easylist-option-textarea:focus {
