@@ -16,38 +16,34 @@ OUTFILE   = 'ExLinks.user.js'
 LATEST    = 'latest.js'
 CHANGELOG = 'changelog'
 
-HEADER =
-"""
-// ==UserScript==
-// @name        #{pkg.name}
-// @namespace   #{pkg.custom.namespace}
-// @author      #{pkg.author}
-// @version     #{pkg.version}
-// @description #{pkg.description}\n
-""" +
-(("// @include     #{a}\n" for a in pkg.custom.targets).join "") +
-"""
-// @homepage    #{pkg.homepage}
-// @supportURL  #{pkg.bugs.url}
-// @updateURL   #{pkg.custom.update_url}
-// @downloadURL #{pkg.custom.download_url}\n
-""" +
-(("// @grant       #{a}\n" for a in pkg.custom.gm_permissions).join "") +
-"""
-// @run-at      document-start
-// ==/UserScript==
-"""
-
 
 option '-o', '--output [output]', 'Specify output location.'
 option '-u', '--uglify [uglify]', 'Minify with UglifyJS. Options: "mangle,squeeze"'
 option '-v', '--version [version]', 'Release version.'
 
+
 task 'build', (options) ->
 	jsp = ugly.parser
 	pro = ugly.uglify
-	OUTPUT = options.output || OUTFILE
-	output_meta = OUTPUT.replace /\.user\./, ".meta."
+	output = options.output || OUTFILE
+	output_meta = output.replace /\.user\./, ".meta."
+
+	header =
+	"// ==UserScript==\n" +
+	"// @name        #{pkg.name}\n" +
+	"// @namespace   #{pkg.custom.namespace}\n" +
+	"// @author      #{pkg.author}\n" +
+	"// @version     #{pkg.version}\n" +
+	"// @description #{pkg.description}\n" +
+	(("// @include     #{a}\n" for a in pkg.custom.targets).join "") +
+	"// @homepage    #{pkg.homepage}\n" +
+	"// @supportURL  #{pkg.bugs.url}\n" +
+	"// @updateURL   #{pkg.custom.update_url_base}#{output_meta}\n" +
+	"// @downloadURL #{pkg.custom.update_url_base}#{output}\n" +
+	(("// @grant       #{a}\n" for a in pkg.custom.gm_permissions).join "") +
+	"// @run-at      document-start\n" +
+	"// ==/UserScript=="
+
 	html = {}
 	store = (path) ->
 		dest = {}
@@ -59,6 +55,7 @@ task 'build', (options) ->
 			input = input.replace /\#{([^}]*)}/g, "'+$1+'"
 			dest[ext[0]] = input
 		return dest
+
 	html = store ELEMENTS
 	input = fs.readFileSync INFILE, 'utf8'
 	style = fs.readFileSync STYLEFILE, 'utf8'
@@ -75,20 +72,14 @@ task 'build', (options) ->
 	input = input.replace /\#TITLE_2CHAR\#/g, pkg.custom.name_short
 	input = input.replace /\#PREFIX\#/g, pkg.custom.settings_prefix
 	input = input.replace /\/\*\s*jshint.*\*\//, ''
-	if options.uglify
-		{uglify} = options
-		uopts = uglify.split ','
-		ast = jsp.parse input
-		if uopts[0] == 'mangle'
-			ast = pro.ast_mangle(ast)
-		if uopts[1] == 'squeeze'
-			ast = pro.ast_squeeze(ast)
-		input = pro.gen_code(ast)
-	input = HEADER+"\n"+input
-	fs.writeFileSync OUTPUT, input, 'utf8', (err) ->
+
+	input = header + "\n" + input
+
+	fs.writeFileSync output, input, 'utf8', (err) ->
 		throw err if err
-	fs.writeFileSync output_meta, HEADER, 'utf8', (err) ->
+	fs.writeFileSync output_meta, header, 'utf8', (err) ->
 		throw err if err
+
 	log 'Build successful!'
 
 task 'dev', (options) ->
