@@ -11,7 +11,6 @@ CAKEFILE  = 'Cakefile'
 INFILE    = 'exlinks.js'
 ELEMENTS  = './elements'
 IMAGES    = './images'
-IMAGEJSON = 'images.json'
 STYLEFILE = 'style.css'
 OUTFILE   = 'ExLinks.user.js'
 LATEST    = 'latest.js'
@@ -62,22 +61,19 @@ task 'build', (options) ->
 		return dest
 	html = store ELEMENTS
 	input = fs.readFileSync INFILE, 'utf8'
-	images = fs.readFileSync IMAGEJSON, 'utf8'
 	style = fs.readFileSync STYLEFILE, 'utf8'
-	# style = minify style, { collapseWhitespace: true }
 	style = new CleanCSS({}).minify(style).styles
 	input = input.replace /\#DETAILS\#/g, html.details
-	input = input.replace /\#ACTIONS\#/g, html.actions
 	input = input.replace /\#OPTIONS\#/g, html.options
 	input = input.replace /\#VERSION\#/g, pkg.version
 	input = input.replace /\#HOMEPAGE\#/g, pkg.homepage
 	input = input.replace /\#ISSUES\#/g, pkg.bugs.url
 	input = input.replace /\#CHANGELOG\#/g, pkg.custom.changelog_url
 	input = input.replace /\"\#STYLESHEET\#\"/g, (JSON.stringify style)
+	#"# good work syntax highlighter
 	input = input.replace /\#TITLE\#/g, pkg.name
 	input = input.replace /\#TITLE_2CHAR\#/g, pkg.custom.name_short
 	input = input.replace /\#PREFIX\#/g, pkg.custom.settings_prefix
-	input = input.replace "img = {}", "img = #{images}"
 	input = input.replace /\/\*\s*jshint.*\*\//, ''
 	if options.uglify
 		{uglify} = options
@@ -95,36 +91,12 @@ task 'build', (options) ->
 		throw err if err
 	log 'Build successful!'
 
-task 'images', (options) ->
-	OUTPUT = options.output || IMAGEJSON
-	images = {}
-	store = (path) ->
-		dest = {}
-		files = fs.readdirSync path
-		for file in files
-			ext = file.split '.'
-			if ext.length == 2 and ext[1] == 'png'
-				image = new Buffer (fs.readFileSync path+'/'+file, 'binary'), 'binary'
-				image_b64 = 'data:image/png;base64,'+image.toString('base64')
-				dest[ext[0]] = image_b64
-		return dest
-	images = store IMAGES
-	# images.ratings = store IMAGES+'/ratings'
-	# images.categories = store IMAGES+/categories'
-
-	fs.writeFileSync OUTPUT, JSON.stringify(images), 'utf8', (err) ->
-		throw err if err
-	log 'Image data rebuilt successfully!'
-
 task 'dev', (options) ->
 	invoke 'build'
 	fs.watchFile INFILE, interval: 250, (curr, prev) ->
 		if curr.mtime > prev.mtime
 			invoke 'build'
 	fs.watchFile './elements/details.htm', interval: 250, (curr, prev) ->
-		if curr.mtime > prev.mtime
-			invoke 'build'
-	fs.watchFile './elements/actions.htm', interval: 250, (curr, prev) ->
 		if curr.mtime > prev.mtime
 			invoke 'build'
 	fs.watchFile './elements/options.htm', interval: 250, (curr, prev) ->

@@ -2,7 +2,7 @@
 (function () {
 	"use strict";
 
-	var timing, domains, domain_info, options, conf, regex, img, cat, d, t, $, $$,
+	var timing, domains, domain_info, options, conf, regex, cat, d, t, $, $$,
 		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Options, Config, Main,
 		MutationObserver, Helper, Nodes, HttpRequest, Linkifier, Filter, Theme, EasyList;
 
@@ -46,7 +46,6 @@
 		}
 	})(true);
 
-	img = {};
 	cat = {
 		"Artist CG Sets": { "short": "artistcg",  "name": "Artist CG"  },
 		"Asian Porn":     { "short": "asianporn", "name": "Asian Porn" },
