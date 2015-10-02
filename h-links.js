@@ -1729,7 +1729,7 @@
 
 			// Image/gid
 			if ((n = $("#cover>a", html)) !== null) {
-				m = /\/g\/(\d+)/.exec(n.href || "");
+				m = /\/g\/(\d+)/.exec(n.getAttribute("href") || "");
 				if (m !== null) {
 					data.gid = parseInt(m[1], 10);
 				}
@@ -1867,7 +1867,7 @@
 
 			// Image/gid
 			if ((n = $(".cover>a", html)) !== null) {
-				m = /\/reader\/(\d+)/.exec(n.href || "");
+				m = /\/reader\/(\d+)/.exec(n.getAttribute("href") || "");
 				if (m !== null) {
 					data.gid = parseInt(m[1], 10);
 				}
