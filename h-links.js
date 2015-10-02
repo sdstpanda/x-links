@@ -926,7 +926,7 @@
 				src += '</td></tr>';
 				src += '</tbody></table>';
 				src += '<div class="hl-actions-tag-block">';
-				src += '<strong class="hl-actions-tag-block-label">Tags:</strong><span class="hl-actions-tags" data-hl-id="' + domain_type + '_' + gid + '"></span>';
+				src += '<strong class="hl-actions-tag-block-label">Tags:</strong><span class="hl-actions-tags hl-tags" data-hl-id="' + domain_type + '_' + gid + '"></span>';
 				src += '</div>';
 				src += '</div>';
 
@@ -1024,7 +1024,7 @@
 			var data_alt = {},
 				di = domain_info[domain],
 				g_domain = di.g_domain,
-				tagspace, content, n, o;
+				content, n, o;
 
 			data_alt.jtitle = data.title_jpn ? ('<br /><span class="hl-details-title-jp">' + data.title_jpn + '</span>') : '';
 			data_alt.site = di.type;
@@ -1058,8 +1058,7 @@
 				$.remove(n);
 			}
 
-			tagspace = $('.hl-details-tags', content);
-			$.add(tagspace, UI.create_tags_best(di.type, g_domain, data));
+			$.add($(".hl-tags", content), UI.create_tags_best(di.type, g_domain, data));
 
 			Main.hovering(content);
 
@@ -1119,7 +1118,7 @@
 			}
 
 			if (conf['Show by Default']) container.classList.remove("hl-actions-hidden");
-			$.add($(".hl-actions-tags", container), UI.create_tags_best(di.type, di.g_domain, data));
+			$.add($(".hl-tags", container), UI.create_tags_best(di.type, di.g_domain, data));
 
 			return container;
 		},
@@ -1210,10 +1209,13 @@
 			var tagfrag = d.createDocumentFragment(),
 				tags_ns = data.full.tags,
 				theme = Theme.get(),
-				namespace, namespace_style, tags, tag, link, tf, i, ii;
+				tag = null,
+				namespace, namespace_style, tags, link, tf, i, ii;
 
 			for (namespace in tags_ns) {
 				tags = tags_ns[namespace];
+				ii = tags.length;
+				if (ii === 0) continue;
 				namespace_style = theme + " hl-tag-namespace-" + namespace.replace(/\s+/g, "-");
 
 				tag = $.create("span", {
@@ -1231,7 +1233,7 @@
 				$.add(tf, tag);
 				$.add(tagfrag, tf);
 
-				for (i = 0, ii = tags.length; i < ii; ++i) {
+				for (i = 0; i < ii; ++i) {
 					tag = $.create("span", { className: "hl-tag-block" + namespace_style });
 					link = $.link(Helper.Site.create_tag_ns_url(tags[i], namespace, domain, site), {
 						textContent: tags[i],
@@ -1241,10 +1243,19 @@
 					Filter.highlight("tags", link, data, null);
 
 					$.add(tag, link);
-					if (i < ii - 1) $.add(tag, $.tnode(","));
+					if (i < ii - 1) {
+						$.add(tag, $.tnode(","));
+					}
+					else {
+						tag.classList.add("hl-tag-block-last-of-namespace");
+					}
 					$.add(tf, tag);
 					tf = tagfrag;
 				}
+			}
+
+			if (tag !== null) {
+				tag.classList.add("hl-tag-block-last");
 			}
 
 			return tagfrag;
@@ -1260,10 +1271,7 @@
 		update_full: function (data) {
 			var tagfrag, nodes, link, site, tags, last, i, ii, j, jj, n, f;
 
-			nodes = $$(
-				".hl-actions-tags[data-hl-id='ehentai_" + data.gid + "']," +
-				".hl-details-tags[data-hl-id='ehentai_" + data.gid + "']"
-			);
+			nodes = $$(".hl-tags[data-hl-id='ehentai_" + data.gid + "']");
 
 			ii = nodes.length;
 			if (ii === 0 || Object.keys(data.full.tags).length === 0) return;

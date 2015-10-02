@@ -432,6 +432,12 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 .hl-tag.hl-tag-color-inherit {
 	color: inherit !important;
 }
+.hl-tag-block.hl-tag-block-last-of-namespace {
+	margin-right: 0.5em;
+}
+.hl-tag-block.hl-tag-block-last {
+	margin-right: 0;
+}
 
 .hl-tag-namespace-first {
 	display: inline-block;
