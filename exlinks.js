@@ -4,7 +4,7 @@
 
 	var timing, domains, domain_info, options, conf, regex, img, cat, d, t, $, $$,
 		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Options, Config, Main,
-		Helper, Nodes, HttpRequest, Linkifier, Filter, Theme, EasyList;
+		MutationObserver, Helper, Nodes, HttpRequest, Linkifier, Filter, Theme, EasyList;
 
 	timing = (function () {
 		var perf = window.performance,
@@ -141,6 +141,7 @@
 	d = document;
 	conf = {};
 
+	MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver || null;
 	$ = function (selector, root) { // Inspired by 4chan X and jQuery API: https://api.jquery.com/ (functions are not chainable)
 		return (root || d).querySelector(selector);
 	};
@@ -3719,67 +3720,16 @@
 			catch (e) {}
 		},
 		init: function () {
-			var oneechan = $.id('OneeChanLink'),
-				chanss = $.id('themeoptionsLink'),
-				title = "#TITLE#",
-				title_short = "#TITLE_2CHAR#",
-				conflink, conflink2, arrtop, arrbot;
-
-			Main["4chanX3"] = d.documentElement.classList.contains("fourchan-x");
-			conflink = $.link("#HOMEPAGE#", { title: title, className: "entry" });
-			$.on(conflink, "click", Options.open);
-
-			if (Config.mode === "4chan") {
-				if (oneechan) {
-					$.add(d.body, conflink);
-				}
-				else if (chanss) {
-					conflink.textContent = title_short;
-					conflink.setAttribute('style', 'background-image: url(' + img.options + '); padding-top: 15px !important; opacity: 0.75;');
-					$.on(conflink, [
-						[ 'mouseover', function () { this.style.opacity = 1.0; } ],
-						[ 'mouseout', function () { this.style.opacity = 0.65; } ]
-					]);
-					$.checked.add($.id('navtopright'), conflink);
-				}
-				else {
-					conflink.textContent = title;
-					conflink.setAttribute('style', 'cursor:pointer;' + (conflink.getAttribute('style') || ""));
-					conflink2 = conflink.cloneNode(true);
-					$.on(conflink2, 'click', Options.open);
-					arrtop = [ $.tnode('['), conflink, $.tnode('] ') ];
-					arrbot = [ $.tnode('['), conflink2, $.tnode('] ') ];
-					$.checked.prepend($.id('navtopright'), $.elem(arrtop));
-					$.checked.prepend($.id('navbotright'), $.elem(arrbot));
-				}
-			}
-			else if (Config.mode === "fuuka") {
-				conflink.textContent = title;
-				conflink.setAttribute('style', 'cursor:pointer;text-transform:lowercase;');
-				arrtop = [ $.tnode(' [ '), conflink, $.tnode(' ] ') ];
-				$.checked.add($('div'), $.elem(arrtop));
-			}
-			else if (Config.mode === "foolz") {
-				conflink.textContent = title;
-				conflink.setAttribute('style', 'cursor:pointer;');
-				arrtop = [ $.tnode(' [ '), conflink, $.tnode(' ] ') ];
-				$.checked.add($('.letters'), $.elem(arrtop));
-			}
-			else if (Config.mode === "tinyboard") {
-				conflink.textContent = title;
-				conflink.setAttribute('style', 'cursor:pointer;');
-				conflink2 = conflink.cloneNode(true);
-				$.on(conflink2, 'click', Options.open);
-				arrtop = [ $.tnode(' [ '), conflink, $.tnode(' ] ') ];
-				arrbot = [ $.tnode(' [ '), conflink2, $.tnode(' ] ') ];
-				$.checked.add($('.boardlist'), $.elem(arrtop));
-				$.checked.add($('.boardlist.bottom'), $.elem(arrbot));
-			}
+			Main.insert_nav_link("main", "#TITLE#", "#TITLE# Settings", " hl-nav-link-settings", Options.open);
 		}
 	};
 	Config = {
 		namespace: "#PREFIX#settings",
 		mode: "4chan", // foolz, fuuka, tinyboard
+		mode_ext: {
+			fourchanx3: false,
+			oneechan: false
+		},
 		linkify: true,
 		storage: (function () {
 			try {
@@ -3842,6 +3792,10 @@
 			else if (/boards\.38chan\.net/i.test(site)) {
 				Config.mode = "tinyboard";
 				Config.linkify = false;
+			}
+			else {
+				Config.mode_ext.fourchanx3 = d.documentElement.classList.contains("fourchan-x");
+				Config.mode_ext.oneechan = ($.id("OneeChanLink") !== null);
 			}
 
 			return true;
@@ -4469,12 +4423,10 @@
 			Theme.update(!first);
 
 			var add_mo = function (nodes, init, callback) {
-				var MO = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver,
-					mo, i;
+				if (MutationObserver === null) return;
 
-				if (!MO) return;
-
-				mo = new MO(callback);
+				var mo = new MutationObserver(callback),
+					i;
 				for (i = 0; i < nodes.length; ++i) {
 					if (nodes[i]) mo.observe(nodes[i], init);
 				}
@@ -4658,78 +4610,7 @@
 			EasyList.load_filters();
 		},
 		init: function () {
-			var mobile_top = true,
-				links = [],
-				navlinks, navlink, is_desktop, link_mod,
-				n1, n2, i, ii;
-
-			if (Config.mode === "4chan") {
-				navlinks = $$(".navLinks");
-				is_desktop = function (node) { return node.classList.contains("desktop"); };
-				link_mod = function (text) { return text; };
-			}
-			else if (Config.mode === "foolz") {
-				navlinks = $$(".letters");
-				is_desktop = function () { return true; };
-				link_mod = function (text) { return " " + text + " "; };
-			}
-			else if (Config.mode === "tinyboard") {
-				navlinks = $$(".boardlist");
-				is_desktop = function () { return true; };
-				link_mod = function (text) { return " " + text.toLowerCase() + " "; };
-			}
-			else {
-				navlinks = [];
-			}
-
-			for (i = 0, ii = navlinks.length; i < ii; ++i) {
-				navlink = navlinks[i];
-				if (is_desktop(navlink)) {
-					// Desktop
-					if ((n1 = navlink.lastChild) !== null && n1.nodeType === Node.TEXT_NODE) {
-						n1.nodeValue = n1.nodeValue.replace(/\]\s*$/, "]") + " [";
-					}
-					else {
-						$.add(navlink, $.tnode(" ["));
-					}
-
-					n2 = $.link(null, {
-						className: "hl-easylist-link",
-						textContent: link_mod("Easy List", true),
-						style: "cursor:pointer;"
-					});
-
-					$.add(navlink, n2);
-					$.add(navlink, $.tnode("]"));
-				}
-				else {
-					// Mobile
-					n1 = $.create("div", {
-						className: "mobile",
-						style: "text-align:center;margin:0.5em 0;"
-					});
-					$.add(n1, n2 = $.create("span", {
-						className: "mobileib button hl-easylist-button"
-					}));
-					$.add(n2, $.link(null, {
-						textContent: link_mod("Easy List", false)
-					}));
-					if (mobile_top) {
-						$.before(navlink, n1);
-					}
-					else {
-						$.after(navlink, n1);
-					}
-
-					mobile_top = false;
-				}
-
-				links.push(n2);
-			}
-
-			for (i = 0, ii = links.length; i < ii; ++i) {
-				$.on(links[i], "click", EasyList.on_open_click);
-			}
+			Main.insert_nav_link("normal", "Easy List", "Easy List", " hl-nav-link-easylist", EasyList.on_open_click);
 		},
 		create: function () {
 			var theme = Theme.get(),
@@ -5628,7 +5509,7 @@
 				}
 
 				// 4chan X specific hacks.
-				if (Main["4chanX3"]) {
+				if (Config.fourchanx3) {
 					// detect when source links are added.
 					if (
 						e.target.classList.contains("fileText") &&
@@ -5666,15 +5547,6 @@
 						}
 					}
 				}
-
-				// Add menu button back in whenever the menu is opened.
-				if (
-					nodes.length > 0 &&
-					nodes[0].id === "menu" &&
-					nodes[0].parentNode.parentNode.parentNode.parentNode.id === "header-bar"
-				) {
-					Main.create_menu_link(nodes[0]);
-				}
 			}
 
 			if (post_list.length > 0) {
@@ -5697,33 +5569,6 @@
 				}
 			}
 		},
-		create_menu_link: function (menu) {
-			var link = $.link("#HOMEPAGE#", {
-				className: "entry",
-				textContent: "#TITLE# Settings"
-			});
-			link.style.order = 112;
-
-			$.on(link, [
-				[ "click", function (event) {
-					$.remove(menu);
-					return Options.open(event);
-				} ],
-				[ "mouseover", function () {
-					var entries = $$('.entry', menu),
-						i, ii;
-					for (i = 0, ii = entries.length; i < ii; ++i) {
-						entries[i].classList.remove("focused");
-					}
-					this.classList.add("focused");
-				} ],
-				[ "mouseout", function () {
-					this.classList.remove("focused");
-				} ]
-			]);
-
-			$.add(menu, link);
-		},
 		insert_custom_fonts: function () {
 			if (Main.font_inserted) return;
 			Main.font_inserted = true;
@@ -5734,15 +5579,176 @@
 			});
 			$.add(d.head, font);
 		},
+		insert_menu_link: (function () {
+
+			var menu_nodes = null;
+			var on_observe = function (records) {
+				var nodes, node, i, ii, j, jj;
+				for (i = 0, ii = records.length; i < ii; ++i) {
+					nodes = records[i].addedNodes;
+					for (j = 0, jj = nodes.length; j < jj; ++j) {
+						node = nodes[j];
+						if (
+							node.id === "menu" &&
+							node.parentNode.parentNode.parentNode.parentNode.id === "header-bar"
+						) {
+							for (i = 0, ii = menu_nodes.length; i < ii; ++i) {
+								$.add(node, menu_nodes[i]);
+							}
+							return;
+						}
+					}
+				}
+			};
+
+			return function (menu_node) {
+				menu_node.classList.add("entry");
+				menu_node.style.order = 112;
+
+				$.on(menu_node, "mouseover", function () {
+					var entries = $$(".entry", this.parent),
+						i, ii;
+					for (i = 0, ii = entries.length; i < ii; ++i) {
+						entries[i].classList.remove("focused");
+					}
+					this.classList.add("focused");
+				});
+				$.on(menu_node, "mouseout", function () {
+					this.classList.remove("focused");
+				});
+
+				if (menu_nodes === null) {
+					menu_nodes = [ menu_node ];
+					new MutationObserver(on_observe).observe(d.body, {
+						childList: true,
+						subtree: true
+					});
+				}
+				else {
+					menu_nodes.append(menu_node);
+				}
+			};
+
+		})(),
+		insert_nav_link: function (mode, text, text_menu, class_name, on_click) {
+			var mobile_top = true,
+				append = true,
+				exclude_mobile = false,
+				navlinks, navlink, is_desktop, link_mod, n1, n2, i, ii;
+
+			if (Config.mode === "4chan") {
+				if (mode === "main") {
+					navlinks = $$("#navtopright,#navbotright");
+					console.log(navlinks);
+					exclude_mobile = true;
+					append = false;
+
+					if (Config.mode_ext.fourchanx3) {
+						n2 = $.link("#HOMEPAGE#", {
+							className: "hl-nav-link-menu" + class_name,
+							textContent: text_menu
+						});
+						$.on(n2, "click", on_click);
+						Main.insert_menu_link(n2);
+					}
+				}
+				else {
+					navlinks = $$(".navLinks");
+				}
+				is_desktop = function (node) { return !node.classList.contains("mobile"); };
+				link_mod = function (text) { return text; };
+			}
+			else if (Config.mode === "foolz") {
+				navlinks = $$(".letters");
+				is_desktop = function () { return true; };
+				link_mod = function (text) { return " " + text + " "; };
+			}
+			else if (Config.mode === "fuuka") {
+				navlinks = [ $("div") ];
+				if (navlinks[0] === null) return;
+				is_desktop = function () { return true; };
+				link_mod = function (text) { return " " + text + " "; };
+			}
+			else if (Config.mode === "tinyboard") {
+				navlinks = $$(".boardlist");
+				is_desktop = function () { return true; };
+				link_mod = function (text) { return " " + text.toLowerCase() + " "; };
+			}
+			else {
+				return;
+			}
+
+			for (i = 0, ii = navlinks.length; i < ii; ++i) {
+				navlink = navlinks[i];
+				if (is_desktop(navlink)) {
+					// Desktop
+					n2 = $.link("#HOMEPAGE#", {
+						className: "hl-nav-link" + class_name,
+						textContent: link_mod(text, true)
+					});
+
+					if (append) {
+						if ((n1 = navlink.lastChild) !== null && n1.nodeType === Node.TEXT_NODE) {
+							n1.nodeValue = n1.nodeValue.replace(/\]\s*$/, "]") + " [";
+						}
+						else {
+							$.add(navlink, $.tnode(" ["));
+						}
+
+						$.add(navlink, n2);
+						$.add(navlink, $.tnode("]"));
+					}
+					else {
+						if ((n1 = navlink.firstChild) !== null && n1.nodeType === Node.TEXT_NODE) {
+							n1.nodeValue = "] " + n1.nodeValue.replace(/^\s*\[/, "[");
+						}
+						else {
+							$.add(navlink, $.tnode("] "));
+						}
+
+						$.prepend(navlink, n2);
+						$.prepend(navlink, $.tnode("["));
+					}
+				}
+				else if (!exclude_mobile) {
+					// Mobile
+					n1 = mobile_top ? navlink.previousSibling : navlink.nextSibling;
+					if (n1 === null || !n1.classList || !n1.classList.contains("hl-nav-extras")) {
+						n1 = $.create("div", {
+							className: "mobile hl-nav-extras-mobile"
+						});
+					}
+
+					$.add(n1, n2 = $.create("span", {
+						className: "mobileib button hl-nav-button" + class_name
+					}));
+					$.add(n2, $.link(null, {
+						className: "hl-nav-button-inner" + class_name,
+						textContent: link_mod(text, false)
+					}));
+					if (mobile_top) {
+						$.before(navlink, n1);
+					}
+					else {
+						$.after(navlink, n1);
+					}
+
+					mobile_top = false;
+				}
+				else {
+					continue;
+				}
+
+				$.on(n2, "click", on_click);
+			}
+		},
 		ready: function () {
 			Debug.timer("init");
-
-			var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver,
-				updater, style;
 
 			if (!Config.site()) return;
 			Options.init();
 
+			var updater, style;
 			style = $.create("style", {
 				textContent: "#STYLESHEET#"
 			});
@@ -5757,7 +5763,7 @@
 			Linkifier.check_incomplete();
 			API.run_request_queue();
 
-			if (MutationObserver) {
+			if (MutationObserver !== null) {
 				updater = new MutationObserver(Main.observer);
 				updater.observe(d.body, { childList: true, subtree: true });
 			}

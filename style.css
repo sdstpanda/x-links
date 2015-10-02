@@ -534,6 +534,19 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	opacity: 0.75;
 }
 
+/* Nav */
+.hl-nav-extras-mobile {
+	text-align: center;
+	margin: 0.5em 0;
+}
+.hl-nav-link {
+	cursor: pointer;
+}
+.hl-nav-button {
+}
+.hl-nav-button-inner {
+}
+
 /* Hovering shadow */
 .hl-hover-shadow {
 	box-shadow: 0 0 0.125em 0 rgba(0,0,0,0.5);
