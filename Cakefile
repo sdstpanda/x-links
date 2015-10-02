@@ -16,6 +16,9 @@ OUTFILE   = 'h-links.user.js'
 LATEST    = 'latest.js'
 CHANGELOG = 'changelog'
 
+ICON48    = IMAGES + '/icon/h48.png'
+ICON64    = IMAGES + '/icon/h64.png'
+
 
 option '-o', '--output [output]', 'Specify output location.'
 option '-u', '--uglify [uglify]', 'Minify with UglifyJS. Options: "mangle,squeeze"'
@@ -40,6 +43,8 @@ task 'build', (options) ->
 	"// @supportURL  #{pkg.bugs.url}\n" +
 	"// @updateURL   #{pkg.custom.update_url_base}#{output_meta}\n" +
 	"// @downloadURL #{pkg.custom.update_url_base}#{output}\n" +
+	"// @icon        data:image/png;base64,#{(fs.readFileSync ICON48).toString 'base64'}\n" +
+	"// @icon64      data:image/png;base64,#{(fs.readFileSync ICON64).toString 'base64'}\n" +
 	(("// @grant       #{a}\n" for a in pkg.custom.gm_permissions).join "") +
 	"// @run-at      document-start\n" +
 	"// ==/UserScript=="
