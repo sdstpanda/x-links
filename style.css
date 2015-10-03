@@ -243,7 +243,7 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	text-transform: lowercase;
 }
 
-.hl-exsauce-hover {
+.hl-exsauce-hover.post.reply {
 	opacity: 0.93;
 	display: block !important;
 	font-size: inherit !important;
@@ -253,8 +253,9 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	margin: 0 !important;
 	border-radius: 0.25em !important;
 	width: auto !important;
+	overflow: visible !important;
 }
-.hl-exsauce-hover.hl-exsauce-hover-hidden {
+.hl-exsauce-hover.hl-exsauce-hover-hidden.post.reply {
 	display: none !important;
 }
 
@@ -302,7 +303,7 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 }
 
 /* Details */
-.hl-details {
+.hl-details.post.reply {
 	opacity: 0.93;
 	display: block !important;
 	font-size: inherit !important;
@@ -316,8 +317,9 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	min-width: 600px !important;
 	box-sizing: border-box !important;
 	-moz-box-sizing: border-box !important;
+	overflow: visible !important;
 }
-.hl-details.hl-details-hidden {
+.hl-details.hl-details-hidden.post.reply {
 	display: none !important;
 }
 
