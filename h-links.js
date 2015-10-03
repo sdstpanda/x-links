@@ -681,6 +681,7 @@
 		})(),
 		Post: (function () {
 			var specific, fns, post_selector, post_body_selector, post_parent_find, get_file_info,
+				get_op_post_files_container_tinyboard,
 				belongs_to, body_links, file_ext, file_name;
 
 			specific = function (obj, def) {
@@ -693,6 +694,13 @@
 			file_name = function (url) {
 				url = url.split("/");
 				return url[url.length - 1];
+			};
+
+			get_op_post_files_container_tinyboard = function (node) {
+				while (true) {
+					if ((node = node.previousSibling) === null) return null;
+					if (node.classList && node.classList.contains("files")) return node;
+				}
 			};
 
 			post_selector = {
@@ -728,21 +736,22 @@
 			};
 			get_file_info = {
 				"4chan": function (post) {
-					var n = $(".file", post),
-						ft, img, a1, url, i;
+					var n, ft, img, a1, url, i;
 
-					if (n === null || !specific(belongs_to, "").call(null, n, post)) return null;
-
-					ft = $(".fileText", n);
-					img = $("img", n);
-					a1 = $("a", n);
-
-					if (ft === null || img === null || a1 === null) return null;
+					if (
+						(n = $(".file", post)) === null ||
+						!specific(belongs_to, "").call(null, n, post) ||
+						(ft = $(".fileText", n)) === null ||
+						(img = $("img", n)) === null ||
+						(a1 = $("a", n)) === null
+					) {
+						return [];
+					}
 
 					url = a1.href;
 					if ((i = url.indexOf("#")) >= 0) url = url.substr(0, i);
 
-					return {
+					return [{
 						image: img,
 						image_link: img.parentNode,
 						text_link: a1,
@@ -754,24 +763,25 @@
 						type: file_ext(url),
 						name: file_name(url),
 						md5: img.getAttribute("data-md5") || null
-					};
+					}];
 				},
 				"foolz": function (post) {
-					var n = $(".thread_image_box", post),
-						ft, img, a1, url, i;
+					var n, ft, img, a1, url, i;
 
-					if (n === null || !specific(belongs_to, "").call(null, n, post)) return null;
-
-					ft = $(".post_file_controls", post);
-					img = $("img", n);
-					a1 = $(".post_file_filename", post);
-
-					if (ft === null || img === null || a1 === null) return null;
+					if (
+						(n = $(".thread_image_box", post)) === null ||
+						!specific(belongs_to, "").call(null, n, post) ||
+						(ft = $(".post_file_controls", post)) === null ||
+						(img = $("img", n)) === null ||
+						(a1 = $(".post_file_filename", post)) === null
+					) {
+						return [];
+					}
 
 					url = a1.href;
 					if ((i = url.indexOf("#")) >= 0) url = url.substr(0, i);
 
-					return {
+					return [{
 						image: img,
 						image_link: img.parentNode,
 						text_link: a1,
@@ -783,38 +793,65 @@
 						type: file_ext(url),
 						name: file_name(url),
 						md5: img.getAttribute("data-md5") || null
-					};
+					}];
 				},
 				"tinyboard": function (post) {
-					var img = $("img", post),
-						ft, a1, n, url, i;
+					var results = [],
+						imgs, infos, img, array, ft, a1, n, url, i, ii, j;
 
-					if (img === null || !specific(belongs_to, "").call(null, img, post) || img.parentNode.tagName !== "A") return null;
+					if (post.classList.contains("op")) {
+						n = get_op_post_files_container_tinyboard(post);
+						if (n === null) return results;
 
-					n = $(".fileinfo", post);
-					if (n === null) return null;
+						imgs = $$("a>img", n);
+						infos = $$(".fileinfo", n);
+						ii = Math.min(imgs.length, infos.length);
+					}
+					else {
+						imgs = $$("a>img", post);
+						array = [];
+						for (i = 0, ii = imgs.length; i < ii; ++i) {
+							img = imgs[i];
+							if (specific(belongs_to, "").call(null, img, post)) {
+								array.push(img);
+							}
+						}
+						imgs = array;
 
-					ft = $(".unimportant", n);
-					a1 = $("a", n);
+						infos = $$(".fileinfo", post);
+						ii = Math.min(imgs.length, infos.length);
+					}
 
-					if (ft === null || a1 === null) return null;
+					for (i = 0; i < ii; ++i) {
+						img = imgs[i];
+						n = infos[i];
 
-					url = img.parentNode.href || a1.href;
-					if ((i = url.indexOf("#")) >= 0) url = url.substr(0, i);
+						if (
+							(ft = $(".unimportant", n)) === null ||
+							(a1 = $("a", n)) === null
+						) {
+							continue;
+						}
 
-					return {
-						image: img,
-						image_link: img.parentNode,
-						text_link: a1,
-						options: ft,
-						options_before: null,
-						options_class: "",
-						options_sep: " ",
-						url: url,
-						type: file_ext(url),
-						name: file_name(url),
-						md5: img.getAttribute("data-md5") || null
-					};
+						url = img.parentNode.href || a1.href;
+						if ((j = url.indexOf("#")) >= 0) url = url.substr(0, j);
+
+						results.push({
+							image: img,
+							image_link: img.parentNode,
+							text_link: a1,
+							options: ft,
+							options_before: null,
+							options_class: "",
+							options_sep: " ",
+							url: url,
+							type: file_ext(url),
+							name: file_name(url),
+							md5: img.getAttribute("data-md5") || null
+						});
+					}
+
+					return results;
 				}
 			};
 			belongs_to = {
@@ -856,7 +893,8 @@
 				get_body_links: function (post) {
 					var selector = specific(body_links, "tinyboard");
 					return selector ? $$(selector, post) : [];
-				}
+				},
+				get_op_post_files_container_tinyboard: get_op_post_files_container_tinyboard
 			};
 
 			return fns;
@@ -3094,7 +3132,8 @@
 			}
 		},
 		parse_posts: function (posts) {
-			var post, i, ii;
+			var check_files_before = (Config.mode === "tinyboard"),
+				post, i, ii;
 
 			Debug.timer("process");
 
@@ -3102,6 +3141,11 @@
 				post = posts[i];
 				Linkifier.parse_post(post);
 				Linkifier.apply_link_events(post, true);
+				if (check_files_before && post.classList.contains("op")) {
+					if ((post = Helper.Post.get_op_post_files_container_tinyboard(post)) !== null) {
+						Linkifier.apply_link_events(post, true);
+					}
+				}
 			}
 
 			Debug.log("Total posts=" + posts.length + "; time=" + Debug.timer("process"));
@@ -3163,39 +3207,42 @@
 			}
 		},
 		setup_post_exsauce: function (post) {
-			var file_info, sauce;
+			var file_infos, file_info, sauce, i, ii;
 
 			// File info
-			file_info = Helper.Post.get_file_info(post);
-			if (file_info === null || file_info.md5 === null) return;
+			file_infos = Helper.Post.get_file_info(post);
+			for (i = 0, ii = file_infos.length; i < ii; ++i) {
+				file_info = file_infos[i];
+				if (file_info.md5 === null) continue;
 
-			// Create if not found
-			sauce = $(".hl-exsauce-link", file_info.options);
-			if (sauce === null && /^\.(png|gif|jpe?g)$/i.test(file_info.type)) {
-				sauce = $.link(file_info.url, {
-					className: "hl-link-events hl-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
-					textContent: Sauce.label()
-				});
-				sauce.setAttribute("data-hl-link-events", "exsauce_fetch");
-				sauce.setAttribute("data-hl-filename", file_info.name);
-				sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
-				if (/^\.jpe?g$/i.test(file_info.type) && Config.mode !== "tinyboard") {
-					if (/Firefox/i.test("" + navigator.userAgent)) {
-						sauce.setAttribute("data-hl-link-events", "exsauce_fetch_similarity");
-						sauce.title = "This will only work on colored images";
+				// Create if not found
+				sauce = $(".hl-exsauce-link", file_info.options);
+				if (sauce === null && /^\.(png|gif|jpe?g)$/i.test(file_info.type)) {
+					sauce = $.link(file_info.url, {
+						className: "hl-link-events hl-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
+						textContent: Sauce.label()
+					});
+					sauce.setAttribute("data-hl-link-events", "exsauce_fetch");
+					sauce.setAttribute("data-hl-filename", file_info.name);
+					sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
+					if (/^\.jpe?g$/i.test(file_info.type) && Config.mode !== "tinyboard") {
+						if (/Firefox/i.test("" + navigator.userAgent)) {
+							sauce.setAttribute("data-hl-link-events", "exsauce_fetch_similarity");
+							sauce.title = "This will only work on colored images";
+						}
+						else {
+							sauce.classList.add("hl-exsauce-link-disabled");
+							sauce.setAttribute("data-hl-link-events", "exsauce_error");
+							sauce.title = (
+								"Reverse Image Search doesn't work for .jpg images because 4chan manipulates them on upload"
+							);
+						}
 					}
-					else {
-						sauce.classList.add("hl-exsauce-link-disabled");
-						sauce.setAttribute("data-hl-link-events", "exsauce_error");
-						sauce.title = (
-							"Reverse Image Search doesn't work for .jpg images because 4chan manipulates them on upload"
-						);
+					if (file_info.options_sep) {
+						$.before2(file_info.options, $.tnode(file_info.options_sep), file_info.options_before);
 					}
+					$.before2(file_info.options, sauce, file_info.options_before);
 				}
-				if (file_info.options_sep) {
-					$.before2(file_info.options, $.tnode(file_info.options_sep), file_info.options_before);
-				}
-				$.before2(file_info.options, sauce, file_info.options_before);
 			}
 		},
 		on_tag_click_to_load: function (event) {
