@@ -2,7 +2,7 @@
 // @name        H-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.1
+// @version     1.0.2
 // @description Userscript for pretty linkification of hentai links on 4chan and friends
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -4481,23 +4481,25 @@
 
 			add_mo([ d.head ], { childList: true }, function (records) {
 				var update = false,
-					nodes, i, j, tag;
+					nodes, node, tag, i, ii, j, jj;
 
 				outer:
-				for (i = 0; i < records.length; ++i) {
+				for (i = 0, ii = records.length; i < ii; ++i) {
 					if ((nodes = records[i].addedNodes)) {
-						for (j = 0; j < nodes.length; ++j) {
-							tag = nodes[j].tagName;
-							if (tag === "STYLE" || tag === "LINK") {
+						for (j = 0, jj = nodes.length; j < jj; ++j) {
+							node = nodes[j];
+							tag = node.tagName;
+							if (tag === "STYLE" || (tag === "LINK" && /\bstylesheet\b/.test(node.rel))) {
 								update = true;
 								break outer;
 							}
 						}
 					}
 					if ((nodes = records[i].removedNodes)) {
-						for (j = 0; j < nodes.length; ++j) {
-							tag = nodes[j].tagName;
-							if (tag === "STYLE" || tag === "LINK") {
+						for (j = 0, jj = nodes.length; j < jj; ++j) {
+							node = nodes[j];
+							tag = node.tagName;
+							if (tag === "STYLE" || (tag === "LINK" && /\bstylesheet\b/.test(node.rel))) {
 								update = true;
 								break outer;
 							}
@@ -4563,16 +4565,14 @@
 
 			body.removeChild(n);
 
-			if (color[3] === 0) {
-				return null;
-			}
+			if (color[3] === 0) return null;
 
 			return (color[0] + color[1] + color[2] < 384) ? "dark" : "light";
 		},
 		get_computed_style: function (node) {
 			try {
-				// https://code.google.com/p/chromium/issues/detail?id=538650
-				return window.getComputedStyle(node);
+				// Don't use window.getComputedStyle: https://code.google.com/p/chromium/issues/detail?id=538650
+				return document.defaultView.getComputedStyle(node);
 			}
 			catch (e) {
 				return node.style;
@@ -4582,7 +4582,7 @@
 			color = color || "";
 			if (color !== "transparent") {
 				var m;
-				if ((m = /^rgba?\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*(,\s*([0-9\.]+)\s*)?\)$/.exec(color))) {
+				if ((m = /^rgba?\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*(?:,\s*([0-9\.]+)\s*)?\)$/.exec(color))) {
 					return [
 						parseInt(m[1], 10),
 						parseInt(m[2], 10),
@@ -5527,7 +5527,7 @@
 		}
 	};
 	Main = {
-		version: "1.0.1",
+		version: "1.0.2",
 		queue: [],
 		font_inserted: false,
 		hovering: (function () {

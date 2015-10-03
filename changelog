@@ -1,5 +1,10 @@
 ﻿master
 
+1.0.2
+- dnsev-h
+  + Fixed a bug causing intense scrolling lag when using 4chan-x
+  + Restored theme detection on Chrome
+
 1.0.1
 - dnsev-h
   + Replace "Smart Links" with a new option that does the same thing, plus allows users to force e*hentai sites to use eh or ex
