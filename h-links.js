@@ -4540,16 +4540,14 @@
 
 			body.removeChild(n);
 
-			if (color[3] === 0) {
-				return null;
-			}
+			if (color[3] === 0) return null;
 
 			return (color[0] + color[1] + color[2] < 384) ? "dark" : "light";
 		},
 		get_computed_style: function (node) {
 			try {
-				// https://code.google.com/p/chromium/issues/detail?id=538650
-				return window.getComputedStyle(node);
+				// Don't use window.getComputedStyle: https://code.google.com/p/chromium/issues/detail?id=538650
+				return document.defaultView.getComputedStyle(node);
 			}
 			catch (e) {
 				return node.style;
@@ -4559,7 +4557,7 @@
 			color = color || "";
 			if (color !== "transparent") {
 				var m;
-				if ((m = /^rgba?\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*(,\s*([0-9\.]+)\s*)?\)$/.exec(color))) {
+				if ((m = /^rgba?\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*(?:,\s*([0-9\.]+)\s*)?\)$/.exec(color))) {
 					return [
 						parseInt(m[1], 10),
 						parseInt(m[2], 10),
