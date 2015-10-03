@@ -84,7 +84,11 @@
 				[ "smart", "Smart", "All links lead to " + domains.gehentai + " unless they have fjording tags." ],
 				[ domains.ehentai, domains.gehentai ],
 				[ domains.exhentai, domains.exhentai ]
-			] ]
+			] ],
+			'Details Hover Position':      ['select', -0.25, 'Change the horizontal offset of the gallery details from the cursor.', [
+				[ -0.25, "Default" ], // [ value, label_text, description ]
+				[ 0.0, "ExLinks", "Use the original ExLinks style positioning" ]
+			], function (v) { return parseFloat(v) || 0.0; } ]
 		},
 		actions: {
 			'Show by Default':             ['checkbox', false, 'Show gallery actions by default.'],
@@ -1013,10 +1017,10 @@
 					win_height = (de.clientHeight || w.innerHeight || 0),
 					rect = details.getBoundingClientRect(),
 					link_rect = this.getBoundingClientRect(),
-					is_low = (link_rect.y + link_rect.height / 2 >= win_height / 2), // (y >= win_height / 2)
+					is_low = (link_rect.top + link_rect.height / 2 >= win_height / 2), // (y >= win_height / 2)
 					offset = 20;
 
-				x -= rect.width * 0.25;
+				x += rect.width * (conf['Details Hover Position'] || 0);
 				x = Math.max(1, Math.min(win_width - rect.width - 1, x));
 				y += is_low ? -(rect.height + offset) : offset;
 
@@ -3561,20 +3565,29 @@
 			d.documentElement.classList.remove("hl-settings-overlaying");
 		},
 		on_change: function () {
-			var option = this,
-				type = option.getAttribute("type"),
-				name = option.getAttribute("data-hl-setting-name");
+			var node = this,
+				type = node.getAttribute("type"),
+				name = node.getAttribute("data-hl-setting-name"),
+				opt, v;
 
 			if (!(name in Options.conf)) return;
 
-			if (option.tagName === "SELECT") {
-				Options.conf[name] = option.value;
+			if (node.tagName === "SELECT") {
+				v = node.value;
+				if (
+					(opt = options[node.getAttribute("data-hl-setting-type")]) !== undefined &&
+					(opt = opt[name]) !== undefined &&
+					opt.length >= 5
+				) {
+					v = opt[4].call(this, v);
+				}
+				Options.conf[name] = v;
 			}
 			else if (type === "checkbox") {
-				Options.conf[name] = (option.checked ? true : false);
+				Options.conf[name] = (node.checked ? true : false);
 			}
-			else if (type === "text" || option.tagName === "TEXTAREA") {
-				Options.conf[name] = option.value;
+			else if (type === "text" || node.tagName === "TEXTAREA") {
+				Options.conf[name] = node.value;
 			}
 		},
 		on_data_clear: function (event) {
@@ -3607,11 +3620,11 @@
 			Theme.apply(overlay);
 
 			// Options
-			Options.gen($(".hl-settings-group-general", overlay), theme, options.general);
-			Options.gen($(".hl-settings-group-actions", overlay), theme, options.actions);
-			Options.gen($(".hl-settings-group-sauce", overlay), theme, options.sauce);
-			Options.gen($(".hl-settings-group-filter", overlay), theme, options.filter);
-			Options.gen($(".hl-settings-group-debug", overlay), theme, options.debug, {
+			Options.gen($(".hl-settings-group-general", overlay), theme, "general");
+			Options.gen($(".hl-settings-group-actions", overlay), theme, "actions");
+			Options.gen($(".hl-settings-group-sauce", overlay), theme, "sauce");
+			Options.gen($(".hl-settings-group-filter", overlay), theme, "filter");
+			Options.gen($(".hl-settings-group-debug", overlay), theme, "debug", {
 				"Clear Stored Data": [ "button", false, "Clear all stored data <em>except</em> for settings", "Clear", Options.on_data_clear ],
 			});
 
@@ -3632,12 +3645,14 @@
 				$.scroll_focus(scroll_node);
 			}
 		},
-		gen: function (container, theme) {
+		gen: function (container, theme, option_type) {
 			var entry, table, row, cell, label, input,
-				values, name, desc, type, value, obj, key, i, ii, j, jj, n, v;
+				args, values, name, desc, type, value, obj, key, i, ii, j, jj, n, v;
 
-			for (i = 2, ii = arguments.length; i < ii; ++i) {
-				obj = arguments[i];
+			args = Array.prototype.slice.call(arguments, 2);
+			args[0] = options[option_type];
+			for (i = 0, ii = args.length; i < ii; ++i) {
+				obj = args[i];
 				for (key in obj) {
 					name = "hl-settings-" + key;
 					desc = obj[key][2];
@@ -3660,7 +3675,6 @@
 							id: name,
 							checked: value
 						}));
-						input.setAttribute("data-hl-setting-name", key);
 						$.on(input, "change", Options.on_change);
 					}
 					else if (type === "select") {
@@ -3668,7 +3682,6 @@
 						$.add(cell, input = $.create("select", {
 							className: "hl-settings-entry-input" + theme
 						}));
-						input.setAttribute("data-hl-setting-name", key);
 						$.on(input, "change", Options.on_change);
 
 						values = obj[key][3];
@@ -3690,7 +3703,6 @@
 							id: name,
 							value: value
 						}));
-						input.setAttribute("data-hl-setting-name", key);
 						$.on(input, "change", Options.on_change);
 					}
 					else if (type === "textarea") {
@@ -3703,7 +3715,6 @@
 							id: name,
 							value: value
 						}));
-						input.setAttribute("data-hl-setting-name", key);
 						$.on(input, "change", Options.on_change);
 					}
 					else if (type === "button") {
@@ -3712,9 +3723,10 @@
 							className: "hl-settings-entry-input" + theme,
 							textContent: (obj[key][3] || '')
 						}));
-						input.setAttribute("data-hl-setting-name", key);
 						$.on(input, "click", obj[key][4] || Options.on_change);
 					}
+					input.setAttribute("data-hl-setting-name", key);
+					input.setAttribute("data-hl-setting-type", option_type);
 				}
 			}
 		},
