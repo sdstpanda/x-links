@@ -1,5 +1,13 @@
 ﻿master
 
+1.0.1
+- dnsev-h
+  + Replace "Smart Links" with a new option that does the same thing, plus allows users to force e*hentai sites to use eh or ex
+  + Fixed hovering elements not hiding when using OneeChan
+  + Removed links receiving double event listeners
+  + Fixed hovering details being positioned wrong in Chrome
+  + Added an option to change the horizontal hovering offset (to mimic ExLinks behavior)
+
 1.0
 - dnsev-h
   + Major rewrite of ExLinks with a name change to H-links
