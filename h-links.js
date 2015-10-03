@@ -77,9 +77,14 @@
 			'Automatic Processing':        ['checkbox', true,  'Get data and format links automatically.'],
 			'Gallery Details':             ['checkbox', true,  'Show gallery details for link on hover.'],
 			'Gallery Actions':             ['checkbox', true,  'Generate gallery actions for links.'],
-			'Smart Links':                 ['checkbox', false, 'All links lead to E-Hentai unless they have fjording tags.'],
 			'ExSauce':                     ['checkbox', true,  'Add ExSauce reverse image search to posts. Disabled in Opera.'],
-			'Extended Info':               ['checkbox', true,  'Fetch additional gallery info, such as tag namespaces']
+			'Extended Info':               ['checkbox', true,  'Fetch additional gallery info, such as tag namespaces.'],
+			'Rewrite Links':               ['select', 'none', 'Rewrite all E*Hentai links to use a specific site.', [
+				[ "none", "Disabled" ], // [ value, label_text, description ]
+				[ "smart", "Smart", "All links lead to " + domains.gehentai + " unless they have fjording tags." ],
+				[ domains.ehentai, domains.gehentai ],
+				[ domains.exhentai, domains.exhentai ]
+			] ]
 		},
 		actions: {
 			'Show by Default':             ['checkbox', false, 'Show gallery actions by default.'],
@@ -96,7 +101,7 @@
 			'Search Expunged':             ['checkbox', false, 'Search expunged galleries as well.'],
 			'Custom Label Text':           ['textbox', '', 'Use a custom label instead of the site name (e-hentai/exhentai).'],
 			'Lookup Domain':               ['select', domains.exhentai, 'The site to use for the reverse image search.', [
-				[ domains.gehentai, domains.ehentai ], // [ label_text, value ]
+				[ domains.ehentai, domains.gehentai ], // [ value, label_text, description ]
 				[ domains.exhentai, domains.exhentai ]
 			] ]
 		},
@@ -1085,7 +1090,7 @@
 
 			domain = Helper.get_domain(link.href);
 
-			if (conf['Smart Links'] === true) {
+			if (conf['Rewrite Links'] === "smart") {
 				if (fjord) {
 					if (domain === domains.ehentai) {
 						domain = domains.exhentai;
@@ -2929,14 +2934,31 @@
 			});
 		},
 		preprocess_link: function (node, auto_load) {
-			var info = Helper.get_url_info(node.href),
-				button;
+			var url = node.href,
+				info = Helper.get_url_info(url),
+				rewrite, button;
 
 			if (info === null) {
 				node.classList.remove('hl-linkified-gallery');
 				node.removeAttribute("data-hl-linkified-status");
 			}
 			else {
+				if (info.site === "ehentai") {
+					rewrite = conf['Rewrite Links'];
+					if (rewrite === domains.exhentai) {
+						if (info.domain !== rewrite) {
+							node.href = url.replace(regex.site_gehentai, domains.exhentai);
+							info.domain = rewrite;
+						}
+					}
+					else if (rewrite === domains.ehentai) {
+						if (info.domain !== rewrite) {
+							node.href = url.replace(regex.site_exhentai, domains.gehentai);
+							info.domain = rewrite;
+						}
+					}
+				}
+
 				node.classList.add("hl-link-events");
 				node.classList.add("hl-linkified");
 				node.classList.add("hl-linkified-gallery");
@@ -2946,7 +2968,7 @@
 				node.setAttribute("data-hl-info", JSON.stringify(info));
 				node.setAttribute("data-hl-id", info.site + "_" + info.gid);
 
-				button = UI.button(node.href, info.domain);
+				button = UI.button(url, info.domain);
 				$.before(node, button);
 
 				if (auto_load) {
@@ -3615,7 +3637,7 @@
 		},
 		gen: function (container, theme) {
 			var entry, table, row, cell, label, input,
-				values, name, desc, type, value, obj, key, i, ii, j, jj, v;
+				values, name, desc, type, value, obj, key, i, ii, j, jj, n, v;
 
 			for (i = 2, ii = arguments.length; i < ii; ++i) {
 				obj = arguments[i];
@@ -3655,11 +3677,12 @@
 						values = obj[key][3];
 						for (j = 0, jj = values.length; j < jj; ++j) {
 							v = values[j];
-							$.add(input, $.create("option", {
-								textContent: v[0],
-								value: v[1],
-								selected: (v[1] === value)
+							$.add(input, n = $.create("option", {
+								textContent: v[1],
+								value: v[0],
+								selected: (v[0] === value)
 							}));
+							if (v.length > 2) n.title = v[2];
 						}
 					}
 					else if (type === "textbox") {
