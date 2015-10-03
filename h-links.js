@@ -3156,9 +3156,6 @@
 				}
 				post.classList.add("hl-post-linkified");
 			}
-
-			// Events
-			Linkifier.apply_link_events(post, true);
 		},
 		setup_post_exsauce: function (post) {
 			var file_info, sauce;
