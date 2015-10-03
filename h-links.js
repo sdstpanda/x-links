@@ -4456,23 +4456,25 @@
 
 			add_mo([ d.head ], { childList: true }, function (records) {
 				var update = false,
-					nodes, i, j, tag;
+					nodes, node, tag, i, ii, j, jj;
 
 				outer:
-				for (i = 0; i < records.length; ++i) {
+				for (i = 0, ii = records.length; i < ii; ++i) {
 					if ((nodes = records[i].addedNodes)) {
-						for (j = 0; j < nodes.length; ++j) {
-							tag = nodes[j].tagName;
-							if (tag === "STYLE" || tag === "LINK") {
+						for (j = 0, jj = nodes.length; j < jj; ++j) {
+							node = nodes[j];
+							tag = node.tagName;
+							if (tag === "STYLE" || (tag === "LINK" && /\bstylesheet\b/.test(node.rel))) {
 								update = true;
 								break outer;
 							}
 						}
 					}
 					if ((nodes = records[i].removedNodes)) {
-						for (j = 0; j < nodes.length; ++j) {
-							tag = nodes[j].tagName;
-							if (tag === "STYLE" || tag === "LINK") {
+						for (j = 0, jj = nodes.length; j < jj; ++j) {
+							node = nodes[j];
+							tag = node.tagName;
+							if (tag === "STYLE" || (tag === "LINK" && /\bstylesheet\b/.test(node.rel))) {
 								update = true;
 								break outer;
 							}
