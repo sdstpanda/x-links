@@ -76,7 +76,7 @@ task 'build', (options) ->
 	input = input.replace /\#TITLE\#/g, pkg.name
 	input = input.replace /\#TITLE_2CHAR\#/g, pkg.custom.name_short
 	input = input.replace /\#PREFIX\#/g, pkg.custom.settings_prefix
-	input = input.replace /\/\*\s*jshint.*\*\//, ''
+	input = input.replace /\/\*\s*(jshint|globals)\s+.*\*\/(?:\r?\n)?/g, ''
 
 	input = header + "\n" + input
 

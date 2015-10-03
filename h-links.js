@@ -1,4 +1,5 @@
 /* jshint eqnull:true, noarg:true, noempty:true, eqeqeq:true, bitwise:false, strict:true, undef:true, curly:false, browser:true, devel:true, newcap:false, maxerr:50 */
+/* globals GM_xmlhttpRequest, GM_setValue, GM_getValue, GM_deleteValue, GM_listValues */
 (function () {
 	"use strict";
 
