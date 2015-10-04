@@ -266,17 +266,6 @@
 		tnode: function (text) {
 			return d.createTextNode(text);
 		},
-		create: function (tag, properties) {
-			var elem = d.createElement(tag);
-			if (properties !== undefined) {
-				for (var k in properties) {
-					if (Object.prototype.hasOwnProperty.call(properties, k)) {
-						elem[k] = properties[k];
-					}
-				}
-			}
-			return elem;
-		},
 		node: function (tag, class_name, properties) {
 			// Usage: $.tag("div", "className"), $.tag("div", "className", "textContent"), or $.tag("div", "className", { textContent: "textContent" })
 			var elem = d.createElement(tag);
@@ -3744,70 +3733,58 @@
 					type = obj[key][0];
 					value = Options.conf[key];
 
-					$.add(container, entry = $.create("div", { className: "hl-settings-entry" + theme }));
-					$.add(entry, table = $.create("div", { className: "hl-settings-entry-table" }));
-					$.add(table, row = $.create("div", { className: "hl-settings-entry-row" }));
+					$.add(container, entry = $.node("div", "hl-settings-entry" + theme));
+					$.add(entry, table = $.node("div", "hl-settings-entry-table"));
+					$.add(table, row = $.node("div", "hl-settings-entry-row"));
 
-					$.add(row, cell = $.create("span", { className: "hl-settings-entry-cell" }));
-					$.add(cell, label = $.create("label", { className: "hl-settings-entry-label", htmlFor: name }));
+					$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+					$.add(cell, label = $.node("label", "hl-settings-entry-label"));
+					label.htmlFor = name;
 					label.innerHTML = "<strong>" + key + ":</strong>" + (desc.length > 0 ? " " + desc : "");
 
 					if (type === "checkbox") {
-						$.add(row, cell = $.create("span", { className: "hl-settings-entry-cell" }));
-						$.add(cell, input = $.create("input", {
-							className: "hl-settings-entry-input" + theme,
-							type: "checkbox",
-							id: name,
-							checked: value
-						}));
+						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+						$.add(cell, input = $.node("input", "hl-settings-entry-input" + theme));
+						input.type = "checkbox";
+						input.id = name;
+						input.checked = value;
 						$.on(input, "change", Options.on_change);
 					}
 					else if (type === "select") {
-						$.add(row, cell = $.create("span", { className: "hl-settings-entry-cell" }));
-						$.add(cell, input = $.create("select", {
-							className: "hl-settings-entry-input" + theme
-						}));
+						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+						$.add(cell, input = $.node("select", "hl-settings-entry-input" + theme));
 						$.on(input, "change", Options.on_change);
 
 						values = obj[key][3];
 						for (j = 0, jj = values.length; j < jj; ++j) {
 							v = values[j];
-							$.add(input, n = $.create("option", {
-								textContent: v[1],
-								value: v[0],
-								selected: (v[0] === value)
-							}));
+							$.add(input, n = $.node("option", undefined, v[1]));
+							n.value = v[0];
+							n.selected = (v[0] === value);
 							if (v.length > 2) n.title = v[2];
 						}
 					}
 					else if (type === "textbox") {
-						$.add(row, cell = $.create("span", { className: "hl-settings-entry-cell" }));
-						$.add(cell, input = $.create("input", {
-							className: "hl-settings-entry-input" + theme,
-							type: "text",
-							id: name,
-							value: value
-						}));
+						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+						$.add(cell, input = $.node("input", "hl-settings-entry-input" + theme));
+						input.type = "text";
+						input.id = name;
+						input.value = value;
 						$.on(input, "change", Options.on_change);
 					}
 					else if (type === "textarea") {
-						$.add(table, row = $.create("div", { className: "hl-settings-entry-row" }));
-						$.add(row, cell = $.create("span", { className: "hl-settings-entry-cell" }));
-						$.add(cell, input = $.create("textarea", {
-							className: "hl-settings-entry-input" + theme,
-							wrap: "off",
-							spellcheck: false,
-							id: name,
-							value: value
-						}));
+						$.add(table, row = $.node("div", "hl-settings-entry-row"));
+						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+						$.add(cell, input = $.node("textarea", "hl-settings-entry-input" + theme));
+						input.wrap = "off";
+						input.spellcheck = false;
+						input.id = name;
+						input.value = value;
 						$.on(input, "change", Options.on_change);
 					}
 					else if (type === "button") {
-						$.add(row, cell = $.create("span", { className: "hl-settings-entry-cell" }));
-						$.add(cell, input = $.create("button", {
-							className: "hl-settings-entry-input" + theme,
-							textContent: (obj[key][3] || '')
-						}));
+						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+						$.add(cell, input = $.node("button", "hl-settings-entry-input" + theme, (obj[key][3] || "")));
 						$.on(input, "click", obj[key][4] || Options.on_change);
 					}
 					input.setAttribute("data-hl-setting-name", key);
@@ -4425,8 +4402,8 @@
 					$.add(frag, $.tnode(t));
 				}
 				else {
-					n1 = $.create("span", { className: "hl-filter-text" });
-					n2 = $.create("span", { className: "hl-filter-text-inner", textContent: t });
+					n1 = $.node("span", "hl-filter-text");
+					n2 = $.node("span", "hl-filter-text-inner", t);
 					$.add(n1, n2);
 					$.add(frag, n1);
 					Filter.apply_styles(n1, segment.data);
@@ -4478,8 +4455,8 @@
 
 			// Apply styles
 			if (color !== null || background !== null || underline !== null) {
-				n1 = $.create("span", { className: "hl-filter-text" });
-				n2 = $.create("span", { className: "hl-filter-text-inner" });
+				n1 = $.node("span", "hl-filter-text");
+				n2 = $.node("span", "hl-filter-text-inner");
 				while ((n = node.firstChild) !== null) {
 					$.add(n2, n);
 				}
@@ -4744,21 +4721,13 @@
 				EasyList.overlay = overlay;
 				n1 = container;
 
-				$.add(n1, n2 = $.create("div", {
-					className: "hl-easylist-title"
-				}));
+				$.add(n1, n2 = $.node("div", "hl-easylist-title"));
 
-				$.add(n2, $.create("span", {
-					className: "hl-easylist-title-text",
-					textContent: "#TITLE# Easy List"
-				}));
-				$.add(n2, $.create("span", {
-					className: "hl-easylist-subtitle",
-					textContent: "More porn, less hassle"
-				}));
+				$.add(n2, $.node("span", "hl-easylist-title-text", "#TITLE# Easy List"));
+				$.add(n2, $.node("span", "hl-easylist-subtitle", "More porn, less hassle"));
 
 				// Close
-				$.add(n1, n2 = $.create("div", { className: "hl-easylist-control-links" }));
+				$.add(n1, n2 = $.node("div", "hl-easylist-control-links"));
 
 				$.add(n2, n3 = $.link(undefined, "hl-easylist-control-link hl-easylist-control-link-options", "options"));
 				$.on(n3, "click", EasyList.on_options_click);
@@ -4766,21 +4735,21 @@
 				$.add(n2, n3 = $.link(undefined, "hl-easylist-control-link", "close"));
 				$.on(n3, "click", EasyList.on_close_click);
 
-				$.add(n1, $.create("div", { className: "hl-easylist-title-line" }));
+				$.add(n1, $.node("div", "hl-easylist-title-line"));
 
 				// Options
 				EasyList.options_container = EasyList.create_options(theme);
 				$.add(n1, EasyList.options_container);
 
 				// Empty notification
-				$.add(n1, n2 = $.create("div", {
-					className: "hl-easylist-empty-notification hl-easylist-empty-notification-visible",
-					textContent: "No galleries found"
-				}));
+				$.add(n1, n2 = $.node("div",
+					"hl-easylist-empty-notification hl-easylist-empty-notification-visible",
+					"No galleries found"
+				));
 				EasyList.empty_notification = n2;
 
 				// Items list
-				$.add(n1, n2 = $.create("div", { className: "hl-easylist-items" + theme }));
+				$.add(n1, n2 = $.node("div", "hl-easylist-items" + theme));
 				EasyList.items_container = n2;
 			});
 
@@ -4788,127 +4757,104 @@
 			EasyList.update_display_mode(true);
 		},
 		create_options: function (theme) {
-			var n1, n2, n3, n4, n5, n6, v;
+			var fn, n1, n2, n3, n4, n5;
 
-			n1 = $.create("div", { className: "hl-easylist-options" });
-			$.add(n1, n2 = $.create("div", { className: "hl-easylist-option-table" }));
-
-
-			$.add(n2, n3 = $.create("div", { className: "hl-easylist-option-row" }));
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
-			$.add(n4, $.create("span", { className: "hl-easylist-option-title", textContent: "Sort by:" }));
-
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
-
-			v = "thread";
-			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
-			$.add(n5, n6 = $.create("input", {
-				className: "hl-easylist-option-input",
-				name: "hl-easylist-options-sort-by",
-				type: "radio",
-				checked: (EasyList.settings.sort_by === v),
-				value: v
-			}));
-			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Appearance in thread" }));
-			$.on(n6, "change", EasyList.on_option_change.sort_by);
-
-			v = "upload";
-			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
-			$.add(n5, n6 = $.create("input", {
-				className: "hl-easylist-option-input",
-				name: "hl-easylist-options-sort-by",
-				type: "radio",
-				checked: (EasyList.settings.sort_by === v),
-				value: v
-			}));
-			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Upload date" }));
-			$.on(n6, "change", EasyList.on_option_change.sort_by);
-
-			v = "rating";
-			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
-			$.add(n5, n6 = $.create("input", {
-				className: "hl-easylist-option-input",
-				name: "hl-easylist-options-sort-by",
-				type: "radio",
-				checked: (EasyList.settings.sort_by === v),
-				value: v
-			}));
-			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Rating" }));
-			$.on(n6, "change", EasyList.on_option_change.sort_by);
+			n1 = $.node("div", "hl-easylist-options");
+			$.add(n1, n2 = $.node("div", "hl-easylist-option-table"));
 
 
-			$.add(n2, n3 = $.create("div", { className: "hl-easylist-option-row" }));
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
-			$.add(n4, $.create("span", { className: "hl-easylist-option-title", textContent: "Group by:" }));
+			$.add(n2, n3 = $.node("div", "hl-easylist-option-row"));
+			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
+			$.add(n4, $.node("span", "hl-easylist-option-title", "Sort by:"));
 
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
+			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
 
-			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
-			$.add(n5, n6 = $.create("input", { className: "hl-easylist-option-input", type: "checkbox", checked: EasyList.settings.group_by_filters }));
-			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Filters" }));
-			$.on(n6, "change", EasyList.on_option_change.group_by_filters);
+			fn = function (value, text) {
+				var n1 = $.node("label", "hl-easylist-option-label"),
+					n2 = $.node("input", "hl-easylist-option-input");
 
-			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
-			$.add(n5, n6 = $.create("input", { className: "hl-easylist-option-input", type: "checkbox", checked: EasyList.settings.group_by_category }));
-			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Category" }));
-			$.on(n6, "change", EasyList.on_option_change.group_by_category);
+				n2.name = "hl-easylist-options-sort-by";
+				n2.type = "radio";
+				n2.checked = (EasyList.settings.sort_by === value);
+				n2.value = value;
 
+				$.add(n1, n2);
+				$.add(n1, $.node("span", "hl-easylist-option-button" + theme, text));
 
-			$.add(n2, n3 = $.create("div", { className: "hl-easylist-option-row" }));
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
-			$.add(n4, $.create("span", { className: "hl-easylist-option-title", textContent: "Display mode:" }));
+				$.on(n2, "change", EasyList.on_option_change.sort_by);
 
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
+				return n1;
+			};
+			$.add(n4, fn("thread", "Appearance in thread"));
+			$.add(n4, fn("upload", "Upload date"));
+			$.add(n4, fn("rating", "Rating"));
 
-			v = 0;
-			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
-			$.add(n5, n6 = $.create("input", {
-				className: "hl-easylist-option-input",
-				name: "hl-easylist-options-display",
-				type: "radio",
-				checked: (EasyList.settings.display_mode === v),
-				value: "" + v
-			}));
-			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Full" }));
-			$.on(n6, "change", EasyList.on_option_change.display_mode);
+			$.add(n2, n3 = $.node("div", "hl-easylist-option-row"));
+			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
+			$.add(n4, $.node("span", "hl-easylist-option-title", "Group by:"));
 
-			v = 1;
-			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
-			$.add(n5, n6 = $.create("input", {
-				className: "hl-easylist-option-input",
-				name: "hl-easylist-options-display",
-				type: "radio",
-				checked: (EasyList.settings.display_mode === v),
-				value: "" + v
-			}));
-			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Compact" }));
-			$.on(n6, "change", EasyList.on_option_change.display_mode);
+			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
 
-			v = 2;
-			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
-			$.add(n5, n6 = $.create("input", {
-				className: "hl-easylist-option-input",
-				name: "hl-easylist-options-display",
-				type: "radio",
-				checked: (EasyList.settings.display_mode === v),
-				value: "" + v
-			}));
-			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Minimal" }));
-			$.on(n6, "change", EasyList.on_option_change.display_mode);
+			fn = function (checked, text) {
+				var n1 = $.node("label", "hl-easylist-option-label"),
+					n2 = $.node("input", "hl-easylist-option-input");
+
+				n2.type = "checkbox";
+				n2.checked = checked;
+
+				$.add(n1, n2);
+				$.add(n2, $.node("span", "hl-easylist-option-button" + theme, text));
+
+				$.on(n2, "change", EasyList.on_option_change.group_by_filters);
+
+				return n1;
+			};
+			$.add(n4, fn(EasyList.settings.group_by_filters, "Filters"));
+			$.add(n4, fn(EasyList.settings.group_by_category, "Category"));
 
 
+			$.add(n2, n3 = $.node("div", "hl-easylist-option-row"));
+			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
+			$.add(n4, $.node("span", "hl-easylist-option-title", "Display mode:"));
 
-			$.add(n2, n3 = $.create("div", { className: "hl-easylist-option-row" }));
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
-			$.add(n4, $.create("span", { className: "hl-easylist-option-title", textContent: "Custom filters:" }));
+			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
 
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
-			$.add(n4, n6 = $.create("textarea", { className: "hl-easylist-option-textarea" + theme, value: EasyList.settings.custom_filters, wrap: "off", spellcheck: false, autocomplete: "off" }));
-			$.on(n6, "change", EasyList.on_option_change.custom_filters);
-			$.on(n6, "input", EasyList.on_option_change.custom_filters_input);
+			fn = function (value, text) {
+				var n1 = $.node("label", "hl-easylist-option-label"),
+					n2 = $.node("input", "hl-easylist-option-input");
+
+				n2.name = "hl-easylist-options-display";
+				n2.type = "radio";
+				n2.checked = (EasyList.settings.display_mode === value);
+				n2.value = "" + value;
+
+				$.add(n1, n2);
+				$.add(n1, $.node("span", "hl-easylist-option-button" + theme, text));
+
+				$.on(n2, "change", EasyList.on_option_change.display_mode);
+
+				return n1;
+			};
+			$.add(n4, fn(0, "Full"));
+			$.add(n4, fn(1, "Compact"));
+			$.add(n4, fn(2, "Minimal"));
 
 
-			$.add(n1, $.create("div", { className: "hl-easylist-title-line" }));
+			$.add(n2, n3 = $.node("div", "hl-easylist-option-row"));
+			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
+			$.add(n4, $.node("span", "hl-easylist-option-title", "Custom filters:"));
+
+			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
+
+			$.add(n4, n5 = $.node("textarea", "hl-easylist-option-textarea" + theme));
+			n5.value = EasyList.settings.custom_filters;
+			n5.wrap = "off";
+			n5.spellcheck = false;
+			$.on(n5, "change", EasyList.on_option_change.custom_filters);
+			$.on(n5, "input", EasyList.on_option_change.custom_filters_input);
+
+
+			$.add(n1, $.node("div", "hl-easylist-title-line"));
 
 			return n1;
 		},
@@ -4958,7 +4904,7 @@
 			var url = Helper.Site.create_gallery_url(data, domain),
 				hl_res, n1, n2, n3, n4, n5, n6, n7, i;
 
-			n1 = $.create("div", { className: "hl-easylist-item" + theme });
+			n1 = $.node("div", "hl-easylist-item" + theme);
 			n1.setAttribute("data-hl-index", index);
 			n1.setAttribute("data-hl-gid", data.gid);
 			n1.setAttribute("data-hl-token", data.token);
@@ -4967,45 +4913,35 @@
 			n1.setAttribute("data-hl-category", data.category.toLowerCase());
 			n1.setAttribute("data-hl-domain", domain);
 
-			$.add(n1, n2 = $.create("div", { className: "hl-easylist-item-table-container" + theme }));
-			$.add(n2, n3 = $.create("div", { className: "hl-easylist-item-table" + theme }));
+			$.add(n1, n2 = $.node("div", "hl-easylist-item-table-container" + theme));
+			$.add(n2, n3 = $.node("div", "hl-easylist-item-table" + theme));
 			n2 = n3;
-			$.add(n2, n3 = $.create("div", { className: "hl-easylist-item-row" + theme }));
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-item-cell hl-easylist-item-cell-image" + theme }));
+			$.add(n2, n3 = $.node("div", "hl-easylist-item-row" + theme));
+			$.add(n3, n4 = $.node("div", "hl-easylist-item-cell hl-easylist-item-cell-image" + theme));
 
 			// Image
 			$.add(n4, n5 = $.link(url, "hl-easylist-item-image-container" + theme));
 
-			$.add(n5, n6 = $.create("div", {
-				className: "hl-easylist-item-image-outer" + theme
-			}));
+			$.add(n5, n6 = $.node("div", "hl-easylist-item-image-outer" + theme));
 
 			if (data.thumb) {
-				$.add(n6, n7 = $.create("img", {
-					className: "hl-easylist-item-image" + theme,
-					src: data.thumb,
-					alt: "",
-					title: ""
-				}));
+				$.add(n6, n7 = $.node("img", "hl-easylist-item-image" + theme));
 				$.on(n7, "error", EasyList.on_thumbnail_error);
+				n7.src = data.thumb;
+				n7.alt = "";
 			}
 			else {
 				n6.style.width = "100%";
 				n6.style.height = "100%";
 			}
 
-			$.add(n6, $.create("span", {
-				className: "hl-easylist-item-image-index" + theme,
-				textContent: "#" + (index + 1)
-			}));
+			$.add(n6, $.node("span", "hl-easylist-item-image-index" + theme, "#" + (index + 1)));
 
 
 			// Main content
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-item-cell" + theme }));
+			$.add(n3, n4 = $.node("div", "hl-easylist-item-cell" + theme));
 
-			$.add(n4, n5 = $.create("div", {
-				className: "hl-easylist-item-title" + theme
-			}));
+			$.add(n4, n5 = $.node("div", "hl-easylist-item-title" + theme));
 
 			$.add(n5, n6 = $.link(url, "hl-easylist-item-title-tag-link" + theme, UI.button_text(domain)));
 			n6.setAttribute("data-hl-original", n6.textContent);
@@ -5014,21 +4950,18 @@
 			n6.setAttribute("data-hl-original", n6.textContent);
 
 			if (data.title_jpn) {
-				$.add(n4, n5 = $.create("span", "hl-easylist-item-title-jp" + theme, Helper.normalize_api_string(data.title_jpn)));
+				$.add(n4, n5 = $.node("span", "hl-easylist-item-title-jp" + theme, Helper.normalize_api_string(data.title_jpn)));
 				n5.setAttribute("data-hl-original", n5.textContent);
 			}
 
-			$.add(n4, n5 = $.create("div", { className: "hl-easylist-item-upload-info" + theme }));
+			$.add(n4, n5 = $.node("div", "hl-easylist-item-upload-info" + theme));
 			$.add(n5, $.tnode("Uploaded by "));
 			$.add(n5, n6 = $.link(Helper.Site.create_uploader_url(data, domain), "hl-easylist-item-uploader" + theme, data.uploader));
 			n6.setAttribute("data-hl-original", n6.textContent);
 			$.add(n5, $.tnode(" on "));
-			$.add(n5, $.create("span", {
-				className: "hl-easylist-item-upload-date" + theme,
-				textContent: UI.date(new Date(data.posted * 1000))
-			}));
+			$.add(n5, $.node("span", "hl-easylist-item-upload-date" + theme, UI.date(new Date(data.posted * 1000))));
 
-			$.add(n4, n5 = $.create("div", { className: "hl-easylist-item-tags" + theme }));
+			$.add(n4, n5 = $.node("div", "hl-easylist-item-tags" + theme));
 
 			n6 = EasyList.create_full_tags(domain, data, theme);
 			$.add(n5, n6[0]);
@@ -5038,56 +4971,34 @@
 
 
 			// Right sidebar
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-item-cell hl-easylist-item-cell-side" + theme }));
+			$.add(n3, n4 = $.node("div", "hl-easylist-item-cell hl-easylist-item-cell-side" + theme));
 
-			$.add(n4, n5 = $.create("div", {
-				className: "hl-easylist-item-info" + theme,
-			}));
+			$.add(n4, n5 = $.node("div", "hl-easylist-item-info" + theme));
 
 			$.add(n5, n6 = $.link(Helper.Site.create_category_url(data, domain),
 				"hl-easylist-item-info-button hl-button hl-button-eh hl-button-" + cat[data.category].short + theme
 			));
-			$.add(n6, $.create("div", {
-				className: "hl-noise",
-				textContent: cat[data.category].name
-			}));
+			$.add(n6, $.node("div", "hl-noise", cat[data.category].name));
 
 
-			$.add(n5, n6 = $.create("div", {
-				className: "hl-easylist-item-info-item hl-easylist-item-info-item-rating" + theme
-			}));
-			$.add(n6, n7 = $.create("div", {
-				className: "hl-stars-container",
-				innerHTML: UI.html.stars(data.rating)
-			}));
+			$.add(n5, n6 = $.node("div", "hl-easylist-item-info-item hl-easylist-item-info-item-rating" + theme));
+			$.add(n6, n7 = $.node("div", "hl-stars-container"));
+			n7.innerHTML = UI.html.stars(data.rating);
 			if (data.rating >= 0) {
-				$.add(n6, $.create("span", {
-					className: "hl-easylist-item-info-light",
-					textContent: "(Avg: " + data.rating.toFixed(2) + ")"
-				}));
+				$.add(n6, $.node("span", "hl-easylist-item-info-light", "(Avg: " + data.rating.toFixed(2) + ")"));
 			}
 			else {
 				n7.classList.add("hl-stars-container-na");
-				$.add(n6, $.create("span", {
-					className: "hl-easylist-item-info-light",
-					textContent: "(n/a)"
-				}));
+				$.add(n6, $.node("span", "hl-easylist-item-info-light", "(n/a)"));
 			}
 
-			$.add(n5, n6 = $.create("div", {
-				className: "hl-easylist-item-info-item hl-easylist-item-info-item-files" + theme
-			}));
+			$.add(n5, n6 = $.node("div", "hl-easylist-item-info-item hl-easylist-item-info-item-files" + theme));
 			i = data.filecount;
-			$.add(n6, $.create("span", {
-				textContent: i + " image" + (i === 1 ? "" : "s")
-			}));
+			$.add(n6, $.node("span", undefined, i + " image" + (i === 1 ? "" : "s")));
 			if (data.filesize >= 0) {
 				$.add(n6, $.node_simple("br"));
 				i = (data.filesize / 1024 / 1024).toFixed(2).replace(/\.?0+$/, "");
-				$.add(n6, $.create("span", {
-					className: "hl-easylist-item-info-light",
-					textContent: "(" + i + " MB)"
-				}));
+				$.add(n6, $.node("span", "hl-easylist-item-info-light", "(" + i + " MB)"));
 			}
 
 			// Highlight
@@ -5097,7 +5008,7 @@
 			return n1;
 		},
 		create_full_tags: function (domain, data, theme) {
-			var n1 = $.create("div", { className: "hl-easylist-item-tag-table" + theme }),
+			var n1 = $.node("div", "hl-easylist-item-tag-table" + theme),
 				domain_type = domain_info[domain].type,
 				full_domain = domain_info[domain].g_domain,
 				namespace_style = "",
@@ -5113,34 +5024,21 @@
 			for (namespace in all_tags) {
 				tags = all_tags[namespace];
 
-				$.add(n1, n2 = $.create("div", {
-					className: "hl-easylist-item-tag-row" + theme
-				}));
+				$.add(n1, n2 = $.node("div", "hl-easylist-item-tag-row" + theme));
 
 				if (namespace !== "") {
-					namespace_style = " hl-tag-namespace-" + namespace.replace(/\ /g, "-");
-					$.add(n2, n3 = $.create("div", {
-						className: "hl-easylist-item-tag-cell hl-easylist-item-tag-cell-label" + theme
-					}));
-					$.add(n3, n4 = $.create("span", {
-						className: "hl-tag-namespace-block hl-tag-namespace-block-no-outline" + namespace_style + theme
-					}));
-					$.add(n4, $.create("span", {
-						textContent: namespace,
-						className: "hl-tag-namespace"
-					}));
+					namespace_style = " hl-tag-namespace-" + namespace.replace(/\ /g, "-") + theme;
+					$.add(n2, n3 = $.node("div", "hl-easylist-item-tag-cell hl-easylist-item-tag-cell-label" + theme));
+					$.add(n3, n4 = $.node("span", "hl-tag-namespace-block hl-tag-namespace-block-no-outline" + namespace_style));
+					$.add(n4, $.node("span", "hl-tag-namespace", namespace));
 					$.add(n3, $.tnode(":"));
 				}
 
-				$.add(n2, n3 = $.create("div", {
-					className: "hl-easylist-item-tag-cell" + theme
-				}));
+				$.add(n2, n3 = $.node("div", "hl-easylist-item-tag-cell" + theme));
 				n2 = n3;
 
 				for (i = 0, ii = tags.length; i < ii; ++i) {
-					$.add(n2, n3 = $.create("span", {
-						className: "hl-tag-block" + namespace_style
-					}));
+					$.add(n2, n3 = $.node("span", "hl-tag-block" + namespace_style));
 					$.add(n3, n4 = $.link(Helper.Site.create_tag_url(tags[i], domain_type, full_domain),
 						"hl-tag hl-tag-color-inherit hl-easylist-item-tag",
 						tags[i]
@@ -5539,10 +5437,10 @@
 			var theme = Theme.get(),
 				container, list, obj, n1, n2, n3, n4, n5, n6, i, ii, j, jj, v;
 
-			n1 = $.create("div", { className: "hl-popup-overlay hl-" + class_ns + "-popup-overlay" + theme });
-			$.add(n1, n2 = $.create("div", { className: "hl-popup-aligner hl-" + class_ns + "-popup-aligner" + theme }));
-			$.add(n2, n3 = $.create("div", { className: "hl-popup-align hl-" + class_ns + "-popup-align" + theme }));
-			$.add(n3, container = $.create("div", { className: "hl-popup-content hl-" + class_ns + "-popup-content hl-hover-shadow post reply post_wrapper hl-fake-post" + theme }));
+			n1 = $.node("div", "hl-popup-overlay hl-" + class_ns + "-popup-overlay" + theme);
+			$.add(n1, n2 = $.node("div", "hl-popup-aligner hl-" + class_ns + "-popup-aligner" + theme));
+			$.add(n2, n3 = $.node("div", "hl-popup-align hl-" + class_ns + "-popup-align" + theme));
+			$.add(n3, container = $.node("div", "hl-popup-content hl-" + class_ns + "-popup-content hl-hover-shadow post reply post_wrapper hl-fake-post" + theme));
 
 			$.on(n1, "mousedown", Popup.on_overlay_event);
 			$.on(container, "click", Popup.on_stop_propagation);
@@ -5552,23 +5450,23 @@
 				setup.call(null, n1, container);
 			}
 			else {
-				$.add(container, n2 = $.create("div", { className: "hl-popup-table" + theme }));
+				$.add(container, n2 = $.node("div", "hl-popup-table" + theme));
 
 				for (i = 0, ii = setup.length; i < ii; ++i) {
 					list = setup[i];
 					if (!Array.isArray(list)) list = [ list ];
 
-					$.add(n2, n3 = $.create("div", { className: "hl-popup-row" + theme }));
+					$.add(n2, n3 = $.node("div", "hl-popup-row" + theme));
 					jj = list.length;
 					if (jj > 1) {
-						$.add(n3, n4 = $.create("div", { className: "hl-popup-cell" + theme }));
-						$.add(n4, n5 = $.create("div", { className: "hl-popup-table" + theme }));
-						$.add(n5, n3 = $.create("div", { className: "hl-popup-row" + theme }));
+						$.add(n3, n4 = $.node("div", "hl-popup-cell" + theme));
+						$.add(n4, n5 = $.node("div", "hl-popup-table" + theme));
+						$.add(n5, n3 = $.node("div", "hl-popup-row" + theme));
 					}
 					for (j = 0; j < jj; ++j) {
 						obj = list[j];
 
-						$.add(n3, n4 = $.create("div", { className: "hl-popup-cell" + theme }));
+						$.add(n3, n4 = $.node("div", "hl-popup-cell" + theme));
 
 						if (obj.small) n4.classList.add("hl-popup-cell-small");
 						if ((v = obj.align) !== undefined && v !== "left") n4.classList.add("hl-popup-cell-" + v);
@@ -5576,10 +5474,10 @@
 						if (obj.body) {
 							n3.classList.add("hl-popup-row-body");
 
-							$.add(n4, n5 = $.create("div", { className: "hl-popup-cell-size" + theme }));
-							$.add(n5, n6 = $.create("div", { className: "hl-popup-cell-size-scroll" + theme }));
+							$.add(n4, n5 = $.node("div", "hl-popup-cell-size" + theme));
+							$.add(n5, n6 = $.node("div", "hl-popup-cell-size-scroll" + theme));
 							if (obj.padding !== false) {
-								$.add(n6, n4 = $.create("div", { className: "hl-popup-cell-size-padding" + theme }));
+								$.add(n6, n4 = $.node("div", "hl-popup-cell-size-padding" + theme));
 							}
 							else {
 								n4 = n6;
@@ -5656,9 +5554,7 @@
 			var container = null;
 			return function (node) {
 				if (container === null) {
-					container = $.create("div", {
-						className: "hl-hovering-elements"
-					});
+					container = $.node("div", "hl-hovering-elements");
 					$.add(d.body, container);
 				}
 				$.add(container, node);
@@ -5751,11 +5647,11 @@
 		insert_custom_fonts: function () {
 			if (Main.font_inserted) return;
 			Main.font_inserted = true;
-			var font = $.create("link", {
-				rel: "stylesheet",
-				type: "text/css",
-				href: "//fonts.googleapis.com/css?family=Source+Sans+Pro:900"
-			});
+
+			var font = $.node_simple("link");
+			font.rel = "stylesheet";
+			font.type = "text/css";
+			font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
 			$.add(d.head, font);
 		},
 		insert_menu_link: (function () {
@@ -5886,14 +5782,10 @@
 					// Mobile
 					n1 = mobile_top ? navlink.previousSibling : navlink.nextSibling;
 					if (n1 === null || !n1.classList || !n1.classList.contains("hl-nav-extras")) {
-						n1 = $.create("div", {
-							className: "mobile hl-nav-extras-mobile"
-						});
+						n1 = $.node("div", "mobile hl-nav-extras-mobile");
 					}
 
-					$.add(n1, n2 = $.create("span", {
-						className: "mobileib button hl-nav-button" + class_name
-					}));
+					$.add(n1, n2 = $.node("span", "mobileib button hl-nav-button" + class_name));
 					$.add(n2, $.link(undefined, "hl-nav-button-inner" + class_name, link_mod(text, false)));
 					if (mobile_top) {
 						$.before(navlink, n1);
@@ -5917,10 +5809,10 @@
 			if (!Config.site()) return;
 			Options.init();
 
-			var updater, style;
-			style = $.create("style", {
-				textContent: "#STYLESHEET#"
-			});
+			var style = $.node_simple("style"),
+				updater;
+
+			style.textContent = "#STYLESHEET#";
 			$.add(d.head, style);
 
 			Theme.prepare();
