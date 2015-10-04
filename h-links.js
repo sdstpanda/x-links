@@ -4793,7 +4793,7 @@
 				n2.checked = checked;
 
 				$.add(n1, n2);
-				$.add(n2, $.node("span", "hl-easylist-option-button" + theme, text));
+				$.add(n1, $.node("span", "hl-easylist-option-button" + theme, text));
 
 				$.on(n2, "change", EasyList.on_option_change.group_by_filters);
 
@@ -5052,6 +5052,7 @@
 
 				$.add(EasyList.items_container, n);
 
+				entry.node = n;
 				EasyList.current.push(entry);
 			}
 		},
@@ -5366,7 +5367,8 @@
 						d = {
 							domain: Helper.get_domain(link.href || "") || domains.exhentai,
 							namespace: id[0],
-							id: id[1]
+							id: id[1],
+							node: null
 						};
 						EasyList.queue.push(d);
 						EasyList.data_map[id_key] = d;
