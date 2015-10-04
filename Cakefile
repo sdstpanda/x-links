@@ -67,7 +67,7 @@ task 'build', (options) ->
 	style = new CleanCSS({}).minify(style).styles
 	input = input.replace /\#DETAILS\#/g, html.details
 	input = input.replace /\#OPTIONS\#/g, html.options
-	input = input.replace /\#VERSION\#/g, pkg.version
+	input = input.replace /\/\*\#VERSION\#\*\//g, (pkg.version.split ".").join ","
 	input = input.replace /\#HOMEPAGE\#/g, pkg.homepage
 	input = input.replace /\#ISSUES\#/g, pkg.bugs.url
 	input = input.replace /\#CHANGELOG\#/g, pkg.custom.changelog_url

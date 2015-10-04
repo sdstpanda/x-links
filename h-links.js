@@ -397,7 +397,7 @@
 
 			// Debug functions
 			Debug.log = function () {
-				var args = [ "#TITLE# " + Main.version + ":" ].concat(Array.prototype.slice.call(arguments));
+				var args = [ "#TITLE# " + Main.version.join(".") + ":" ].concat(Array.prototype.slice.call(arguments));
 				console.log.apply(console, args);
 			};
 			Debug.timer = function (name, dont_format) {
@@ -3913,6 +3913,7 @@
 					temp[k] = conf[k];
 				}
 			}
+			temp.version = Main.version;
 			Config.storage.setItem(Config.namespace, JSON.stringify(temp));
 		},
 		init: function () {
@@ -3940,6 +3941,14 @@
 
 			if (/presto/i.test(navigator.userAgent)) {
 				conf.ExSauce = false;
+			}
+
+			value = temp.version;
+			if (value === undefined) value = [];
+			i = Main.version_compare(Main.version, value);
+			if (i !== 0) {
+				update = true;
+				Main.version_change = i;
 			}
 
 			if (update) Config.save();
@@ -5585,9 +5594,43 @@
 		}
 	};
 	Main = {
-		version: "#VERSION#",
+		version: [/*#VERSION#*/],
+		version_change: 0,
 		queue: [],
 		font_inserted: false,
+		version_compare: function (v1, v2) {
+			// Returns: -1 if v1<v2, 0 if v1==v2, 1 if v1>v2
+			var ii = Math.min(v1.length, v2.length),
+				i, x, y;
+
+			for (i = 0; i < ii; ++i) {
+				x = v1[i];
+				y = v2[i];
+				if (x < y) return -1;
+				if (x > y) return 1;
+			}
+
+			ii = v1.length;
+			y = v2.length;
+			if (ii === y) return 0;
+
+			if (ii > y) {
+				y = 1;
+			}
+			else {
+				ii = y;
+				v1 = v2;
+				y = -1;
+			}
+
+			for (; i < ii; ++i) {
+				x = v1[i];
+				if (x < 0) return -y;
+				if (x > 0) return y;
+			}
+
+			return 0;
+		},
 		hovering: (function () {
 			var container = null;
 			return function (node) {
@@ -5891,6 +5934,10 @@
 			var t = Debug.timer_log("init.pre duration", timing.start);
 			Config.init();
 			Debug.init();
+			if (Main.version_change > 0) {
+				Debug.log("Clearing cache on update");
+				Cache.clear();
+			}
 			Cache.init();
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
