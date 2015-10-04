@@ -986,21 +986,22 @@
 				return src;
 			},
 			options: function () { return '#OPTIONS#'; },
-			stars: function (data) {
-				var str = '',
-					star = '',
-					rating = Math.round(parseFloat(data) * 2),
-					tmp, i;
+			stars: function (rating) {
+				var str = "",
+					star, tmp, i;
+
+				rating = Math.round(rating * 2);
 
 				for (i = 0; i < 5; ++i) {
 					tmp = $.clamp(rating - (i * 2), 0, 2);
 					switch (tmp) {
-						case 0: star = 'none'; break;
-						case 1: star = 'half'; break;
-						case 2: star = 'full'; break;
+						case 1: star = "half"; break;
+						case 2: star = "full"; break;
+						default: star = "none"; break;
 					}
 					str += '<div class="hl-star hl-star-' + (i + 1) + ' hl-star-' + star + '"></div>';
 				}
+
 				return str;
 			}
 		},
@@ -1082,7 +1083,7 @@
 			data_alt.jtitle = data.title_jpn ? ('<br /><span class="hl-details-title-jp">' + data.title_jpn + '</span>') : '';
 			data_alt.site = di.type;
 			data_alt.size = Math.round((data.filesize / 1024 / 1024) * 100) / 100;
-			data_alt.datetext = UI.date(new Date(parseInt(data.posted, 10) * 1000));
+			data_alt.datetext = UI.date(new Date(data.posted * 1000));
 			data_alt.visible = data.expunged ? 'No' : 'Yes';
 			data_alt.category_type = (o = cat[data.category]) === undefined ? "misc" : o.short;
 
@@ -1436,7 +1437,7 @@
 					response: function (text) {
 						var html = Helper.html_parse_safe(text, null);
 						if (html !== null) {
-							return [ API.parse_full_info(html) ];
+							return [ API.ehentai_parse_info(html) ];
 						}
 						return null;
 					}
@@ -1627,6 +1628,7 @@
 				[ gid, token ],
 				function (err, data, last) {
 					if (err === null) {
+						data = API.ehentai_normalize_info(data);
 						Database.set("ehentai", data);
 					}
 					else {
@@ -1705,7 +1707,15 @@
 		data_has_full: function (data) {
 			return data.full && data.full.version >= API.full_version;
 		},
-		parse_full_info: function (html) {
+		ehentai_normalize_info: function (info) {
+			info.filecount = parseInt(info.filecount, 10) || 0;
+			info.posted = parseInt(info.posted, 10) || 0;
+			info.rating = parseFloat(info.rating) || 0;
+			info.torrentcount = parseInt(info.torrentcount, 10) || 0;
+
+			return info;
+		},
+		ehentai_parse_info: function (html) {
 			var tags = {},
 				data = {
 					version: API.full_version,
@@ -2175,7 +2185,7 @@
 			var now = Date.now();
 
 			if (ttl === 0) {
-				ttl = ((now - parseInt(data.posted, 10) < 12 * t.HOUR) ? 1 : 12) * t.HOUR; // Update more frequently for recent uploads
+				ttl = ((now - data.posted < 12 * t.HOUR) ? 1 : 12) * t.HOUR; // Update more frequently for recent uploads
 			}
 
 			Cache.type.setItem(Cache.namespace + type + "-" + key, JSON.stringify({
@@ -5053,7 +5063,7 @@
 			$.add(n5, $.tnode(" on "));
 			$.add(n5, $.create("span", {
 				className: "hl-easylist-item-upload-date" + theme,
-				textContent: UI.date(new Date(parseInt(data.posted, 10) * 1000))
+				textContent: UI.date(new Date(data.posted * 1000))
 			}));
 
 			$.add(n4, n5 = $.create("div", { className: "hl-easylist-item-tags" + theme }));
@@ -5091,7 +5101,7 @@
 			if (data.rating >= 0) {
 				$.add(n6, $.create("span", {
 					className: "hl-easylist-item-info-light",
-					textContent: "(Avg: " + (parseFloat(data.rating) || 0).toFixed(2) + ")"
+					textContent: "(Avg: " + data.rating.toFixed(2) + ")"
 				}));
 			}
 			else {
@@ -5105,7 +5115,7 @@
 			$.add(n5, n6 = $.create("div", {
 				className: "hl-easylist-item-info-item hl-easylist-item-info-item-files" + theme
 			}));
-			i = parseInt(data.filecount, 10) || 0;
+			i = data.filecount;
 			$.add(n6, $.create("span", {
 				textContent: i + " image" + (i === 1 ? "" : "s")
 			}));
