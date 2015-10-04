@@ -624,43 +624,49 @@ div.hl-popup-content.post.reply.post_wrapper {
 	overflow: visible !important;
 }
 
-/* Options */
-.hl-settings-table {
+.hl-popup-table {
 	display: table;
 	width: 100%;
 	height: 100%;
 }
-.hl-settings-row {
+.hl-popup-row {
 	display: table-row;
 	width: 100%;
-	height: 100%;
-}
-.hl-settings-row.hl-settings-row-small,
-.hl-settings-row.hl-settings-row-small>.hl-settings-cell {
 	height: 0;
 }
-.hl-settings-cell {
+.hl-popup-row.hl-popup-row-body,
+.hl-popup-row.hl-popup-row-body>.hl-popup-cell {
+	height: 100%;
+}
+.hl-popup-cell {
 	display: table-cell;
 	width: 100%;
-	height: 100%;
+	height: 0;
 	vertical-align: top;
+	text-align: left;
 }
-.hl-settings-cell.hl-settings-cell-small {
+.hl-popup-cell.hl-popup-cell-small {
 	width: 0;
 	white-space: nowrap;
 }
-.hl-settings-cell.hl-settings-cell-right {
+.hl-popup-cell.hl-popup-cell-center {
+	text-align: center;
+}
+.hl-popup-cell.hl-popup-cell-right {
 	text-align: right;
 }
-.hl-settings-cell.hl-settings-cell-middle {
+.hl-popup-cell.hl-popup-cell-middle {
 	vertical-align: middle;
 }
-.hl-settings-cell-size {
+.hl-popup-cell.hl-popup-cell-bottom {
+	vertical-align: bottom;
+}
+.hl-popup-cell-size {
 	position: relative;
 	width: 100%;
 	height: 100%;
 }
-.hl-settings-cell-size-scroll {
+.hl-popup-cell-size-scroll {
 	position: absolute;
 	left: 0;
 	top: 0;
@@ -668,10 +674,15 @@ div.hl-popup-content.post.reply.post_wrapper {
 	bottom: 0;
 	overflow: auto;
 }
-.hl-settings-cell-size-inner {
+.hl-popup-cell-size-padding {
 	padding: 0.375em;
+	width: 100%;
+	min-height: 100%;
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
 }
 
+/* Options */
 .hl-settings-popup-align {
 	min-height: 80%;
 	height: 200px;
@@ -682,11 +693,14 @@ div.hl-popup-content.post.reply.post_wrapper {
 }
 
 .hl-settings-button {
-	margin: 0 0.125em;
+	margin: 0 0.25em;
 	display: inline-block !important;
+	vertical-align: middle;
 	padding: 0.25em;
 	background: rgba(0,0,0,0.05);
 	border-radius: 0.2em;
+	text-decoration: none !important;
+	cursor: pointer;
 }
 .hl-settings-button.hl-theme-dark {
 	background: rgba(255,255,255,0.05);

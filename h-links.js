@@ -3694,13 +3694,40 @@
 			Options.conf = JSON.parse(JSON.stringify(conf));
 
 			// Popup
-			overlay = Popup.create("settings", function (overlay, container) {
-				var n = $.frag(UI.html.options()).firstChild;
-				Theme.apply(n);
+			overlay = Popup.create("settings", [[{
+				small: true,
+				setup: function (container) {
+					$.add(container, $.link("#HOMEPAGE#", { className: "hl-settings-title" + theme, textContent: "#TITLE#" }));
+					$.add(container, $.create("span", { className: "hl-settings-version" + theme, textContent: Main.version.join(".") }));
+				}
+			}, {
+				align: "right",
+				setup: function (container) {
+					var n;
 
-				container.appendChild(n);
-				$.on(overlay, "click", Options.close);
-			});
+					$.add(container, n = $.link("#CHANGELOG#", { className: "hl-settings-button" + theme }));
+					$.add(n, $.create("span", { textContent: "Changelog" }));
+
+					$.add(container, n = $.link("#ISSUES#", { className: "hl-settings-button" + theme }));
+					$.add(n, $.create("span", { textContent: "Issues" }));
+
+					$.add(container, n = $.link("#", { className: "hl-settings-button" + theme }));
+					$.add(n, $.create("span", { textContent: "Save Settings" }));
+					$.on(n, "click", Options.save);
+
+					$.add(container, n = $.link("#", { className: "hl-settings-button" + theme }));
+					$.add(n, $.create("span", { textContent: "Cancel" }));
+					$.on(n, "click", Options.close);
+				}
+			}], {
+				body: true,
+				setup: function (container) {
+					var n = $.frag(UI.html.options());
+					Theme.apply(n);
+
+					container.appendChild(n);
+				}
+			}]);
 
 			// Options
 			Options.gen($(".hl-settings-group-general", overlay), theme, "general");
@@ -3712,9 +3739,7 @@
 			});
 
 			// Events
-			$.on($(".hl-settings-button-link-save", overlay), "click", Options.save);
-			$.on($(".hl-settings-button-link-cancel", overlay), "click", Options.close);
-			$.on($(".hl-settings-popup-content", overlay), "click", function (event) { event.stopPropagation(); });
+			$.on(overlay, "click", Options.close);
 			$.on($("input.hl-settings-color-input[type=color]", overlay), "change", Filter.settings_color_change);
 			$.on($(".hl-settings-filter-guide-toggle", overlay), "click", Options.on_toggle_filter_guide);
 
@@ -5593,16 +5618,57 @@
 	Popup = {
 		create: function (class_ns, setup) {
 			var theme = Theme.get(),
-				n1, n2, n3, n4;
+				container, list, obj, n1, n2, n3, n4, n5, n6, i, ii, j, jj, v;
 
 			n1 = $.create("div", { className: "hl-popup-overlay hl-" + class_ns + "-popup-overlay" + theme });
 			$.add(n1, n2 = $.create("div", { className: "hl-popup-aligner hl-" + class_ns + "-popup-aligner" + theme }));
 			$.add(n2, n3 = $.create("div", { className: "hl-popup-align hl-" + class_ns + "-popup-align" + theme }));
-			$.add(n3, n4 = $.create("div", { className: "hl-popup-content hl-" + class_ns + "-popup-content hl-hover-shadow post reply post_wrapper hl-fake-post" + theme }));
+			$.add(n3, container = $.create("div", { className: "hl-popup-content hl-" + class_ns + "-popup-content hl-hover-shadow post reply post_wrapper hl-fake-post" + theme }));
 
-			$.on(n4, "click", Popup.on_stop_propagation);
+			$.on(container, "click", Popup.on_stop_propagation);
 
-			setup.call(null, n1, n4);
+			if (typeof(setup) === "function") {
+				setup.call(null, n1, container);
+			}
+			else {
+				$.add(container, n2 = $.create("div", { className: "hl-popup-table" + theme }));
+
+				for (i = 0, ii = setup.length; i < ii; ++i) {
+					list = setup[i];
+					if (!Array.isArray(list)) list = [ list ];
+
+					$.add(n2, n3 = $.create("div", { className: "hl-popup-row" + theme }));
+					jj = list.length;
+					if (jj > 1) {
+						$.add(n3, n4 = $.create("div", { className: "hl-popup-cell" + theme }));
+						$.add(n4, n5 = $.create("div", { className: "hl-popup-table" + theme }));
+						$.add(n5, n3 = $.create("div", { className: "hl-popup-row" + theme }));
+					}
+					for (j = 0; j < jj; ++j) {
+						obj = list[j];
+
+						$.add(n3, n4 = $.create("div", { className: "hl-popup-cell" + theme }));
+
+						if (obj.small) n4.classList.add("hl-popup-cell-small");
+						if ((v = obj.align) !== undefined && v !== "left") n4.classList.add("hl-popup-cell-" + v);
+						if ((v = obj.valign) !== undefined && v !== "top") n4.classList.add("hl-popup-cell-" + v);
+						if (obj.body) {
+							n3.classList.add("hl-popup-row-body");
+
+							$.add(n4, n5 = $.create("div", { className: "hl-popup-cell-size" + theme }));
+							$.add(n5, n6 = $.create("div", { className: "hl-popup-cell-size-scroll" + theme }));
+							if (obj.padding !== false) {
+								$.add(n6, n4 = $.create("div", { className: "hl-popup-cell-size-padding" + theme }));
+							}
+							else {
+								n4 = n6;
+							}
+						}
+
+						obj.setup.call(null, n4);
+					}
+				}
+			}
 
 			return n1;
 		},
