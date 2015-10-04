@@ -5,7 +5,7 @@
 
 	var timing, domains, domain_info, options, conf, regex, cat, d, t, $, $$,
 		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Options, Config, Main,
-		MutationObserver, Helper, Nodes, HttpRequest, Linkifier, Filter, Theme, EasyList;
+		MutationObserver, Browser, Helper, Nodes, HttpRequest, Linkifier, Filter, Theme, EasyList;
 
 	timing = (function () {
 		var perf = window.performance,
@@ -363,6 +363,10 @@
 			element.scrollLeft = 0;
 		}
 	});
+	Browser = {
+		is_opera: /presto/i.test("" + navigator.userAgent),
+		is_firefox: /firefox/i.test("" + navigator.userAgent)
+	};
 	Debug = {
 		started: false,
 		log: function () {},
@@ -3186,7 +3190,7 @@
 				post_body, post_links, links, nodes, link, i, ii;
 
 			// Exsauce
-			if (conf.ExSauce) {
+			if (conf.ExSauce && !Browser.is_opera) {
 				Linkifier.setup_post_exsauce(post);
 			}
 
@@ -3259,7 +3263,7 @@
 					sauce.setAttribute("data-hl-image-index", index);
 					sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
 					if (/^\.jpe?g$/i.test(file_info.type) && Config.mode !== "tinyboard") {
-						if (/Firefox/i.test("" + navigator.userAgent)) {
+						if (Browser.is_firefox) {
 							sauce.setAttribute("data-hl-link-events", "exsauce_fetch_similarity");
 							sauce.title = "This will only work on colored images";
 						}
@@ -3937,10 +3941,6 @@
 					}
 					conf[k] = value;
 				}
-			}
-
-			if (/presto/i.test(navigator.userAgent)) {
-				conf.ExSauce = false;
 			}
 
 			value = temp.version;
