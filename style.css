@@ -912,69 +912,6 @@ button.hl-settings-entry-input.hl-theme-dark:hover {
 }
 
 /* Easy List */
-:root.hl-easylist-overlaying,
-:root.hl-easylist-overlaying body {
-	overflow-x: hidden !important;
-	overflow-y: hidden !important;
-}
-.hl-easylist-overlay {
-	position: fixed;
-	left: 0;
-	top: 0;
-	right: 0;
-	bottom: 0;
-	background: rgba(255,255,255,0.5);
-	z-index: 400;
-	overflow-x: hidden;
-	overflow-y: scroll;
-}
-.hl-easylist-overlay.hl-theme-dark {
-	background: rgba(0,0,0,0.5);
-}
-.hl-easylist-content-align {
-	position: absolute;
-	left: 0;
-	top: 0;
-	right: 0;
-	bottom: 0;
-	white-space: nowrap;
-	line-height: 0;
-	text-align: center;
-}
-.hl-easylist-content-align:before {
-	content: "";
-	display: block;
-	width: 0;
-	height: 100%;
-	display: inline-block;
-	vertical-align: middle;
-}
-.hl-easylist-content {
-	display: inline-block;
-	vertical-align: middle;
-	white-space: normal;
-	line-height: normal;
-	text-align: left;
-	padding: 1em;
-	margin: 0;
-	width: 800px;
-	min-width: 60%;
-	max-width: 100%;
-	box-sizing: border-box;
-	-moz-box-sizing: border-box;
-}
-div.hl-easylist-content-inner.post.reply.post_wrapper {
-	display: block !important;
-	padding: 1em !important;
-	margin: 0 !important;
-	width: 100% !important;
-	border: none !important;
-	box-sizing: border-box !important;
-	-moz-box-sizing: border-box !important;
-	position: relative !important;
-	border-radius: 0.5em !important;
-}
-
 .hl-easylist-title {
 	margin-left: -2em;
 }

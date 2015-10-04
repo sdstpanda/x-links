@@ -4759,78 +4759,60 @@
 			Main.insert_nav_link("normal", "Easy List", "Easy List", " hl-nav-link-easylist", EasyList.on_open_click);
 		},
 		create: function () {
-			var theme = Theme.get(),
-				n1, n2, n3, n4, n5;
+			Popup.create("easylist", function (overlay, container) {
+				var theme = Theme.get(),
+					n1, n2, n3;
 
-			// Overlay
-			n1 = $.create("div", {
-				className: "hl-easylist-overlay" + theme
+				// Overlay
+				$.on(overlay, "click", EasyList.on_overlay_click);
+				EasyList.overlay = overlay;
+				n1 = container;
+
+				$.add(n1, n2 = $.create("div", {
+					className: "hl-easylist-title"
+				}));
+
+				$.add(n2, $.create("span", {
+					className: "hl-easylist-title-text",
+					textContent: "#TITLE# Easy List"
+				}));
+				$.add(n2, $.create("span", {
+					className: "hl-easylist-subtitle",
+					textContent: "More porn, less hassle"
+				}));
+
+				// Close
+				$.add(n1, n2 = $.create("div", { className: "hl-easylist-control-links" }));
+
+				$.add(n2, n3 = $.link(null, {
+					className: "hl-easylist-control-link hl-easylist-control-link-options",
+					textContent: "options"
+				}));
+				$.on(n3, "click", EasyList.on_options_click);
+
+				$.add(n2, n3 = $.link(null, {
+					className: "hl-easylist-control-link",
+					textContent: "close"
+				}));
+				$.on(n3, "click", EasyList.on_close_click);
+
+				$.add(n1, $.create("div", { className: "hl-easylist-title-line" }));
+
+				// Options
+				EasyList.options_container = EasyList.create_options(theme);
+				$.add(n1, EasyList.options_container);
+
+				// Empty notification
+				$.add(n1, n2 = $.create("div", {
+					className: "hl-easylist-empty-notification hl-easylist-empty-notification-visible",
+					textContent: "No galleries found"
+				}));
+				EasyList.empty_notification = n2;
+
+				// Items list
+				$.add(n1, n2 = $.create("div", { className: "hl-easylist-items" + theme }));
+				EasyList.items_container = n2;
 			});
-			$.on(n1, "click", EasyList.on_overlay_click);
-			$.on(n1, "mousedown", EasyList.on_overlay_mousedown);
-			EasyList.overlay = n1;
-
-			// Content aligner
-			$.add(n1, n2 = $.create("div", {
-				className: "hl-easylist-content-align"
-			}));
-
-			// Content
-			$.add(n2, n3 = $.create("div", {
-				className: "hl-easylist-content"
-			}));
-
-			$.add(n3, n4 = $.create("div", {
-				className: "hl-easylist-content-inner hl-hover-shadow post reply post_wrapper hl-fake-post" + theme
-			}));
-			$.on(n4, "click", EasyList.on_overlay_content_mouse_event);
-			$.on(n4, "mousedown", EasyList.on_overlay_content_mouse_event);
-			n3 = n4;
-
-			$.add(n3, n4 = $.create("div", {
-				className: "hl-easylist-title"
-			}));
-
-			$.add(n4, $.create("span", {
-				className: "hl-easylist-title-text",
-				textContent: "#TITLE# Easy List"
-			}));
-			$.add(n4, $.create("span", {
-				className: "hl-easylist-subtitle",
-				textContent: "More porn, less hassle"
-			}));
-
-			// Close
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-control-links" }));
-
-			$.add(n4, n5 = $.link(null, {
-				className: "hl-easylist-control-link hl-easylist-control-link-options",
-				textContent: "options"
-			}));
-			$.on(n5, "click", EasyList.on_options_click);
-
-			$.add(n4, n5 = $.link(null, {
-				className: "hl-easylist-control-link",
-				textContent: "close"
-			}));
-			$.on(n5, "click", EasyList.on_close_click);
-
-			$.add(n3, $.create("div", { className: "hl-easylist-title-line" }));
-
-			// Options
-			EasyList.options_container = EasyList.create_options(theme);
-			$.add(n3, EasyList.options_container);
-
-			// Empty notification
-			$.add(n3, n4 = $.create("div", {
-				className: "hl-easylist-empty-notification hl-easylist-empty-notification-visible",
-				textContent: "No galleries found"
-			}));
-			EasyList.empty_notification = n4;
-
-			// Items list
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-items" + theme }));
-			EasyList.items_container = n4;
 
 			// Setup
 			EasyList.update_display_mode(true);
@@ -4961,20 +4943,13 @@
 			return n1;
 		},
 		enable: function () {
-			var n = d.body;
-			if (EasyList.overlay.parentNode !== n) {
-				$.add(n, EasyList.overlay);
-			}
-			d.documentElement.classList.add("hl-easylist-overlaying");
+			Popup.open(EasyList.overlay);
 
 			// Focus
 			$.scroll_focus(EasyList.overlay);
 		},
 		disable: function () {
-			if (EasyList.overlay.parentNode !== null) {
-				$.remove(EasyList.overlay);
-			}
-			d.documentElement.classList.remove("hl-easylist-overlaying");
+			Popup.close(EasyList.overlay);
 
 			EasyList.set_options_visible(false);
 
@@ -5601,18 +5576,6 @@
 			event.preventDefault();
 			event.stopPropagation();
 			return false;
-		},
-		on_overlay_mousedown: function (event) {
-			if (!event.which || event.which === 1) {
-				event.preventDefault();
-				event.stopPropagation();
-				return false;
-			}
-		},
-		on_overlay_content_mouse_event: function (event) {
-			if (!event.which || event.which === 1) {
-				event.stopPropagation();
-			}
 		}
 	};
 	Popup = {
@@ -5625,7 +5588,9 @@
 			$.add(n2, n3 = $.create("div", { className: "hl-popup-align hl-" + class_ns + "-popup-align" + theme }));
 			$.add(n3, container = $.create("div", { className: "hl-popup-content hl-" + class_ns + "-popup-content hl-hover-shadow post reply post_wrapper hl-fake-post" + theme }));
 
+			$.on(n1, "mousedown", Popup.on_overlay_event);
 			$.on(container, "click", Popup.on_stop_propagation);
+			$.on(container, "mousedown", Popup.on_stop_propagation);
 
 			if (typeof(setup) === "function") {
 				setup.call(null, n1, container);
@@ -5673,7 +5638,16 @@
 			return n1;
 		},
 		on_stop_propagation: function (event) {
-			event.stopPropagation();
+			if (!event.which || event.which === 1) {
+				event.stopPropagation();
+			}
+		},
+		on_overlay_event: function (event) {
+			if (!event.which || event.which === 1) {
+				event.preventDefault();
+				event.stopPropagation();
+				return false;
+			}
 		},
 		open: function (overlay) {
 			d.documentElement.classList.add("hl-popup-overlaying");
