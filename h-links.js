@@ -3735,7 +3735,12 @@
 					$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
 					$.add(cell, label = $.node("label", "hl-settings-entry-label"));
 					label.htmlFor = name;
-					label.innerHTML = "<strong>" + key + ":</strong>" + (desc.length > 0 ? " " + desc : "");
+					$.add(label, $.node("strong", "hl-settings-entry-label-name", key + ":"));
+					if (desc.length > 0) {
+						n = $.node("span", "hl-settings-entry-label-description");
+						n.innerHTML = " " + desc;
+						$.add(label, n);
+					}
 
 					if (type === "checkbox") {
 						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
