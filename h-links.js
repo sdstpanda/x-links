@@ -5,7 +5,7 @@
 
 	var timing, domains, domain_info, options, conf, regex, cat, d, t, $, $$,
 		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Options, Config, Main,
-		MutationObserver, Browser, Helper, Nodes, HttpRequest, Linkifier, Filter, Theme, EasyList;
+		MutationObserver, Browser, Helper, Nodes, HttpRequest, Linkifier, Filter, Theme, EasyList, Popup;
 
 	timing = (function () {
 		var perf = window.performance,
@@ -3637,19 +3637,17 @@
 			Options.conf = null;
 			Config.save();
 			if (Nodes.options_overlay !== null) {
-				$.remove(Nodes.options_overlay);
+				Popup.close(Nodes.options_overlay);
 				Nodes.options_overlay = null;
 			}
-			d.documentElement.classList.remove("hl-settings-overlaying");
 		},
 		close: function (e) {
 			e.preventDefault();
 			Options.conf = null;
 			if (Nodes.options_overlay !== null) {
-				$.remove(Nodes.options_overlay);
+				Popup.close(Nodes.options_overlay);
 				Nodes.options_overlay = null;
 			}
-			d.documentElement.classList.remove("hl-settings-overlaying");
 		},
 		on_change: function () {
 			var node = this,
@@ -3689,22 +3687,20 @@
 			if (event.which && event.which !== 1) return;
 			event.preventDefault();
 
-			// Create
-			var overlay = $.frag(UI.html.options()).firstChild,
-				scroll_node = $(".hl-settings-cell-size-scroll", overlay),
-				theme = Theme.get();
+			var theme = Theme.get(),
+				overlay, n;
 
 			// Config
 			Options.conf = JSON.parse(JSON.stringify(conf));
 
-			// Set global
-			if (Nodes.options_overlay !== null) {
-				$.remove(Nodes.options_overlay);
-			}
-			Nodes.options_overlay = overlay;
+			// Popup
+			overlay = Popup.create("settings", function (overlay, container) {
+				var n = $.frag(UI.html.options()).firstChild;
+				Theme.apply(n);
 
-			// Theme
-			Theme.apply(overlay);
+				container.appendChild(n);
+				$.on(overlay, "click", Options.close);
+			});
 
 			// Options
 			Options.gen($(".hl-settings-group-general", overlay), theme, "general");
@@ -3718,19 +3714,20 @@
 			// Events
 			$.on($(".hl-settings-button-link-save", overlay), "click", Options.save);
 			$.on($(".hl-settings-button-link-cancel", overlay), "click", Options.close);
-			$.on(overlay, "click", Options.close);
 			$.on($(".hl-settings-popup-content", overlay), "click", function (event) { event.stopPropagation(); });
 			$.on($("input.hl-settings-color-input[type=color]", overlay), "change", Filter.settings_color_change);
 			$.on($(".hl-settings-filter-guide-toggle", overlay), "click", Options.on_toggle_filter_guide);
 
 			// Add to body
-			$.add(d.body, overlay);
-			d.documentElement.classList.add("hl-settings-overlaying");
+			if (Nodes.options_overlay !== null) {
+				Popup.close(Nodes.options_overlay);
+			}
+			Nodes.options_overlay = overlay;
+			Popup.open(overlay);
 
 			// Focus
-			if (scroll_node !== null) {
-				$.scroll_focus(scroll_node);
-			}
+			n = $(".hl-settings-cell-size-scroll", overlay);
+			if (n !== null) $.scroll_focus(n);
 		},
 		gen: function (container, theme, option_type) {
 			var entry, table, row, cell, label, input,
@@ -5591,6 +5588,34 @@
 			if (!event.which || event.which === 1) {
 				event.stopPropagation();
 			}
+		}
+	};
+	Popup = {
+		create: function (class_ns, setup) {
+			var theme = Theme.get(),
+				n1, n2, n3, n4;
+
+			n1 = $.create("div", { className: "hl-popup-overlay hl-" + class_ns + "-popup-overlay" + theme });
+			$.add(n1, n2 = $.create("div", { className: "hl-popup-aligner hl-" + class_ns + "-popup-aligner" + theme }));
+			$.add(n2, n3 = $.create("div", { className: "hl-popup-align hl-" + class_ns + "-popup-align" + theme }));
+			$.add(n3, n4 = $.create("div", { className: "hl-popup-content hl-" + class_ns + "-popup-content hl-hover-shadow post reply post_wrapper hl-fake-post" + theme }));
+
+			$.on(n4, "click", Popup.on_stop_propagation);
+
+			setup.call(null, n1, n4);
+
+			return n1;
+		},
+		on_stop_propagation: function (event) {
+			event.stopPropagation();
+		},
+		open: function (overlay) {
+			d.documentElement.classList.add("hl-popup-overlaying");
+			d.body.appendChild(overlay);
+		},
+		close: function (overlay) {
+			d.documentElement.classList.remove("hl-popup-overlaying");
+			if (overlay.parentNode !== null) $.remove(overlay);
 		}
 	};
 	Main = {

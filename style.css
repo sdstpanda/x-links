@@ -625,12 +625,6 @@ div.hl-popup-content.post.reply.post_wrapper {
 }
 
 /* Options */
-:root.hl-settings-overlaying,
-:root.hl-settings-overlaying body {
-	overflow-x: hidden !important;
-	overflow-y: hidden !important;
-}
-
 .hl-settings-table {
 	display: table;
 	width: 100%;
@@ -676,17 +670,6 @@ div.hl-popup-content.post.reply.post_wrapper {
 }
 .hl-settings-cell-size-inner {
 	padding: 0.375em;
-}
-
-.hl-settings-overlay {
-	position: fixed;
-	width: 100%;
-	height: 100%;
-	top: 0;
-	left: 0;
-	text-align: center;
-	background: rgba(0,0,0,0.5);
-	z-index: 1000;
 }
 
 .hl-settings-popup-align {
