@@ -506,11 +506,12 @@
 
 			if (
 				container !== null &&
-				(node = $(".hl-exsauce-results", container)) !== null &&
+				(node = $(".hl-exsauce-results[data-hl-image-index='" + node.getAttribute("data-hl-image-index") + "']", container)) !== null &&
 				Helper.Post.get_post_container(node) === container
 			) {
 				return node;
 			}
+
 			return null;
 		},
 		get_url_info: function (url) {
@@ -728,7 +729,12 @@
 				},
 				"tinyboard": function (node) {
 					while ((node = node.parentNode) !== null) {
-						if (node.classList.contains("post")) return node;
+						if (node.classList.contains("post")) {
+							return node;
+						}
+						else if (node.classList.contains("thread")) {
+							return $(".post.op", node);
+						}
 					}
 					return null;
 				}
@@ -2481,9 +2487,10 @@
 		format: function (a, result) {
 			var count = result.length,
 				theme = Theme.get(),
-				results, link, n, i, ii;
+				index, results, link, n, i, ii;
 
 			a.classList.add("hl-exsauce-link-valid");
+			index = a.getAttribute("data-hl-image-index") || "";
 			a.textContent = "Found: " + count;
 
 			if (count > 0) {
@@ -2493,6 +2500,7 @@
 						(n = Helper.Post.get_text_body(n)) !== null
 					) {
 						results = $.create("div", { className: "hl-exsauce-results" + theme });
+						results.setAttribute("data-hl-image-index", index);
 						$.add(results, $.create("strong", { textContent: "Reverse Image Search Results" }));
 						$.add(results, $.create("span", { className: "hl-exsauce-results-sep", textContent: "|" }));
 						$.add(results, $.create("span", { className: "hl-exsauce-results-label", textContent: "View on:" }));
@@ -3207,7 +3215,8 @@
 			}
 		},
 		setup_post_exsauce: function (post) {
-			var file_infos, file_info, sauce, i, ii;
+			var index = 0,
+				file_infos, file_info, sauce, i, ii;
 
 			// File info
 			file_infos = Helper.Post.get_file_info(post);
@@ -3224,6 +3233,7 @@
 					});
 					sauce.setAttribute("data-hl-link-events", "exsauce_fetch");
 					sauce.setAttribute("data-hl-filename", file_info.name);
+					sauce.setAttribute("data-hl-image-index", index);
 					sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
 					if (/^\.jpe?g$/i.test(file_info.type) && Config.mode !== "tinyboard") {
 						if (/Firefox/i.test("" + navigator.userAgent)) {
@@ -3242,6 +3252,8 @@
 						$.before2(file_info.options, $.tnode(file_info.options_sep), file_info.options_before);
 					}
 					$.before2(file_info.options, sauce, file_info.options_before);
+
+					++index;
 				}
 			}
 		},
