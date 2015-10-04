@@ -229,10 +229,13 @@
 		},
 		frag: function (content) {
 			var frag = d.createDocumentFragment(),
-				div = $.create("div", { innerHTML: content }),
-				n;
-			for (n = div.firstChild; n !== null; n = n.nextSibling) {
-				frag.appendChild(n.cloneNode(true));
+				div = $.node_simple("div"),
+				n, next;
+
+			div.innerHTML = content;
+			for (n = div.firstChild; n !== null; n = next) {
+				next = n.nextSibling;
+				frag.appendChild(n);
 			}
 			return frag;
 		},
@@ -275,12 +278,18 @@
 			return elem;
 		},
 		node: function (tag, class_name, properties) {
+			// Usage: $.tag("div", "className"), $.tag("div", "className", "textContent"), or $.tag("div", "className", { textContent: "textContent" })
 			var elem = d.createElement(tag);
 			elem.className = class_name;
 			if (properties !== undefined) {
-				for (var k in properties) {
-					if (Object.prototype.hasOwnProperty.call(properties, k)) {
-						elem[k] = properties[k];
+				if (typeof(properties) === "string") {
+					elem.textContent = properties;
+				}
+				else {
+					for (var k in properties) {
+						if (Object.prototype.hasOwnProperty.call(properties, k)) {
+							elem[k] = properties[k];
+						}
 					}
 				}
 			}
@@ -288,6 +297,21 @@
 		},
 		node_simple: function (tag) {
 			return d.createElement(tag);
+		},
+		link: function (href, class_name, text) {
+			var elem = d.createElement("a");
+			if (href !== undefined) {
+				elem.href = href;
+				elem.target = "_blank";
+				elem.rel = "noreferrer";
+			}
+			if (class_name !== undefined) {
+				elem.className = class_name;
+			}
+			if (text !== undefined) {
+				elem.textContent = text;
+			}
+			return elem;
 		},
 		on: function (elem, eventlist, handler) {
 			var event, i, ii;
@@ -320,18 +344,6 @@
 			}
 			catch (e) {}
 			return false;
-		},
-		link: function (href, properties) {
-			var elem = d.createElement("a");
-			if (href !== null) {
-				elem.href = href;
-				elem.target = "_blank";
-				elem.rel = "noreferrer";
-			}
-			if (properties) {
-				$.extend(elem, properties);
-			}
-			return elem;
 		},
 		push_many: function (target, new_entries) {
 			var max_push = 1000;
@@ -1175,10 +1187,7 @@
 			return container;
 		},
 		button: function (url, domain) {
-			var button = $.link(url, {
-				className: 'hl-link-events hl-site-tag',
-				textContent: UI.button_text(domain)
-			});
+			var button = $.link(url, "hl-link-events hl-site-tag", UI.button_text(domain));
 			button.setAttribute("data-hl-link-events", "gallery_fetch");
 			return button;
 		},
@@ -1241,11 +1250,8 @@
 				tag, link, i, ii;
 
 			for (i = 0, ii = tags.length; i < ii; ++i) {
-				tag = $.create("span", { className: "hl-tag-block" + theme });
-				link = $.link(Helper.Site.create_tag_url(tags[i], domain, site), {
-					textContent: tags[i],
-					className: "hl-tag"
-				});
+				tag = $.node("span", "hl-tag-block" + theme);
+				link = $.link(Helper.Site.create_tag_url(tags[i], domain, site), "hl-tag", tags[i]);
 
 				Filter.highlight("tags", link, data, null);
 
@@ -1270,27 +1276,17 @@
 				if (ii === 0) continue;
 				namespace_style = theme + " hl-tag-namespace-" + namespace.replace(/\s+/g, "-");
 
-				tag = $.create("span", {
-					className: "hl-tag-namespace-block" + namespace_style
-				});
-				link = $.create("span", {
-					textContent: namespace,
-					className: "hl-tag-namespace"
-				});
-				tf = $.create("span", {
-					className: "hl-tag-namespace-first"
-				});
+				tag = $.node("span", "hl-tag-namespace-block" + namespace_style);
+				link = $.node("span", "hl-tag-namespace", namespace);
+				tf = $.node("span", "hl-tag-namespace-first");
 				$.add(tag, link);
 				$.add(tag, $.tnode(":"));
 				$.add(tf, tag);
 				$.add(tagfrag, tf);
 
 				for (i = 0; i < ii; ++i) {
-					tag = $.create("span", { className: "hl-tag-block" + namespace_style });
-					link = $.link(Helper.Site.create_tag_ns_url(tags[i], namespace, domain, site), {
-						textContent: tags[i],
-						className: "hl-tag"
-					});
+					tag = $.node("span", "hl-tag-block" + namespace_style);
+					link = $.link(Helper.Site.create_tag_ns_url(tags[i], namespace, domain, site), "hl-tag", tags[i]);
 
 					Filter.highlight("tags", link, data, null);
 
@@ -2470,18 +2466,15 @@
 				var result = Hash.get("sha1", sha1),
 					hover, i, ii;
 
-				hover = $.create("div", {
-					className: "hl-exsauce-hover hl-exsauce-hover-hidden post hl-hover-shadow reply post_wrapper hl-fake-post" + Theme.get()
-				});
+				hover = $.node("div",
+					"hl-exsauce-hover hl-exsauce-hover-hidden post hl-hover-shadow reply post_wrapper hl-fake-post" + Theme.get()
+				);
 				hover.setAttribute("data-sha1", sha1);
 
 				if (result !== null && (ii = result.length) > 0) {
 					i = 0;
 					while (true) {
-						$.add(hover, $.link(result[i][0], {
-							className: "hl-exsauce-hover-link",
-							textContent: result[i][1]
-						}));
+						$.add(hover, $.link(result[i][0], "hl-exsauce-hover-link", result[i][1]));
 						if (++i >= ii) break;
 						$.add(hover, $.node_simple("br"));
 					}
@@ -2511,15 +2504,12 @@
 						(n = Helper.Post.get_post_container(a)) !== null &&
 						(n = Helper.Post.get_text_body(n)) !== null
 					) {
-						results = $.create("div", { className: "hl-exsauce-results" + theme });
+						results = $.node("div", "hl-exsauce-results" + theme);
 						results.setAttribute("data-hl-image-index", index);
-						$.add(results, $.create("strong", { textContent: "Reverse Image Search Results" }));
-						$.add(results, $.create("span", { className: "hl-exsauce-results-sep", textContent: "|" }));
-						$.add(results, $.create("span", { className: "hl-exsauce-results-label", textContent: "View on:" }));
-						$.add(results, $.link(a.href, {
-							className: "hl-exsauce-results-link",
-							textContent: (conf["Lookup Domain"] === domains.exhentai) ? "exhentai" : "e-hentai"
-						}));
+						$.add(results, $.node("strong", null, "Reverse Image Search Results"));
+						$.add(results, $.node("span", "hl-exsauce-results-sep", "|" ));
+						$.add(results, $.node("span", "hl-exsauce-results-label", "View on:"));
+						$.add(results, $.link(a.href, "hl-exsauce-results-link", (conf["Lookup Domain"] === domains.exhentai) ? "exhentai" : "e-hentai"));
 						$.add(results, $.node_simple("br"));
 
 						for (i = 0, ii = result.length; i < ii; ++i) {
@@ -3000,10 +2990,7 @@
 			);
 		},
 		create_link: function (text) {
-			return $.link(text, {
-				className: "hl-linkified",
-				textContent: text
-			});
+			return $.link(text, "hl-linkified", text);
 		},
 		preprocess_link: function (node, auto_load) {
 			var url = node.href,
@@ -3087,12 +3074,8 @@
 			$.after(link, actions);
 		},
 		format_links_error: function (links, error) {
-			var button, link, msg_data, i, ii;
-
-			msg_data = {
-				className: "hl-linkified-error-message",
-				textContent: " (" + error.trim().replace(/\.$/, "") + ")"
-			};
+			var text = " (" + error.trim().replace(/\.$/, "") + ")",
+				button, link, i, ii;
 
 			for (i = 0, ii = links.length; i < ii; ++i) {
 				link = links[i];
@@ -3104,7 +3087,7 @@
 
 				link.classList.add("hl-linkified-error");
 				link.setAttribute("data-hl-linkified-status", "formatted_error");
-				$.add(link, $.create("span", msg_data));
+				$.add(link, $.node("span", "hl-linkified-error-message", text));
 			}
 		},
 		apply_link_events: function (node, check_children) {
@@ -3248,10 +3231,10 @@
 				// Create if not found
 				sauce = $(".hl-exsauce-link", file_info.options);
 				if (sauce === null && /^\.(png|gif|jpe?g)$/i.test(file_info.type)) {
-					sauce = $.link(file_info.url, {
-						className: "hl-link-events hl-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
-						textContent: Sauce.label()
-					});
+					sauce = $.link(file_info.url,
+						"hl-link-events hl-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
+						Sauce.label()
+					);
 					sauce.setAttribute("data-hl-link-events", "exsauce_fetch");
 					sauce.setAttribute("data-hl-filename", file_info.name);
 					sauce.setAttribute("data-hl-image-index", index);
@@ -3691,26 +3674,25 @@
 			overlay = Popup.create("settings", [[{
 				small: true,
 				setup: function (container) {
-					$.add(container, $.link("#HOMEPAGE#", { className: "hl-settings-title" + theme, textContent: "#TITLE#" }));
-					$.add(container, $.create("span", { className: "hl-settings-version" + theme, textContent: Main.version.join(".") }));
+					$.add(container, $.link("#HOMEPAGE#", "hl-settings-title" + theme, "#TITLE#"));
+					$.add(container, $.node("span", "hl-settings-version" + theme, Main.version.join(".")));
 				}
 			}, {
 				align: "right",
 				setup: function (container) {
 					var n;
+					$.add(container, n = $.link("#CHANGELOG#", "hl-settings-button" + theme));
+					$.add(n, $.node("span", "hl-settings-button-text", "Changelog"));
 
-					$.add(container, n = $.link("#CHANGELOG#", { className: "hl-settings-button" + theme }));
-					$.add(n, $.create("span", { textContent: "Changelog" }));
+					$.add(container, n = $.link("#ISSUES#", "hl-settings-button" + theme));
+					$.add(n, $.node("span", "hl-settings-button-text", "Issues"));
 
-					$.add(container, n = $.link("#ISSUES#", { className: "hl-settings-button" + theme }));
-					$.add(n, $.create("span", { textContent: "Issues" }));
-
-					$.add(container, n = $.link("#", { className: "hl-settings-button" + theme }));
-					$.add(n, $.create("span", { textContent: "Save Settings" }));
+					$.add(container, n = $.link("#", "hl-settings-button" + theme));
+					$.add(n, $.node("span", "hl-settings-button-text", "Save Settings"));
 					$.on(n, "click", Options.save);
 
-					$.add(container, n = $.link("#", { className: "hl-settings-button" + theme }));
-					$.add(n, $.create("span", { textContent: "Cancel" }));
+					$.add(container, n = $.link("#", "hl-settings-button" + theme));
+					$.add(n, $.node("span", "hl-settings-button-text", "Cancel"));
 					$.on(n, "click", Options.close);
 				}
 			}], {
@@ -4778,16 +4760,10 @@
 				// Close
 				$.add(n1, n2 = $.create("div", { className: "hl-easylist-control-links" }));
 
-				$.add(n2, n3 = $.link(null, {
-					className: "hl-easylist-control-link hl-easylist-control-link-options",
-					textContent: "options"
-				}));
+				$.add(n2, n3 = $.link(undefined, "hl-easylist-control-link hl-easylist-control-link-options", "options"));
 				$.on(n3, "click", EasyList.on_options_click);
 
-				$.add(n2, n3 = $.link(null, {
-					className: "hl-easylist-control-link",
-					textContent: "close"
-				}));
+				$.add(n2, n3 = $.link(undefined, "hl-easylist-control-link", "close"));
 				$.on(n3, "click", EasyList.on_close_click);
 
 				$.add(n1, $.create("div", { className: "hl-easylist-title-line" }));
@@ -4998,9 +4974,7 @@
 			$.add(n3, n4 = $.create("div", { className: "hl-easylist-item-cell hl-easylist-item-cell-image" + theme }));
 
 			// Image
-			$.add(n4, n5 = $.link(url, {
-				className: "hl-easylist-item-image-container" + theme
-			}));
+			$.add(n4, n5 = $.link(url, "hl-easylist-item-image-container" + theme));
 
 			$.add(n5, n6 = $.create("div", {
 				className: "hl-easylist-item-image-outer" + theme
@@ -5033,32 +5007,20 @@
 				className: "hl-easylist-item-title" + theme
 			}));
 
-			$.add(n5, n6 = $.link(url, {
-				className: "hl-easylist-item-title-tag-link" + theme,
-				textContent: UI.button_text(domain)
-			}));
+			$.add(n5, n6 = $.link(url, "hl-easylist-item-title-tag-link" + theme, UI.button_text(domain)));
 			n6.setAttribute("data-hl-original", n6.textContent);
 
-			$.add(n5, n6 = $.link(url, {
-				className: "hl-easylist-item-title-link" + theme,
-				textContent: Helper.normalize_api_string(data.title)
-			}));
+			$.add(n5, n6 = $.link(url, "hl-easylist-item-title-link" + theme, Helper.normalize_api_string(data.title)));
 			n6.setAttribute("data-hl-original", n6.textContent);
 
 			if (data.title_jpn) {
-				$.add(n4, n5 = $.create("span", {
-					className: "hl-easylist-item-title-jp" + theme,
-					textContent: Helper.normalize_api_string(data.title_jpn)
-				}));
+				$.add(n4, n5 = $.create("span", "hl-easylist-item-title-jp" + theme, Helper.normalize_api_string(data.title_jpn)));
 				n5.setAttribute("data-hl-original", n5.textContent);
 			}
 
 			$.add(n4, n5 = $.create("div", { className: "hl-easylist-item-upload-info" + theme }));
 			$.add(n5, $.tnode("Uploaded by "));
-			$.add(n5, n6 = $.link(Helper.Site.create_uploader_url(data, domain), {
-				className: "hl-easylist-item-uploader" + theme,
-				textContent: data.uploader
-			}));
+			$.add(n5, n6 = $.link(Helper.Site.create_uploader_url(data, domain), "hl-easylist-item-uploader" + theme, data.uploader));
 			n6.setAttribute("data-hl-original", n6.textContent);
 			$.add(n5, $.tnode(" on "));
 			$.add(n5, $.create("span", {
@@ -5082,9 +5044,9 @@
 				className: "hl-easylist-item-info" + theme,
 			}));
 
-			$.add(n5, n6 = $.link(Helper.Site.create_category_url(data, domain), {
-				className: "hl-easylist-item-info-button hl-button hl-button-eh hl-button-" + cat[data.category].short + theme
-			}));
+			$.add(n5, n6 = $.link(Helper.Site.create_category_url(data, domain),
+				"hl-easylist-item-info-button hl-button hl-button-eh hl-button-" + cat[data.category].short + theme
+			));
 			$.add(n6, $.create("div", {
 				className: "hl-noise",
 				textContent: cat[data.category].name
@@ -5179,10 +5141,10 @@
 					$.add(n2, n3 = $.create("span", {
 						className: "hl-tag-block" + namespace_style
 					}));
-					$.add(n3, n4 = $.link(Helper.Site.create_tag_url(tags[i], domain_type, full_domain), {
-						textContent: tags[i],
-						className: "hl-tag hl-tag-color-inherit hl-easylist-item-tag"
-					}));
+					$.add(n3, n4 = $.link(Helper.Site.create_tag_url(tags[i], domain_type, full_domain),
+						"hl-tag hl-tag-color-inherit hl-easylist-item-tag",
+						tags[i]
+					));
 					n4.setAttribute("data-hl-original", n4.textContent);
 
 					if (i < ii - 1) $.add(n3, $.tnode(","));
@@ -5860,10 +5822,7 @@
 					append = false;
 
 					if (Config.mode_ext.fourchanx3) {
-						n2 = $.link("#HOMEPAGE#", {
-							className: "hl-nav-link-menu" + class_name,
-							textContent: text_menu
-						});
+						n2 = $.link("#HOMEPAGE#", "hl-nav-link-menu" + class_name, text_menu);
 						$.on(n2, "click", on_click);
 						Main.insert_menu_link(n2);
 					}
@@ -5898,10 +5857,7 @@
 				navlink = navlinks[i];
 				if (is_desktop(navlink)) {
 					// Desktop
-					n2 = $.link("#HOMEPAGE#", {
-						className: "hl-nav-link" + class_name,
-						textContent: link_mod(text, true)
-					});
+					n2 = $.link("#HOMEPAGE#", "hl-nav-link" + class_name, link_mod(text, true));
 
 					if (append) {
 						if ((n1 = navlink.lastChild) !== null && n1.nodeType === Node.TEXT_NODE) {
@@ -5938,10 +5894,7 @@
 					$.add(n1, n2 = $.create("span", {
 						className: "mobileib button hl-nav-button" + class_name
 					}));
-					$.add(n2, $.link(null, {
-						className: "hl-nav-button-inner" + class_name,
-						textContent: link_mod(text, false)
-					}));
+					$.add(n2, $.link(undefined, "hl-nav-button-inner" + class_name, link_mod(text, false)));
 					if (mobile_top) {
 						$.before(navlink, n1);
 					}
