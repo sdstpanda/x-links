@@ -266,21 +266,11 @@
 		tnode: function (text) {
 			return d.createTextNode(text);
 		},
-		node: function (tag, class_name, properties) {
-			// Usage: $.tag("div", "className"), $.tag("div", "className", "textContent"), or $.tag("div", "className", { textContent: "textContent" })
+		node: function (tag, class_name, text) {
 			var elem = d.createElement(tag);
 			elem.className = class_name;
-			if (properties !== undefined) {
-				if (typeof(properties) === "string") {
-					elem.textContent = properties;
-				}
-				else {
-					for (var k in properties) {
-						if (Object.prototype.hasOwnProperty.call(properties, k)) {
-							elem[k] = properties[k];
-						}
-					}
-				}
+			if (text !== undefined) {
+				elem.textContent = text;
 			}
 			return elem;
 		},
@@ -2495,7 +2485,7 @@
 					) {
 						results = $.node("div", "hl-exsauce-results" + theme);
 						results.setAttribute("data-hl-image-index", index);
-						$.add(results, $.node("strong", null, "Reverse Image Search Results"));
+						$.add(results, $.node("strong", "hl-exsauce-results-title", "Reverse Image Search Results"));
 						$.add(results, $.node("span", "hl-exsauce-results-sep", "|" ));
 						$.add(results, $.node("span", "hl-exsauce-results-label", "View on:"));
 						$.add(results, $.link(a.href, "hl-exsauce-results-link", (conf["Lookup Domain"] === domains.exhentai) ? "exhentai" : "e-hentai"));
@@ -3758,7 +3748,7 @@
 						values = obj[key][3];
 						for (j = 0, jj = values.length; j < jj; ++j) {
 							v = values[j];
-							$.add(input, n = $.node("option", undefined, v[1]));
+							$.add(input, n = $.node("option", "hl-settings-entry-input-option", v[1]));
 							n.value = v[0];
 							n.selected = (v[0] === value);
 							if (v.length > 2) n.title = v[2];
@@ -4994,7 +4984,7 @@
 
 			$.add(n5, n6 = $.node("div", "hl-easylist-item-info-item hl-easylist-item-info-item-files" + theme));
 			i = data.filecount;
-			$.add(n6, $.node("span", undefined, i + " image" + (i === 1 ? "" : "s")));
+			$.add(n6, $.node("span", "", i + " image" + (i === 1 ? "" : "s")));
 			if (data.filesize >= 0) {
 				$.add(n6, $.node_simple("br"));
 				i = (data.filesize / 1024 / 1024).toFixed(2).replace(/\.?0+$/, "");
