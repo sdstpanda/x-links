@@ -3691,7 +3691,7 @@
 
 			// Create
 			var overlay = $.frag(UI.html.options()).firstChild,
-				scroll_node = $(".hl-settings-content", overlay),
+				scroll_node = $(".hl-settings-cell-size-scroll", overlay),
 				theme = Theme.get();
 
 			// Config
@@ -3719,7 +3719,7 @@
 			$.on($(".hl-settings-button-link-save", overlay), "click", Options.save);
 			$.on($(".hl-settings-button-link-cancel", overlay), "click", Options.close);
 			$.on(overlay, "click", Options.close);
-			$.on($(".hl-settings", overlay), "click", function (event) { event.stopPropagation(); });
+			$.on($(".hl-settings-popup-content", overlay), "click", function (event) { event.stopPropagation(); });
 			$.on($("input.hl-settings-color-input[type=color]", overlay), "change", Filter.settings_color_change);
 			$.on($(".hl-settings-filter-guide-toggle", overlay), "click", Options.on_toggle_filter_guide);
 

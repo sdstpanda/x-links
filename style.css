@@ -558,11 +558,124 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	box-shadow: 0 0 0.125em 0 rgba(255,255,255,0.5);
 }
 
+/* Popups */
+:root.hl-popup-overlaying,
+:root.hl-popup-overlaying body {
+	overflow-x: hidden !important;
+	overflow-y: hidden !important;
+}
+.hl-popup-overlay {
+	position: fixed;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(255,255,255,0.5);
+	z-index: 400;
+	overflow-x: auto;
+	overflow-y: scroll;
+}
+.hl-popup-overlay.hl-theme-dark {
+	background: rgba(0,0,0,0.5);
+}
+.hl-popup-aligner {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	white-space: nowrap;
+	line-height: 0;
+	text-align: center;
+}
+.hl-popup-aligner:before {
+	content: "";
+	display: block;
+	width: 0;
+	height: 100%;
+	display: inline-block;
+	vertical-align: middle;
+}
+.hl-popup-align {
+	display: inline-block;
+	vertical-align: middle;
+	white-space: normal;
+	line-height: normal;
+	text-align: left;
+	padding: 1em;
+	margin: 0;
+	width: 800px;
+	min-width: 60%;
+	max-width: 100%;
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+}
+div.hl-popup-content.post.reply.post_wrapper {
+	position: relative !important;
+	display: block !important;
+	padding: 1em !important;
+	margin: 0 !important;
+	width: 100% !important;
+	border: none !important;
+	box-sizing: border-box !important;
+	-moz-box-sizing: border-box !important;
+	position: relative !important;
+	border-radius: 0.5em !important;
+	overflow: visible !important;
+}
+
 /* Options */
 :root.hl-settings-overlaying,
 :root.hl-settings-overlaying body {
 	overflow-x: hidden !important;
 	overflow-y: hidden !important;
+}
+
+.hl-settings-table {
+	display: table;
+	width: 100%;
+	height: 100%;
+}
+.hl-settings-row {
+	display: table-row;
+	width: 100%;
+	height: 100%;
+}
+.hl-settings-row.hl-settings-row-small,
+.hl-settings-row.hl-settings-row-small>.hl-settings-cell {
+	height: 0;
+}
+.hl-settings-cell {
+	display: table-cell;
+	width: 100%;
+	height: 100%;
+	vertical-align: top;
+}
+.hl-settings-cell.hl-settings-cell-small {
+	width: 0;
+	white-space: nowrap;
+}
+.hl-settings-cell.hl-settings-cell-right {
+	text-align: right;
+}
+.hl-settings-cell.hl-settings-cell-middle {
+	vertical-align: middle;
+}
+.hl-settings-cell-size {
+	position: relative;
+	width: 100%;
+	height: 100%;
+}
+.hl-settings-cell-size-scroll {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	overflow: auto;
+}
+.hl-settings-cell-size-inner {
+	padding: 0.375em;
 }
 
 .hl-settings-overlay {
@@ -576,24 +689,17 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	z-index: 1000;
 }
 
-.hl-settings {
-	display: block !important;
-	font-family: sans-serif;
-	position: fixed !important;
-	width: 60% !important;
-	height: 60% !important;
-	top: 16% !important;
-	left: 20% !important;
-	padding: 8px !important;
-	padding-top: 2px !important;
-	border-radius: 6px !important;
-	z-index: 1001 !important;
-	text-align: left !important;
-	padding-bottom: 64px !important;
+.hl-settings-popup-align {
+	min-height: 80%;
+	height: 200px;
+}
+.hl-settings-popup-content {
+	position: relative;
+	height: 100%;
 }
 
 .hl-settings-button {
-	margin: 0.25em 0.125em;
+	margin: 0 0.125em;
 	display: inline-block !important;
 	padding: 0.25em;
 	background: rgba(0,0,0,0.05);
@@ -613,22 +719,6 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	opacity: 0.9;
 	vertical-align: 75%;
 	text-decoration: none !important;
-}
-
-.hl-settings-content {
-	overflow-y: scroll;
-	text-align: left;
-	height: 100%;
-	margin-top: 1.125em;
-}
-.hl-settings-content-inner {
-	padding: 0.375em;
-}
-.hl-settings-nav {
-	text-align: left !important;
-}
-.hl-settings-nav>div:first-of-type {
-	float: right;
 }
 
 .hl-settings-heading {
