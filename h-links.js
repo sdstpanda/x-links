@@ -405,13 +405,6 @@
 		}
 	};
 	Helper = {
-		div: d.createElement("div"),
-		normalize_api_string: function (text) {
-			Helper.div.innerHTML = text;
-			text = Helper.div.textContent;
-			Helper.div.textContent = "";
-			return text;
-		},
 		regex_escape: function (text) {
 			return text.replace(/[\$\(\)\*\+\-\.\/\?\[\\\]\^\{\|\}]/g, "\\$&");
 		},
@@ -1680,7 +1673,19 @@
 		data_has_full: function (data) {
 			return data.full && data.full.version >= API.full_version;
 		},
+		ehentai_normalize_string: (function () {
+			var div = $.node_simple("div");
+			return function (text) {
+				div.innerHTML = text;
+				text = div.textContent;
+				div.textContent = "";
+				return text;
+			};
+		})(),
 		ehentai_normalize_info: function (info) {
+			info.title = API.ehentai_normalize_string(info.title || "");
+			info.title_jpn = API.ehentai_normalize_string(info.title_jpn || "");
+			info.uploader = API.ehentai_normalize_string(info.uploader || "");
 			info.filecount = parseInt(info.filecount, 10) || 0;
 			info.posted = parseInt(info.posted, 10) || 0;
 			info.rating = parseFloat(info.rating) || 0;
@@ -3034,7 +3039,7 @@
 			var button, actions, hl, c;
 
 			// Link title
-			link.textContent = Helper.normalize_api_string(data.title);
+			link.textContent = data.title;
 			link.setAttribute("data-hl-linkified-status", "formatted");
 
 			// Button
@@ -4276,7 +4281,6 @@
 			if (filters.length > 0) {
 				// Uploader
 				if ((str = data.uploader)) {
-					str = Helper.normalize_api_string(str);
 					info = Filter.check_multiple("uploader", str, filters, data);
 					if (info.any) {
 						Filter.append_match_datas(info, result.uploader);
@@ -4936,11 +4940,11 @@
 			$.add(n5, n6 = $.link(url, "hl-easylist-item-title-tag-link" + theme, UI.button_text(domain)));
 			n6.setAttribute("data-hl-original", n6.textContent);
 
-			$.add(n5, n6 = $.link(url, "hl-easylist-item-title-link" + theme, Helper.normalize_api_string(data.title)));
+			$.add(n5, n6 = $.link(url, "hl-easylist-item-title-link" + theme, data.title));
 			n6.setAttribute("data-hl-original", n6.textContent);
 
 			if (data.title_jpn) {
-				$.add(n4, n5 = $.node("span", "hl-easylist-item-title-jp" + theme, Helper.normalize_api_string(data.title_jpn)));
+				$.add(n4, n5 = $.node("span", "hl-easylist-item-title-jp" + theme, data.title_jpn));
 				n5.setAttribute("data-hl-original", n5.textContent);
 			}
 
