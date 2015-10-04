@@ -236,31 +236,6 @@
 			}
 			return frag;
 		},
-		textnodes: function (elem) {
-			var tn = [],
-				ws = /^\s*$/,
-				getTextNodes;
-
-			getTextNodes = function (node) {
-				var cn, i, ii;
-				for (i = 0, ii = node.childNodes.length; i < ii; ++i) {
-					cn = node.childNodes[i];
-					if (cn.nodeType === Node.TEXT_NODE) {
-						if (!ws.test(cn.nodeValue)) {
-							tn.push(cn);
-						}
-					}
-					else if (cn.nodeType === Node.ELEMENT_NODE) {
-						if (cn.tagName === 'SPAN' || cn.tagName === 'P' || cn.tagName === 'S') {
-							getTextNodes(cn);
-						}
-					}
-				}
-			};
-
-			getTextNodes(elem);
-			return tn;
-		},
 		id: function (id) {
 			return d.getElementById(id);
 		},
@@ -290,10 +265,29 @@
 		},
 		create: function (tag, properties) {
 			var elem = d.createElement(tag);
-			if (properties) {
-				$.extend(elem, properties);
+			if (properties !== undefined) {
+				for (var k in properties) {
+					if (Object.prototype.hasOwnProperty.call(properties, k)) {
+						elem[k] = properties[k];
+					}
+				}
 			}
 			return elem;
+		},
+		node: function (tag, class_name, properties) {
+			var elem = d.createElement(tag);
+			elem.className = class_name;
+			if (properties !== undefined) {
+				for (var k in properties) {
+					if (Object.prototype.hasOwnProperty.call(properties, k)) {
+						elem[k] = properties[k];
+					}
+				}
+			}
+			return elem;
+		},
+		node_simple: function (tag) {
+			return d.createElement(tag);
 		},
 		on: function (elem, eventlist, handler) {
 			var event, i, ii;
@@ -352,7 +346,7 @@
 		},
 		scroll_focus: function (element) {
 			// Focus
-			var n = $.create("textarea");
+			var n = $.node_simple("textarea");
 			$.prepend(element, n);
 			n.focus();
 			n.blur();
@@ -2489,7 +2483,7 @@
 							textContent: result[i][1]
 						}));
 						if (++i >= ii) break;
-						$.add(hover, $.create("br"));
+						$.add(hover, $.node_simple("br"));
 					}
 				}
 				Main.hovering(hover);
@@ -2526,14 +2520,14 @@
 							className: "hl-exsauce-results-link",
 							textContent: (conf["Lookup Domain"] === domains.exhentai) ? "exhentai" : "e-hentai"
 						}));
-						$.add(results, $.create("br"));
+						$.add(results, $.node_simple("br"));
 
 						for (i = 0, ii = result.length; i < ii; ++i) {
 							link = Linkifier.create_link(result[i][0]);
 							$.add(results, link);
 							Linkifier.preprocess_link(link, true);
 							Linkifier.apply_link_events(link);
-							if (i < ii - 1) $.add(results, $.create("br"));
+							if (i < ii - 1) $.add(results, $.node_simple("br"));
 						}
 
 						$.before(n, results);
@@ -5126,7 +5120,7 @@
 				textContent: i + " image" + (i === 1 ? "" : "s")
 			}));
 			if (data.filesize >= 0) {
-				$.add(n6, $.create("br"));
+				$.add(n6, $.node_simple("br"));
 				i = (data.filesize / 1024 / 1024).toFixed(2).replace(/\.?0+$/, "");
 				$.add(n6, $.create("span", {
 					className: "hl-easylist-item-info-light",
