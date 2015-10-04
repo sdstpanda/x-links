@@ -2376,7 +2376,7 @@
 	Sauce = {
 		similar_uploading: false,
 		delays: {
-			similar_okay: 2500,
+			similar_okay: 3000,
 			similar_error: 3000,
 			similar_retry: 5000,
 		},
@@ -2487,11 +2487,15 @@
 		format: function (a, result) {
 			var count = result.length,
 				theme = Theme.get(),
-				index, results, link, n, i, ii;
+				sha1 = a.getAttribute("data-sha1"),
+				index = a.getAttribute("data-hl-image-index") || "",
+				results, link, n, i, ii;
 
 			a.classList.add("hl-exsauce-link-valid");
-			index = a.getAttribute("data-hl-image-index") || "";
 			a.textContent = "Found: " + count;
+			a.href = Sauce.get_sha1_lookup_url(sha1);
+			a.target = "_blank";
+			a.rel = "noreferrer";
 
 			if (count > 0) {
 				if (conf["Inline Results"] === true) {
@@ -2534,7 +2538,7 @@
 
 			HttpRequest({
 				method: "GET",
-				url: a.href,
+				url: Sauce.get_sha1_lookup_url(sha1),
 				onload: function (xhr) {
 					if (xhr.status === 200) {
 						var results = Sauce.get_results(xhr.responseText);
@@ -2592,7 +2596,7 @@
 				onload: function (xhr) {
 					if (xhr.status === 200) {
 						var m = xhr.finalUrl.match(/f_shash=(([0-9a-f]{40}|corrupt)(?:;(?:[0-9a-f]{40}|monotone))*)/),
-							md5, sha1, results;
+							md5, sha1, results, err, n;
 
 						if (m && (sha1 = m[2]) !== "corrupt") {
 							results = Sauce.get_results(xhr.responseText);
@@ -2629,7 +2633,15 @@
 								setTimeout(reset_uploading, Sauce.delays.similar_retry);
 							}
 							else {
-								error_fn("unknown").call(null);
+								Debug.log("An error occured while reverse image searching", xhr);
+								err = "Unknown error";
+								m = Helper.html_parse_safe(xhr.responseText);
+								if (m !== null) {
+									n = $("#iw", m);
+									if (n !== null) err = n.textContent;
+								}
+								a.setAttribute("title", err);
+								error_fn("upload failed").call(null);
 							}
 						}
 					}
@@ -2647,6 +2659,15 @@
 					onabort: error_fn("similar/upload/aborted")
 				}
 			});
+		},
+		get_sha1_lookup_url: function (sha1) {
+			var url = "http://";
+			url += domain_info[conf["Lookup Domain"]].g_domain;
+			url += "/?f_doujinshi=1&f_manga=1&f_artistcg=1&f_gamecg=1&f_western=1&f_non-h=1&f_imageset=1&f_cosplay=1&f_asianporn=1&f_misc=1&f_search=Search+Keywords&f_apply=Apply+Filter&f_shash=";
+			url += sha1;
+			url += "&fs_similar=0";
+			if (conf['Search Expunged']) url += "&fs_exp=1";
+			return url;
 		},
 		get_results: function (response_text) {
 			var results = [],
@@ -2716,21 +2737,14 @@
 			});
 		},
 		check: function (a) {
-			var sha1 = a.getAttribute("data-sha1") || Hash.get("md5", a.getAttribute("data-md5") || "") || null,
-				results;
+			var sha1, results;
 
-			if (!sha1) return null;
-
-			Debug.log('SHA-1 hash found');
-			a.setAttribute('data-sha1', sha1);
-			a.href = "http://" + domain_info[conf["Lookup Domain"]].g_domain + "/?f_doujinshi=1&f_manga=1&f_artistcg=1&f_gamecg=1&f_western=1&f_non-h=1&f_imageset=1&f_cosplay=1&f_asianporn=1&f_misc=1&f_search=Search+Keywords&f_apply=Apply+Filter&f_shash=" + sha1 + "&fs_similar=0";
-			if (conf['Search Expunged'] === true) a.href += '&fs_exp=1';
-			a.target = "_blank";
-			a.rel = "noreferrer";
-
-			results = Hash.get("sha1", sha1);
-			if (results !== null) {
+			if (
+				(sha1 = a.getAttribute("data-sha1") || Hash.get("md5", a.getAttribute("data-md5") || "") || null) !== null &&
+				(results = Hash.get("sha1", sha1)) !== null
+			) {
 				Debug.log('Cached result found; formatting...');
+				a.setAttribute("data-sha1", sha1);
 				Sauce.format(a, results);
 				return true;
 			}
@@ -2756,7 +2770,6 @@
 		},
 		fetch_similar: function (event) {
 			event.preventDefault();
-
 			var res = Sauce.check(this),
 				a = this;
 
