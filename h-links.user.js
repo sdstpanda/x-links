@@ -2,7 +2,7 @@
 // @name        H-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.2
+// @version     1.0.3
 // @description Userscript for pretty linkification of hentai links on 4chan and friends
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -23,13 +23,12 @@
 // @grant       GM_listValues
 // @run-at      document-start
 // ==/UserScript==
-
 (function () {
 	"use strict";
 
 	var timing, domains, domain_info, options, conf, regex, cat, d, t, $, $$,
 		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Options, Config, Main,
-		MutationObserver, Helper, Nodes, HttpRequest, Linkifier, Filter, Theme, EasyList;
+		MutationObserver, Browser, Helper, Nodes, HttpRequest, Linkifier, Filter, Theme, EasyList, Popup, Changelog;
 
 	timing = (function () {
 		var perf = window.performance,
@@ -100,6 +99,7 @@
 	options = {
 		general: {
 			'Automatic Processing':        ['checkbox', true,  'Get data and format links automatically.'],
+			'Show Changelog on Update':    ['checkbox', true,  'Show the changelog after an update.'],
 			'Gallery Details':             ['checkbox', true,  'Show gallery details for link on hover.'],
 			'Gallery Actions':             ['checkbox', true,  'Generate gallery actions for links.'],
 			'ExSauce':                     ['checkbox', true,  'Add ExSauce reverse image search to posts. Disabled in Opera.'],
@@ -253,37 +253,15 @@
 		},
 		frag: function (content) {
 			var frag = d.createDocumentFragment(),
-				div = $.create("div", { innerHTML: content }),
-				n;
-			for (n = div.firstChild; n !== null; n = n.nextSibling) {
-				frag.appendChild(n.cloneNode(true));
+				div = $.node_simple("div"),
+				n, next;
+
+			div.innerHTML = content;
+			for (n = div.firstChild; n !== null; n = next) {
+				next = n.nextSibling;
+				frag.appendChild(n);
 			}
 			return frag;
-		},
-		textnodes: function (elem) {
-			var tn = [],
-				ws = /^\s*$/,
-				getTextNodes;
-
-			getTextNodes = function (node) {
-				var cn, i, ii;
-				for (i = 0, ii = node.childNodes.length; i < ii; ++i) {
-					cn = node.childNodes[i];
-					if (cn.nodeType === Node.TEXT_NODE) {
-						if (!ws.test(cn.nodeValue)) {
-							tn.push(cn);
-						}
-					}
-					else if (cn.nodeType === Node.ELEMENT_NODE) {
-						if (cn.tagName === 'SPAN' || cn.tagName === 'P' || cn.tagName === 'S') {
-							getTextNodes(cn);
-						}
-					}
-				}
-			};
-
-			getTextNodes(elem);
-			return tn;
 		},
 		id: function (id) {
 			return d.getElementById(id);
@@ -312,10 +290,29 @@
 		tnode: function (text) {
 			return d.createTextNode(text);
 		},
-		create: function (tag, properties) {
+		node: function (tag, class_name, text) {
 			var elem = d.createElement(tag);
-			if (properties) {
-				$.extend(elem, properties);
+			elem.className = class_name;
+			if (text !== undefined) {
+				elem.textContent = text;
+			}
+			return elem;
+		},
+		node_simple: function (tag) {
+			return d.createElement(tag);
+		},
+		link: function (href, class_name, text) {
+			var elem = d.createElement("a");
+			if (href !== undefined) {
+				elem.href = href;
+				elem.target = "_blank";
+				elem.rel = "noreferrer";
+			}
+			if (class_name !== undefined) {
+				elem.className = class_name;
+			}
+			if (text !== undefined) {
+				elem.textContent = text;
 			}
 			return elem;
 		},
@@ -351,18 +348,6 @@
 			catch (e) {}
 			return false;
 		},
-		link: function (href, properties) {
-			var elem = d.createElement("a");
-			if (href !== null) {
-				elem.href = href;
-				elem.target = "_blank";
-				elem.rel = "noreferrer";
-			}
-			if (properties) {
-				$.extend(elem, properties);
-			}
-			return elem;
-		},
 		push_many: function (target, new_entries) {
 			var max_push = 1000;
 			if (new_entries.length < max_push) {
@@ -376,7 +361,7 @@
 		},
 		scroll_focus: function (element) {
 			// Focus
-			var n = $.create("textarea");
+			var n = $.node_simple("textarea");
 			$.prepend(element, n);
 			n.focus();
 			n.blur();
@@ -387,6 +372,10 @@
 			element.scrollLeft = 0;
 		}
 	});
+	Browser = {
+		is_opera: /presto/i.test("" + navigator.userAgent),
+		is_firefox: /firefox/i.test("" + navigator.userAgent)
+	};
 	Debug = {
 		started: false,
 		log: function () {},
@@ -421,7 +410,7 @@
 
 			// Debug functions
 			Debug.log = function () {
-				var args = [ "H-links " + Main.version + ":" ].concat(Array.prototype.slice.call(arguments));
+				var args = [ "H-links " + Main.version.join(".") + ":" ].concat(Array.prototype.slice.call(arguments));
 				console.log.apply(console, args);
 			};
 			Debug.timer = function (name, dont_format) {
@@ -440,13 +429,6 @@
 		}
 	};
 	Helper = {
-		div: d.createElement("div"),
-		normalize_api_string: function (text) {
-			Helper.div.innerHTML = text;
-			text = Helper.div.textContent;
-			Helper.div.textContent = "";
-			return text;
-		},
 		regex_escape: function (text) {
 			return text.replace(/[\$\(\)\*\+\-\.\/\?\[\\\]\^\{\|\}]/g, "\\$&");
 		},
@@ -530,11 +512,12 @@
 
 			if (
 				container !== null &&
-				(node = $(".hl-exsauce-results", container)) !== null &&
+				(node = $(".hl-exsauce-results[data-hl-image-index='" + node.getAttribute("data-hl-image-index") + "']", container)) !== null &&
 				Helper.Post.get_post_container(node) === container
 			) {
 				return node;
 			}
+
 			return null;
 		},
 		get_url_info: function (url) {
@@ -705,6 +688,7 @@
 		})(),
 		Post: (function () {
 			var specific, fns, post_selector, post_body_selector, post_parent_find, get_file_info,
+				get_op_post_files_container_tinyboard,
 				belongs_to, body_links, file_ext, file_name;
 
 			specific = function (obj, def) {
@@ -717,6 +701,13 @@
 			file_name = function (url) {
 				url = url.split("/");
 				return url[url.length - 1];
+			};
+
+			get_op_post_files_container_tinyboard = function (node) {
+				while (true) {
+					if ((node = node.previousSibling) === null) return null;
+					if (node.classList && node.classList.contains("files")) return node;
+				}
 			};
 
 			post_selector = {
@@ -744,7 +735,12 @@
 				},
 				"tinyboard": function (node) {
 					while ((node = node.parentNode) !== null) {
-						if (node.classList.contains("post")) return node;
+						if (node.classList.contains("post")) {
+							return node;
+						}
+						else if (node.classList.contains("thread")) {
+							return $(".post.op", node);
+						}
 					}
 					return null;
 				}
@@ -752,21 +748,22 @@
 			};
 			get_file_info = {
 				"4chan": function (post) {
-					var n = $(".file", post),
-						ft, img, a1, url, i;
+					var n, ft, img, a1, url, i;
 
-					if (n === null || !specific(belongs_to, "").call(null, n, post)) return null;
-
-					ft = $(".fileText", n);
-					img = $("img", n);
-					a1 = $("a", n);
-
-					if (ft === null || img === null || a1 === null) return null;
+					if (
+						(n = $(".file", post)) === null ||
+						!specific(belongs_to, "").call(null, n, post) ||
+						(ft = $(".fileText", n)) === null ||
+						(img = $("img", n)) === null ||
+						(a1 = $("a", n)) === null
+					) {
+						return [];
+					}
 
 					url = a1.href;
 					if ((i = url.indexOf("#")) >= 0) url = url.substr(0, i);
 
-					return {
+					return [{
 						image: img,
 						image_link: img.parentNode,
 						text_link: a1,
@@ -778,24 +775,25 @@
 						type: file_ext(url),
 						name: file_name(url),
 						md5: img.getAttribute("data-md5") || null
-					};
+					}];
 				},
 				"foolz": function (post) {
-					var n = $(".thread_image_box", post),
-						ft, img, a1, url, i;
+					var n, ft, img, a1, url, i;
 
-					if (n === null || !specific(belongs_to, "").call(null, n, post)) return null;
-
-					ft = $(".post_file_controls", post);
-					img = $("img", n);
-					a1 = $(".post_file_filename", post);
-
-					if (ft === null || img === null || a1 === null) return null;
+					if (
+						(n = $(".thread_image_box", post)) === null ||
+						!specific(belongs_to, "").call(null, n, post) ||
+						(ft = $(".post_file_controls", post)) === null ||
+						(img = $("img", n)) === null ||
+						(a1 = $(".post_file_filename", post)) === null
+					) {
+						return [];
+					}
 
 					url = a1.href;
 					if ((i = url.indexOf("#")) >= 0) url = url.substr(0, i);
 
-					return {
+					return [{
 						image: img,
 						image_link: img.parentNode,
 						text_link: a1,
@@ -807,38 +805,65 @@
 						type: file_ext(url),
 						name: file_name(url),
 						md5: img.getAttribute("data-md5") || null
-					};
+					}];
 				},
 				"tinyboard": function (post) {
-					var img = $("img", post),
-						ft, a1, n, url, i;
+					var results = [],
+						imgs, infos, img, array, ft, a1, n, url, i, ii, j;
 
-					if (img === null || !specific(belongs_to, "").call(null, img, post) || img.parentNode.tagName !== "A") return null;
+					if (post.classList.contains("op")) {
+						n = get_op_post_files_container_tinyboard(post);
+						if (n === null) return results;
 
-					n = $(".fileinfo", post);
-					if (n === null) return null;
+						imgs = $$("a>img", n);
+						infos = $$(".fileinfo", n);
+						ii = Math.min(imgs.length, infos.length);
+					}
+					else {
+						imgs = $$("a>img", post);
+						array = [];
+						for (i = 0, ii = imgs.length; i < ii; ++i) {
+							img = imgs[i];
+							if (specific(belongs_to, "").call(null, img, post)) {
+								array.push(img);
+							}
+						}
+						imgs = array;
 
-					ft = $(".unimportant", n);
-					a1 = $("a", n);
+						infos = $$(".fileinfo", post);
+						ii = Math.min(imgs.length, infos.length);
+					}
 
-					if (ft === null || a1 === null) return null;
+					for (i = 0; i < ii; ++i) {
+						img = imgs[i];
+						n = infos[i];
 
-					url = img.parentNode.href || a1.href;
-					if ((i = url.indexOf("#")) >= 0) url = url.substr(0, i);
+						if (
+							(ft = $(".unimportant", n)) === null ||
+							(a1 = $("a", n)) === null
+						) {
+							continue;
+						}
 
-					return {
-						image: img,
-						image_link: img.parentNode,
-						text_link: a1,
-						options: ft,
-						options_before: null,
-						options_class: "",
-						options_sep: " ",
-						url: url,
-						type: file_ext(url),
-						name: file_name(url),
-						md5: img.getAttribute("data-md5") || null
-					};
+						url = img.parentNode.href || a1.href;
+						if ((j = url.indexOf("#")) >= 0) url = url.substr(0, j);
+
+						results.push({
+							image: img,
+							image_link: img.parentNode,
+							text_link: a1,
+							options: ft,
+							options_before: null,
+							options_class: "",
+							options_sep: " ",
+							url: url,
+							type: file_ext(url),
+							name: file_name(url),
+							md5: img.getAttribute("data-md5") || null
+						});
+					}
+
+					return results;
 				}
 			};
 			belongs_to = {
@@ -880,7 +905,8 @@
 				get_body_links: function (post) {
 					var selector = specific(body_links, "tinyboard");
 					return selector ? $$(selector, post) : [];
-				}
+				},
+				get_op_post_files_container_tinyboard: get_op_post_files_container_tinyboard
 			};
 
 			return fns;
@@ -915,7 +941,7 @@
 	})();
 	UI = {
 		html: {
-			details: function (data, data_alt) { return '<div class="hl-details hl-hover-shadow post reply post_wrapper hl-fake-post hl-theme" data-hl-id="'+data_alt.site+'_'+data.gid+'"><div class="hl-details-thumbnail"></div><div class="hl-details-side-panel"><span class="hl-button hl-button-eh hl-button-'+data_alt.category_type+'"><div class="hl-noise">'+cat[data.category].name+'</div></span><div class="hl-details-side-box hl-details-side-box-rating hl-theme"><div><strong>Rating:</strong></div><div class="hl-details-rating hl-stars-container">'+UI.html.stars(data.rating)+'</div><div class="hl-details-rating-text">(Avg. '+data.rating+')</div></div><div class="hl-details-side-box hl-details-side-box-files hl-theme"><div><strong>Files:</strong></div><div class="hl-details-file-count">'+data.filecount+' image'+(data.filecount === 1 ? "" : "s")+'</div><div class="hl-details-file-size">('+data_alt.size+' MB)</div></div><div class="hl-details-side-box hl-details-side-box-torrents hl-theme"><div><strong>Torrents:</strong> '+data.torrentcount+'</div></div><div class="hl-details-side-box hl-details-side-box-visible hl-theme"><div><strong>Visible:</strong> '+data_alt.visible+'</div></div></div><a class="hl-details-title" href="#">'+data.title+'</a> '+data_alt.jtitle+'<br><br><span class="hl-details-upload-info">Uploaded by <strong class="hl-details-uploader">'+data.uploader+'</strong> on <strong class="hl-details-upload-date">'+data_alt.datetext+'</strong></span><br><br><span class="hl-details-tag-block"><strong class="hl-details-tag-block-label">Tags:</strong><span class="hl-details-tags hl-tags" data-hl-id="'+data_alt.site+'_'+data.gid+'"></span></span><div class="hl-details-clear"></div></div>'; },
+			details: function (data, data_alt) { return '<div class="hl-details hl-hover-shadow post reply post_wrapper hl-fake-post hl-theme" data-hl-id="'+data_alt.site+'_'+data.gid+'"><div class="hl-details-thumbnail"></div><div class="hl-details-side-panel"><span class="hl-button hl-button-eh hl-button-'+data_alt.category_type+'"><div class="hl-noise">'+cat[data.category].name+'</div></span><div class="hl-details-side-box hl-details-side-box-rating hl-theme"><div><strong>Rating:</strong></div><div class="hl-details-rating hl-stars-container">'+UI.html.stars(data.rating)+'</div><div class="hl-details-rating-text">(Avg. '+data.rating.toFixed(2)+')</div></div><div class="hl-details-side-box hl-details-side-box-files hl-theme"><div><strong>Files:</strong></div><div class="hl-details-file-count">'+data.filecount+' image'+(data.filecount === 1 ? "" : "s")+'</div><div class="hl-details-file-size">('+data_alt.size+' MB)</div></div><div class="hl-details-side-box hl-details-side-box-torrents hl-theme"><div><strong>Torrents:</strong> '+data.torrentcount+'</div></div><div class="hl-details-side-box hl-details-side-box-visible hl-theme"><div><strong>Visible:</strong> '+data_alt.visible+'</div></div></div><a class="hl-details-title" href="#">'+data.title+'</a> '+data_alt.jtitle+'<br><br><span class="hl-details-upload-info">Uploaded by <strong class="hl-details-uploader">'+data.uploader+'</strong> on <strong class="hl-details-upload-date">'+data_alt.datetext+'</strong></span><br><br><span class="hl-details-tag-block"><strong class="hl-details-tag-block-label">Tags:</strong><span class="hl-details-tags hl-tags" data-hl-id="'+data_alt.site+'_'+data.gid+'"></span></span><div class="hl-details-clear"></div></div>'; },
 			actions: function (data, domain) {
 				var gid = data.gid,
 					token = data.token,
@@ -965,22 +991,23 @@
 
 				return src;
 			},
-			options: function () { return '<div class="hl-settings-overlay hl-theme"><div class="hl-settings hl-hover-shadow post reply post_wrapper hl-fake-post hl-theme"><div class="hl-settings-nav"><div><div class="hl-settings-button hl-theme"><a class="hl-settings-button-link-changelog" href="https://raw.githubusercontent.com/dnsev-h/h-links/master/changelog" target="_blank" rel="noreferrer">Changelog</a></div><div class="hl-settings-button hl-theme"><a class="hl-settings-button-link-issues" href="https://github.com/dnsev-h/h-links/issues" target="_blank" rel="noreferrer">Issues</a></div><div class="hl-settings-button hl-theme"><a class="hl-settings-button-link-save" href="#">Save Settings</a></div><div class="hl-settings-button hl-theme"><a class="hl-settings-button-link-cancel" href="#">Cancel</a></div></div><a class="hl-settings-title" href="https://dnsev-h.github.io/h-links/" target="_blank" rel="noreferrer">H-links</a><span class="hl-settings-version">'+Main.version+'</span></div><div class="hl-settings-content"><div class="hl-settings-content-inner"><div class="hl-settings-heading"><div><span class="hl-settings-heading-cell hl-settings-heading-title">General</span> <span class="hl-settings-heading-cell hl-settings-heading-subtitle">Note: you must reload the page after saving for some changes to take effect</span></div></div><div class="hl-settings-group hl-settings-group-general hl-theme"></div><div class="hl-settings-heading"><div><span class="hl-settings-heading-cell hl-settings-heading-title">Gallery Actions</span></div></div><div class="hl-settings-group hl-settings-group-actions hl-theme"></div><div class="hl-settings-heading"><div><span class="hl-settings-heading-cell hl-settings-heading-title">ExSauce</span></div></div><div class="hl-settings-group hl-settings-group-sauce hl-theme"></div><div class="hl-settings-heading"><div><span class="hl-settings-heading-cell hl-settings-heading-title">Filtering</span> <span class="hl-settings-heading-cell hl-settings-heading-subtitle"><a class="hl-settings-filter-guide-toggle">Click here to toggle the guide</a></span></div></div><div class="hl-settings-filter-guide hl-settings-group hl-theme">Lines starting with <code>/</code> will be treated as <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions" target="_blank" rel="noreferrer nofollow">regular expressions</a>. <span style="opacity: 0.75">(This is very similar to 4chan-x style filtering)</span><br>Lines starting with <code>#</code> are comments and will be ignored.<br>Lines starting with neither <code>#</code> nor <code>/</code> will be treated as a case-insensitive string to match anywhere.<br>For example, <code>/touhou/i</code> will highlight entries containing the string `<code>touhou</code>`, case-insensitive.<br><br>You can use these additional settings with each regular expression, separate them with semicolons:<br><ul><li>Apply the filter to different scopes. By default, the scope is <code>title;tags;</code>.<br>For example: <code>tags;</code> or <code>uploader;title;</code>.<br></li><li>Force a gallery to not be highlighted. If omitted, the gallery will be highlighted as normal.<br>For example: <code>bad:yes;</code> or <code>bad:no;</code>.</li><li>Only apply the filter if the category of the gallery matches one from a list.<br>For example: <code>only:doujinshi,manga;</code>.<div style="font-size: 0.9em; margin-top: 0.1em; opacity: 0.75">Categories: <span>artistcg, asianporn, cosplay, doujinshi, gamecg, imageset, manga, misc, <span style="white-space: nowrap">non-h</span>, private, western</span></div></li><li>Only apply the filter if the category of the gallery doesn&quot;t match <strong>any</strong> from a list.<br>For example: <code>not:western,non-h;</code>.</li><li>Apply a colored decoration to the matched text.<br>For example: <code>color:red;</code>, <code>underline:#0080f0;</code>, or <code>background:rgba(0,255,0,0.5);</code>.</li><li>Apply a colored decoration to the [Ex] or [EH] tag.<br>For example: <code>link-color:blue;</code>, <code>link-underline:#bf48b5;</code>, or <code>link-background:rgba(220,200,20,0.5);</code>.</li></ul>Additionally, some settings have aliases. If multiple exist, only the main one will be used.<br><ul><li><code>tags: tag</code></li><li><code>only: category, cat</code></li><li><code>color: c</code></li><li><code>underline: u</code></li><li><code>background: bg</code></li><li><code>link-color: link-c, lc</code></li><li><code>link-underline: link-u, lu</code></li><li><code>link-background: link-bg, lbg</code></li></ul>For easy <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value#Color_keywords" target="_blank" rel="noreferrer nofollow">HTML color</a> selection, you can use the following helper to select a color:<br><br><div><input type="color" value="#808080" class="hl-settings-color-input"><input type="text" value="#808080" class="hl-settings-color-input" readonly="readonly"><input type="text" value="rgba(128,128,128,1)" class="hl-settings-color-input" readonly="readonly"></div></div><div class="hl-settings-group hl-settings-group-filter hl-theme"></div><div class="hl-settings-heading"><div><span class="hl-settings-heading-cell hl-settings-heading-title">Debugging</span></div></div><div class="hl-settings-group hl-settings-group-debug hl-theme"></div></div></div></div></div>'; },
-			stars: function (data) {
-				var str = '',
-					star = '',
-					rating = Math.round(parseFloat(data) * 2),
-					tmp, i;
+			options: function () { return '<div class="hl-settings-heading"><div><span class="hl-settings-heading-cell hl-settings-heading-title">General</span> <span class="hl-settings-heading-cell hl-settings-heading-subtitle">Note: you must reload the page after saving for some changes to take effect</span></div></div><div class="hl-settings-group hl-settings-group-general hl-theme"></div><div class="hl-settings-heading"><div><span class="hl-settings-heading-cell hl-settings-heading-title">Gallery Actions</span></div></div><div class="hl-settings-group hl-settings-group-actions hl-theme"></div><div class="hl-settings-heading"><div><span class="hl-settings-heading-cell hl-settings-heading-title">ExSauce</span></div></div><div class="hl-settings-group hl-settings-group-sauce hl-theme"></div><div class="hl-settings-heading"><div><span class="hl-settings-heading-cell hl-settings-heading-title">Filtering</span> <span class="hl-settings-heading-cell hl-settings-heading-subtitle"><a class="hl-settings-filter-guide-toggle">Click here to toggle the guide</a></span></div></div><div class="hl-settings-filter-guide hl-settings-group hl-theme">Lines starting with <code>/</code> will be treated as <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions" target="_blank" rel="noreferrer nofollow">regular expressions</a>. <span style="opacity: 0.75">(This is very similar to 4chan-x style filtering)</span><br>Lines starting with <code>#</code> are comments and will be ignored.<br>Lines starting with neither <code>#</code> nor <code>/</code> will be treated as a case-insensitive string to match anywhere.<br>For example, <code>/touhou/i</code> will highlight entries containing the string `<code>touhou</code>`, case-insensitive.<br><br>You can use these additional settings with each regular expression, separate them with semicolons:<br><ul><li>Apply the filter to different scopes. By default, the scope is <code>title;tags;</code>.<br>For example: <code>tags;</code> or <code>uploader;title;</code>.<br></li><li>Force a gallery to not be highlighted. If omitted, the gallery will be highlighted as normal.<br>For example: <code>bad:yes;</code> or <code>bad:no;</code>.</li><li>Only apply the filter if the category of the gallery matches one from a list.<br>For example: <code>only:doujinshi,manga;</code>.<div style="font-size: 0.9em; margin-top: 0.1em; opacity: 0.75">Categories: <span>artistcg, asianporn, cosplay, doujinshi, gamecg, imageset, manga, misc, <span style="white-space: nowrap">non-h</span>, private, western</span></div></li><li>Only apply the filter if the category of the gallery doesn&quot;t match <strong>any</strong> from a list.<br>For example: <code>not:western,non-h;</code>.</li><li>Apply a colored decoration to the matched text.<br>For example: <code>color:red;</code>, <code>underline:#0080f0;</code>, or <code>background:rgba(0,255,0,0.5);</code>.</li><li>Apply a colored decoration to the [Ex] or [EH] tag.<br>For example: <code>link-color:blue;</code>, <code>link-underline:#bf48b5;</code>, or <code>link-background:rgba(220,200,20,0.5);</code>.</li></ul>Additionally, some settings have aliases. If multiple exist, only the main one will be used.<br><ul><li><code>tags: tag</code></li><li><code>only: category, cat</code></li><li><code>color: c</code></li><li><code>underline: u</code></li><li><code>background: bg</code></li><li><code>link-color: link-c, lc</code></li><li><code>link-underline: link-u, lu</code></li><li><code>link-background: link-bg, lbg</code></li></ul>For easy <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value#Color_keywords" target="_blank" rel="noreferrer nofollow">HTML color</a> selection, you can use the following helper to select a color:<br><br><div><input type="color" value="#808080" class="hl-settings-color-input"><input type="text" value="#808080" class="hl-settings-color-input" readonly="readonly"><input type="text" value="rgba(128,128,128,1)" class="hl-settings-color-input" readonly="readonly"></div></div><div class="hl-settings-group hl-settings-group-filter hl-theme"></div><div class="hl-settings-heading"><div><span class="hl-settings-heading-cell hl-settings-heading-title">Debugging</span></div></div><div class="hl-settings-group hl-settings-group-debug hl-theme"></div>'; },
+			stars: function (rating) {
+				var str = "",
+					star, tmp, i;
+
+				rating = Math.round(rating * 2);
 
 				for (i = 0; i < 5; ++i) {
 					tmp = $.clamp(rating - (i * 2), 0, 2);
 					switch (tmp) {
-						case 0: star = 'none'; break;
-						case 1: star = 'half'; break;
-						case 2: star = 'full'; break;
+						case 1: star = "half"; break;
+						case 2: star = "full"; break;
+						default: star = "none"; break;
 					}
 					str += '<div class="hl-star hl-star-' + (i + 1) + ' hl-star-' + star + '"></div>';
 				}
+
 				return str;
 			}
 		},
@@ -1062,7 +1089,7 @@
 			data_alt.jtitle = data.title_jpn ? ('<br /><span class="hl-details-title-jp">' + data.title_jpn + '</span>') : '';
 			data_alt.site = di.type;
 			data_alt.size = Math.round((data.filesize / 1024 / 1024) * 100) / 100;
-			data_alt.datetext = UI.date(new Date(parseInt(data.posted, 10) * 1000));
+			data_alt.datetext = UI.date(new Date(data.posted * 1000));
 			data_alt.visible = data.expunged ? 'No' : 'Yes';
 			data_alt.category_type = (o = cat[data.category]) === undefined ? "misc" : o.short;
 
@@ -1156,10 +1183,7 @@
 			return container;
 		},
 		button: function (url, domain) {
-			var button = $.link(url, {
-				className: 'hl-link-events hl-site-tag',
-				textContent: UI.button_text(domain)
-			});
+			var button = $.link(url, "hl-link-events hl-site-tag", UI.button_text(domain));
 			button.setAttribute("data-hl-link-events", "gallery_fetch");
 			return button;
 		},
@@ -1222,11 +1246,8 @@
 				tag, link, i, ii;
 
 			for (i = 0, ii = tags.length; i < ii; ++i) {
-				tag = $.create("span", { className: "hl-tag-block" + theme });
-				link = $.link(Helper.Site.create_tag_url(tags[i], domain, site), {
-					textContent: tags[i],
-					className: "hl-tag"
-				});
+				tag = $.node("span", "hl-tag-block" + theme);
+				link = $.link(Helper.Site.create_tag_url(tags[i], domain, site), "hl-tag", tags[i]);
 
 				Filter.highlight("tags", link, data, null);
 
@@ -1251,27 +1272,17 @@
 				if (ii === 0) continue;
 				namespace_style = theme + " hl-tag-namespace-" + namespace.replace(/\s+/g, "-");
 
-				tag = $.create("span", {
-					className: "hl-tag-namespace-block" + namespace_style
-				});
-				link = $.create("span", {
-					textContent: namespace,
-					className: "hl-tag-namespace"
-				});
-				tf = $.create("span", {
-					className: "hl-tag-namespace-first"
-				});
+				tag = $.node("span", "hl-tag-namespace-block" + namespace_style);
+				link = $.node("span", "hl-tag-namespace", namespace);
+				tf = $.node("span", "hl-tag-namespace-first");
 				$.add(tag, link);
 				$.add(tag, $.tnode(":"));
 				$.add(tf, tag);
 				$.add(tagfrag, tf);
 
 				for (i = 0; i < ii; ++i) {
-					tag = $.create("span", { className: "hl-tag-block" + namespace_style });
-					link = $.link(Helper.Site.create_tag_ns_url(tags[i], namespace, domain, site), {
-						textContent: tags[i],
-						className: "hl-tag"
-					});
+					tag = $.node("span", "hl-tag-block" + namespace_style);
+					link = $.link(Helper.Site.create_tag_ns_url(tags[i], namespace, domain, site), "hl-tag", tags[i]);
 
 					Filter.highlight("tags", link, data, null);
 
@@ -1416,7 +1427,7 @@
 					response: function (text) {
 						var html = Helper.html_parse_safe(text, null);
 						if (html !== null) {
-							return [ API.parse_full_info(html) ];
+							return [ API.ehentai_parse_info(html) ];
 						}
 						return null;
 					}
@@ -1607,6 +1618,7 @@
 				[ gid, token ],
 				function (err, data, last) {
 					if (err === null) {
+						data = API.ehentai_normalize_info(data);
 						Database.set("ehentai", data);
 					}
 					else {
@@ -1685,7 +1697,27 @@
 		data_has_full: function (data) {
 			return data.full && data.full.version >= API.full_version;
 		},
-		parse_full_info: function (html) {
+		ehentai_normalize_string: (function () {
+			var div = $.node_simple("div");
+			return function (text) {
+				div.innerHTML = text;
+				text = div.textContent;
+				div.textContent = "";
+				return text;
+			};
+		})(),
+		ehentai_normalize_info: function (info) {
+			info.title = API.ehentai_normalize_string(info.title || "");
+			info.title_jpn = API.ehentai_normalize_string(info.title_jpn || "");
+			info.uploader = API.ehentai_normalize_string(info.uploader || "");
+			info.filecount = parseInt(info.filecount, 10) || 0;
+			info.posted = parseInt(info.posted, 10) || 0;
+			info.rating = parseFloat(info.rating) || 0;
+			info.torrentcount = parseInt(info.torrentcount, 10) || 0;
+
+			return info;
+		},
+		ehentai_parse_info: function (html) {
 			var tags = {},
 				data = {
 					version: API.full_version,
@@ -2155,7 +2187,7 @@
 			var now = Date.now();
 
 			if (ttl === 0) {
-				ttl = ((now - parseInt(data.posted, 10) < 12 * t.HOUR) ? 1 : 12) * t.HOUR; // Update more frequently for recent uploads
+				ttl = ((now - data.posted < 12 * t.HOUR) ? 1 : 12) * t.HOUR; // Update more frequently for recent uploads
 			}
 
 			Cache.type.setItem(Cache.namespace + type + "-" + key, JSON.stringify({
@@ -2356,7 +2388,7 @@
 	Sauce = {
 		similar_uploading: false,
 		delays: {
-			similar_okay: 2500,
+			similar_okay: 3000,
 			similar_error: 3000,
 			similar_retry: 5000,
 		},
@@ -2442,20 +2474,17 @@
 				var result = Hash.get("sha1", sha1),
 					hover, i, ii;
 
-				hover = $.create("div", {
-					className: "hl-exsauce-hover hl-exsauce-hover-hidden post hl-hover-shadow reply post_wrapper hl-fake-post" + Theme.get()
-				});
+				hover = $.node("div",
+					"hl-exsauce-hover hl-exsauce-hover-hidden post hl-hover-shadow reply post_wrapper hl-fake-post" + Theme.get()
+				);
 				hover.setAttribute("data-sha1", sha1);
 
 				if (result !== null && (ii = result.length) > 0) {
 					i = 0;
 					while (true) {
-						$.add(hover, $.link(result[i][0], {
-							className: "hl-exsauce-hover-link",
-							textContent: result[i][1]
-						}));
+						$.add(hover, $.link(result[i][0], "hl-exsauce-hover-link", result[i][1]));
 						if (++i >= ii) break;
-						$.add(hover, $.create("br"));
+						$.add(hover, $.node_simple("br"));
 					}
 				}
 				Main.hovering(hover);
@@ -2467,10 +2496,15 @@
 		format: function (a, result) {
 			var count = result.length,
 				theme = Theme.get(),
+				sha1 = a.getAttribute("data-sha1"),
+				index = a.getAttribute("data-hl-image-index") || "",
 				results, link, n, i, ii;
 
 			a.classList.add("hl-exsauce-link-valid");
 			a.textContent = "Found: " + count;
+			a.href = Sauce.get_sha1_lookup_url(sha1);
+			a.target = "_blank";
+			a.rel = "noreferrer";
 
 			if (count > 0) {
 				if (conf["Inline Results"] === true) {
@@ -2478,22 +2512,20 @@
 						(n = Helper.Post.get_post_container(a)) !== null &&
 						(n = Helper.Post.get_text_body(n)) !== null
 					) {
-						results = $.create("div", { className: "hl-exsauce-results" + theme });
-						$.add(results, $.create("strong", { textContent: "Reverse Image Search Results" }));
-						$.add(results, $.create("span", { className: "hl-exsauce-results-sep", textContent: "|" }));
-						$.add(results, $.create("span", { className: "hl-exsauce-results-label", textContent: "View on:" }));
-						$.add(results, $.link(a.href, {
-							className: "hl-exsauce-results-link",
-							textContent: (conf["Lookup Domain"] === domains.exhentai) ? "exhentai" : "e-hentai"
-						}));
-						$.add(results, $.create("br"));
+						results = $.node("div", "hl-exsauce-results" + theme);
+						results.setAttribute("data-hl-image-index", index);
+						$.add(results, $.node("strong", "hl-exsauce-results-title", "Reverse Image Search Results"));
+						$.add(results, $.node("span", "hl-exsauce-results-sep", "|" ));
+						$.add(results, $.node("span", "hl-exsauce-results-label", "View on:"));
+						$.add(results, $.link(a.href, "hl-exsauce-results-link", (conf["Lookup Domain"] === domains.exhentai) ? "exhentai" : "e-hentai"));
+						$.add(results, $.node_simple("br"));
 
 						for (i = 0, ii = result.length; i < ii; ++i) {
 							link = Linkifier.create_link(result[i][0]);
 							$.add(results, link);
 							Linkifier.preprocess_link(link, true);
 							Linkifier.apply_link_events(link);
-							if (i < ii - 1) $.add(results, $.create("br"));
+							if (i < ii - 1) $.add(results, $.node_simple("br"));
 						}
 
 						$.before(n, results);
@@ -2512,7 +2544,7 @@
 
 			HttpRequest({
 				method: "GET",
-				url: a.href,
+				url: Sauce.get_sha1_lookup_url(sha1),
 				onload: function (xhr) {
 					if (xhr.status === 200) {
 						var results = Sauce.get_results(xhr.responseText);
@@ -2570,7 +2602,7 @@
 				onload: function (xhr) {
 					if (xhr.status === 200) {
 						var m = xhr.finalUrl.match(/f_shash=(([0-9a-f]{40}|corrupt)(?:;(?:[0-9a-f]{40}|monotone))*)/),
-							md5, sha1, results;
+							md5, sha1, results, err, n;
 
 						if (m && (sha1 = m[2]) !== "corrupt") {
 							results = Sauce.get_results(xhr.responseText);
@@ -2607,7 +2639,15 @@
 								setTimeout(reset_uploading, Sauce.delays.similar_retry);
 							}
 							else {
-								error_fn("unknown").call(null);
+								Debug.log("An error occured while reverse image searching", xhr);
+								err = "Unknown error";
+								m = Helper.html_parse_safe(xhr.responseText);
+								if (m !== null) {
+									n = $("#iw", m);
+									if (n !== null) err = n.textContent;
+								}
+								a.setAttribute("title", err);
+								error_fn("upload failed").call(null);
 							}
 						}
 					}
@@ -2625,6 +2665,15 @@
 					onabort: error_fn("similar/upload/aborted")
 				}
 			});
+		},
+		get_sha1_lookup_url: function (sha1) {
+			var url = "http://";
+			url += domain_info[conf["Lookup Domain"]].g_domain;
+			url += "/?f_doujinshi=1&f_manga=1&f_artistcg=1&f_gamecg=1&f_western=1&f_non-h=1&f_imageset=1&f_cosplay=1&f_asianporn=1&f_misc=1&f_search=Search+Keywords&f_apply=Apply+Filter&f_shash=";
+			url += sha1;
+			url += "&fs_similar=0";
+			if (conf['Search Expunged']) url += "&fs_exp=1";
+			return url;
 		},
 		get_results: function (response_text) {
 			var results = [],
@@ -2694,21 +2743,14 @@
 			});
 		},
 		check: function (a) {
-			var sha1 = a.getAttribute("data-sha1") || Hash.get("md5", a.getAttribute("data-md5") || "") || null,
-				results;
+			var sha1, results;
 
-			if (!sha1) return null;
-
-			Debug.log('SHA-1 hash found');
-			a.setAttribute('data-sha1', sha1);
-			a.href = "http://" + domain_info[conf["Lookup Domain"]].g_domain + "/?f_doujinshi=1&f_manga=1&f_artistcg=1&f_gamecg=1&f_western=1&f_non-h=1&f_imageset=1&f_cosplay=1&f_asianporn=1&f_misc=1&f_search=Search+Keywords&f_apply=Apply+Filter&f_shash=" + sha1 + "&fs_similar=0";
-			if (conf['Search Expunged'] === true) a.href += '&fs_exp=1';
-			a.target = "_blank";
-			a.rel = "noreferrer";
-
-			results = Hash.get("sha1", sha1);
-			if (results !== null) {
+			if (
+				(sha1 = a.getAttribute("data-sha1") || Hash.get("md5", a.getAttribute("data-md5") || "") || null) !== null &&
+				(results = Hash.get("sha1", sha1)) !== null
+			) {
 				Debug.log('Cached result found; formatting...');
+				a.setAttribute("data-sha1", sha1);
 				Sauce.format(a, results);
 				return true;
 			}
@@ -2734,7 +2776,6 @@
 		},
 		fetch_similar: function (event) {
 			event.preventDefault();
-
 			var res = Sauce.check(this),
 				a = this;
 
@@ -2957,10 +2998,7 @@
 			);
 		},
 		create_link: function (text) {
-			return $.link(text, {
-				className: "hl-linkified",
-				textContent: text
-			});
+			return $.link(text, "hl-linkified", text);
 		},
 		preprocess_link: function (node, auto_load) {
 			var url = node.href,
@@ -3025,7 +3063,7 @@
 			var button, actions, hl, c;
 
 			// Link title
-			link.textContent = Helper.normalize_api_string(data.title);
+			link.textContent = data.title;
 			link.setAttribute("data-hl-linkified-status", "formatted");
 
 			// Button
@@ -3044,12 +3082,8 @@
 			$.after(link, actions);
 		},
 		format_links_error: function (links, error) {
-			var button, link, msg_data, i, ii;
-
-			msg_data = {
-				className: "hl-linkified-error-message",
-				textContent: " (" + error.trim().replace(/\.$/, "") + ")"
-			};
+			var text = " (" + error.trim().replace(/\.$/, "") + ")",
+				button, link, i, ii;
 
 			for (i = 0, ii = links.length; i < ii; ++i) {
 				link = links[i];
@@ -3061,7 +3095,7 @@
 
 				link.classList.add("hl-linkified-error");
 				link.setAttribute("data-hl-linkified-status", "formatted_error");
-				$.add(link, $.create("span", msg_data));
+				$.add(link, $.node("span", "hl-linkified-error-message", text));
 			}
 		},
 		apply_link_events: function (node, check_children) {
@@ -3118,7 +3152,8 @@
 			}
 		},
 		parse_posts: function (posts) {
-			var post, i, ii;
+			var check_files_before = (Config.mode === "tinyboard"),
+				post, i, ii;
 
 			Debug.timer("process");
 
@@ -3126,6 +3161,11 @@
 				post = posts[i];
 				Linkifier.parse_post(post);
 				Linkifier.apply_link_events(post, true);
+				if (check_files_before && post.classList.contains("op")) {
+					if ((post = Helper.Post.get_op_post_files_container_tinyboard(post)) !== null) {
+						Linkifier.apply_link_events(post, true);
+					}
+				}
 			}
 
 			Debug.log("Total posts=" + posts.length + "; time=" + Debug.timer("process"));
@@ -3135,7 +3175,7 @@
 				post_body, post_links, links, nodes, link, i, ii;
 
 			// Exsauce
-			if (conf.ExSauce) {
+			if (conf.ExSauce && !Browser.is_opera) {
 				Linkifier.setup_post_exsauce(post);
 			}
 
@@ -3187,39 +3227,46 @@
 			}
 		},
 		setup_post_exsauce: function (post) {
-			var file_info, sauce;
+			var index = 0,
+				file_infos, file_info, sauce, i, ii;
 
 			// File info
-			file_info = Helper.Post.get_file_info(post);
-			if (file_info === null || file_info.md5 === null) return;
+			file_infos = Helper.Post.get_file_info(post);
+			for (i = 0, ii = file_infos.length; i < ii; ++i) {
+				file_info = file_infos[i];
+				if (file_info.md5 === null) continue;
 
-			// Create if not found
-			sauce = $(".hl-exsauce-link", file_info.options);
-			if (sauce === null && /^\.(png|gif|jpe?g)$/i.test(file_info.type)) {
-				sauce = $.link(file_info.url, {
-					className: "hl-link-events hl-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
-					textContent: Sauce.label()
-				});
-				sauce.setAttribute("data-hl-link-events", "exsauce_fetch");
-				sauce.setAttribute("data-hl-filename", file_info.name);
-				sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
-				if (/^\.jpe?g$/i.test(file_info.type) && Config.mode !== "tinyboard") {
-					if (/Firefox/i.test("" + navigator.userAgent)) {
-						sauce.setAttribute("data-hl-link-events", "exsauce_fetch_similarity");
-						sauce.title = "This will only work on colored images";
+				// Create if not found
+				sauce = $(".hl-exsauce-link", file_info.options);
+				if (sauce === null && /^\.(png|gif|jpe?g)$/i.test(file_info.type)) {
+					sauce = $.link(file_info.url,
+						"hl-link-events hl-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
+						Sauce.label()
+					);
+					sauce.setAttribute("data-hl-link-events", "exsauce_fetch");
+					sauce.setAttribute("data-hl-filename", file_info.name);
+					sauce.setAttribute("data-hl-image-index", index);
+					sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
+					if (/^\.jpe?g$/i.test(file_info.type) && Config.mode !== "tinyboard") {
+						if (Browser.is_firefox) {
+							sauce.setAttribute("data-hl-link-events", "exsauce_fetch_similarity");
+							sauce.title = "This will only work on colored images";
+						}
+						else {
+							sauce.classList.add("hl-exsauce-link-disabled");
+							sauce.setAttribute("data-hl-link-events", "exsauce_error");
+							sauce.title = (
+								"Reverse Image Search doesn't work for .jpg images because 4chan manipulates them on upload"
+							);
+						}
 					}
-					else {
-						sauce.classList.add("hl-exsauce-link-disabled");
-						sauce.setAttribute("data-hl-link-events", "exsauce_error");
-						sauce.title = (
-							"Reverse Image Search doesn't work for .jpg images because 4chan manipulates them on upload"
-						);
+					if (file_info.options_sep) {
+						$.before2(file_info.options, $.tnode(file_info.options_sep), file_info.options_before);
 					}
+					$.before2(file_info.options, sauce, file_info.options_before);
+
+					++index;
 				}
-				if (file_info.options_sep) {
-					$.before2(file_info.options, $.tnode(file_info.options_sep), file_info.options_before);
-				}
-				$.before2(file_info.options, sauce, file_info.options_before);
 			}
 		},
 		on_tag_click_to_load: function (event) {
@@ -3575,19 +3622,22 @@
 			Options.conf = null;
 			Config.save();
 			if (Nodes.options_overlay !== null) {
-				$.remove(Nodes.options_overlay);
+				Popup.close(Nodes.options_overlay);
 				Nodes.options_overlay = null;
 			}
-			d.documentElement.classList.remove("hl-settings-overlaying");
 		},
 		close: function (e) {
 			e.preventDefault();
 			Options.conf = null;
 			if (Nodes.options_overlay !== null) {
-				$.remove(Nodes.options_overlay);
+				Popup.close(Nodes.options_overlay);
 				Nodes.options_overlay = null;
 			}
-			d.documentElement.classList.remove("hl-settings-overlaying");
+		},
+		to_changelog: function (event) {
+			event.preventDefault();
+			Options.close(event);
+			Changelog.open(event);
 		},
 		on_change: function () {
 			var node = this,
@@ -3627,22 +3677,49 @@
 			if (event.which && event.which !== 1) return;
 			event.preventDefault();
 
-			// Create
-			var overlay = $.frag(UI.html.options()).firstChild,
-				scroll_node = $(".hl-settings-content", overlay),
-				theme = Theme.get();
+			var theme = Theme.get(),
+				overlay, n;
 
 			// Config
 			Options.conf = JSON.parse(JSON.stringify(conf));
 
-			// Set global
-			if (Nodes.options_overlay !== null) {
-				$.remove(Nodes.options_overlay);
-			}
-			Nodes.options_overlay = overlay;
+			// Popup
+			overlay = Popup.create("settings", [[{
+				small: true,
+				setup: function (container) {
+					var n;
+					$.add(container, $.link("https://dnsev-h.github.io/h-links/", "hl-settings-title" + theme, "H-links"));
+					$.add(container, n = $.link(Changelog.url, "hl-settings-version" + theme, Main.version.join(".")));
+					$.on(n, "click", Options.to_changelog);
+				}
+			}, {
+				align: "right",
+				setup: function (container) {
+					var n;
+					$.add(container, n = $.link(Changelog.url, "hl-settings-button" + theme));
+					$.add(n, $.node("span", "hl-settings-button-text", "Changelog"));
+					$.on(n, "click", Options.to_changelog);
 
-			// Theme
-			Theme.apply(overlay);
+					$.add(container, n = $.link("https://github.com/dnsev-h/h-links/issues", "hl-settings-button" + theme));
+					$.add(n, $.node("span", "hl-settings-button-text", "Issues"));
+
+					$.add(container, n = $.link("#", "hl-settings-button" + theme));
+					$.add(n, $.node("span", "hl-settings-button-text", "Save Settings"));
+					$.on(n, "click", Options.save);
+
+					$.add(container, n = $.link("#", "hl-settings-button" + theme));
+					$.add(n, $.node("span", "hl-settings-button-text", "Cancel"));
+					$.on(n, "click", Options.close);
+				}
+			}], {
+				body: true,
+				setup: function (container) {
+					var n = $.frag(UI.html.options());
+					Theme.apply(n);
+
+					container.appendChild(n);
+				}
+			}]);
 
 			// Options
 			Options.gen($(".hl-settings-group-general", overlay), theme, "general");
@@ -3654,21 +3731,20 @@
 			});
 
 			// Events
-			$.on($(".hl-settings-button-link-save", overlay), "click", Options.save);
-			$.on($(".hl-settings-button-link-cancel", overlay), "click", Options.close);
 			$.on(overlay, "click", Options.close);
-			$.on($(".hl-settings", overlay), "click", function (event) { event.stopPropagation(); });
 			$.on($("input.hl-settings-color-input[type=color]", overlay), "change", Filter.settings_color_change);
 			$.on($(".hl-settings-filter-guide-toggle", overlay), "click", Options.on_toggle_filter_guide);
 
 			// Add to body
-			$.add(d.body, overlay);
-			d.documentElement.classList.add("hl-settings-overlaying");
+			if (Nodes.options_overlay !== null) {
+				Popup.close(Nodes.options_overlay);
+			}
+			Nodes.options_overlay = overlay;
+			Popup.open(overlay);
 
 			// Focus
-			if (scroll_node !== null) {
-				$.scroll_focus(scroll_node);
-			}
+			n = $(".hl-settings-cell-size-scroll", overlay);
+			if (n !== null) $.scroll_focus(n);
 		},
 		gen: function (container, theme, option_type) {
 			var entry, table, row, cell, label, input,
@@ -3684,70 +3760,63 @@
 					type = obj[key][0];
 					value = Options.conf[key];
 
-					$.add(container, entry = $.create("div", { className: "hl-settings-entry" + theme }));
-					$.add(entry, table = $.create("div", { className: "hl-settings-entry-table" }));
-					$.add(table, row = $.create("div", { className: "hl-settings-entry-row" }));
+					$.add(container, entry = $.node("div", "hl-settings-entry" + theme));
+					$.add(entry, table = $.node("div", "hl-settings-entry-table"));
+					$.add(table, row = $.node("div", "hl-settings-entry-row"));
 
-					$.add(row, cell = $.create("span", { className: "hl-settings-entry-cell" }));
-					$.add(cell, label = $.create("label", { className: "hl-settings-entry-label", htmlFor: name }));
-					label.innerHTML = "<strong>" + key + ":</strong>" + (desc.length > 0 ? " " + desc : "");
+					$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+					$.add(cell, label = $.node("label", "hl-settings-entry-label"));
+					label.htmlFor = name;
+					$.add(label, $.node("strong", "hl-settings-entry-label-name", key + ":"));
+					if (desc.length > 0) {
+						n = $.node("span", "hl-settings-entry-label-description");
+						n.innerHTML = " " + desc;
+						$.add(label, n);
+					}
 
 					if (type === "checkbox") {
-						$.add(row, cell = $.create("span", { className: "hl-settings-entry-cell" }));
-						$.add(cell, input = $.create("input", {
-							className: "hl-settings-entry-input" + theme,
-							type: "checkbox",
-							id: name,
-							checked: value
-						}));
+						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+						$.add(cell, input = $.node("input", "hl-settings-entry-input" + theme));
+						input.type = "checkbox";
+						input.id = name;
+						input.checked = value;
 						$.on(input, "change", Options.on_change);
 					}
 					else if (type === "select") {
-						$.add(row, cell = $.create("span", { className: "hl-settings-entry-cell" }));
-						$.add(cell, input = $.create("select", {
-							className: "hl-settings-entry-input" + theme
-						}));
+						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+						$.add(cell, input = $.node("select", "hl-settings-entry-input" + theme));
 						$.on(input, "change", Options.on_change);
 
 						values = obj[key][3];
 						for (j = 0, jj = values.length; j < jj; ++j) {
 							v = values[j];
-							$.add(input, n = $.create("option", {
-								textContent: v[1],
-								value: v[0],
-								selected: (v[0] === value)
-							}));
+							$.add(input, n = $.node("option", "hl-settings-entry-input-option", v[1]));
+							n.value = v[0];
+							n.selected = (v[0] === value);
 							if (v.length > 2) n.title = v[2];
 						}
 					}
 					else if (type === "textbox") {
-						$.add(row, cell = $.create("span", { className: "hl-settings-entry-cell" }));
-						$.add(cell, input = $.create("input", {
-							className: "hl-settings-entry-input" + theme,
-							type: "text",
-							id: name,
-							value: value
-						}));
+						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+						$.add(cell, input = $.node("input", "hl-settings-entry-input" + theme));
+						input.type = "text";
+						input.id = name;
+						input.value = value;
 						$.on(input, "change", Options.on_change);
 					}
 					else if (type === "textarea") {
-						$.add(table, row = $.create("div", { className: "hl-settings-entry-row" }));
-						$.add(row, cell = $.create("span", { className: "hl-settings-entry-cell" }));
-						$.add(cell, input = $.create("textarea", {
-							className: "hl-settings-entry-input" + theme,
-							wrap: "off",
-							spellcheck: false,
-							id: name,
-							value: value
-						}));
+						$.add(table, row = $.node("div", "hl-settings-entry-row"));
+						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+						$.add(cell, input = $.node("textarea", "hl-settings-entry-input" + theme));
+						input.wrap = "off";
+						input.spellcheck = false;
+						input.id = name;
+						input.value = value;
 						$.on(input, "change", Options.on_change);
 					}
 					else if (type === "button") {
-						$.add(row, cell = $.create("span", { className: "hl-settings-entry-cell" }));
-						$.add(cell, input = $.create("button", {
-							className: "hl-settings-entry-input" + theme,
-							textContent: (obj[key][3] || '')
-						}));
+						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+						$.add(cell, input = $.node("button", "hl-settings-entry-input" + theme, (obj[key][3] || "")));
 						$.on(input, "click", obj[key][4] || Options.on_change);
 					}
 					input.setAttribute("data-hl-setting-name", key);
@@ -3855,6 +3924,7 @@
 					temp[k] = conf[k];
 				}
 			}
+			temp.version = Main.version;
 			Config.storage.setItem(Config.namespace, JSON.stringify(temp));
 		},
 		init: function () {
@@ -3867,6 +3937,7 @@
 				typeof(temp) !== "object"
 			) {
 				temp = {};
+				Main.version_change = 2;
 			}
 
 			for (i in options) {
@@ -3880,8 +3951,14 @@
 				}
 			}
 
-			if (/presto/i.test(navigator.userAgent)) {
-				conf.ExSauce = false;
+			value = temp.version;
+			if (value === undefined) value = [];
+			i = Main.version_compare(Main.version, value);
+			if (i !== 0) {
+				update = true;
+				if (Main.version_change === 0) {
+					Main.version_change = i;
+				}
 			}
 
 			if (update) Config.save();
@@ -4244,7 +4321,6 @@
 			if (filters.length > 0) {
 				// Uploader
 				if ((str = data.uploader)) {
-					str = Helper.normalize_api_string(str);
 					info = Filter.check_multiple("uploader", str, filters, data);
 					if (info.any) {
 						Filter.append_match_datas(info, result.uploader);
@@ -4360,8 +4436,8 @@
 					$.add(frag, $.tnode(t));
 				}
 				else {
-					n1 = $.create("span", { className: "hl-filter-text" });
-					n2 = $.create("span", { className: "hl-filter-text-inner", textContent: t });
+					n1 = $.node("span", "hl-filter-text");
+					n2 = $.node("span", "hl-filter-text-inner", t);
 					$.add(n1, n2);
 					$.add(frag, n1);
 					Filter.apply_styles(n1, segment.data);
@@ -4413,8 +4489,8 @@
 
 			// Apply styles
 			if (color !== null || background !== null || underline !== null) {
-				n1 = $.create("span", { className: "hl-filter-text" });
-				n2 = $.create("span", { className: "hl-filter-text-inner" });
+				n1 = $.node("span", "hl-filter-text");
+				n2 = $.node("span", "hl-filter-text-inner");
 				while ((n = node.firstChild) !== null) {
 					$.add(n2, n);
 				}
@@ -4670,222 +4746,160 @@
 			Main.insert_nav_link("normal", "Easy List", "Easy List", " hl-nav-link-easylist", EasyList.on_open_click);
 		},
 		create: function () {
-			var theme = Theme.get(),
-				n1, n2, n3, n4, n5;
+			Popup.create("easylist", function (overlay, container) {
+				var theme = Theme.get(),
+					n1, n2, n3;
 
-			// Overlay
-			n1 = $.create("div", {
-				className: "hl-easylist-overlay" + theme
+				// Overlay
+				$.on(overlay, "click", EasyList.on_overlay_click);
+				EasyList.overlay = overlay;
+				n1 = container;
+
+				$.add(n1, n2 = $.node("div", "hl-easylist-title"));
+
+				$.add(n2, $.node("span", "hl-easylist-title-text", "H-links Easy List"));
+				$.add(n2, $.node("span", "hl-easylist-subtitle", "More porn, less hassle"));
+
+				// Close
+				$.add(n1, n2 = $.node("div", "hl-easylist-control-links"));
+
+				$.add(n2, n3 = $.link(undefined, "hl-easylist-control-link hl-easylist-control-link-options", "options"));
+				$.on(n3, "click", EasyList.on_options_click);
+
+				$.add(n2, n3 = $.link(undefined, "hl-easylist-control-link", "close"));
+				$.on(n3, "click", EasyList.on_close_click);
+
+				$.add(n1, $.node("div", "hl-easylist-title-line"));
+
+				// Options
+				EasyList.options_container = EasyList.create_options(theme);
+				$.add(n1, EasyList.options_container);
+
+				// Empty notification
+				$.add(n1, n2 = $.node("div",
+					"hl-easylist-empty-notification hl-easylist-empty-notification-visible",
+					"No galleries found"
+				));
+				EasyList.empty_notification = n2;
+
+				// Items list
+				$.add(n1, n2 = $.node("div", "hl-easylist-items" + theme));
+				EasyList.items_container = n2;
 			});
-			$.on(n1, "click", EasyList.on_overlay_click);
-			$.on(n1, "mousedown", EasyList.on_overlay_mousedown);
-			EasyList.overlay = n1;
-
-			// Content aligner
-			$.add(n1, n2 = $.create("div", {
-				className: "hl-easylist-content-align"
-			}));
-
-			// Content
-			$.add(n2, n3 = $.create("div", {
-				className: "hl-easylist-content"
-			}));
-
-			$.add(n3, n4 = $.create("div", {
-				className: "hl-easylist-content-inner hl-hover-shadow post reply post_wrapper hl-fake-post" + theme
-			}));
-			$.on(n4, "click", EasyList.on_overlay_content_mouse_event);
-			$.on(n4, "mousedown", EasyList.on_overlay_content_mouse_event);
-			n3 = n4;
-
-			$.add(n3, n4 = $.create("div", {
-				className: "hl-easylist-title"
-			}));
-
-			$.add(n4, $.create("span", {
-				className: "hl-easylist-title-text",
-				textContent: "H-links Easy List"
-			}));
-			$.add(n4, $.create("span", {
-				className: "hl-easylist-subtitle",
-				textContent: "More porn, less hassle"
-			}));
-
-			// Close
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-control-links" }));
-
-			$.add(n4, n5 = $.link(null, {
-				className: "hl-easylist-control-link hl-easylist-control-link-options",
-				textContent: "options"
-			}));
-			$.on(n5, "click", EasyList.on_options_click);
-
-			$.add(n4, n5 = $.link(null, {
-				className: "hl-easylist-control-link",
-				textContent: "close"
-			}));
-			$.on(n5, "click", EasyList.on_close_click);
-
-			$.add(n3, $.create("div", { className: "hl-easylist-title-line" }));
-
-			// Options
-			EasyList.options_container = EasyList.create_options(theme);
-			$.add(n3, EasyList.options_container);
-
-			// Empty notification
-			$.add(n3, n4 = $.create("div", {
-				className: "hl-easylist-empty-notification hl-easylist-empty-notification-visible",
-				textContent: "No galleries found"
-			}));
-			EasyList.empty_notification = n4;
-
-			// Items list
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-items" + theme }));
-			EasyList.items_container = n4;
 
 			// Setup
 			EasyList.update_display_mode(true);
 		},
 		create_options: function (theme) {
-			var n1, n2, n3, n4, n5, n6, v;
+			var fn, n1, n2, n3, n4, n5;
 
-			n1 = $.create("div", { className: "hl-easylist-options" });
-			$.add(n1, n2 = $.create("div", { className: "hl-easylist-option-table" }));
-
-
-			$.add(n2, n3 = $.create("div", { className: "hl-easylist-option-row" }));
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
-			$.add(n4, $.create("span", { className: "hl-easylist-option-title", textContent: "Sort by:" }));
-
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
-
-			v = "thread";
-			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
-			$.add(n5, n6 = $.create("input", {
-				className: "hl-easylist-option-input",
-				name: "hl-easylist-options-sort-by",
-				type: "radio",
-				checked: (EasyList.settings.sort_by === v),
-				value: v
-			}));
-			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Appearance in thread" }));
-			$.on(n6, "change", EasyList.on_option_change.sort_by);
-
-			v = "upload";
-			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
-			$.add(n5, n6 = $.create("input", {
-				className: "hl-easylist-option-input",
-				name: "hl-easylist-options-sort-by",
-				type: "radio",
-				checked: (EasyList.settings.sort_by === v),
-				value: v
-			}));
-			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Upload date" }));
-			$.on(n6, "change", EasyList.on_option_change.sort_by);
-
-			v = "rating";
-			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
-			$.add(n5, n6 = $.create("input", {
-				className: "hl-easylist-option-input",
-				name: "hl-easylist-options-sort-by",
-				type: "radio",
-				checked: (EasyList.settings.sort_by === v),
-				value: v
-			}));
-			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Rating" }));
-			$.on(n6, "change", EasyList.on_option_change.sort_by);
+			n1 = $.node("div", "hl-easylist-options");
+			$.add(n1, n2 = $.node("div", "hl-easylist-option-table"));
 
 
-			$.add(n2, n3 = $.create("div", { className: "hl-easylist-option-row" }));
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
-			$.add(n4, $.create("span", { className: "hl-easylist-option-title", textContent: "Group by:" }));
+			$.add(n2, n3 = $.node("div", "hl-easylist-option-row"));
+			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
+			$.add(n4, $.node("span", "hl-easylist-option-title", "Sort by:"));
 
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
+			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
 
-			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
-			$.add(n5, n6 = $.create("input", { className: "hl-easylist-option-input", type: "checkbox", checked: EasyList.settings.group_by_filters }));
-			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Filters" }));
-			$.on(n6, "change", EasyList.on_option_change.group_by_filters);
+			fn = function (value, text) {
+				var n1 = $.node("label", "hl-easylist-option-label"),
+					n2 = $.node("input", "hl-easylist-option-input");
 
-			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
-			$.add(n5, n6 = $.create("input", { className: "hl-easylist-option-input", type: "checkbox", checked: EasyList.settings.group_by_category }));
-			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Category" }));
-			$.on(n6, "change", EasyList.on_option_change.group_by_category);
+				n2.name = "hl-easylist-options-sort-by";
+				n2.type = "radio";
+				n2.checked = (EasyList.settings.sort_by === value);
+				n2.value = value;
 
+				$.add(n1, n2);
+				$.add(n1, $.node("span", "hl-easylist-option-button" + theme, text));
 
-			$.add(n2, n3 = $.create("div", { className: "hl-easylist-option-row" }));
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
-			$.add(n4, $.create("span", { className: "hl-easylist-option-title", textContent: "Display mode:" }));
+				$.on(n2, "change", EasyList.on_option_change.sort_by);
 
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
+				return n1;
+			};
+			$.add(n4, fn("thread", "Appearance in thread"));
+			$.add(n4, fn("upload", "Upload date"));
+			$.add(n4, fn("rating", "Rating"));
 
-			v = 0;
-			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
-			$.add(n5, n6 = $.create("input", {
-				className: "hl-easylist-option-input",
-				name: "hl-easylist-options-display",
-				type: "radio",
-				checked: (EasyList.settings.display_mode === v),
-				value: "" + v
-			}));
-			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Full" }));
-			$.on(n6, "change", EasyList.on_option_change.display_mode);
+			$.add(n2, n3 = $.node("div", "hl-easylist-option-row"));
+			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
+			$.add(n4, $.node("span", "hl-easylist-option-title", "Group by:"));
 
-			v = 1;
-			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
-			$.add(n5, n6 = $.create("input", {
-				className: "hl-easylist-option-input",
-				name: "hl-easylist-options-display",
-				type: "radio",
-				checked: (EasyList.settings.display_mode === v),
-				value: "" + v
-			}));
-			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Compact" }));
-			$.on(n6, "change", EasyList.on_option_change.display_mode);
+			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
 
-			v = 2;
-			$.add(n4, n5 = $.create("label", { className: "hl-easylist-option-label" }));
-			$.add(n5, n6 = $.create("input", {
-				className: "hl-easylist-option-input",
-				name: "hl-easylist-options-display",
-				type: "radio",
-				checked: (EasyList.settings.display_mode === v),
-				value: "" + v
-			}));
-			$.add(n5, $.create("span", { className: "hl-easylist-option-button" + theme, textContent: "Minimal" }));
-			$.on(n6, "change", EasyList.on_option_change.display_mode);
+			fn = function (checked, text) {
+				var n1 = $.node("label", "hl-easylist-option-label"),
+					n2 = $.node("input", "hl-easylist-option-input");
+
+				n2.type = "checkbox";
+				n2.checked = checked;
+
+				$.add(n1, n2);
+				$.add(n1, $.node("span", "hl-easylist-option-button" + theme, text));
+
+				$.on(n2, "change", EasyList.on_option_change.group_by_filters);
+
+				return n1;
+			};
+			$.add(n4, fn(EasyList.settings.group_by_filters, "Filters"));
+			$.add(n4, fn(EasyList.settings.group_by_category, "Category"));
 
 
+			$.add(n2, n3 = $.node("div", "hl-easylist-option-row"));
+			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
+			$.add(n4, $.node("span", "hl-easylist-option-title", "Display mode:"));
 
-			$.add(n2, n3 = $.create("div", { className: "hl-easylist-option-row" }));
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
-			$.add(n4, $.create("span", { className: "hl-easylist-option-title", textContent: "Custom filters:" }));
+			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
 
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-option-cell" }));
-			$.add(n4, n6 = $.create("textarea", { className: "hl-easylist-option-textarea" + theme, value: EasyList.settings.custom_filters, wrap: "off", spellcheck: false, autocomplete: "off" }));
-			$.on(n6, "change", EasyList.on_option_change.custom_filters);
-			$.on(n6, "input", EasyList.on_option_change.custom_filters_input);
+			fn = function (value, text) {
+				var n1 = $.node("label", "hl-easylist-option-label"),
+					n2 = $.node("input", "hl-easylist-option-input");
+
+				n2.name = "hl-easylist-options-display";
+				n2.type = "radio";
+				n2.checked = (EasyList.settings.display_mode === value);
+				n2.value = "" + value;
+
+				$.add(n1, n2);
+				$.add(n1, $.node("span", "hl-easylist-option-button" + theme, text));
+
+				$.on(n2, "change", EasyList.on_option_change.display_mode);
+
+				return n1;
+			};
+			$.add(n4, fn(0, "Full"));
+			$.add(n4, fn(1, "Compact"));
+			$.add(n4, fn(2, "Minimal"));
 
 
-			$.add(n1, $.create("div", { className: "hl-easylist-title-line" }));
+			$.add(n2, n3 = $.node("div", "hl-easylist-option-row"));
+			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
+			$.add(n4, $.node("span", "hl-easylist-option-title", "Custom filters:"));
+
+			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
+
+			$.add(n4, n5 = $.node("textarea", "hl-easylist-option-textarea" + theme));
+			n5.value = EasyList.settings.custom_filters;
+			n5.wrap = "off";
+			n5.spellcheck = false;
+			$.on(n5, "change", EasyList.on_option_change.custom_filters);
+			$.on(n5, "input", EasyList.on_option_change.custom_filters_input);
+
+
+			$.add(n1, $.node("div", "hl-easylist-title-line"));
 
 			return n1;
 		},
 		enable: function () {
-			var n = d.body;
-			if (EasyList.overlay.parentNode !== n) {
-				$.add(n, EasyList.overlay);
-			}
-			d.documentElement.classList.add("hl-easylist-overlaying");
+			Popup.open(EasyList.overlay);
 
 			// Focus
 			$.scroll_focus(EasyList.overlay);
 		},
 		disable: function () {
-			if (EasyList.overlay.parentNode !== null) {
-				$.remove(EasyList.overlay);
-			}
-			d.documentElement.classList.remove("hl-easylist-overlaying");
+			Popup.close(EasyList.overlay);
 
 			EasyList.set_options_visible(false);
 
@@ -4924,7 +4938,7 @@
 			var url = Helper.Site.create_gallery_url(data, domain),
 				hl_res, n1, n2, n3, n4, n5, n6, n7, i;
 
-			n1 = $.create("div", { className: "hl-easylist-item" + theme });
+			n1 = $.node("div", "hl-easylist-item" + theme);
 			n1.setAttribute("data-hl-index", index);
 			n1.setAttribute("data-hl-gid", data.gid);
 			n1.setAttribute("data-hl-token", data.token);
@@ -4933,82 +4947,55 @@
 			n1.setAttribute("data-hl-category", data.category.toLowerCase());
 			n1.setAttribute("data-hl-domain", domain);
 
-			$.add(n1, n2 = $.create("div", { className: "hl-easylist-item-table-container" + theme }));
-			$.add(n2, n3 = $.create("div", { className: "hl-easylist-item-table" + theme }));
+			$.add(n1, n2 = $.node("div", "hl-easylist-item-table-container" + theme));
+			$.add(n2, n3 = $.node("div", "hl-easylist-item-table" + theme));
 			n2 = n3;
-			$.add(n2, n3 = $.create("div", { className: "hl-easylist-item-row" + theme }));
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-item-cell hl-easylist-item-cell-image" + theme }));
+			$.add(n2, n3 = $.node("div", "hl-easylist-item-row" + theme));
+			$.add(n3, n4 = $.node("div", "hl-easylist-item-cell hl-easylist-item-cell-image" + theme));
 
 			// Image
-			$.add(n4, n5 = $.link(url, {
-				className: "hl-easylist-item-image-container" + theme
-			}));
+			$.add(n4, n5 = $.link(url, "hl-easylist-item-image-container" + theme));
 
-			$.add(n5, n6 = $.create("div", {
-				className: "hl-easylist-item-image-outer" + theme
-			}));
+			$.add(n5, n6 = $.node("div", "hl-easylist-item-image-outer" + theme));
 
 			if (data.thumb) {
-				$.add(n6, n7 = $.create("img", {
-					className: "hl-easylist-item-image" + theme,
-					src: data.thumb,
-					alt: "",
-					title: ""
-				}));
+				$.add(n6, n7 = $.node("img", "hl-easylist-item-image" + theme));
 				$.on(n7, "error", EasyList.on_thumbnail_error);
+				n7.src = data.thumb;
+				n7.alt = "";
 			}
 			else {
 				n6.style.width = "100%";
 				n6.style.height = "100%";
 			}
 
-			$.add(n6, $.create("span", {
-				className: "hl-easylist-item-image-index" + theme,
-				textContent: "#" + (index + 1)
-			}));
+			$.add(n6, $.node("span", "hl-easylist-item-image-index" + theme, "#" + (index + 1)));
 
 
 			// Main content
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-item-cell" + theme }));
+			$.add(n3, n4 = $.node("div", "hl-easylist-item-cell" + theme));
 
-			$.add(n4, n5 = $.create("div", {
-				className: "hl-easylist-item-title" + theme
-			}));
+			$.add(n4, n5 = $.node("div", "hl-easylist-item-title" + theme));
 
-			$.add(n5, n6 = $.link(url, {
-				className: "hl-easylist-item-title-tag-link" + theme,
-				textContent: UI.button_text(domain)
-			}));
+			$.add(n5, n6 = $.link(url, "hl-easylist-item-title-tag-link" + theme, UI.button_text(domain)));
 			n6.setAttribute("data-hl-original", n6.textContent);
 
-			$.add(n5, n6 = $.link(url, {
-				className: "hl-easylist-item-title-link" + theme,
-				textContent: Helper.normalize_api_string(data.title)
-			}));
+			$.add(n5, n6 = $.link(url, "hl-easylist-item-title-link" + theme, data.title));
 			n6.setAttribute("data-hl-original", n6.textContent);
 
 			if (data.title_jpn) {
-				$.add(n4, n5 = $.create("span", {
-					className: "hl-easylist-item-title-jp" + theme,
-					textContent: Helper.normalize_api_string(data.title_jpn)
-				}));
+				$.add(n4, n5 = $.node("span", "hl-easylist-item-title-jp" + theme, data.title_jpn));
 				n5.setAttribute("data-hl-original", n5.textContent);
 			}
 
-			$.add(n4, n5 = $.create("div", { className: "hl-easylist-item-upload-info" + theme }));
+			$.add(n4, n5 = $.node("div", "hl-easylist-item-upload-info" + theme));
 			$.add(n5, $.tnode("Uploaded by "));
-			$.add(n5, n6 = $.link(Helper.Site.create_uploader_url(data, domain), {
-				className: "hl-easylist-item-uploader" + theme,
-				textContent: data.uploader
-			}));
+			$.add(n5, n6 = $.link(Helper.Site.create_uploader_url(data, domain), "hl-easylist-item-uploader" + theme, data.uploader));
 			n6.setAttribute("data-hl-original", n6.textContent);
 			$.add(n5, $.tnode(" on "));
-			$.add(n5, $.create("span", {
-				className: "hl-easylist-item-upload-date" + theme,
-				textContent: UI.date(new Date(parseInt(data.posted, 10) * 1000))
-			}));
+			$.add(n5, $.node("span", "hl-easylist-item-upload-date" + theme, UI.date(new Date(data.posted * 1000))));
 
-			$.add(n4, n5 = $.create("div", { className: "hl-easylist-item-tags" + theme }));
+			$.add(n4, n5 = $.node("div", "hl-easylist-item-tags" + theme));
 
 			n6 = EasyList.create_full_tags(domain, data, theme);
 			$.add(n5, n6[0]);
@@ -5018,56 +5005,34 @@
 
 
 			// Right sidebar
-			$.add(n3, n4 = $.create("div", { className: "hl-easylist-item-cell hl-easylist-item-cell-side" + theme }));
+			$.add(n3, n4 = $.node("div", "hl-easylist-item-cell hl-easylist-item-cell-side" + theme));
 
-			$.add(n4, n5 = $.create("div", {
-				className: "hl-easylist-item-info" + theme,
-			}));
+			$.add(n4, n5 = $.node("div", "hl-easylist-item-info" + theme));
 
-			$.add(n5, n6 = $.link(Helper.Site.create_category_url(data, domain), {
-				className: "hl-easylist-item-info-button hl-button hl-button-eh hl-button-" + cat[data.category].short + theme
-			}));
-			$.add(n6, $.create("div", {
-				className: "hl-noise",
-				textContent: cat[data.category].name
-			}));
+			$.add(n5, n6 = $.link(Helper.Site.create_category_url(data, domain),
+				"hl-easylist-item-info-button hl-button hl-button-eh hl-button-" + cat[data.category].short + theme
+			));
+			$.add(n6, $.node("div", "hl-noise", cat[data.category].name));
 
 
-			$.add(n5, n6 = $.create("div", {
-				className: "hl-easylist-item-info-item hl-easylist-item-info-item-rating" + theme
-			}));
-			$.add(n6, n7 = $.create("div", {
-				className: "hl-stars-container",
-				innerHTML: UI.html.stars(data.rating)
-			}));
+			$.add(n5, n6 = $.node("div", "hl-easylist-item-info-item hl-easylist-item-info-item-rating" + theme));
+			$.add(n6, n7 = $.node("div", "hl-stars-container"));
+			n7.innerHTML = UI.html.stars(data.rating);
 			if (data.rating >= 0) {
-				$.add(n6, $.create("span", {
-					className: "hl-easylist-item-info-light",
-					textContent: "(Avg: " + (parseFloat(data.rating) || 0).toFixed(2) + ")"
-				}));
+				$.add(n6, $.node("span", "hl-easylist-item-info-light", "(Avg: " + data.rating.toFixed(2) + ")"));
 			}
 			else {
 				n7.classList.add("hl-stars-container-na");
-				$.add(n6, $.create("span", {
-					className: "hl-easylist-item-info-light",
-					textContent: "(n/a)"
-				}));
+				$.add(n6, $.node("span", "hl-easylist-item-info-light", "(n/a)"));
 			}
 
-			$.add(n5, n6 = $.create("div", {
-				className: "hl-easylist-item-info-item hl-easylist-item-info-item-files" + theme
-			}));
-			i = parseInt(data.filecount, 10) || 0;
-			$.add(n6, $.create("span", {
-				textContent: i + " image" + (i === 1 ? "" : "s")
-			}));
+			$.add(n5, n6 = $.node("div", "hl-easylist-item-info-item hl-easylist-item-info-item-files" + theme));
+			i = data.filecount;
+			$.add(n6, $.node("span", "", i + " image" + (i === 1 ? "" : "s")));
 			if (data.filesize >= 0) {
-				$.add(n6, $.create("br"));
+				$.add(n6, $.node_simple("br"));
 				i = (data.filesize / 1024 / 1024).toFixed(2).replace(/\.?0+$/, "");
-				$.add(n6, $.create("span", {
-					className: "hl-easylist-item-info-light",
-					textContent: "(" + i + " MB)"
-				}));
+				$.add(n6, $.node("span", "hl-easylist-item-info-light", "(" + i + " MB)"));
 			}
 
 			// Highlight
@@ -5077,7 +5042,7 @@
 			return n1;
 		},
 		create_full_tags: function (domain, data, theme) {
-			var n1 = $.create("div", { className: "hl-easylist-item-tag-table" + theme }),
+			var n1 = $.node("div", "hl-easylist-item-tag-table" + theme),
 				domain_type = domain_info[domain].type,
 				full_domain = domain_info[domain].g_domain,
 				namespace_style = "",
@@ -5093,38 +5058,25 @@
 			for (namespace in all_tags) {
 				tags = all_tags[namespace];
 
-				$.add(n1, n2 = $.create("div", {
-					className: "hl-easylist-item-tag-row" + theme
-				}));
+				$.add(n1, n2 = $.node("div", "hl-easylist-item-tag-row" + theme));
 
 				if (namespace !== "") {
-					namespace_style = " hl-tag-namespace-" + namespace.replace(/\ /g, "-");
-					$.add(n2, n3 = $.create("div", {
-						className: "hl-easylist-item-tag-cell hl-easylist-item-tag-cell-label" + theme
-					}));
-					$.add(n3, n4 = $.create("span", {
-						className: "hl-tag-namespace-block hl-tag-namespace-block-no-outline" + namespace_style + theme
-					}));
-					$.add(n4, $.create("span", {
-						textContent: namespace,
-						className: "hl-tag-namespace"
-					}));
+					namespace_style = " hl-tag-namespace-" + namespace.replace(/\ /g, "-") + theme;
+					$.add(n2, n3 = $.node("div", "hl-easylist-item-tag-cell hl-easylist-item-tag-cell-label" + theme));
+					$.add(n3, n4 = $.node("span", "hl-tag-namespace-block hl-tag-namespace-block-no-outline" + namespace_style));
+					$.add(n4, $.node("span", "hl-tag-namespace", namespace));
 					$.add(n3, $.tnode(":"));
 				}
 
-				$.add(n2, n3 = $.create("div", {
-					className: "hl-easylist-item-tag-cell" + theme
-				}));
+				$.add(n2, n3 = $.node("div", "hl-easylist-item-tag-cell" + theme));
 				n2 = n3;
 
 				for (i = 0, ii = tags.length; i < ii; ++i) {
-					$.add(n2, n3 = $.create("span", {
-						className: "hl-tag-block" + namespace_style
-					}));
-					$.add(n3, n4 = $.link(Helper.Site.create_tag_url(tags[i], domain_type, full_domain), {
-						textContent: tags[i],
-						className: "hl-tag hl-tag-color-inherit hl-easylist-item-tag"
-					}));
+					$.add(n2, n3 = $.node("span", "hl-tag-block" + namespace_style));
+					$.add(n3, n4 = $.link(Helper.Site.create_tag_url(tags[i], domain_type, full_domain),
+						"hl-tag hl-tag-color-inherit hl-easylist-item-tag",
+						tags[i]
+					));
 					n4.setAttribute("data-hl-original", n4.textContent);
 
 					if (i < ii - 1) $.add(n3, $.tnode(","));
@@ -5144,6 +5096,7 @@
 
 				$.add(EasyList.items_container, n);
 
+				entry.node = n;
 				EasyList.current.push(entry);
 			}
 		},
@@ -5458,7 +5411,8 @@
 						d = {
 							domain: Helper.get_domain(link.href || "") || domains.exhentai,
 							namespace: id[0],
-							id: id[1]
+							id: id[1],
+							node: null
 						};
 						EasyList.queue.push(d);
 						EasyList.data_map[id_key] = d;
@@ -5512,31 +5466,326 @@
 			event.preventDefault();
 			event.stopPropagation();
 			return false;
+		}
+	};
+	Popup = {
+		active: null,
+		create: function (class_ns, setup) {
+			var theme = Theme.get(),
+				container, list, obj, n1, n2, n3, n4, n5, n6, i, ii, j, jj, v;
+
+			n1 = $.node("div", "hl-popup-overlay hl-" + class_ns + "-popup-overlay" + theme);
+			$.add(n1, n2 = $.node("div", "hl-popup-aligner hl-" + class_ns + "-popup-aligner" + theme));
+			$.add(n2, n3 = $.node("div", "hl-popup-align hl-" + class_ns + "-popup-align" + theme));
+			$.add(n3, container = $.node("div", "hl-popup-content hl-" + class_ns + "-popup-content hl-hover-shadow post reply post_wrapper hl-fake-post" + theme));
+
+			$.on(n1, "mousedown", Popup.on_overlay_event);
+			$.on(container, "click", Popup.on_stop_propagation);
+			$.on(container, "mousedown", Popup.on_stop_propagation);
+
+			if (typeof(setup) === "function") {
+				setup.call(null, n1, container);
+			}
+			else {
+				$.add(container, n2 = $.node("div", "hl-popup-table" + theme));
+
+				for (i = 0, ii = setup.length; i < ii; ++i) {
+					list = setup[i];
+					if (!Array.isArray(list)) list = [ list ];
+
+					$.add(n2, n3 = $.node("div", "hl-popup-row" + theme));
+					jj = list.length;
+					if (jj > 1) {
+						$.add(n3, n4 = $.node("div", "hl-popup-cell" + theme));
+						$.add(n4, n5 = $.node("div", "hl-popup-table" + theme));
+						$.add(n5, n3 = $.node("div", "hl-popup-row" + theme));
+					}
+					for (j = 0; j < jj; ++j) {
+						obj = list[j];
+
+						$.add(n3, n4 = $.node("div", "hl-popup-cell" + theme));
+
+						if (obj.small) n4.classList.add("hl-popup-cell-small");
+						if ((v = obj.align) !== undefined && v !== "left") n4.classList.add("hl-popup-cell-" + v);
+						if ((v = obj.valign) !== undefined && v !== "top") n4.classList.add("hl-popup-cell-" + v);
+						if (obj.body) {
+							n3.classList.add("hl-popup-row-body");
+
+							$.add(n4, n5 = $.node("div", "hl-popup-cell-size" + theme));
+							$.add(n5, n6 = $.node("div", "hl-popup-cell-size-scroll" + theme));
+							if (obj.padding !== false) {
+								$.add(n6, n4 = $.node("div", "hl-popup-cell-size-padding" + theme));
+							}
+							else {
+								n4 = n6;
+							}
+						}
+
+						obj.setup.call(null, n4);
+					}
+				}
+			}
+
+			return n1;
 		},
-		on_overlay_mousedown: function (event) {
+		on_stop_propagation: function (event) {
+			if (!event.which || event.which === 1) {
+				event.stopPropagation();
+			}
+		},
+		on_overlay_event: function (event) {
 			if (!event.which || event.which === 1) {
 				event.preventDefault();
 				event.stopPropagation();
 				return false;
 			}
 		},
-		on_overlay_content_mouse_event: function (event) {
-			if (!event.which || event.which === 1) {
-				event.stopPropagation();
+		open: function (overlay) {
+			if (Popup.active !== null && Popup.active.parentNode !== null) $.remove(Popup.active);
+			d.documentElement.classList.add("hl-popup-overlaying");
+			d.body.appendChild(overlay);
+			Popup.active = overlay;
+		},
+		close: function (overlay) {
+			d.documentElement.classList.remove("hl-popup-overlaying");
+			if (overlay.parentNode !== null) $.remove(overlay);
+			Popup.active = null;
+		}
+	};
+	Changelog = {
+		data: null,
+		acquiring: false,
+		popup: null,
+		url: "https://raw.githubusercontent.com/dnsev-h/h-links/master/changelog",
+		open: function (event) {
+			if (event !== undefined) {
+				event.preventDefault();
 			}
+
+			if (!Changelog.acquiring) {
+				Changelog.acquiring = true;
+				Changelog.acquire(Changelog.on_get);
+			}
+
+			var theme = Theme.get();
+
+			if (Changelog.popup !== null) {
+				Popup.close(Changelog.popup);
+			}
+			Changelog.popup = Popup.create("settings", [[{
+				small: true,
+				setup: function (container) {
+					$.add(container, $.link("https://dnsev-h.github.io/h-links/", "hl-settings-title" + theme, "H-links"));
+					$.add(container, $.link(Changelog.url, "hl-settings-version" + theme, Main.version.join(".")));
+				}
+			}, {
+				align: "right",
+				setup: function (container) {
+					var n1, n2;
+					$.add(container, n1 = $.node("label", "hl-settings-button" + theme));
+					$.add(n1, n2 = $.node("input", "hl-settings-button-checkbox"));
+					$.add(n1, $.node("span", "hl-settings-button-text hl-settings-button-checkbox-text", " Show on update"));
+					$.add(n1, $.node("span", "hl-settings-button-text hl-settings-button-checkbox-text", " Don't show on update"));
+					n2.type = "checkbox";
+					n2.checked = conf["Show Changelog on Update"];
+					$.on(n2, "change", Changelog.on_change_save);
+
+					$.add(container, n1 = $.link("#", "hl-settings-button" + theme));
+					$.add(n1, $.node("span", "hl-settings-button-text", "Close"));
+					$.on(n1, "click", Changelog.close);
+				}
+			}], {
+				body: true,
+				padding: false,
+				setup: function (container) {
+					container.classList.add("hl-changelog-content");
+					Changelog.display(container, theme);
+				}
+			}]);
+
+			Popup.open(Changelog.popup);
+		}._w(),
+		close: function (event) {
+			event.preventDefault();
+			if (Changelog.popup !== null) {
+				Popup.close(Changelog.popup);
+				Changelog.popup = null;
+			}
+		},
+		parse: function (text) {
+			var m = /^([\w\W]*)\n=+(\r?\n|$)/.exec(text),
+				re_version = /^(\w+(?:\.\w+)+)\s*$/,
+				re_change = /^(\s*)[\-\+]\s*(.+)/,
+				versions = [],
+				authors = null,
+				author, author_map, changes, lines, line, i, ii;
+
+			if (m !== null) text = m[1];
+
+			lines = text.replace(/\r\n?/g, "\n").split("\n");
+			for (i = 1, ii = lines.length; i < ii; ++i) {
+				line = lines[i];
+				if ((m = re_version.exec(line)) !== null) {
+					authors = [];
+					versions.push({
+						version: m[1],
+						authors: authors
+					});
+					author = "";
+					author_map = {};
+				}
+				else if (authors !== null) {
+					if ((m = re_change.exec(line)) !== null) {
+						if (m[1].length === 0) {
+							author = m[2];
+						}
+						else {
+							changes = author_map[author];
+							if (changes === undefined) {
+								changes = [];
+								author_map[author] = changes;
+								authors.push({
+									author: author,
+									changes: changes
+								});
+							}
+							changes.push(m[2]);
+						}
+					}
+				}
+			}
+
+			if (versions.length === 0) {
+				return { error: "No changelog data found" };
+			}
+
+			return {
+				error: null,
+				log_data: versions
+			};
+		},
+		display: function (container, theme) {
+			var versions, authors, changes,
+				e, n1, n2, n3, n4, n5, i, ii, j, jj, k, kk;
+			if (Changelog.data === null) {
+				n1 = $.node("div", "hl-changelog-message-container");
+				$.add(n1, $.node("div", "hl-changelog-message" + theme, "Loading changelog..."));
+			}
+			else if ((e = Changelog.data.error) !== null) {
+				n1 = $.node("div", "hl-changelog-message-container");
+				$.add(n1, n2 = $.node("div", "hl-changelog-message hl-changelog-message-error" + theme));
+				$.add(n2, $.node("strong", "hl-changelog-message-line" + theme, "Failed to load changelog:"));
+				$.add(n2, $.node_simple("br"));
+				$.add(n2, $.node("span", "hl-changelog-message-line" + theme, e));
+			}
+			else {
+				n1 = $.node("div", "hl-changelog-entries");
+
+				versions = Changelog.data.log_data;
+				for (i = 0, ii = versions.length; i < ii; ++i) {
+					$.add(n1, n2 = $.node("div", "hl-changelog-entry" + theme));
+					$.add(n2, $.node("div", "hl-changelog-entry-version" + theme, versions[i].version));
+					$.add(n2, n3 = $.node("div", "hl-changelog-entry-users" + theme));
+
+					authors = versions[i].authors;
+					for (j = 0, jj = authors.length; j < jj; ++j) {
+						$.add(n3, n4 = $.node("div", "hl-changelog-entry-user" + theme));
+						$.add(n4, $.node("div", "hl-changelog-entry-user-name" + theme, authors[j].author));
+						$.add(n4, n5 = $.node("ul", "hl-changelog-entry-changes" + theme));
+
+						changes = authors[j].changes;
+						for (k = 0, kk = changes.length; k < kk; ++k) {
+							$.add(n5, $.node("li", "hl-changelog-entry-change" + theme, changes[k]));
+						}
+					}
+				}
+			}
+			$.add(container, n1);
+		},
+		acquire: function (on_get) {
+			HttpRequest({
+				method: "GET",
+				url: Changelog.url,
+				onload: function (xhr) {
+					if (xhr.status === 200) {
+						on_get(null, xhr.responseText);
+					}
+					else {
+						on_get("Bad response status " + xhr.status, null);
+					}
+				},
+				onerror: function () {
+					on_get("Connection error", null);
+				},
+				onabort: function () {
+					on_get("Connection aborted", null);
+				}
+			});
+		},
+		on_get: function (err, data) {
+			if (err !== null) {
+				Changelog.data = { error: err };
+			}
+			else {
+				Changelog.data = Changelog.parse(data);
+			}
+
+			if (Changelog.popup !== null) {
+				var n = $(".hl-changelog-content", Changelog.popup);
+				if (n !== null) {
+					n.innerHTML = "";
+					Changelog.display(n, Theme.get());
+				}
+			}
+		},
+		on_change_save: function () {
+			conf["Show Changelog on Update"] = this.checked;
+			Config.save();
 		}
 	};
 	Main = {
-		version: "1.0.2",
+		version: [1,0,3],
+		version_change: 0,
 		queue: [],
 		font_inserted: false,
+		version_compare: function (v1, v2) {
+			// Returns: -1 if v1<v2, 0 if v1==v2, 1 if v1>v2
+			var ii = Math.min(v1.length, v2.length),
+				i, x, y;
+
+			for (i = 0; i < ii; ++i) {
+				x = v1[i];
+				y = v2[i];
+				if (x < y) return -1;
+				if (x > y) return 1;
+			}
+
+			ii = v1.length;
+			y = v2.length;
+			if (ii === y) return 0;
+
+			if (ii > y) {
+				y = 1;
+			}
+			else {
+				ii = y;
+				v1 = v2;
+				y = -1;
+			}
+
+			for (; i < ii; ++i) {
+				x = v1[i];
+				if (x < 0) return -y;
+				if (x > 0) return y;
+			}
+
+			return 0;
+		},
 		hovering: (function () {
 			var container = null;
 			return function (node) {
 				if (container === null) {
-					container = $.create("div", {
-						className: "hl-hovering-elements"
-					});
+					container = $.node("div", "hl-hovering-elements");
 					$.add(d.body, container);
 				}
 				$.add(container, node);
@@ -5629,11 +5878,11 @@
 		insert_custom_fonts: function () {
 			if (Main.font_inserted) return;
 			Main.font_inserted = true;
-			var font = $.create("link", {
-				rel: "stylesheet",
-				type: "text/css",
-				href: "//fonts.googleapis.com/css?family=Source+Sans+Pro:900"
-			});
+
+			var font = $.node_simple("link");
+			font.rel = "stylesheet";
+			font.type = "text/css";
+			font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
 			$.add(d.head, font);
 		},
 		insert_menu_link: (function () {
@@ -5700,10 +5949,7 @@
 					append = false;
 
 					if (Config.mode_ext.fourchanx3) {
-						n2 = $.link("https://dnsev-h.github.io/h-links/", {
-							className: "hl-nav-link-menu" + class_name,
-							textContent: text_menu
-						});
+						n2 = $.link("https://dnsev-h.github.io/h-links/", "hl-nav-link-menu" + class_name, text_menu);
 						$.on(n2, "click", on_click);
 						Main.insert_menu_link(n2);
 					}
@@ -5738,10 +5984,7 @@
 				navlink = navlinks[i];
 				if (is_desktop(navlink)) {
 					// Desktop
-					n2 = $.link("https://dnsev-h.github.io/h-links/", {
-						className: "hl-nav-link" + class_name,
-						textContent: link_mod(text, true)
-					});
+					n2 = $.link("https://dnsev-h.github.io/h-links/", "hl-nav-link" + class_name, link_mod(text, true));
 
 					if (append) {
 						if ((n1 = navlink.lastChild) !== null && n1.nodeType === Node.TEXT_NODE) {
@@ -5770,18 +6013,11 @@
 					// Mobile
 					n1 = mobile_top ? navlink.previousSibling : navlink.nextSibling;
 					if (n1 === null || !n1.classList || !n1.classList.contains("hl-nav-extras")) {
-						n1 = $.create("div", {
-							className: "mobile hl-nav-extras-mobile"
-						});
+						n1 = $.node("div", "mobile hl-nav-extras-mobile");
 					}
 
-					$.add(n1, n2 = $.create("span", {
-						className: "mobileib button hl-nav-button" + class_name
-					}));
-					$.add(n2, $.link(null, {
-						className: "hl-nav-button-inner" + class_name,
-						textContent: link_mod(text, false)
-					}));
+					$.add(n1, n2 = $.node("span", "mobileib button hl-nav-button" + class_name));
+					$.add(n2, $.link(undefined, "hl-nav-button-inner" + class_name, link_mod(text, false)));
 					if (mobile_top) {
 						$.before(navlink, n1);
 					}
@@ -5804,10 +6040,10 @@
 			if (!Config.site()) return;
 			Options.init();
 
-			var updater, style;
-			style = $.create("style", {
-				textContent: ".hl-button,.hl-star{display:inline-block}.hl-button,.hl-nav-link,.hl-settings-filter-guide-toggle{cursor:pointer}.hl-exsauce-link,.hl-exsauce-results-link{text-transform:lowercase}.hl-details-side-box>div,.hl-exsauce-link{white-space:nowrap}.hl-stars-container{position:relative;z-index:0;white-space:nowrap}.hl-stars-container.hl-stars-container-na{opacity:.5}.hl-star-none{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAQAAADYBBcfAAAA5UlEQVR4AZ2VwQmEMBBFfx0S5iwWJCIhhSwhRXgSEesQCVuIzbgCGiLJ4GTzbupjvvqNYFcDd9KgcBFmHCczqEzUOC50meiC6Eo0hS2IG5Rc7HFE9HLRPkQrf6L+IXpQ/n0ZuJigxap7YEAhViEa+Pwr1tDwRZKHvu+asIi15ZZudRJpEyhty/CqDfkWVWixs9KOFpWg3AmuoDNMf/ivkEHLgwrDEr6M8hLWJBd6PiwfdASdjO9hFdZoVg91He2juWuuAF04PYPSrfKiS0WbK3FQF34bMcm03FST3/ItanCrho1/CT96LV7iyUEWwgAAAABJRU5ErkJggg==)}.hl-star-half{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAADA0lEQVR4AbWWA7PkQBRG+9m28ubZNta2bdu2bdu2bdu2rZ/w7e2t9DKTHVS66gySyZy6X5MZ2/JjWTwx1MWBTbW1ZslMy0YiictyI2zham8BGyu2ki5LWgqbclnDkg7wdbeEnTUDXW6smVBUN6yFH0L9bYRwqJZxLuXC2X10iAqxE8KDRLBmcfZq4IujC9OREu0MVydLLuQ01CzO8V10uLuzOLIS3eDuYiWEgzWLc9moRDw6UAbZyR7wcrcRwsOEZMy8akoM1YeQTe4VjctbS+H58crISfFEgI+dEArpUBWaEpKICv9jSu9oXN1RDq/P1iRqIDfNC8H+DkJmKI3/ENJndKnpgZFtAjCmQzD1Vygmdg/HirEp4LI35+vi/aUGRF3kpXubLBSRLhVz7MCsJFzfmM8HB/VXWYqwCnhlXPbxelN8ut4A+Rk+CA4wWHiYywhJcdniFdLQl4VlwPuMx8gr47Jvt+qR0NtQ4VIhUl0rezbwwaKhMTi3rhDPjlbAq9NV8O5CDXy4UhufrtYkoUF9uFCvTEnKmdBNhwsbC/HiRAW8PlMZ785zcWXkpXmS0F5NNtPQFUhImxJHuXTZyFg8PVwaL46XxcuT5fDqVDnkpnog2E9R+JCoSwSasbpIeLi3KB4fLIGnh4jDJZCT7IYgPzsl4VCzV5cFg8JxZ3se7u3Kx/3dBXiwJx/Zia4I9LXVNyIlkxfr7nU8cGhuAq6tz8DNTZm4uSULt4jMBGcE+tjqnW+m733NvXFuSQIuLE/CpVXJODgnDnP7hvDtCX6e1vqEQ02Oc3IHHxyfE41T82Kwe3IEhrf0hjhiuDmL7cnMWEWc7So6YN3AAGwcGoRJ7b3RuZqzWAKXOtmzc/IGbH6sIs5e1R2xopc3+tb5IRKyoYTkbM+ibKzZUhXhUKPj7F7FAT2qOkJUJc/Nn1HZ2TCdvNsfVhDuJ4INjrNWrjWal7D7oyqVxyRisYK0vqFxcom6TFH6T8SDDa3QcJl6pU0NPsrLxDPjW6xc2VDin+e/Azq4LxX5iaTWAAAAAElFTkSuQmCC)}.hl-star-full{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAADhElEQVR4AbWWg3IsURRF82zbtm3btm3btmPbtm3btvEJ+93TlbmVigapSVV3D3tlr4NEQdqf5VMVprPjdf0xXdrvSwsbTaClEzqDjnroaHkCTxPo+PpudIigp+UJFNK9OTcEr88O5inlqVOXIMqPxkL54RgRUJdrlYfOB8cGw1dzPnw05uH+0YFcq9x0fr01FqmOa5HisBpfbo7iWuWmU+/DTGR5bEKm+0bovJsqrVY+V6f5bDV/CLCfDyYj2nYD8v13Is93GyIsV+L73bEcKuYexBjNVYk7fj2cjFiHLSgO3c+OfSgK3oWCgG2IJOidMWK/z2vdaJBxa38/vL80DJ+ujWT1GsMSjIfB5zkCrCT8MMqjjrHjMMoi9qE4ZCcK/Dcj3HwZdN5MxOfrw/Hh8hC8PTcQL0/2xbUd3emejYFcqa5oxjyUZiHecjk1B6vXZqZwFyUTYJXxp1EVfwwVMQdRFr4LhYFbkOu1DunOK5BoswjRxnMQqjUVtp9G49nRXlw3V9rM2qKE1Pr1wE1UM9JIyQRYXdIRVMXuZyl3oiiIAb3XIcNlOZIYMMZ4Nlx+TcDLU/3Er7+G0PvHBkHr9RSEma2kBqGakUZKJsAqonejNGw7CgM2IsdrDdKdlsFfexZUH43EnQO9G8GkWNDf7oylbqQGoZqRRkpGMJaO6fZdh2z3lQgymIvP14ZChsXOoeTcV5i991OZto3UIFQz0igkE2Aeq5HhvAxaL/h4+PJ6yb5dRiPTdTWyPddRg1DNSCMlE2Aptovw6epQnqzN20XjxXik2C9DmtNy6kZqEKoZa6olSLZZiHjzuVB5NKJNy5wv67uH+sFLdQbizBcg0Wohtb7QjYnWC5BgOQ+xprMRZTgDLr/H49Y+PganZf/bd3YgwnRmIEJ/FqKMZsNTZRpUH48SutFDcTLCdacjRHMyApTH48WJPlyrzDp/XhsEf5XJCFKbAuefE/D2/EDeiW/ODYDj19HwVRwHr5+j8PVCH5m0cp1XtneD2fNhsHw9Aj+uDsTNPT35DUW/0PXdPRioL0yeDoLhg364tKWL1Fq5zgd7u8PgwUA8PtSzyXw1nteH+7pD53Y/3NvdnX9Oap13d3XjN2i8DxvNK//8nR3dpNLKdR5Y2hFn13WRaGs0THt2bWfsX9JRYq1cJ7s2DxMHbfRdiROKhYmB8oTy/Vde/Pf/AxrB4Rr+1b9fAAAAAElFTkSuQmCC)}.hl-star{height:14px;margin-left:-1px;margin-right:-1px;margin-bottom:-2px;background-repeat:no-repeat;background-size:cover;position:relative}.hl-star-1{z-index:4;width:13px;background-position:0 0}.hl-star-2,.hl-star-3,.hl-star-4,.hl-star-5{background-position:-1px 0}.hl-star-2{z-index:3;width:12px}.hl-star-3{z-index:2;width:12px}.hl-star-4{z-index:1;width:12px}.hl-star-5{z-index:0;width:13px}.hl-button{padding:.3em 1em;font-size:inherit;line-height:1.6em;color:#333;text-align:center;text-shadow:0 .08em .08em rgba(255,255,255,.75);vertical-align:middle;background-color:#f5f5f5;background-image:-webkit-gradient(linear,0 0,0 100%,from(#fff),to(#e6e6e6));background-image:-webkit-linear-gradient(top,#fff,#e6e6e6);background-image:-o-linear-gradient(top,#fff,#e6e6e6);background-image:linear-gradient(to bottom,#fff,#e6e6e6);background-image:-moz-linear-gradient(top,#fff,#e6e6e6);background-repeat:repeat-x;border:1px solid #bbb;border-color:#e6e6e6 #e6e6e6 #bfbfbf;border-bottom-color:#a2a2a2;border-radius:.3em;box-shadow:inset 0 .08em 0 rgba(255,255,255,.2),0 .08em .16em rgba(0,0,0,.05)}.hl-button-eh{font-family:'Source Sans Pro',Tahoma,sans-serif!important;font-weight:900;font-size:.86em;width:100%;padding:.15em 0;color:#FFF!important;box-shadow:0 0 .5em rgba(0,0,0,.5);text-shadow:.09em .09em 0 rgba(0,0,0,.5),0 0 .3em #000;-webkit-font-smoothing:antialiased}.hl-button-doujinshi{background-color:#840505!important;background-image:-khtml-gradient(linear,left top,left bottom,from(#f74040),to(#840505));background-image:-moz-linear-gradient(top,#f74040,#840505);background-image:-ms-linear-gradient(top,#f74040,#840505);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#f74040),color-stop(100%,#840505));background-image:-webkit-linear-gradient(top,#f74040,#840505);background-image:-o-linear-gradient(top,#f74040,#840505);background-image:linear-gradient(#f74040,#840505);border-color:#840505 #840505 hsl(0,92%,18.5%)}.hl-button-manga{background-color:#7a2800!important;background-image:-khtml-gradient(linear,left top,left bottom,from(#ff7632),to(#7a2800));background-image:-moz-linear-gradient(top,#ff7632,#7a2800);background-image:-ms-linear-gradient(top,#ff7632,#7a2800);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#ff7632),color-stop(100%,#7a2800));background-image:-webkit-linear-gradient(top,#ff7632,#7a2800);background-image:-o-linear-gradient(top,#ff7632,#7a2800);background-image:linear-gradient(#ff7632,#7a2800);border-color:#7a2800 #7a2800 #4c1900}.hl-button-artistcg{background-color:#7a6a00!important;background-image:-khtml-gradient(linear,left top,left bottom,from(#ffe95b),to(#7a6a00));background-image:-moz-linear-gradient(top,#ffe95b,#7a6a00);background-image:-ms-linear-gradient(top,#ffe95b,#7a6a00);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#ffe95b),color-stop(100%,#7a6a00));background-image:-webkit-linear-gradient(top,#ffe95b,#7a6a00);background-image:-o-linear-gradient(top,#ffe95b,#7a6a00);background-image:linear-gradient(#ffe95b,#7a6a00);border-color:#7a6a00 #7a6a00 #423900}.hl-button-gamecg{background-color:#273214!important;background-image:-moz-linear-gradient(top,#96ba58,#273214);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#96ba58),color-stop(100%,#273214));background-image:-webkit-linear-gradient(top,#96ba58,#273214);background-image:-o-linear-gradient(top,#96ba58,#273214);background-image:linear-gradient(#96ba58,#273214);border-color:#273214 #273214 #0b0e05}.hl-button-western{background-color:#4d7a00!important;background-image:-moz-linear-gradient(top,#c3ff5b,#4d7a00);background-image:-ms-linear-gradient(top,#c3ff5b,#4d7a00);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#c3ff5b),color-stop(100%,#4d7a00));background-image:-webkit-linear-gradient(top,#c3ff5b,#4d7a00);background-image:-o-linear-gradient(top,#c3ff5b,#4d7a00);background-image:linear-gradient(#c3ff5b,#4d7a00);border-color:#4d7a00 #4d7a00 #294200}.hl-button-non-h{background-color:#225358!important;background-image:-moz-linear-gradient(top,#73c1c8,#225358);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#73c1c8),color-stop(100%,#225358));background-image:-webkit-linear-gradient(top,#73c1c8,#225358);background-image:-o-linear-gradient(top,#73c1c8,#225358);background-image:linear-gradient(#73c1c8,#225358);border-color:#225358 #225358 hsl(185,44%,14.5%)}.hl-button-imageset{background-color:#0e3961!important;background-image:-moz-linear-gradient(top,#56a0e5,#0e3961);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#56a0e5),color-stop(100%,#0e3961));background-image:-webkit-linear-gradient(top,#56a0e5,#0e3961);background-image:-o-linear-gradient(top,#56a0e5,#0e3961);background-image:linear-gradient(#56a0e5,#0e3961);border-color:#0e3961 #0e3961 #071f35}.hl-button-cosplay{background-color:#3a2861!important;background-image:-moz-linear-gradient(top,#a996d3,#3a2861);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#a996d3),color-stop(100%,#3a2861));background-image:-webkit-linear-gradient(top,#a996d3,#3a2861);background-image:-o-linear-gradient(top,#a996d3,#3a2861);background-image:linear-gradient(#a996d3,#3a2861);border-color:#3a2861 #3a2861 #221839}.hl-button-asianporn{background-color:#740f51!important;background-image:-moz-linear-gradient(top,#ec78c3,#740f51);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#ec78c3),color-stop(100%,#740f51));background-image:-webkit-linear-gradient(top,#ec78c3,#740f51);background-image:-o-linear-gradient(top,#ec78c3,#740f51);background-image:linear-gradient(#ec78c3,#740f51);border-color:#740f51 #740f51 #43092e}.hl-button-misc{background-color:#353535!important;background-image:-moz-linear-gradient(top,#bfbfbf,#353535);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#bfbfbf),color-stop(100%,#353535));background-image:-webkit-linear-gradient(top,#bfbfbf,#353535);background-image:-o-linear-gradient(top,#bfbfbf,#353535);background-image:linear-gradient(#bfbfbf,#353535);border-color:#353535 #353535 hsl(321,0%,7.5%)}.hl-noise{color:#FFF!important;margin:0 0 -4px;padding:2px 0;border-radius:4px;position:relative;top:-2px;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAMAAACd646MAAAAG1BMVEUAAAAfHx8/Pz9fX19/f3+fn5+/v7/f39////8NX9jPAAAACXRSTlMICAgICAgICAWHgaIXAAAErklEQVR42rWXOZIlNBBEn2rLd/8TYxBDANEsA78dGSpDqi0XGmDL04cKanRWhrWBvHqbUoemvHZscN5EVMV1KzTXzfMYtGVvkemNHVWiNitiC++ww3M5McNsFxaKkYcotEyUCKccLXvyXGFVfU/uYA2oWq/L9eapmsOmQd7BE7BcFEbWQp/jNE9jr6OjYYaAJ9K01LrCrCOc2Im2wVLsfjKHsHIttCn0DlYpU0tBSQMM9gRXpr8pLaRdGzUPpVefT1Dv7aFZ1wGL6OHPtRKg9BW1GCktCxq9ePZjhcsJCorYCOZgHdccomwrb1FL0fPQJ1lYuKfalqjeDVFMj+bUZ0d7BSHCPhnqeX0CKlqv11FlhbXAju0YmodWTo2otue1V84WPlT6PWtvRUGZS634CskGj4sogqJTDY1Bt8EM+VglKRWgR32nwhrIk/Gp/3sAAVen3hPvRpVwr5QD0eeqVgCNyvS6WrQC1JN+y7hA06qKLfC3wVWDrVZbvSDvjaTUKle0qBUZjWifntuN5TXI25oweKzOtEjZtmcclanhClMILtEmrT5ReKbUZzX6RxxBlTXdLZAdkRR2FbTPt17sU0kpLddnLH1IqaqoAMTcqZo6CgW/uytPtZVxIpYW0oNxH3gqZ0QQdyXeiOB6CyvaxQSgrDXkzlhvMePcySj71Oc4ilwVAoNiZb31dTzTI/vssNWxhzpvFHCRHQ0A4gOtOcLR7nNpQUV846ryYi3yVID1+U7sx/y4NSqzFqMVzUM+vt5fACVoFsyRZ+s2IIyISyaMjh5yyLqrIuZ8fY2LzKSe1698IojmNahUo891Vp3sQ1XfCMCbFUvrkBPvVhlD4Uoprw4dHFlltNSRs3wvnX6eF80inB6g57y2FR17T0QzDBifpe+y6rJImsiUcD9S+taxclb5axLwtnGkZwIct4K4pyCtJQ+PU1WjbBrDLD4V8R8FTW+ebzLq2A3GYWqRqDy0kQbPQ17jKefd8HUR+6BUP4Nq4KAOurFBzDzeOqL6+gkall6T97Nzj8/8epSOr4TVolhElXZGLi3oMjeqgjLPWhEkfRocTBqCzz4+q0vSCq+3geOpehTyeNvS0y2KmC7xVubpuz1XyZlVtH5CG7CKwvU5LiJNLTz0wfWUUsDqvhbRx4toKfokNMU2rlZ55nrP4TFleXOqqNDv9d19UPXxKTgvwozCG/WppSPrIRYAPXiCiWpjXe6cRtTu/8zUfNtISXScQdKWhuiIsocNZmdwoFQ5TN2VitkprVX7lsJzDlChARzENZy/mcc76duguKmZnfaMBw9Apwza2vGGiarj044exFsCAbUMNsB+ZcA+6oc/iR4iumKrv+NbvtOP/igH3yGB/rwzv1FkKHXVXhj1aEX0UJoFOeAAdME5xZLdoxHoVYiKNT5h3TOeqveGpihwRG12PKPIqH1cCjG8+OB1k4gQRnV2dVRRFKKA4strjYMqZQTK4tRRn08BBMT+d+aDD+iE14LKqRW+4Nr/ghNniexqONNKuyDiaXRTo4JiYIl22ZlDJ+/DxvsvHj9OBtW9d2alRrtAFTeiU5aD0UJEZIu2obEpQPlgYb7+2y84P1jASwAjowAAAABJRU5ErkJggg==)}.hl-details.post.reply,.hl-exsauce-hover.post.reply{opacity:.93;font-size:inherit!important;position:fixed!important;overflow:visible!important}.hl-exsauce-hover-link{text-decoration:none!important}a.hl-exsauce-link.hl-exsauce-link-disabled{text-decoration:line-through!important;cursor:default!important}.hl-actions-link,.hl-details-title,.hl-easylist-control-link,.hl-easylist-item-info-button,.hl-easylist-item-title-link,.hl-easylist-item-title-tag-link,.hl-exsauce-results-link,.hl-linkified,.hl-settings-filter-guide-toggle,.hl-settings-version,.hl-site-tag,.hl-tag{text-decoration:none!important}.hl-exsauce-results{display:table;max-width:100%;width:auto;margin:.25em 0;border-radius:.375em;background-color:rgba(0,0,0,.05);padding:.5em}.hl-exsauce-results.hl-exsauce-results-hidden{display:none}.hl-exsauce-results.hl-theme-dark{background-color:rgba(255,255,255,.05)}.hl-exsauce-results-sep{display:inline-block;margin:0 .5em}.hl-exsauce-results-link{vertical-align:top;margin:0 .375em}.hl-exsauce-hover.post.reply{display:block!important;z-index:993!important;padding:.5em!important;margin:0!important;border-radius:.25em!important;width:auto!important}.hl-exsauce-hover.hl-exsauce-hover-hidden.post.reply{display:none!important}.hl-actions{display:table;margin:.25em 0;vertical-align:middle;padding:.25em;border-radius:.25em;background-color:rgba(0,0,0,.05)}.hl-actions.hl-actions-hidden{display:none}.hl-actions.hl-theme-dark{background-color:rgba(255,255,255,.05)}.hl-actions-label{font-weight:700}.hl-actions-sep{display:inline-block;margin:0 .5em}.hl-actions-link{vertical-align:top;margin:0 .375em}.hl-actions-link+.hl-actions-link{margin-left:0}.hl-actions-tag-block-label{margin-right:.125em}.hl-details.post.reply{display:block!important;z-index:994!important;padding:.5em!important;margin:0!important;border-radius:.5em!important;text-align:center!important;width:60%!important;min-width:600px!important;box-sizing:border-box!important;-moz-box-sizing:border-box!important}.hl-details.hl-details-hidden.post.reply{display:none!important}.hl-details-thumbnail{float:left;margin-right:8px;width:140px;height:200px;background-repeat:no-repeat;background-size:cover;background-position:25% 0}.hl-details-side-panel{float:right;margin-left:.5em;font-size:1.0625em!important;line-height:1em!important}.hl-details-side-box{width:5.75em;font-size:.8em;padding:.5em 0;margin:.8em 0 .4em;border-radius:.5em;background-clip:padding-box;background-color:rgba(0,0,0,.125);box-shadow:0 0 .5em rgba(0,0,0,.125);text-shadow:0 .1em 0 rgba(255,255,255,.5)}.hl-details-side-box.hl-theme-dark{background-color:rgba(255,255,255,.125);box-shadow:0 0 .5em rgba(255,255,255,.125);text-shadow:0 .1em 0 rgba(0,0,0,.5)}.hl-details-title{font-size:1.5em!important;font-weight:700!important;text-shadow:.1em .1em .4em rgba(0,0,0,.15)!important}.hl-details-title-jp{opacity:.5;font-size:1.1em;text-shadow:.1em .1em .5em rgba(0,0,0,.2)!important}.hl-details-rating{width:64px;height:11px;text-align:center;display:inline-block}.hl-details-file-size,.hl-details-rating-text{opacity:.65;font-size:.95em}.hl-details-upload-info{font-size:1em!important}.hl-details-upload-date,.hl-details-uploader{font-size:1em!important;margin:0 5px}.hl-details-tag-block{font-size:1.075em!important;display:inline!important;line-height:1.4em}.hl-tag-block,.hl-tag-namespace-first{display:inline-block}.hl-details-tag-block-label{margin-right:.25em!important}.hl-details-clear{clear:both}.hl-tag-block{margin:0 .125em}.hl-tag{position:relative;white-space:nobreak}.hl-tag.hl-tag-color-inherit{color:inherit!important}.hl-tag-block.hl-tag-block-last-of-namespace{margin-right:.5em}.hl-tag-block.hl-tag-block-last{margin-right:0}.hl-tag-namespace-first>.hl-tag-block{display:inline}.hl-tag-namespace-block{display:inline-block;margin:0 .125em}.hl-tag-namespace{display:inline-block;border:1px solid rgba(0,0,0,.4);border-radius:.25em;padding:0 2px;line-height:normal}.hl-tag-namespace-block.hl-tag-namespace-block-no-outline>.hl-tag-namespace{border-style:none}.hl-tag-namespace-block.hl-theme-dark>.hl-tag-namespace{border-color:rgba(255,255,255,.4)}.hl-tag-namespace-block.hl-tag-namespace-language>.hl-tag-namespace{color:#6721c6}.hl-tag-namespace-block.hl-tag-namespace-group>.hl-tag-namespace{color:#9f8636}.hl-tag-namespace-block.hl-tag-namespace-artist>.hl-tag-namespace{color:#c47525}.hl-tag-namespace-block.hl-tag-namespace-parody>.hl-tag-namespace{color:#0ea79e}.hl-tag-namespace-block.hl-tag-namespace-character>.hl-tag-namespace{color:#288028}.hl-tag-namespace-block.hl-tag-namespace-male>.hl-tag-namespace{color:#0659ae}.hl-tag-namespace-block.hl-tag-namespace-female>.hl-tag-namespace{color:#e0338d}.hl-tag-namespace-block.hl-tag-namespace-language.hl-theme-dark>.hl-tag-namespace{color:#895cc6}.hl-tag-namespace-block.hl-tag-namespace-group.hl-theme-dark>.hl-tag-namespace{color:#e8c44f}.hl-tag-namespace-block.hl-tag-namespace-artist.hl-theme-dark>.hl-tag-namespace{color:#e89c4f}.hl-tag-namespace-block.hl-tag-namespace-parody.hl-theme-dark>.hl-tag-namespace{color:#21eda2}.hl-tag-namespace-block.hl-tag-namespace-character.hl-theme-dark>.hl-tag-namespace{color:#6ce769}.hl-tag-namespace-block.hl-tag-namespace-male.hl-theme-dark>.hl-tag-namespace{color:#23add0}.hl-tag-namespace-block.hl-tag-namespace-female.hl-theme-dark>.hl-tag-namespace{color:#e89cc4}.hl-details-uploader.hl-filter-good,.hl-linkified-gallery.hl-filter-good,.hl-site-tag.hl-filter-good,.hl-tag.hl-filter-good{font-weight:700}.hl-filter-text{display:inline}.hl-site-tag{white-space:nowrap;display:inline-block;margin-right:.25em}.hl-linkified.hl-linkified-error{font-style:italic}.hl-linkified-error-message{opacity:.75}.hl-nav-extras-mobile{text-align:center;margin:.5em 0}.hl-hover-shadow{box-shadow:0 0 .125em 0 rgba(0,0,0,.5)}.hl-hover-shadow.hl-theme-dark{box-shadow:0 0 .125em 0 rgba(255,255,255,.5)}:root.hl-settings-overlaying,:root.hl-settings-overlaying body{overflow-x:hidden!important;overflow-y:hidden!important}.hl-settings-overlay{position:fixed;width:100%;height:100%;top:0;left:0;text-align:center;background:rgba(0,0,0,.5);z-index:1000}.hl-settings{display:block!important;font-family:sans-serif;position:fixed!important;width:60%!important;height:60%!important;top:16%!important;left:20%!important;padding:2px 8px 64px!important;border-radius:6px!important;z-index:1001!important;text-align:left!important}.hl-settings-button{margin:.25em .125em;display:inline-block!important;padding:.25em;background:rgba(0,0,0,.05);border-radius:.2em}.hl-settings-button.hl-theme-dark{background:rgba(255,255,255,.05)}.hl-settings-title{font-size:2em!important;font-weight:700!important;text-decoration:none!important}.hl-settings-version{margin:0 4px;opacity:.9;vertical-align:75%}.hl-settings-content{overflow-y:scroll;text-align:left;height:100%;margin-top:1.125em}.hl-settings-content-inner{padding:.375em}.hl-settings-nav{text-align:left!important}.hl-settings-nav>div:first-of-type{float:right}.hl-settings-heading{display:table;width:100%;padding:.25em 0}.hl-settings-heading>div{display:table-row;height:100%}.hl-settings-heading-cell{display:table-cell;height:100%;width:100%}.hl-settings-heading-title{vertical-align:top;text-align:left;font-size:1.5em;font-weight:700;font-family:sans-serif;white-space:nowrap;width:0}.hl-settings-heading-subtitle{vertical-align:bottom;text-align:right;padding-left:.5em;opacity:.6}.hl-settings-group{border:1px solid rgba(0,0,0,.2);border-radius:.25em;padding:.125em;box-sizing:border-box;-moz-box-sizing:border-box}.hl-settings-group.hl-theme-dark{border-color:rgba(255,255,255,.2)}.hl-settings-group+.hl-settings-heading{margin-top:.75em}.hl-settings-entry-table{display:table;width:100%;padding:.375em .25em;box-sizing:border-box;-moz-box-sizing:border-box}.hl-settings-entry-row{display:table-row;height:100%}.hl-settings-entry-cell{vertical-align:middle;text-align:left;display:table-cell;width:100%;height:100%}.hl-settings-entry-cell:last-of-type:not(:first-of-type){vertical-align:middle;text-align:right;width:0}.hl-settings-entry+.hl-settings-entry{border-top:.125em solid transparent}.hl-settings-entry:nth-child(even)>.hl-settings-entry-table{background-color:rgba(0,0,0,.05)}.hl-settings-entry:nth-child(odd)>.hl-settings-entry-table{background-color:rgba(0,0,0,.025)}.hl-settings-entry.hl-theme-dark:nth-child(even)>.hl-settings-entry-table{background-color:rgba(255,255,255,.05)}.hl-settings-entry.hl-theme-dark:nth-child(odd)>.hl-settings-entry-table{background-color:rgba(255,255,255,.025)}input.hl-settings-entry-input[type=text]{width:8em}button.hl-settings-entry-input,input.hl-settings-entry-input[type=text],select.hl-settings-entry-input{min-width:8em;box-sizing:border-box;-moz-box-sizing:border-box;padding:.0625em .125em!important;margin:0!important;font-size:inherit!important;font-family:inherit!important;line-height:1.3em!important}select.hl-settings-entry-input{width:auto;height:auto}label.hl-settings-entry-label{cursor:pointer;margin-bottom:0}.hl-settings-filter-guide{margin-bottom:.25em;padding:.375em}.hl-settings-filter-guide:not(.hl-settings-filter-guide-visible){display:none}.hl-settings ul{padding:0}.hl-settings ul>li{margin:.75em 2em;list-style:none}.hl-settings code{color:#000;background-color:#fff;font-family:Courier,monospace!important}.hl-settings-color-input{padding:.25em!important;margin:0 1em 0 0!important;display:inline-block;vertical-align:middle!important;line-height:1.5em!important;height:2em!important;width:8em!important;box-sizing:border-box!important;-moz-box-sizing:border-box!important;cursor:text!important}.hl-settings-color-input:first-of-type{cursor:pointer!important}.hl-settings-color-input:last-of-type{width:11em!important}textarea.hl-settings-entry-input{display:block;width:100%;height:15em;line-height:1.3em;padding:.5em;box-sizing:border-box;-moz-box-sizing:border-box;resize:vertical;font-size:.9em!important;font-family:Courier,monospace!important}button.hl-settings-entry-input{float:right;padding:.125em .25em;margin:0;box-sizing:border-box;-moz-box-sizing:border-box;background-color:transparent;border:1px solid rgba(0,0,0,.25);border-radius:.25em;font-size:inherit;font-family:inherit;color:inherit;cursor:pointer}button.hl-settings-entry-input:hover{border-color:rgba(0,0,0,.5)}button.hl-settings-entry-input.hl-theme-dark{border-color:rgba(255,255,255,.25)}button.hl-settings-entry-input.hl-theme-dark:hover{border-color:rgba(255,255,255,.5)}:root.hl-easylist-overlaying,:root.hl-easylist-overlaying body{overflow-x:hidden!important;overflow-y:hidden!important}.hl-easylist-overlay{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(255,255,255,.5);z-index:400;overflow-x:hidden;overflow-y:scroll}.hl-easylist-overlay.hl-theme-dark{background:rgba(0,0,0,.5)}.hl-easylist-content-align{position:absolute;left:0;top:0;right:0;bottom:0;white-space:nowrap;line-height:0;text-align:center}.hl-easylist-content-align:before{content:\"\";width:0;height:100%;display:inline-block;vertical-align:middle}.hl-easylist-content{display:inline-block;vertical-align:middle;white-space:normal;line-height:normal;text-align:left;padding:1em;margin:0;width:800px;min-width:60%;max-width:100%;box-sizing:border-box;-moz-box-sizing:border-box}div.hl-easylist-content-inner.post.reply.post_wrapper{display:block!important;padding:1em!important;margin:0!important;width:100%!important;border:none!important;box-sizing:border-box!important;-moz-box-sizing:border-box!important;position:relative!important;border-radius:.5em!important}.hl-easylist-title{margin-left:-2em}.hl-easylist-title-text{display:inline-block;font-size:2em;font-weight:700;margin-left:1em}.hl-easylist-subtitle{display:inline-block;font-style:italic;opacity:.8;margin-left:2em}.hl-easylist-title-line{border-bottom:1px solid grey;margin:.5em 0}.hl-easylist-control-links{position:absolute;top:0;right:0}.hl-easylist-control-link{display:inline-block;padding:.5em;cursor:pointer;opacity:.5}.hl-easylist-control-link.hl-easylist-control-link-focus,.hl-easylist-control-link:hover{opacity:1}.hl-easylist-control-link+.hl-easylist-control-link{margin-left:.5em}.hl-easylist-empty-notification{text-align:center;font-size:2em;font-style:italic;padding:2em}.hl-easylist-empty-notification.hl-easylist-empty-notification-visible+.hl-easylist-items,.hl-easylist-empty-notification:not(.hl-easylist-empty-notification-visible){display:none}.hl-easylist-items{border-radius:.5em;border:1px solid rgba(0,0,0,.25);box-sizing:border-box;-moz-box-sizing:border-box;overflow:hidden}.hl-easylist-items.hl-theme-dark{border:1px solid rgba(255,255,255,.25)}.hl-easylist-item{background-color:rgba(0,0,0,.0625)}.hl-easylist-item:nth-of-type(2n){background-color:rgba(0,0,0,.03125)}.hl-easylist-item.hl-theme-dark{background-color:rgba(255,255,255,.0625)}.hl-easylist-item.hl-theme-dark:nth-of-type(2n){background-color:rgba(255,255,255,.03125)}.hl-easylist-item-table-container{padding:.5em;position:relative;box-sizing:border-box;-moz-box-sizing:border-box}.hl-easylist-item-table{display:table;width:100%}.hl-easylist-item-row{display:table-row}.hl-easylist-item-cell{display:table-cell;width:100%;vertical-align:top;padding:0 .5em}.hl-easylist-item-cell.hl-easylist-item-cell-image,.hl-easylist-item-cell.hl-easylist-item-cell-side{width:0;padding:0}.hl-easylist-item-image-container{display:block;margin:0;padding:0;border:none;width:140px;height:200px;background-color:rgba(0,0,0,.03125);text-align:center;white-space:nowrap;line-height:0}.hl-easylist-item-image-container:after{content:\"\";display:inline-block;vertical-align:middle;width:0;height:100%}.hl-easylist-item-image-container.hl-theme-dark{background-color:rgba(255,255,255,.03125)}.hl-easylist-item-image-outer{display:inline-block;vertical-align:middle;position:relative;line-height:normal;white-space:normal}.hl-easylist-item-image{margin:0!important;padding:0!important;border:none!important;display:inline-block;vertical-align:middle;max-width:140px;max-height:200px}.hl-easylist-item-image-index{display:block;position:absolute;left:0;top:0;padding:.25em;color:#000;text-shadow:0 0 .125em #fff,0 0 .25em #fff}.hl-easylist-item-image-index.hl-theme-dark{color:#fff;text-shadow:0 0 .125em #000,0 0 .25em #000}.hl-easylist-item-info{display:inline-block;padding:0 0 .5em .5em;width:4.8em}.hl-easylist-item-info-item{font-size:.825em;margin-top:1em;text-align:center;max-width:100%;border-radius:.5em;padding:.375em 0;background-color:rgba(0,0,0,.125);box-shadow:0 0 .5em rgba(0,0,0,.125);text-shadow:0 .1em 0 rgba(255,255,255,.5)}.hl-easylist-item-tags,.hl-easylist-item-upload-info,.hl-easylist-option-group+.hl-easylist-option-group{margin-top:.5em}.hl-easylist-item-info-item.hl-theme-dark{background-color:rgba(255,255,255,.125);box-shadow:0 0 .5em rgba(255,255,255,.125);text-shadow:0 .1em 0 rgba(0,0,0,.5)}.hl-easylist-item-info-light{opacity:.8}.hl-easylist-item-title{font-size:1.5em;font-weight:700}.hl-easylist-item-title:hover{text-shadow:0 0 .25em #fff}.hl-easylist-item-title.hl-theme-dark:hover{text-shadow:0 0 .25em #000}.hl-easylist-item-title-tag-link{margin-right:.25em;display:none}.hl-easylist-item-title-jp{opacity:.5;font-size:1.1em;display:block}.hl-easylist-item-upload-date,.hl-easylist-item-uploader{font-weight:700;display:inline-block;padding:0 .25em}.hl-easylist-item-tag-table{display:table;width:100%}.hl-easylist-item-tag-row{display:table-row}.hl-easylist-item-tag-row+.hl-easylist-item-tag-row>.hl-easylist-item-tag-cell{padding-top:.25em}.hl-easylist-item-tag-cell{display:table-cell;width:100%}.hl-easylist-compact .hl-easylist-item-info-item.hl-easylist-item-info-item-files>:not(:first-child),.hl-easylist-compact .hl-easylist-item-info-item.hl-easylist-item-info-item-rating>:not(:first-child),.hl-easylist-compact .hl-easylist-item-title-jp,.hl-easylist-compact .hl-easylist-item-upload-info{display:none}.hl-easylist-item-tag-cell.hl-easylist-item-tag-cell-label{width:0;white-space:nowrap;text-align:right;padding-right:.25em}.hl-easylist-compact .hl-easylist-item-image-container{width:70px;height:100px}.hl-easylist-compact .hl-easylist-item-image{max-width:70px;max-height:100px}.hl-easylist-compact .hl-easylist-item-title{font-size:1em;line-height:1.25em;max-height:2.5em;overflow:hidden;position:relative}.hl-easylist-compact .hl-easylist-item-title:hover{overflow:visible;z-index:1}.hl-easylist-compact .hl-easylist-item-tags{font-size:.9em}.hl-easylist-compact .hl-easylist-item-tag-row+.hl-easylist-item-tag-row>.hl-easylist-item-tag-cell{padding-top:0}.hl-easylist-compact .hl-easylist-item-tag-table{display:block;line-height:1.4em}.hl-easylist-compact .hl-easylist-item-tag-row{display:inline}.hl-easylist-compact .hl-easylist-item-tag-row+.hl-easylist-item-tag-row:before{content:\"\";display:inline-block;width:1em;height:0}.hl-easylist-compact .hl-easylist-item-tag-cell{display:inline;width:auto}.hl-easylist-minimal .hl-easylist-item-cell-image,.hl-easylist-minimal .hl-easylist-item-info-item,.hl-easylist-minimal .hl-easylist-item-tags,.hl-easylist-minimal .hl-easylist-item-title-jp,.hl-easylist-minimal .hl-easylist-item-upload-info{display:none}.hl-easylist-compact .hl-easylist-item-tag-cell>.hl-tag-namespace-block.hl-tag-namespace-block-no-outline>.hl-tag-namespace{border-width:1px;border-style:solid}.hl-easylist-minimal .hl-easylist-item-cell{padding-left:0;vertical-align:middle}.hl-easylist-minimal .hl-easylist-item-cell-side{vertical-align:top}.hl-easylist-minimal .hl-easylist-item-title{font-size:1em;line-height:1.25em}.hl-easylist-minimal .hl-easylist-item-title-tag-link{display:inline-block}.hl-easylist-options:not(.hl-easylist-options-visible){display:none}.hl-easylist-option-table{display:table;width:100%}.hl-easylist-option-row{display:table-row}.hl-easylist-option-row+.hl-easylist-option-row>.hl-easylist-option-cell{padding-top:.5em}.hl-easylist-option-cell{display:table-cell;width:100%;vertical-align:top}.hl-easylist-option-cell:first-of-type{width:0;text-align:right}.hl-easylist-option-title{font-weight:700;margin-right:1em;display:inline-block;padding:.25em 0;border-top:1px solid transparent;border-bottom:1px solid transparent;white-space:nowrap}.hl-easylist-option-label{display:inline-block}.hl-easylist-option-label+.hl-easylist-option-label{margin-left:.5em}.hl-easylist-option-input,.hl-easylist-option-input+.riceCheck{display:none}.hl-easylist-option-button{display:inline-block;padding:.25em .5em;border-radius:.25em;background-color:rgba(255,255,255,.125);border:1px solid rgba(0,0,0,.0625);cursor:pointer}.hl-easylist-option-button:hover{border-color:rgba(0,0,0,.25)}.hl-easylist-option-button.hl-theme-dark{background-color:rgba(0,0,0,.125);border:1px solid rgba(255,255,255,.0625)}.hl-easylist-option-button.hl-theme-dark:hover{border-color:rgba(255,255,255,.25)}.hl-easylist-option-input:checked~.hl-easylist-option-button{background-color:rgba(255,255,255,.5);border-color:rgba(0,0,0,.25);color:#000}.hl-easylist-option-input:checked~.hl-easylist-option-button.hl-theme-dark{background-color:rgba(0,0,0,.5);border-color:rgba(255,255,255,.25);color:#fff}.hl-easylist-option-textarea{background-color:rgba(255,255,255,.125)!important;border:1px solid rgba(0,0,0,.0625)!important;margin:0!important;padding:.25em!important;box-sizing:border-box;-moz-box-sizing:border-box;width:100%;line-height:1.4em;height:4.8em;min-height:2em;resize:vertical;font-family:Courier,monospace!important}.hl-easylist-option-textarea:focus,.hl-easylist-option-textarea:hover{background-color:rgba(255,255,255,.5)!important;border-color:rgba(0,0,0,.25)!important}.hl-easylist-option-textarea.hl-theme-dark{background-color:rgba(0,0,0,.125)!important;border:1px solid rgba(255,255,255,.0625)!important;margin:0!important;padding:.25em!important}.hl-easylist-option-textarea.hl-theme-dark:focus,.hl-easylist-option-textarea.hl-theme-dark:hover{background-color:rgba(0,0,0,.5)!important;border-color:rgba(255,255,255,.25)!important}"
-			});
+			var style = $.node_simple("style"),
+				updater;
+
+			style.textContent = ".hl-details-side-box>div,.hl-exsauce-link{white-space:nowrap}.hl-button,.hl-star{display:inline-block}.hl-stars-container{position:relative;z-index:0;white-space:nowrap}.hl-stars-container.hl-stars-container-na{opacity:.5}.hl-star-none{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAQAAADYBBcfAAAA5UlEQVR4AZ2VwQmEMBBFfx0S5iwWJCIhhSwhRXgSEesQCVuIzbgCGiLJ4GTzbupjvvqNYFcDd9KgcBFmHCczqEzUOC50meiC6Eo0hS2IG5Rc7HFE9HLRPkQrf6L+IXpQ/n0ZuJigxap7YEAhViEa+Pwr1tDwRZKHvu+asIi15ZZudRJpEyhty/CqDfkWVWixs9KOFpWg3AmuoDNMf/ivkEHLgwrDEr6M8hLWJBd6PiwfdASdjO9hFdZoVg91He2juWuuAF04PYPSrfKiS0WbK3FQF34bMcm03FST3/ItanCrho1/CT96LV7iyUEWwgAAAABJRU5ErkJggg==)}.hl-star-half{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAADA0lEQVR4AbWWA7PkQBRG+9m28ubZNta2bdu2bdu2bdu2rZ/w7e2t9DKTHVS66gySyZy6X5MZ2/JjWTwx1MWBTbW1ZslMy0YiictyI2zham8BGyu2ki5LWgqbclnDkg7wdbeEnTUDXW6smVBUN6yFH0L9bYRwqJZxLuXC2X10iAqxE8KDRLBmcfZq4IujC9OREu0MVydLLuQ01CzO8V10uLuzOLIS3eDuYiWEgzWLc9moRDw6UAbZyR7wcrcRwsOEZMy8akoM1YeQTe4VjctbS+H58crISfFEgI+dEArpUBWaEpKICv9jSu9oXN1RDq/P1iRqIDfNC8H+DkJmKI3/ENJndKnpgZFtAjCmQzD1Vygmdg/HirEp4LI35+vi/aUGRF3kpXubLBSRLhVz7MCsJFzfmM8HB/VXWYqwCnhlXPbxelN8ut4A+Rk+CA4wWHiYywhJcdniFdLQl4VlwPuMx8gr47Jvt+qR0NtQ4VIhUl0rezbwwaKhMTi3rhDPjlbAq9NV8O5CDXy4UhufrtYkoUF9uFCvTEnKmdBNhwsbC/HiRAW8PlMZ785zcWXkpXmS0F5NNtPQFUhImxJHuXTZyFg8PVwaL46XxcuT5fDqVDnkpnog2E9R+JCoSwSasbpIeLi3KB4fLIGnh4jDJZCT7IYgPzsl4VCzV5cFg8JxZ3se7u3Kx/3dBXiwJx/Zia4I9LXVNyIlkxfr7nU8cGhuAq6tz8DNTZm4uSULt4jMBGcE+tjqnW+m733NvXFuSQIuLE/CpVXJODgnDnP7hvDtCX6e1vqEQ02Oc3IHHxyfE41T82Kwe3IEhrf0hjhiuDmL7cnMWEWc7So6YN3AAGwcGoRJ7b3RuZqzWAKXOtmzc/IGbH6sIs5e1R2xopc3+tb5IRKyoYTkbM+ibKzZUhXhUKPj7F7FAT2qOkJUJc/Nn1HZ2TCdvNsfVhDuJ4INjrNWrjWal7D7oyqVxyRisYK0vqFxcom6TFH6T8SDDa3QcJl6pU0NPsrLxDPjW6xc2VDin+e/Azq4LxX5iaTWAAAAAElFTkSuQmCC)}.hl-star-full{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAADhElEQVR4AbWWg3IsURRF82zbtm3btm3btmPbtm3btvEJ+93TlbmVigapSVV3D3tlr4NEQdqf5VMVprPjdf0xXdrvSwsbTaClEzqDjnroaHkCTxPo+PpudIigp+UJFNK9OTcEr88O5inlqVOXIMqPxkL54RgRUJdrlYfOB8cGw1dzPnw05uH+0YFcq9x0fr01FqmOa5HisBpfbo7iWuWmU+/DTGR5bEKm+0bovJsqrVY+V6f5bDV/CLCfDyYj2nYD8v13Is93GyIsV+L73bEcKuYexBjNVYk7fj2cjFiHLSgO3c+OfSgK3oWCgG2IJOidMWK/z2vdaJBxa38/vL80DJ+ujWT1GsMSjIfB5zkCrCT8MMqjjrHjMMoi9qE4ZCcK/Dcj3HwZdN5MxOfrw/Hh8hC8PTcQL0/2xbUd3emejYFcqa5oxjyUZiHecjk1B6vXZqZwFyUTYJXxp1EVfwwVMQdRFr4LhYFbkOu1DunOK5BoswjRxnMQqjUVtp9G49nRXlw3V9rM2qKE1Pr1wE1UM9JIyQRYXdIRVMXuZyl3oiiIAb3XIcNlOZIYMMZ4Nlx+TcDLU/3Er7+G0PvHBkHr9RSEma2kBqGakUZKJsAqonejNGw7CgM2IsdrDdKdlsFfexZUH43EnQO9G8GkWNDf7oylbqQGoZqRRkpGMJaO6fZdh2z3lQgymIvP14ZChsXOoeTcV5i991OZto3UIFQz0igkE2Aeq5HhvAxaL/h4+PJ6yb5dRiPTdTWyPddRg1DNSCMlE2Aptovw6epQnqzN20XjxXik2C9DmtNy6kZqEKoZa6olSLZZiHjzuVB5NKJNy5wv67uH+sFLdQbizBcg0Wohtb7QjYnWC5BgOQ+xprMRZTgDLr/H49Y+PganZf/bd3YgwnRmIEJ/FqKMZsNTZRpUH48SutFDcTLCdacjRHMyApTH48WJPlyrzDp/XhsEf5XJCFKbAuefE/D2/EDeiW/ODYDj19HwVRwHr5+j8PVCH5m0cp1XtneD2fNhsHw9Aj+uDsTNPT35DUW/0PXdPRioL0yeDoLhg364tKWL1Fq5zgd7u8PgwUA8PtSzyXw1nteH+7pD53Y/3NvdnX9Oap13d3XjN2i8DxvNK//8nR3dpNLKdR5Y2hFn13WRaGs0THt2bWfsX9JRYq1cJ7s2DxMHbfRdiROKhYmB8oTy/Vde/Pf/AxrB4Rr+1b9fAAAAAElFTkSuQmCC)}.hl-star{height:14px;margin-left:-1px;margin-right:-1px;margin-bottom:-2px;background-repeat:no-repeat;background-size:cover;position:relative}.hl-star-1{z-index:4;width:13px;background-position:0 0}.hl-star-2,.hl-star-3,.hl-star-4,.hl-star-5{background-position:-1px 0}.hl-star-2{z-index:3;width:12px}.hl-star-3{z-index:2;width:12px}.hl-star-4{z-index:1;width:12px}.hl-star-5{z-index:0;width:13px}.hl-button{padding:.3em 1em;font-size:inherit;line-height:1.6em;color:#333;text-align:center;text-shadow:0 .08em .08em rgba(255,255,255,.75);vertical-align:middle;cursor:pointer;background-color:#f5f5f5;background-image:-webkit-gradient(linear,0 0,0 100%,from(#fff),to(#e6e6e6));background-image:-webkit-linear-gradient(top,#fff,#e6e6e6);background-image:-o-linear-gradient(top,#fff,#e6e6e6);background-image:linear-gradient(to bottom,#fff,#e6e6e6);background-image:-moz-linear-gradient(top,#fff,#e6e6e6);background-repeat:repeat-x;border:1px solid #bbb;border-color:#e6e6e6 #e6e6e6 #bfbfbf;border-bottom-color:#a2a2a2;border-radius:.3em;box-shadow:inset 0 .08em 0 rgba(255,255,255,.2),0 .08em .16em rgba(0,0,0,.05)}.hl-button-eh{font-family:'Source Sans Pro',Tahoma,sans-serif!important;font-weight:900;font-size:.86em;width:100%;padding:.15em 0;color:#FFF!important;box-shadow:0 0 .5em rgba(0,0,0,.5);text-shadow:.09em .09em 0 rgba(0,0,0,.5),0 0 .3em #000;-webkit-font-smoothing:antialiased}.hl-button-doujinshi{background-color:#840505!important;background-image:-khtml-gradient(linear,left top,left bottom,from(#f74040),to(#840505));background-image:-moz-linear-gradient(top,#f74040,#840505);background-image:-ms-linear-gradient(top,#f74040,#840505);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#f74040),color-stop(100%,#840505));background-image:-webkit-linear-gradient(top,#f74040,#840505);background-image:-o-linear-gradient(top,#f74040,#840505);background-image:linear-gradient(#f74040,#840505);border-color:#840505 #840505 hsl(0,92%,18.5%)}.hl-button-manga{background-color:#7a2800!important;background-image:-khtml-gradient(linear,left top,left bottom,from(#ff7632),to(#7a2800));background-image:-moz-linear-gradient(top,#ff7632,#7a2800);background-image:-ms-linear-gradient(top,#ff7632,#7a2800);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#ff7632),color-stop(100%,#7a2800));background-image:-webkit-linear-gradient(top,#ff7632,#7a2800);background-image:-o-linear-gradient(top,#ff7632,#7a2800);background-image:linear-gradient(#ff7632,#7a2800);border-color:#7a2800 #7a2800 #4c1900}.hl-button-artistcg{background-color:#7a6a00!important;background-image:-khtml-gradient(linear,left top,left bottom,from(#ffe95b),to(#7a6a00));background-image:-moz-linear-gradient(top,#ffe95b,#7a6a00);background-image:-ms-linear-gradient(top,#ffe95b,#7a6a00);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#ffe95b),color-stop(100%,#7a6a00));background-image:-webkit-linear-gradient(top,#ffe95b,#7a6a00);background-image:-o-linear-gradient(top,#ffe95b,#7a6a00);background-image:linear-gradient(#ffe95b,#7a6a00);border-color:#7a6a00 #7a6a00 #423900}.hl-button-gamecg{background-color:#273214!important;background-image:-moz-linear-gradient(top,#96ba58,#273214);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#96ba58),color-stop(100%,#273214));background-image:-webkit-linear-gradient(top,#96ba58,#273214);background-image:-o-linear-gradient(top,#96ba58,#273214);background-image:linear-gradient(#96ba58,#273214);border-color:#273214 #273214 #0b0e05}.hl-button-western{background-color:#4d7a00!important;background-image:-moz-linear-gradient(top,#c3ff5b,#4d7a00);background-image:-ms-linear-gradient(top,#c3ff5b,#4d7a00);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#c3ff5b),color-stop(100%,#4d7a00));background-image:-webkit-linear-gradient(top,#c3ff5b,#4d7a00);background-image:-o-linear-gradient(top,#c3ff5b,#4d7a00);background-image:linear-gradient(#c3ff5b,#4d7a00);border-color:#4d7a00 #4d7a00 #294200}.hl-button-non-h{background-color:#225358!important;background-image:-moz-linear-gradient(top,#73c1c8,#225358);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#73c1c8),color-stop(100%,#225358));background-image:-webkit-linear-gradient(top,#73c1c8,#225358);background-image:-o-linear-gradient(top,#73c1c8,#225358);background-image:linear-gradient(#73c1c8,#225358);border-color:#225358 #225358 hsl(185,44%,14.5%)}.hl-button-imageset{background-color:#0e3961!important;background-image:-moz-linear-gradient(top,#56a0e5,#0e3961);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#56a0e5),color-stop(100%,#0e3961));background-image:-webkit-linear-gradient(top,#56a0e5,#0e3961);background-image:-o-linear-gradient(top,#56a0e5,#0e3961);background-image:linear-gradient(#56a0e5,#0e3961);border-color:#0e3961 #0e3961 #071f35}.hl-button-cosplay{background-color:#3a2861!important;background-image:-moz-linear-gradient(top,#a996d3,#3a2861);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#a996d3),color-stop(100%,#3a2861));background-image:-webkit-linear-gradient(top,#a996d3,#3a2861);background-image:-o-linear-gradient(top,#a996d3,#3a2861);background-image:linear-gradient(#a996d3,#3a2861);border-color:#3a2861 #3a2861 #221839}.hl-button-asianporn{background-color:#740f51!important;background-image:-moz-linear-gradient(top,#ec78c3,#740f51);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#ec78c3),color-stop(100%,#740f51));background-image:-webkit-linear-gradient(top,#ec78c3,#740f51);background-image:-o-linear-gradient(top,#ec78c3,#740f51);background-image:linear-gradient(#ec78c3,#740f51);border-color:#740f51 #740f51 #43092e}.hl-button-misc{background-color:#353535!important;background-image:-moz-linear-gradient(top,#bfbfbf,#353535);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#bfbfbf),color-stop(100%,#353535));background-image:-webkit-linear-gradient(top,#bfbfbf,#353535);background-image:-o-linear-gradient(top,#bfbfbf,#353535);background-image:linear-gradient(#bfbfbf,#353535);border-color:#353535 #353535 hsl(321,0%,7.5%)}.hl-noise{color:#FFF!important;margin:0 0 -4px;padding:2px 0;border-radius:4px;position:relative;top:-2px;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAMAAACd646MAAAAG1BMVEUAAAAfHx8/Pz9fX19/f3+fn5+/v7/f39////8NX9jPAAAACXRSTlMICAgICAgICAWHgaIXAAAErklEQVR42rWXOZIlNBBEn2rLd/8TYxBDANEsA78dGSpDqi0XGmDL04cKanRWhrWBvHqbUoemvHZscN5EVMV1KzTXzfMYtGVvkemNHVWiNitiC++ww3M5McNsFxaKkYcotEyUCKccLXvyXGFVfU/uYA2oWq/L9eapmsOmQd7BE7BcFEbWQp/jNE9jr6OjYYaAJ9K01LrCrCOc2Im2wVLsfjKHsHIttCn0DlYpU0tBSQMM9gRXpr8pLaRdGzUPpVefT1Dv7aFZ1wGL6OHPtRKg9BW1GCktCxq9ePZjhcsJCorYCOZgHdccomwrb1FL0fPQJ1lYuKfalqjeDVFMj+bUZ0d7BSHCPhnqeX0CKlqv11FlhbXAju0YmodWTo2otue1V84WPlT6PWtvRUGZS634CskGj4sogqJTDY1Bt8EM+VglKRWgR32nwhrIk/Gp/3sAAVen3hPvRpVwr5QD0eeqVgCNyvS6WrQC1JN+y7hA06qKLfC3wVWDrVZbvSDvjaTUKle0qBUZjWifntuN5TXI25oweKzOtEjZtmcclanhClMILtEmrT5ReKbUZzX6RxxBlTXdLZAdkRR2FbTPt17sU0kpLddnLH1IqaqoAMTcqZo6CgW/uytPtZVxIpYW0oNxH3gqZ0QQdyXeiOB6CyvaxQSgrDXkzlhvMePcySj71Oc4ilwVAoNiZb31dTzTI/vssNWxhzpvFHCRHQ0A4gOtOcLR7nNpQUV846ryYi3yVID1+U7sx/y4NSqzFqMVzUM+vt5fACVoFsyRZ+s2IIyISyaMjh5yyLqrIuZ8fY2LzKSe1698IojmNahUo891Vp3sQ1XfCMCbFUvrkBPvVhlD4Uoprw4dHFlltNSRs3wvnX6eF80inB6g57y2FR17T0QzDBifpe+y6rJImsiUcD9S+taxclb5axLwtnGkZwIct4K4pyCtJQ+PU1WjbBrDLD4V8R8FTW+ebzLq2A3GYWqRqDy0kQbPQ17jKefd8HUR+6BUP4Nq4KAOurFBzDzeOqL6+gkall6T97Nzj8/8epSOr4TVolhElXZGLi3oMjeqgjLPWhEkfRocTBqCzz4+q0vSCq+3geOpehTyeNvS0y2KmC7xVubpuz1XyZlVtH5CG7CKwvU5LiJNLTz0wfWUUsDqvhbRx4toKfokNMU2rlZ55nrP4TFleXOqqNDv9d19UPXxKTgvwozCG/WppSPrIRYAPXiCiWpjXe6cRtTu/8zUfNtISXScQdKWhuiIsocNZmdwoFQ5TN2VitkprVX7lsJzDlChARzENZy/mcc76duguKmZnfaMBw9Apwza2vGGiarj044exFsCAbUMNsB+ZcA+6oc/iR4iumKrv+NbvtOP/igH3yGB/rwzv1FkKHXVXhj1aEX0UJoFOeAAdME5xZLdoxHoVYiKNT5h3TOeqveGpihwRG12PKPIqH1cCjG8+OB1k4gQRnV2dVRRFKKA4strjYMqZQTK4tRRn08BBMT+d+aDD+iE14LKqRW+4Nr/ghNniexqONNKuyDiaXRTo4JiYIl22ZlDJ+/DxvsvHj9OBtW9d2alRrtAFTeiU5aD0UJEZIu2obEpQPlgYb7+2y84P1jASwAjowAAAABJRU5ErkJggg==)}.hl-details.post.reply,.hl-exsauce-hover.post.reply{opacity:.93;font-size:inherit!important;position:fixed!important;overflow:visible!important}.hl-exsauce-link{text-transform:lowercase}.hl-exsauce-hover-link{text-decoration:none!important}a.hl-exsauce-link.hl-exsauce-link-disabled{text-decoration:line-through!important;cursor:default!important}.hl-actions-link,.hl-details-title,.hl-easylist-control-link,.hl-easylist-item-info-button,.hl-easylist-item-title-link,.hl-easylist-item-title-tag-link,.hl-exsauce-results-link,.hl-linkified,.hl-settings-filter-guide-toggle,.hl-settings-title,.hl-settings-version,.hl-site-tag,.hl-tag{text-decoration:none!important}.hl-exsauce-results{display:table;max-width:100%;width:auto;margin:.25em 0;border-radius:.375em;background-color:rgba(0,0,0,.05);padding:.5em}.hl-exsauce-results.hl-exsauce-results-hidden{display:none}.hl-exsauce-results.hl-theme-dark{background-color:rgba(255,255,255,.05)}.hl-exsauce-results-sep{display:inline-block;margin:0 .5em}.hl-exsauce-results-link{vertical-align:top;margin:0 .375em;text-transform:lowercase}.hl-popup-align,.hl-popup-aligner:before{vertical-align:middle;display:inline-block}.hl-exsauce-hover.post.reply{display:block!important;z-index:993!important;padding:.5em!important;margin:0!important;border-radius:.25em!important;width:auto!important}.hl-exsauce-hover.hl-exsauce-hover-hidden.post.reply{display:none!important}.hl-actions{display:table;margin:.25em 0;vertical-align:middle;padding:.25em;border-radius:.25em;background-color:rgba(0,0,0,.05)}.hl-actions.hl-actions-hidden{display:none}.hl-actions.hl-theme-dark{background-color:rgba(255,255,255,.05)}.hl-actions-label{font-weight:700}.hl-actions-sep{display:inline-block;margin:0 .5em}.hl-actions-link{vertical-align:top;margin:0 .375em}.hl-actions-link+.hl-actions-link{margin-left:0}.hl-actions-tag-block-label{margin-right:.125em}.hl-details.post.reply{display:block!important;z-index:994!important;padding:.5em!important;margin:0!important;border-radius:.5em!important;text-align:center!important;width:60%!important;min-width:600px!important;box-sizing:border-box!important;-moz-box-sizing:border-box!important}.hl-details.hl-details-hidden.post.reply{display:none!important}.hl-details-thumbnail{float:left;margin-right:8px;width:140px;height:200px;background-repeat:no-repeat;background-size:cover;background-position:25% 0}.hl-details-side-panel{float:right;margin-left:.5em;font-size:1.0625em!important;line-height:1em!important}.hl-details-side-box{width:5.75em;font-size:.8em;padding:.5em 0;margin:.8em 0 .4em;border-radius:.5em;background-clip:padding-box;background-color:rgba(0,0,0,.125);box-shadow:0 0 .5em rgba(0,0,0,.125);text-shadow:0 .1em 0 rgba(255,255,255,.5)}.hl-details-side-box.hl-theme-dark{background-color:rgba(255,255,255,.125);box-shadow:0 0 .5em rgba(255,255,255,.125);text-shadow:0 .1em 0 rgba(0,0,0,.5)}.hl-details-title{font-size:1.5em!important;font-weight:700!important;text-shadow:.1em .1em .4em rgba(0,0,0,.15)!important}.hl-details-title-jp{opacity:.5;font-size:1.1em;text-shadow:.1em .1em .5em rgba(0,0,0,.2)!important}.hl-details-rating{width:64px;height:11px;text-align:center;display:inline-block}.hl-details-file-size,.hl-details-rating-text{opacity:.65;font-size:.95em}.hl-details-upload-info{font-size:1em!important}.hl-details-upload-date,.hl-details-uploader{font-size:1em!important;margin:0 5px}.hl-details-tag-block{font-size:1.075em!important;display:inline!important;line-height:1.4em}.hl-tag-block,.hl-tag-namespace-first{display:inline-block}.hl-details-tag-block-label{margin-right:.25em!important}.hl-details-clear{clear:both}.hl-tag-block{margin:0 .125em}.hl-tag{position:relative;white-space:nobreak}.hl-tag.hl-tag-color-inherit{color:inherit!important}.hl-tag-block.hl-tag-block-last-of-namespace{margin-right:.5em}.hl-tag-block.hl-tag-block-last{margin-right:0}.hl-tag-namespace-first>.hl-tag-block{display:inline}.hl-tag-namespace-block{display:inline-block;margin:0 .125em}.hl-tag-namespace{display:inline-block;border:1px solid rgba(0,0,0,.4);border-radius:.25em;padding:0 2px;line-height:normal}.hl-tag-namespace-block.hl-tag-namespace-block-no-outline>.hl-tag-namespace{border-style:none}.hl-tag-namespace-block.hl-theme-dark>.hl-tag-namespace{border-color:rgba(255,255,255,.4)}.hl-tag-namespace-block.hl-tag-namespace-language>.hl-tag-namespace{color:#6721c6}.hl-tag-namespace-block.hl-tag-namespace-group>.hl-tag-namespace{color:#9f8636}.hl-tag-namespace-block.hl-tag-namespace-artist>.hl-tag-namespace{color:#c47525}.hl-tag-namespace-block.hl-tag-namespace-parody>.hl-tag-namespace{color:#0ea79e}.hl-tag-namespace-block.hl-tag-namespace-character>.hl-tag-namespace{color:#288028}.hl-tag-namespace-block.hl-tag-namespace-male>.hl-tag-namespace{color:#0659ae}.hl-tag-namespace-block.hl-tag-namespace-female>.hl-tag-namespace{color:#e0338d}.hl-tag-namespace-block.hl-tag-namespace-language.hl-theme-dark>.hl-tag-namespace{color:#895cc6}.hl-tag-namespace-block.hl-tag-namespace-group.hl-theme-dark>.hl-tag-namespace{color:#e8c44f}.hl-tag-namespace-block.hl-tag-namespace-artist.hl-theme-dark>.hl-tag-namespace{color:#e89c4f}.hl-tag-namespace-block.hl-tag-namespace-parody.hl-theme-dark>.hl-tag-namespace{color:#21eda2}.hl-tag-namespace-block.hl-tag-namespace-character.hl-theme-dark>.hl-tag-namespace{color:#6ce769}.hl-tag-namespace-block.hl-tag-namespace-male.hl-theme-dark>.hl-tag-namespace{color:#23add0}.hl-tag-namespace-block.hl-tag-namespace-female.hl-theme-dark>.hl-tag-namespace{color:#e89cc4}.hl-details-uploader.hl-filter-good,.hl-linkified-gallery.hl-filter-good,.hl-site-tag.hl-filter-good,.hl-tag.hl-filter-good{font-weight:700}.hl-filter-text{display:inline}.hl-site-tag{white-space:nowrap;display:inline-block;margin-right:.25em}.hl-linkified.hl-linkified-error{font-style:italic}.hl-linkified-error-message{opacity:.75}.hl-nav-extras-mobile{text-align:center;margin:.5em 0}.hl-nav-link{cursor:pointer}.hl-hover-shadow{box-shadow:0 0 .125em 0 rgba(0,0,0,.5)}.hl-hover-shadow.hl-theme-dark{box-shadow:0 0 .125em 0 rgba(255,255,255,.5)}:root.hl-popup-overlaying,:root.hl-popup-overlaying body{overflow-x:hidden!important;overflow-y:hidden!important}.hl-popup-overlay{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(255,255,255,.5);z-index:400;overflow-x:auto;overflow-y:scroll}.hl-popup-overlay.hl-theme-dark{background:rgba(0,0,0,.5)}.hl-popup-aligner{position:absolute;left:0;top:0;right:0;bottom:0;white-space:nowrap;line-height:0;text-align:center}.hl-popup-aligner:before{content:\"\";width:0;height:100%}.hl-popup-align{white-space:normal;line-height:normal;text-align:left;padding:1em;margin:0;width:800px;min-width:60%;max-width:100%;box-sizing:border-box;-moz-box-sizing:border-box}div.hl-popup-content.post.reply.post_wrapper{display:block!important;padding:1em!important;margin:0!important;width:100%!important;border:none!important;box-sizing:border-box!important;-moz-box-sizing:border-box!important;position:relative!important;border-radius:.5em!important;overflow:visible!important}.hl-popup-table{display:table;width:100%;height:100%}.hl-popup-row{display:table-row;width:100%;height:0}.hl-popup-row.hl-popup-row-body,.hl-popup-row.hl-popup-row-body>.hl-popup-cell{height:100%}.hl-popup-cell{display:table-cell;width:100%;height:0;vertical-align:top;text-align:left}.hl-popup-cell.hl-popup-cell-small{width:0;white-space:nowrap}.hl-popup-cell.hl-popup-cell-center{text-align:center}.hl-popup-cell.hl-popup-cell-right{text-align:right}.hl-popup-cell.hl-popup-cell-middle{vertical-align:middle}.hl-popup-cell.hl-popup-cell-bottom{vertical-align:bottom}.hl-popup-cell-size{position:relative;width:100%;height:100%}.hl-popup-cell-size-scroll{position:absolute;left:0;top:0;right:0;bottom:0;overflow:auto}.hl-popup-cell-size-padding{position:relative;padding:.375em;width:100%;min-height:100%;box-sizing:border-box;-moz-box-sizing:border-box}.hl-settings-popup-align{min-height:80%;height:200px}.hl-settings-popup-content{position:relative;height:100%}.hl-settings-button{margin:0 .25em;display:inline-block!important;vertical-align:middle;padding:.25em;background:rgba(0,0,0,.05);border-radius:.2em;text-decoration:none!important;cursor:pointer;font-size:inherit!important;line-height:normal!important;white-space:nowrap!important}.hl-settings-button.hl-theme-dark{background:rgba(255,255,255,.05)}.hl-settings-button-checkbox,.hl-settings-button-checkbox+.riceCheck{margin:0!important;padding:0!important;vertical-align:middle}.hl-settings-button-checkbox-text{display:none}.hl-settings-button-checkbox:checked~.hl-settings-button-checkbox-text:nth-of-type(1),.hl-settings-button-checkbox:not(:checked)~.hl-settings-button-checkbox-text:nth-of-type(2){display:inline}.hl-settings-title{font-size:2em!important;font-weight:700!important}.hl-settings-version{margin:0 4px;opacity:.9;vertical-align:75%;color:inherit!important}.hl-settings-heading{display:table;width:100%;padding:.25em 0}.hl-settings-heading>div{display:table-row;height:100%}.hl-settings-heading-cell{display:table-cell;height:100%;width:100%}.hl-settings-heading-title{vertical-align:top;text-align:left;font-size:1.5em;font-weight:700;font-family:sans-serif;white-space:nowrap;width:0}.hl-settings-heading-subtitle{vertical-align:bottom;text-align:right;padding-left:.5em;opacity:.6}.hl-settings-group{border:1px solid rgba(0,0,0,.2);border-radius:.25em;padding:.125em;box-sizing:border-box;-moz-box-sizing:border-box}.hl-settings-group.hl-theme-dark{border-color:rgba(255,255,255,.2)}.hl-settings-group+.hl-settings-heading{margin-top:.75em}.hl-settings-entry-table{display:table;width:100%;padding:.375em .25em;box-sizing:border-box;-moz-box-sizing:border-box}.hl-settings-entry-row{display:table-row;height:100%}.hl-settings-entry-cell{vertical-align:middle;text-align:left;display:table-cell;width:100%;height:100%}.hl-settings-entry-cell:last-of-type:not(:first-of-type){vertical-align:middle;text-align:right;width:0}.hl-settings-entry+.hl-settings-entry{border-top:.125em solid transparent}.hl-settings-entry:nth-child(even)>.hl-settings-entry-table{background-color:rgba(0,0,0,.05)}.hl-settings-entry:nth-child(odd)>.hl-settings-entry-table{background-color:rgba(0,0,0,.025)}.hl-settings-entry.hl-theme-dark:nth-child(even)>.hl-settings-entry-table{background-color:rgba(255,255,255,.05)}.hl-settings-entry.hl-theme-dark:nth-child(odd)>.hl-settings-entry-table{background-color:rgba(255,255,255,.025)}input.hl-settings-entry-input[type=text]{width:8em}button.hl-settings-entry-input,input.hl-settings-entry-input[type=text],select.hl-settings-entry-input{min-width:8em;box-sizing:border-box;-moz-box-sizing:border-box;padding:.0625em .125em!important;margin:0!important;font-size:inherit!important;font-family:inherit!important;line-height:1.3em!important}select.hl-settings-entry-input{width:auto;height:auto}label.hl-settings-entry-label{cursor:pointer;margin-bottom:0}.hl-settings-filter-guide-toggle{cursor:pointer}.hl-settings-filter-guide{margin-bottom:.25em;padding:.375em}.hl-settings-filter-guide:not(.hl-settings-filter-guide-visible){display:none}.hl-settings ul{padding:0}.hl-settings ul>li{margin:.75em 2em;list-style:none}.hl-settings code{color:#000;background-color:#fff;font-family:Courier,monospace!important}.hl-settings-color-input{padding:.25em!important;margin:0 1em 0 0!important;display:inline-block;vertical-align:middle!important;line-height:1.5em!important;height:2em!important;width:8em!important;box-sizing:border-box!important;-moz-box-sizing:border-box!important;cursor:text!important}.hl-settings-color-input:first-of-type{cursor:pointer!important}.hl-settings-color-input:last-of-type{width:11em!important}textarea.hl-settings-entry-input{display:block;width:100%;height:15em;line-height:1.3em;padding:.5em;box-sizing:border-box;-moz-box-sizing:border-box;resize:vertical;font-size:.9em!important;font-family:Courier,monospace!important}button.hl-settings-entry-input{float:right;padding:.125em .25em;margin:0;box-sizing:border-box;-moz-box-sizing:border-box;background-color:transparent;border:1px solid rgba(0,0,0,.25);border-radius:.25em;font-size:inherit;font-family:inherit;color:inherit;cursor:pointer}button.hl-settings-entry-input:hover{border-color:rgba(0,0,0,.5)}button.hl-settings-entry-input.hl-theme-dark{border-color:rgba(255,255,255,.25)}button.hl-settings-entry-input.hl-theme-dark:hover{border-color:rgba(255,255,255,.5)}.hl-easylist-title{margin-left:-2em}.hl-easylist-title-text{display:inline-block;font-size:2em;font-weight:700;margin-left:1em}.hl-easylist-subtitle{display:inline-block;font-style:italic;opacity:.8;margin-left:2em}.hl-easylist-title-line{border-bottom:1px solid grey;margin:.5em 0}.hl-easylist-control-links{position:absolute;top:0;right:0}.hl-easylist-control-link{display:inline-block;padding:.5em;cursor:pointer;opacity:.5}.hl-easylist-control-link.hl-easylist-control-link-focus,.hl-easylist-control-link:hover{opacity:1}.hl-easylist-control-link+.hl-easylist-control-link{margin-left:.5em}.hl-easylist-empty-notification{text-align:center;font-size:2em;font-style:italic;padding:2em}.hl-easylist-empty-notification.hl-easylist-empty-notification-visible+.hl-easylist-items,.hl-easylist-empty-notification:not(.hl-easylist-empty-notification-visible){display:none}.hl-easylist-items{border-radius:.5em;border:1px solid rgba(0,0,0,.25);box-sizing:border-box;-moz-box-sizing:border-box;overflow:hidden}.hl-easylist-items.hl-theme-dark{border:1px solid rgba(255,255,255,.25)}.hl-easylist-item{background-color:rgba(0,0,0,.0625)}.hl-easylist-item:nth-of-type(2n){background-color:rgba(0,0,0,.03125)}.hl-easylist-item.hl-theme-dark{background-color:rgba(255,255,255,.0625)}.hl-easylist-item.hl-theme-dark:nth-of-type(2n){background-color:rgba(255,255,255,.03125)}.hl-easylist-item-table-container{padding:.5em;position:relative;box-sizing:border-box;-moz-box-sizing:border-box}.hl-easylist-item-table{display:table;width:100%}.hl-easylist-item-row{display:table-row}.hl-easylist-item-cell{display:table-cell;width:100%;vertical-align:top;padding:0 .5em}.hl-easylist-item-cell.hl-easylist-item-cell-image,.hl-easylist-item-cell.hl-easylist-item-cell-side{width:0;padding:0}.hl-easylist-item-image-container{display:block;margin:0;padding:0;border:none;width:140px;height:200px;background-color:rgba(0,0,0,.03125);text-align:center;white-space:nowrap;line-height:0}.hl-easylist-item-image-container:after{content:\"\";display:inline-block;vertical-align:middle;width:0;height:100%}.hl-easylist-item-image-container.hl-theme-dark{background-color:rgba(255,255,255,.03125)}.hl-easylist-item-image-outer{display:inline-block;vertical-align:middle;position:relative;line-height:normal;white-space:normal}.hl-easylist-item-image{margin:0!important;padding:0!important;border:none!important;display:inline-block;vertical-align:middle;max-width:140px;max-height:200px}.hl-easylist-item-image-index{display:block;position:absolute;left:0;top:0;padding:.25em;color:#000;text-shadow:0 0 .125em #fff,0 0 .25em #fff}.hl-easylist-item-image-index.hl-theme-dark{color:#fff;text-shadow:0 0 .125em #000,0 0 .25em #000}.hl-easylist-item-info{display:inline-block;padding:0 0 .5em .5em;width:4.8em}.hl-easylist-item-info-item{font-size:.825em;margin-top:1em;text-align:center;max-width:100%;border-radius:.5em;padding:.375em 0;background-color:rgba(0,0,0,.125);box-shadow:0 0 .5em rgba(0,0,0,.125);text-shadow:0 .1em 0 rgba(255,255,255,.5)}.hl-easylist-item-tags,.hl-easylist-item-upload-info,.hl-easylist-option-group+.hl-easylist-option-group{margin-top:.5em}.hl-easylist-item-info-item.hl-theme-dark{background-color:rgba(255,255,255,.125);box-shadow:0 0 .5em rgba(255,255,255,.125);text-shadow:0 .1em 0 rgba(0,0,0,.5)}.hl-easylist-item-info-light{opacity:.8}.hl-easylist-item-title{font-size:1.5em;font-weight:700}.hl-easylist-item-title:hover{text-shadow:0 0 .25em #fff}.hl-easylist-item-title.hl-theme-dark:hover{text-shadow:0 0 .25em #000}.hl-easylist-item-title-tag-link{margin-right:.25em;display:none}.hl-easylist-item-title-jp{opacity:.5;font-size:1.1em;display:block}.hl-easylist-item-upload-date,.hl-easylist-item-uploader{font-weight:700;display:inline-block;padding:0 .25em}.hl-easylist-item-tag-table{display:table;width:100%}.hl-easylist-item-tag-row{display:table-row}.hl-easylist-item-tag-row+.hl-easylist-item-tag-row>.hl-easylist-item-tag-cell{padding-top:.25em}.hl-easylist-item-tag-cell{display:table-cell;width:100%}.hl-easylist-compact .hl-easylist-item-info-item.hl-easylist-item-info-item-files>:not(:first-child),.hl-easylist-compact .hl-easylist-item-info-item.hl-easylist-item-info-item-rating>:not(:first-child),.hl-easylist-compact .hl-easylist-item-title-jp,.hl-easylist-compact .hl-easylist-item-upload-info{display:none}.hl-easylist-item-tag-cell.hl-easylist-item-tag-cell-label{width:0;white-space:nowrap;text-align:right;padding-right:.25em}.hl-easylist-compact .hl-easylist-item-image-container{width:70px;height:100px}.hl-easylist-compact .hl-easylist-item-image{max-width:70px;max-height:100px}.hl-easylist-compact .hl-easylist-item-title{font-size:1em;line-height:1.25em;max-height:2.5em;overflow:hidden;position:relative}.hl-easylist-compact .hl-easylist-item-title:hover{overflow:visible;z-index:1}.hl-easylist-compact .hl-easylist-item-tags{font-size:.9em}.hl-easylist-compact .hl-easylist-item-tag-row+.hl-easylist-item-tag-row>.hl-easylist-item-tag-cell{padding-top:0}.hl-easylist-compact .hl-easylist-item-tag-table{display:block;line-height:1.4em}.hl-easylist-compact .hl-easylist-item-tag-row{display:inline}.hl-easylist-compact .hl-easylist-item-tag-row+.hl-easylist-item-tag-row:before{content:\"\";display:inline-block;width:1em;height:0}.hl-easylist-compact .hl-easylist-item-tag-cell{display:inline;width:auto}.hl-easylist-minimal .hl-easylist-item-cell-image,.hl-easylist-minimal .hl-easylist-item-info-item,.hl-easylist-minimal .hl-easylist-item-tags,.hl-easylist-minimal .hl-easylist-item-title-jp,.hl-easylist-minimal .hl-easylist-item-upload-info{display:none}.hl-easylist-compact .hl-easylist-item-tag-cell>.hl-tag-namespace-block.hl-tag-namespace-block-no-outline>.hl-tag-namespace{border-width:1px;border-style:solid}.hl-easylist-minimal .hl-easylist-item-cell{padding-left:0;vertical-align:middle}.hl-easylist-minimal .hl-easylist-item-cell-side{vertical-align:top}.hl-easylist-minimal .hl-easylist-item-title{font-size:1em;line-height:1.25em}.hl-easylist-minimal .hl-easylist-item-title-tag-link{display:inline-block}.hl-easylist-options:not(.hl-easylist-options-visible){display:none}.hl-easylist-option-table{display:table;width:100%}.hl-easylist-option-row{display:table-row}.hl-easylist-option-row+.hl-easylist-option-row>.hl-easylist-option-cell{padding-top:.5em}.hl-easylist-option-cell{display:table-cell;width:100%;vertical-align:top}.hl-easylist-option-cell:first-of-type{width:0;text-align:right}.hl-easylist-option-title{font-weight:700;margin-right:1em;display:inline-block;padding:.25em 0;border-top:1px solid transparent;border-bottom:1px solid transparent;white-space:nowrap}.hl-easylist-option-label{display:inline-block}.hl-easylist-option-label+.hl-easylist-option-label{margin-left:.5em}.hl-easylist-option-input,.hl-easylist-option-input+.riceCheck{display:none}.hl-easylist-option-button{display:inline-block;padding:.25em .5em;border-radius:.25em;background-color:rgba(255,255,255,.125);border:1px solid rgba(0,0,0,.0625);cursor:pointer}.hl-easylist-option-button:hover{border-color:rgba(0,0,0,.25)}.hl-easylist-option-button.hl-theme-dark{background-color:rgba(0,0,0,.125);border:1px solid rgba(255,255,255,.0625)}.hl-easylist-option-button.hl-theme-dark:hover{border-color:rgba(255,255,255,.25)}.hl-easylist-option-input:checked~.hl-easylist-option-button{background-color:rgba(255,255,255,.5);border-color:rgba(0,0,0,.25);color:#000}.hl-easylist-option-input:checked~.hl-easylist-option-button.hl-theme-dark{background-color:rgba(0,0,0,.5);border-color:rgba(255,255,255,.25);color:#fff}.hl-easylist-option-textarea{background-color:rgba(255,255,255,.125)!important;border:1px solid rgba(0,0,0,.0625)!important;margin:0!important;padding:.25em!important;box-sizing:border-box;-moz-box-sizing:border-box;width:100%;line-height:1.4em;height:4.8em;min-height:2em;resize:vertical;font-family:Courier,monospace!important}.hl-easylist-option-textarea:focus,.hl-easylist-option-textarea:hover{background-color:rgba(255,255,255,.5)!important;border-color:rgba(0,0,0,.25)!important}.hl-easylist-option-textarea.hl-theme-dark{background-color:rgba(0,0,0,.125)!important;border:1px solid rgba(255,255,255,.0625)!important;margin:0!important;padding:.25em!important}.hl-easylist-option-textarea.hl-theme-dark:focus,.hl-easylist-option-textarea.hl-theme-dark:hover{background-color:rgba(0,0,0,.5)!important;border-color:rgba(255,255,255,.25)!important}.hl-changelog-popup-align{min-height:80%;height:200px}.hl-changelog-popup-content{position:relative;height:100%}.hl-changelog-message-container{position:absolute;left:0;top:0;right:0;bottom:0;text-align:center;line-height:0;white-space:nowrap}.hl-changelog-message-container:before{content:\"\";display:inline-block;vertical-align:middle;width:0;height:100%}.hl-changelog-message{text-align:left;line-height:normal;white-space:normal;display:inline-block;vertical-align:middle}.hl-changelog-entry-user-name,.hl-changelog-entry-version{font-weight:700;line-height:1.4em}.hl-changelog-entries{padding:.375em}.hl-changelog-entry+.hl-changelog-entry{margin-top:1em}.hl-changelog-entry-version{font-size:1.25em}.hl-changelog-entry-users{margin-left:1em}.hl-changelog-entry-user+.hl-changelog-entry-user{margin-top:.5em}.hl-changelog-entry-changes{margin:0 0 0 1.5em!important;padding:0!important;list-style-type:disc!important}.hl-changelog-entry-change{margin:0!important;padding:0!important}.hl-changelog-entry-change+.hl-changelog-entry-change{margin-top:.5em!important}";
 			$.add(d.head, style);
 
 			Theme.prepare();
@@ -5827,12 +6063,20 @@
 				$.on(d.body, "DOMNodeInserted", Main.dom);
 			}
 
+			if (Main.version_change === 1 && conf["Show Changelog on Update"]) {
+				Changelog.open();
+			}
+
 			Debug.timer_log("init.ready.full duration", "init");
 		},
 		init: function () {
 			var t = Debug.timer_log("init.pre duration", timing.start);
 			Config.init();
 			Debug.init();
+			if (Main.version_change === 1) {
+				Debug.log("Clearing cache on update");
+				Cache.clear();
+			}
 			Cache.init();
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
