@@ -704,6 +704,7 @@ div.hl-popup-content.post.reply.post_wrapper {
 	cursor: pointer;
 	font-size: inherit !important;
 	line-height: normal !important;
+	white-space: nowrap !important;
 }
 .hl-settings-button.hl-theme-dark {
 	background: rgba(255,255,255,0.05);
@@ -713,6 +714,13 @@ div.hl-popup-content.post.reply.post_wrapper {
 	margin: 0 !important;
 	padding: 0 !important;
 	vertical-align: middle;
+}
+.hl-settings-button-checkbox-text {
+	display: none;
+}
+.hl-settings-button-checkbox:checked~.hl-settings-button-checkbox-text:nth-of-type(1),
+.hl-settings-button-checkbox:not(:checked)~.hl-settings-button-checkbox-text:nth-of-type(2) {
+	display: inline;
 }
 
 .hl-settings-title {

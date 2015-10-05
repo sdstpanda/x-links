@@ -5561,7 +5561,8 @@
 					var n1, n2;
 					$.add(container, n1 = $.node("label", "hl-settings-button" + theme));
 					$.add(n1, n2 = $.node("input", "hl-settings-button-checkbox"));
-					$.add(n1, $.node("span", "hl-settings-button-text", " Show changelog on update"));
+					$.add(n1, $.node("span", "hl-settings-button-text hl-settings-button-checkbox-text", " Show on update"));
+					$.add(n1, $.node("span", "hl-settings-button-text hl-settings-button-checkbox-text", " Don't show on update"));
 					n2.type = "checkbox";
 					n2.checked = conf["Show Changelog on Update"];
 					$.on(n2, "change", Changelog.on_change_save);
