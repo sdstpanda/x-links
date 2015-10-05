@@ -675,6 +675,7 @@ div.hl-popup-content.post.reply.post_wrapper {
 	overflow: auto;
 }
 .hl-popup-cell-size-padding {
+	position: relative;
 	padding: 0.375em;
 	width: 100%;
 	min-height: 100%;
@@ -701,9 +702,17 @@ div.hl-popup-content.post.reply.post_wrapper {
 	border-radius: 0.2em;
 	text-decoration: none !important;
 	cursor: pointer;
+	font-size: inherit !important;
+	line-height: normal !important;
 }
 .hl-settings-button.hl-theme-dark {
 	background: rgba(255,255,255,0.05);
+}
+.hl-settings-button-checkbox,
+.hl-settings-button-checkbox+.riceCheck {
+	margin: 0 !important;
+	padding: 0 !important;
+	vertical-align: middle;
 }
 
 .hl-settings-title {
@@ -716,6 +725,7 @@ div.hl-popup-content.post.reply.post_wrapper {
 	opacity: 0.9;
 	vertical-align: 75%;
 	text-decoration: none !important;
+	color: inherit !important;
 }
 
 .hl-settings-heading {
@@ -1344,3 +1354,77 @@ button.hl-settings-entry-input.hl-theme-dark:hover {
 	background-color: rgba(0,0,0,0.5) !important;
 	border-color: rgba(255,255,255,0.25) !important;
 }
+
+/* Changelog */
+.hl-changelog-popup-align {
+	min-height: 80%;
+	height: 200px;
+}
+.hl-changelog-popup-content {
+	position: relative;
+	height: 100%;
+}
+
+.hl-changelog-message-container {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	text-align: center;
+	line-height: 0;
+	white-space: nowrap;
+}
+.hl-changelog-message-container:before {
+	content: "";
+	display: inline-block;
+	vertical-align: middle;
+	width: 0;
+	height: 100%;
+}
+.hl-changelog-message {
+	text-align: left;
+	line-height: normal;
+	white-space: normal;
+	display: inline-block;
+	vertical-align: middle;
+}
+
+.hl-changelog-entries {
+	padding: 0.375em;
+}
+.hl-changelog-entry {
+}
+.hl-changelog-entry+.hl-changelog-entry {
+	margin-top: 1em;
+}
+.hl-changelog-entry-version {
+	font-weight: bold;
+	font-size: 1.25em;
+	line-height: 1.4em;
+}
+.hl-changelog-entry-users {
+	margin-left: 1em;
+}
+.hl-changelog-entry-user {
+}
+.hl-changelog-entry-user+.hl-changelog-entry-user {
+	margin-top: 0.5em;
+}
+.hl-changelog-entry-user-name {
+	font-weight: bold;
+	line-height: 1.4em;
+}
+.hl-changelog-entry-changes {
+	margin: 0 0 0 1.5em !important;
+	padding: 0 !important;
+	list-style-type: disc !important;
+}
+.hl-changelog-entry-change {
+	margin: 0 !important;
+	padding: 0 !important;
+}
+.hl-changelog-entry-change+.hl-changelog-entry-change {
+	margin-top: 0.5em !important;
+}
+

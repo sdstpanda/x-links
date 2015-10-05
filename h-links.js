@@ -5,7 +5,7 @@
 
 	var timing, domains, domain_info, options, conf, regex, cat, d, t, $, $$,
 		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Options, Config, Main,
-		MutationObserver, Browser, Helper, Nodes, HttpRequest, Linkifier, Filter, Theme, EasyList, Popup;
+		MutationObserver, Browser, Helper, Nodes, HttpRequest, Linkifier, Filter, Theme, EasyList, Popup, Changelog;
 
 	timing = (function () {
 		var perf = window.performance,
@@ -76,6 +76,7 @@
 	options = {
 		general: {
 			'Automatic Processing':        ['checkbox', true,  'Get data and format links automatically.'],
+			'Show Changelog on Update':    ['checkbox', true,  'Show the changelog after an update.'],
 			'Gallery Details':             ['checkbox', true,  'Show gallery details for link on hover.'],
 			'Gallery Actions':             ['checkbox', true,  'Generate gallery actions for links.'],
 			'ExSauce':                     ['checkbox', true,  'Add ExSauce reverse image search to posts. Disabled in Opera.'],
@@ -3610,6 +3611,11 @@
 				Nodes.options_overlay = null;
 			}
 		},
+		to_changelog: function (event) {
+			event.preventDefault();
+			Options.close(event);
+			Changelog.open(event);
+		},
 		on_change: function () {
 			var node = this,
 				type = node.getAttribute("type"),
@@ -3658,15 +3664,18 @@
 			overlay = Popup.create("settings", [[{
 				small: true,
 				setup: function (container) {
+					var n;
 					$.add(container, $.link("#HOMEPAGE#", "hl-settings-title" + theme, "#TITLE#"));
-					$.add(container, $.node("span", "hl-settings-version" + theme, Main.version.join(".")));
+					$.add(container, n = $.link(Changelog.url, "hl-settings-version" + theme, Main.version.join(".")));
+					$.on(n, "click", Options.to_changelog);
 				}
 			}, {
 				align: "right",
 				setup: function (container) {
 					var n;
-					$.add(container, n = $.link("#CHANGELOG#", "hl-settings-button" + theme));
+					$.add(container, n = $.link(Changelog.url, "hl-settings-button" + theme));
 					$.add(n, $.node("span", "hl-settings-button-text", "Changelog"));
+					$.on(n, "click", Options.to_changelog);
 
 					$.add(container, n = $.link("#ISSUES#", "hl-settings-button" + theme));
 					$.add(n, $.node("span", "hl-settings-button-text", "Issues"));
@@ -3905,6 +3914,7 @@
 				typeof(temp) !== "object"
 			) {
 				temp = {};
+				Main.version_change = 2;
 			}
 
 			for (i in options) {
@@ -3923,7 +3933,9 @@
 			i = Main.version_compare(Main.version, value);
 			if (i !== 0) {
 				update = true;
-				Main.version_change = i;
+				if (Main.version_change === 0) {
+					Main.version_change = i;
+				}
 			}
 
 			if (update) Config.save();
@@ -5513,6 +5525,196 @@
 			if (overlay.parentNode !== null) $.remove(overlay);
 		}
 	};
+	Changelog = {
+		data: null,
+		acquiring: false,
+		popup: null,
+		url: "#CHANGELOG#",
+		open: function (event) {
+			if (event !== undefined) {
+				event.preventDefault();
+			}
+
+			if (!Changelog.acquiring) {
+				Changelog.acquiring = true;
+				Changelog.acquire(Changelog.on_get);
+			}
+
+			var theme = Theme.get();
+
+			if (Changelog.popup !== null) {
+				Popup.close(Changelog.popup);
+			}
+			Changelog.popup = Popup.create("settings", [[{
+				small: true,
+				setup: function (container) {
+					$.add(container, $.link("#HOMEPAGE#", "hl-settings-title" + theme, "#TITLE#"));
+					$.add(container, $.link(Changelog.url, "hl-settings-version" + theme, Main.version.join(".")));
+				}
+			}, {
+				align: "right",
+				setup: function (container) {
+					var n1, n2;
+					$.add(container, n1 = $.node("label", "hl-settings-button" + theme));
+					$.add(n1, n2 = $.node("input", "hl-settings-button-checkbox"));
+					$.add(n1, $.node("span", "hl-settings-button-text", " Show changelog on update"));
+					n2.type = "checkbox";
+					n2.checked = conf["Show Changelog on Update"];
+					$.on(n2, "change", Changelog.on_change_save);
+
+					$.add(container, n1 = $.link("#", "hl-settings-button" + theme));
+					$.add(n1, $.node("span", "hl-settings-button-text", "Close"));
+					$.on(n1, "click", Changelog.close);
+				}
+			}], {
+				body: true,
+				padding: false,
+				setup: function (container) {
+					container.classList.add("hl-changelog-content");
+					Changelog.display(container, theme);
+				}
+			}]);
+
+			Popup.open(Changelog.popup);
+		}._w(),
+		close: function (event) {
+			event.preventDefault();
+			if (Changelog.popup !== null) {
+				Popup.close(Changelog.popup);
+				Changelog.popup = null;
+			}
+		},
+		parse: function (text) {
+			var m = /^([\w\W]*)\n=+(\r?\n|$)/.exec(text),
+				re_version = /^(\w+(?:\.\w+)+)\s*$/,
+				re_change = /^(\s*)[\-\+]\s*(.+)/,
+				versions = [],
+				authors = null,
+				author, author_map, changes, lines, line, i, ii;
+
+			if (m !== null) text = m[1];
+
+			lines = text.replace(/\r\n?/g, "\n").split("\n");
+			for (i = 1, ii = lines.length; i < ii; ++i) {
+				line = lines[i];
+				if ((m = re_version.exec(line)) !== null) {
+					authors = [];
+					versions.push({
+						version: m[1],
+						authors: authors
+					});
+					author = "";
+					author_map = {};
+				}
+				else if (authors !== null) {
+					if ((m = re_change.exec(line)) !== null) {
+						if (m[1].length === 0) {
+							author = m[2];
+						}
+						else {
+							changes = author_map[author];
+							if (changes === undefined) {
+								changes = [];
+								author_map[author] = changes;
+								authors.push({
+									author: author,
+									changes: changes
+								});
+							}
+							changes.push(m[2]);
+						}
+					}
+				}
+			}
+
+			if (versions.length === 0) {
+				return { error: "No changelog data found" };
+			}
+
+			return {
+				error: null,
+				log_data: versions
+			};
+		},
+		display: function (container, theme) {
+			var versions, authors, changes,
+				e, n1, n2, n3, n4, n5, i, ii, j, jj, k, kk;
+			if (Changelog.data === null) {
+				n1 = $.node("div", "hl-changelog-message-container");
+				$.add(n1, $.node("div", "hl-changelog-message" + theme, "Loading changelog..."));
+			}
+			else if ((e = Changelog.data.error) !== null) {
+				n1 = $.node("div", "hl-changelog-message-container");
+				$.add(n1, n2 = $.node("div", "hl-changelog-message hl-changelog-message-error" + theme));
+				$.add(n2, $.node("strong", "hl-changelog-message-line" + theme, "Failed to load changelog:"));
+				$.add(n2, $.node_simple("br"));
+				$.add(n2, $.node("span", "hl-changelog-message-line" + theme, e));
+			}
+			else {
+				n1 = $.node("div", "hl-changelog-entries");
+
+				versions = Changelog.data.log_data;
+				for (i = 0, ii = versions.length; i < ii; ++i) {
+					$.add(n1, n2 = $.node("div", "hl-changelog-entry" + theme));
+					$.add(n2, $.node("div", "hl-changelog-entry-version" + theme, versions[i].version));
+					$.add(n2, n3 = $.node("div", "hl-changelog-entry-users" + theme));
+
+					authors = versions[i].authors;
+					for (j = 0, jj = authors.length; j < jj; ++j) {
+						$.add(n3, n4 = $.node("div", "hl-changelog-entry-user" + theme));
+						$.add(n4, $.node("div", "hl-changelog-entry-user-name" + theme, authors[j].author));
+						$.add(n4, n5 = $.node("ul", "hl-changelog-entry-changes" + theme));
+
+						changes = authors[j].changes;
+						for (k = 0, kk = changes.length; k < kk; ++k) {
+							$.add(n5, $.node("li", "hl-changelog-entry-change" + theme, changes[k]));
+						}
+					}
+				}
+			}
+			$.add(container, n1);
+		},
+		acquire: function (on_get) {
+			HttpRequest({
+				method: "GET",
+				url: Changelog.url,
+				onload: function (xhr) {
+					if (xhr.status === 200) {
+						on_get(null, xhr.responseText);
+					}
+					else {
+						on_get("Bad response status " + xhr.status, null);
+					}
+				},
+				onerror: function () {
+					on_get("Connection error", null);
+				},
+				onabort: function () {
+					on_get("Connection aborted", null);
+				}
+			});
+		},
+		on_get: function (err, data) {
+			if (err !== null) {
+				Changelog.data = { error: err };
+			}
+			else {
+				Changelog.data = Changelog.parse(data);
+			}
+
+			if (Changelog.popup !== null) {
+				var n = $(".hl-changelog-content", Changelog.popup);
+				if (n !== null) {
+					n.innerHTML = "";
+					Changelog.display(n, Theme.get());
+				}
+			}
+		},
+		on_change_save: function () {
+			conf["Show Changelog on Update"] = this.checked;
+			Config.save();
+		}
+	};
 	Main = {
 		version: [/*#VERSION#*/],
 		version_change: 0,
@@ -5833,13 +6035,17 @@
 				$.on(d.body, "DOMNodeInserted", Main.dom);
 			}
 
+			if (Main.version_change === 1 && conf["Show Changelog on Update"]) {
+				Changelog.open();
+			}
+
 			Debug.timer_log("init.ready.full duration", "init");
 		},
 		init: function () {
 			var t = Debug.timer_log("init.pre duration", timing.start);
 			Config.init();
 			Debug.init();
-			if (Main.version_change > 0) {
+			if (Main.version_change === 1) {
 				Debug.log("Clearing cache on update");
 				Cache.clear();
 			}
