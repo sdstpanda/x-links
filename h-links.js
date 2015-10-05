@@ -220,14 +220,6 @@
 		clamp: function (value, min, max) {
 			return Math.min(max, Math.max(min, value));
 		},
-		elem: function (arr) {
-			var frag = d.createDocumentFragment(),
-				i, ii;
-			for (i = 0, ii = arr.length; i < ii; ++i) {
-				frag.appendChild(arr[i]);
-			}
-			return frag;
-		},
 		frag: function (content) {
 			var frag = d.createDocumentFragment(),
 				div = $.node_simple("div"),
@@ -3717,7 +3709,7 @@
 					var n = $.frag(UI.html.options());
 					Theme.apply(n);
 
-					container.appendChild(n);
+					$.add(container, n);
 				}
 			}]);
 
@@ -4806,7 +4798,7 @@
 			}
 
 			n.className = "post reply post_wrapper hl-fake-post";
-			body.appendChild(n);
+			$.add(body, n);
 
 			color = Theme.parse_css_color(Theme.get_computed_style(doc_el).backgroundColor);
 			colors = [
@@ -5429,7 +5421,7 @@
 			par = EasyList.items_container;
 			for (i = 0, ii = items.length; i < ii; ++i) {
 				n = items[i].node;
-				par.appendChild(n);
+				$.add(par, n);
 				if ((n2 = $(".hl-easylist-item-image-index", n)) !== null) {
 					n2.textContent = "#" + (i + 1);
 				}
