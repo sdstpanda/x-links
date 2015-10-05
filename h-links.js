@@ -6039,7 +6039,7 @@
 			var mobile_top = true,
 				append = true,
 				exclude_mobile = false,
-				navlinks, navlink, is_desktop, link_mod, n1, n2, i, ii;
+				navlinks, navlink, is_desktop, link_mod, cl, n1, n2, i, ii;
 
 			if (Config.mode === "4chan") {
 				if (mode === "main") {
@@ -6054,7 +6054,12 @@
 					}
 				}
 				else {
-					navlinks = $$(".navLinks");
+					cl = d.documentElement.classList;
+					navlinks = (
+						!cl.contains("catalog-mode") &&
+						!cl.contains("archive") &&
+						$("#order-ctrl,#arc-list") === null
+					) ? $$("#ctrl-top,.navLinks") : [];
 				}
 				is_desktop = function (node) { return !node.classList.contains("mobile"); };
 				link_mod = function (text) { return text; };
