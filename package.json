@@ -1,52 +1,52 @@
 {
-  "name": "H-links",
-  "version": "1.0.3",
-  "author": "dnsev-h",
-  "description": "Userscript for pretty linkification of hentai links on 4chan and friends",
-  "dependencies": {
-    "html-minifier": "~0.6.9",
-    "uglify-js": "~2.4.15",
-	"clean-css": "~3.4.4"
-  },
-  "devDependencies": {
-    "coffee-script": "~1.8.0"
-  },
-  "scripts": {
-    "start": "cake dev",
-    "build": "cake build"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/dnsev-h/h-links.git"
-  },
-  "keywords": [
-    "userscript"
-  ],
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/dnsev-h/h-links/issues"
-  },
-  "homepage": "https://dnsev-h.github.io/h-links/",
-  "custom": {
-    "name_short": "H",
-    "namespace": "dnsev-h",
-    "settings_prefix": "hlinks-",
-    "update_url_base": "https://github.com/dnsev-h/h-links/raw/stable/",
-    "changelog_url": "https://raw.githubusercontent.com/dnsev-h/h-links/master/changelog",
-    "targets": [
-      "http://boards.4chan.org/*",
-      "https://boards.4chan.org/*",
-      "http://boards.38chan.net/*",
-      "https://archive.moe/*",
-      "http://8ch.net/*",
-      "https://8ch.net/*"
-    ],
-    "gm_permissions": [
-      "GM_xmlhttpRequest",
-      "GM_setValue",
-      "GM_getValue",
-      "GM_deleteValue",
-      "GM_listValues"
-    ]
-  }
+	"name": "H-links",
+	"version": "1.0.3",
+	"author": "dnsev-h",
+	"description": "Userscript for pretty linkification of hentai links on 4chan and friends",
+	"dependencies": {
+		"html-minifier": "~0.6.9",
+		"uglify-js": "~2.4.15",
+		"clean-css": "~3.4.4"
+	},
+	"devDependencies": {
+		"coffee-script": "~1.8.0"
+	},
+	"scripts": {
+		"start": "cake dev",
+		"build": "cake build"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git://github.com/dnsev-h/h-links.git"
+	},
+	"keywords": [
+		"userscript"
+	],
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/dnsev-h/h-links/issues"
+	},
+	"homepage": "https://dnsev-h.github.io/h-links/",
+	"custom": {
+		"name_short": "H",
+		"namespace": "dnsev-h",
+		"settings_prefix": "hlinks-",
+		"update_url_base": "https://github.com/dnsev-h/h-links/raw/stable/",
+		"changelog_url": "https://raw.githubusercontent.com/dnsev-h/h-links/master/changelog",
+		"targets": [
+			"http://boards.4chan.org/*",
+			"https://boards.4chan.org/*",
+			"http://boards.38chan.net/*",
+			"https://archive.moe/*",
+			"http://8ch.net/*",
+			"https://8ch.net/*"
+		],
+		"gm_permissions": [
+			"GM_xmlhttpRequest",
+			"GM_setValue",
+			"GM_getValue",
+			"GM_deleteValue",
+			"GM_listValues"
+		]
+	}
 }
