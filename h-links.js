@@ -330,6 +330,9 @@
 			catch (e) {}
 			return false;
 		},
+		is_left_mouse: function (event) {
+			return (event.which === undefined || event.which === 1);
+		},
 		push_many: function (target, new_entries) {
 			var max_push = 1000;
 			if (new_entries.length < max_push) {
@@ -1175,7 +1178,7 @@
 			return (d !== undefined ? "[" + d.tag + "]" : "[?]");
 		},
 		toggle: function (event) {
-			if (!event.which || event.which === 1) {
+			if ($.is_left_mouse(event)) {
 				var actions = Helper.get_actions_from_link(this, true);
 				if (actions !== null) {
 					actions.classList.toggle("hl-actions-hidden");
@@ -3619,7 +3622,7 @@
 			}
 		},
 		to_changelog: function (event) {
-			if (!event.which || event.which === 1) {
+			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				Options.close(event);
 				Changelog.open(null);
@@ -3652,7 +3655,7 @@
 			}
 		},
 		on_data_clear: function (event) {
-			if (!event.which || event.which === 1) {
+			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				var clears = Cache.clear();
 				Debug.log("Cleared cache; localStorage=" + clears[0] + "; sessionStorage=" + clears[1]);
@@ -3660,14 +3663,14 @@
 			}
 		},
 		on_settings_export: function (event) {
-			if (!event.which || event.which === 1) {
+			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				Options.close(event);
 				Options.open_export();
 			}
 		},
 		open: function (event) {
-			if (event.which && event.which !== 1) return;
+			if (!$.is_left_mouse(event)) return;
 			event.preventDefault();
 
 			var theme = Theme.get(),
@@ -3816,7 +3819,7 @@
 					$.add(container, n = $.link("#", "hl-settings-button" + theme));
 					$.add(n, $.node("span", "hl-settings-button-text", "Save settings"));
 					$.on(n, "click", function (event) {
-						if (!event.which || event.which === 1) {
+						if ($.is_left_mouse(event)) {
 							event.preventDefault();
 							var v = Helper.json_parse_safe(nodes.textarea.value, null);
 							if (v !== null) {
@@ -3886,7 +3889,7 @@
 			if (n !== null) n.focus();
 		},
 		close_export: function (event) {
-			if (!event.which || event.which === 1) {
+			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 
 				if (Nodes.options_overlay !== null) {
@@ -5643,12 +5646,12 @@
 			return false;
 		},
 		on_close_click: function (event) {
-			if (!event.which || event.which === 1) {
+			if ($.is_left_mouse(event)) {
 				EasyList.disable();
 			}
 		},
 		on_toggle_click: function (event) {
-			if (!event.which || event.which === 1) {
+			if ($.is_left_mouse(event)) {
 				if (EasyList.overlay === null || !Popup.is_open(EasyList.overlay)) {
 					EasyList.on_open_click();
 				}
@@ -5661,7 +5664,7 @@
 			}
 		},
 		on_options_click: function (event) {
-			if (!event.which || event.which === 1) {
+			if ($.is_left_mouse(event)) {
 				EasyList.set_options_visible(!EasyList.get_options_visible());
 			}
 		},
@@ -5734,12 +5737,12 @@
 			return n1;
 		},
 		on_stop_propagation: function (event) {
-			if (!event.which || event.which === 1) {
+			if ($.is_left_mouse(event)) {
 				event.stopPropagation();
 			}
 		},
 		on_overlay_event: function (event) {
-			if (!event.which || event.which === 1) {
+			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				event.stopPropagation();
 				return false;
