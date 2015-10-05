@@ -6063,6 +6063,12 @@
 		on_menu_item_mouseout: function () {
 			this.classList.remove("focused");
 		},
+		on_menu_item_click: function (event) {
+			if ($.is_left_mouse(event)) {
+				event.preventDefault();
+				d.documentElement.click();
+			}
+		},
 		on_body_observe: function (records) {
 			var nodes, node, i, ii, j, jj;
 
@@ -6104,6 +6110,7 @@
 
 			$.on(menu_node, "mouseover", HeaderBar.on_menu_item_mouseover);
 			$.on(menu_node, "mouseout", HeaderBar.on_menu_item_mouseout);
+			$.on(menu_node, "click", HeaderBar.on_menu_item_click);
 
 			HeaderBar.menu_nodes.push(menu_node);
 		}
