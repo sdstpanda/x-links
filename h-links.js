@@ -1097,7 +1097,7 @@
 
 			$.add($(".hl-tags", content), UI.create_tags_best(di.type, g_domain, data));
 
-			Main.hovering(content);
+			Popup.hovering(content);
 
 			// Full info
 			if (conf['Extended Info'] && di.type === "ehentai" && !API.data_has_full(data)) {
@@ -2452,7 +2452,7 @@
 					hover, i, ii;
 
 				hover = $.node("div",
-					"hl-exsauce-hover hl-exsauce-hover-hidden post hl-hover-shadow reply post_wrapper hl-fake-post" + Theme.get()
+					"hl-exsauce-hover hl-exsauce-hover-hidden hl-hover-shadow post reply post_wrapper hl-fake-post" + Theme.get()
 				);
 				hover.setAttribute("data-sha1", sha1);
 
@@ -2464,7 +2464,7 @@
 						$.add(hover, $.node_simple("br"));
 					}
 				}
-				Main.hovering(hover);
+				Popup.hovering(hover);
 				Nodes.sauce_hover[sha1] = hover;
 
 				return hover;
@@ -5520,14 +5520,30 @@
 		open: function (overlay) {
 			if (Popup.active !== null && Popup.active.parentNode !== null) $.remove(Popup.active);
 			d.documentElement.classList.add("hl-popup-overlaying");
-			d.body.appendChild(overlay);
+			Popup.hovering(overlay);
 			Popup.active = overlay;
 		},
 		close: function (overlay) {
 			d.documentElement.classList.remove("hl-popup-overlaying");
 			if (overlay.parentNode !== null) $.remove(overlay);
 			Popup.active = null;
-		}
+		},
+		hovering: (function () {
+			var container = null;
+			return function (node) {
+				if (container === null) {
+					container = $.node("div", "hl-hovering-elements");
+					if (Config.mode === "tinyboard") {
+						// Fix some poor choices of selectors (div.post:last) that infinity uses
+						$.prepend(d.body, container);
+					}
+					else {
+						$.add(d.body, container);
+					}
+				}
+				$.add(container, node);
+			};
+		})()
 	};
 	Changelog = {
 		data: null,
@@ -5758,16 +5774,6 @@
 
 			return 0;
 		},
-		hovering: (function () {
-			var container = null;
-			return function (node) {
-				if (container === null) {
-					container = $.node("div", "hl-hovering-elements");
-					$.add(d.body, container);
-				}
-				$.add(container, node);
-			};
-		})(),
 		dom: function (event) {
 			var node = event.target;
 			Main.observer([{
