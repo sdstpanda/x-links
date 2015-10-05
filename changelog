@@ -1,5 +1,14 @@
 ﻿master
 
+1.0.3
+- dnsev-h
+  + Fixed a bug that could cause similarity image search to fail
+  + Fixed a bug that would prevent the Easy List from changing sort order
+  + ExSauce now works on posts with multiple images (tinyboard)
+  + Settings styling changed to be more similar to the Easy List
+  + Changelog now displayed on update
+  + Code cleanup and performance updates
+
 1.0.2
 - dnsev-h
   + Fixed a bug causing intense scrolling lag when using 4chan-x

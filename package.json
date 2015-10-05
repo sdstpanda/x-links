@@ -1,6 +1,6 @@
 {
   "name": "H-links",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "author": "dnsev-h",
   "description": "Userscript for pretty linkification of hentai links on 4chan and friends",
   "dependencies": {
