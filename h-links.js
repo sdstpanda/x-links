@@ -4012,7 +4012,7 @@
 		}
 	};
 	Config = {
-		namespace: "#PREFIX#settings",
+		settings_key: "#PREFIX#settings",
 		mode: "4chan", // foolz, fuuka, tinyboard
 		mode_ext: {
 			fourchanx3: false,
@@ -4097,17 +4097,17 @@
 				}
 			}
 			temp.version = Main.version;
-			Config.storage.setItem(Config.namespace, JSON.stringify(temp));
+			Config.storage.setItem(Config.settings_key, JSON.stringify(temp));
 		},
 		get_saved_settings: function () {
-			return Helper.json_parse_safe(Config.storage.getItem(Config.namespace), null);
+			return Helper.json_parse_safe(Config.storage.getItem(Config.settings_key), null);
 		},
 		set_saved_settings: function (data) {
 			if (data === null) {
-				Config.storage.removeItem(Config.namespace);
+				Config.storage.removeItem(Config.settings_key);
 			}
 			else {
-				Config.storage.setItem(Config.namespace, JSON.stringify(data));
+				Config.storage.setItem(Config.settings_key, JSON.stringify(data));
 			}
 		},
 		init: function () {
@@ -4872,7 +4872,7 @@
 		}
 	};
 	EasyList = {
-		namespace: "#PREFIX#easylist-",
+		settings_key: "#PREFIX#easylist-settings",
 		overlay: null,
 		options_container: null,
 		items_container: null,
@@ -4900,7 +4900,7 @@
 			display_mode: 0 // 0 = full, 1 = compact, 2 = minimal
 		},
 		settings_save: function () {
-			Config.storage.setItem(EasyList.namespace + "settings", JSON.stringify(EasyList.settings));
+			Config.storage.setItem(EasyList.settings_key, JSON.stringify(EasyList.settings));
 		},
 		settings_load: function () {
 			// Load
@@ -4924,15 +4924,14 @@
 			EasyList.load_filters();
 		},
 		get_saved_settings: function () {
-			return Helper.json_parse_safe(Config.storage.getItem(EasyList.namespace + "settings"), null);
+			return Helper.json_parse_safe(Config.storage.getItem(EasyList.settings_key), null);
 		},
 		set_saved_settings: function (data) {
-			var key = EasyList.namespace + "settings";
 			if (data === null) {
-				Config.storage.removeItem(key);
+				Config.storage.removeItem(EasyList.settings_key);
 			}
 			else {
-				Config.storage.setItem(key, JSON.stringify(data));
+				Config.storage.setItem(EasyList.settings_key, JSON.stringify(data));
 			}
 		},
 		init: function () {
