@@ -3742,15 +3742,15 @@
 		},
 		open_export: function () {
 			var theme = Theme.get(),
+				nodes = {
+					textarea: null
+				},
 				export_data_string, overlay, n;
 
 			// Config
 			Options.conf = JSON.parse(JSON.stringify(conf));
 
-			export_data_string = JSON.stringify({
-				conf: Config.get_saved_settings(),
-				easy_list: EasyList.get_saved_settings()
-			}, null, 2);
+			export_data_string = JSON.stringify(Options.create_export_data(), null, 2);
 			Options.export_url = window.URL.createObjectURL(new Blob([ export_data_string ], { type: "application/json" }));
 
 			// Popup
@@ -3764,7 +3764,7 @@
 				align: "right",
 				setup: function (container) {
 					var d = new Date(),
-						pad, n;
+						pad, n, fn;
 
 					pad = function (s, len) {
 						s = "" + s;
@@ -3772,10 +3772,38 @@
 						return s;
 					};
 
+					fn = $.node("input", "hl-settings-file-input");
+					fn.type = "file";
+					fn.accept = ".json";
+					$.add(container, fn);
+					$.on(fn, "change", function () {
+						var files = this.files,
+							reader;
+						if (files.length > 0 && /\.json$/i.test(files[0].name)) {
+							reader = new FileReader();
+							reader.addEventListener("load", function () {
+								var d = Helper.json_parse_safe(this.result, null);
+								if (d !== null) {
+									nodes.textarea.value = JSON.stringify(d, null, 2);
+									nodes.textarea.classList.add("hl-settings-export-textarea-changed");
+								}
+							}, false);
+							reader.readAsText(files[0]);
+						}
+						this.value = null;
+					});
+
+					$.add(container, n = $.link(undefined, "hl-settings-button" + theme));
+					$.add(n, $.node("span", "hl-settings-button-text", "Import"));
+					$.on(n, "click", function (event) {
+						event.preventDefault();
+						fn.click();
+					});
+
 					$.add(container, n = $.link(Options.export_url, "hl-settings-button" + theme));
 					n.removeAttribute("target");
 					n.setAttribute("download",
-						"h-links-settings-" +
+						"#TITLE#".toLowerCase() + "-settings-" +
 						Main.version.join(".") + "-" +
 						pad(d.getFullYear(), 4) + "." +
 						pad(d.getMonth() + 1, 2) + "." +
@@ -3783,25 +3811,68 @@
 						pad(d.getHours(), 2) + "." +
 						pad(d.getMinutes(), 2) + ".json"
 					);
-					$.add(n, $.node("span", "hl-settings-button-text", "Save as .json"));
+					$.add(n, $.node("span", "hl-settings-button-text", "Export"));
 
 					$.add(container, n = $.link("#", "hl-settings-button" + theme));
-					$.add(n, $.node("span", "hl-settings-button-text", "Close"));
+					$.add(n, $.node("span", "hl-settings-button-text", "Save settings"));
+					$.on(n, "click", function (event) {
+						if (!event.which || event.which === 1) {
+							event.preventDefault();
+							var v = Helper.json_parse_safe(nodes.textarea.value, null);
+							if (v !== null) {
+								nodes.textarea.classList.remove("hl-settings-export-textarea-error");
+								Options.import_settings(v);
+							}
+							else {
+								nodes.textarea.classList.add("hl-settings-export-textarea-error");
+							}
+							nodes.textarea.classList.remove("hl-settings-export-textarea-changed");
+						}
+					});
+
+					$.add(container, n = $.link("#", "hl-settings-button" + theme));
+					$.add(n, $.node("span", "hl-settings-button-text", "Cancel"));
 					$.on(n, "click", Options.close_export);
 				}
 			}], {
+				padding: false,
+				setup: function (container) {
+					var n1, n2, n3;
+
+					$.add(container, n1 = $.node("div", "hl-settings-export-message", "Disclaimer: changing these settings can easily break things. Edit at your own risk. ("));
+
+					$.add(n1, n2 = $.node("label", "hl-settings-export-label"));
+					$.add(n2, n3 = $.node("input", "hl-settings-export-checkbox"));
+					$.add(n2, $.node("span", "hl-settings-export-label-text", "Enable editing"));
+					$.add(n2, $.node("span", "hl-settings-export-label-text", "Editing enabled"));
+					n3.type = "checkbox";
+					n3.checked = false;
+					$.on(n3, "change", function () {
+						nodes.textarea.readOnly = !this.checked;
+					});
+
+					$.add(n1, $.tnode(")"));
+
+					$.add(container, n1);
+				}
+			}, {
 				body: true,
 				padding: false,
 				setup: function (container) {
 					var n;
 
-					n = $.node("textarea", "hl-settings-export-textarea");
+					n = $.node("textarea", "hl-settings-export-textarea" + theme);
 					n.spellcheck = false;
 					n.wrap = "off";
 					n.value = export_data_string;
-					n.readonly = true;
+					n.readOnly = true;
+					$.on(n, "input", function () {
+						this.classList.add("hl-settings-export-textarea-changed");
+					});
 
-					container.appendChild(n);
+					nodes.textarea = n;
+
+					$.add(container, n);
 				}
 			}]);
 			$.on(overlay, "click", Options.close_export);
@@ -3828,6 +3899,23 @@
 					console.log("Revoked ", Options.export_url);
 					Options.export_url = null;
 				}
+			}
+		},
+		create_export_data: function () {
+			return {
+				config: Config.get_saved_settings(),
+				easy_list: EasyList.get_saved_settings()
+			};
+		},
+		import_settings: function (data) {
+			if (data !== null && typeof(data) === "object") {
+				var v = data.config;
+				if (typeof(v) !== "object") v = null;
+				Config.set_saved_settings(v);
+
+				v = data.easy_list;
+				if (typeof(v) !== "object") v = null;
+				EasyList.set_saved_settings(v);
 			}
 		},
 		gen: function (container, theme, option_type) {
@@ -4013,6 +4101,14 @@
 		},
 		get_saved_settings: function () {
 			return Helper.json_parse_safe(Config.storage.getItem(Config.namespace), null);
+		},
+		set_saved_settings: function (data) {
+			if (data === null) {
+				Config.storage.removeItem(Config.namespace);
+			}
+			else {
+				Config.storage.setItem(Config.namespace, JSON.stringify(data));
+			}
 		},
 		init: function () {
 			var update = false,
@@ -4829,6 +4925,15 @@
 		},
 		get_saved_settings: function () {
 			return Helper.json_parse_safe(Config.storage.getItem(EasyList.namespace + "settings"), null);
+		},
+		set_saved_settings: function (data) {
+			var key = EasyList.namespace + "settings";
+			if (data === null) {
+				Config.storage.removeItem(key);
+			}
+			else {
+				Config.storage.setItem(key, JSON.stringify(data));
+			}
 		},
 		init: function () {
 			Main.insert_nav_link("normal", "Easy List", "Easy List", " hl-nav-link-easylist", EasyList.on_open_click);

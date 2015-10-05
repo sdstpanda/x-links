@@ -942,6 +942,43 @@ button.hl-settings-entry-input.hl-theme-dark:hover {
 	height: 100%;
 	resize: none;
 }
+.hl-settings-export-textarea.hl-settings-export-textarea-error {
+	border-color: #f00000 !important;
+	color: #f00000 !important;
+}
+.hl-settings-export-textarea.hl-settings-export-textarea-changed {
+	color: #0080f0 !important;
+}
+.hl-settings-export-textarea.hl-settings-export-textarea-changed.hl-theme-dark {
+	color: #80b0ff !important;
+}
+.hl-settings-file-input {
+	display: inline-block;
+	display: none;
+	visibility: hidden;
+	opacity: 0;
+	width: 0;
+	height: 0;
+}
+
+.hl-settings-export-message {
+	line-height: 1.6em;
+}
+.hl-settings-export-label {
+	display: inline-block;
+	margin: 0;
+	padding: 0;
+}
+.hl-settings-export-checkbox {
+	display: none;
+}
+.hl-settings-export-label-text:first-of-type {
+	opacity: 0.6;
+}
+.hl-settings-export-checkbox:checked~.hl-settings-export-label-text:first-of-type,
+.hl-settings-export-checkbox:not(:checked)~.hl-settings-export-label-text:not(:first-of-type) {
+	display: none;
+}
 
 /* Easy List */
 .hl-easylist-title {
