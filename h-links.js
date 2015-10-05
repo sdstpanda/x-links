@@ -3620,7 +3620,7 @@
 		to_changelog: function (event) {
 			event.preventDefault();
 			Options.close(event);
-			Changelog.open(event);
+			Changelog.open(null);
 		},
 		on_change: function () {
 			var node = this,
@@ -5572,11 +5572,7 @@
 		acquiring: false,
 		popup: null,
 		url: "#CHANGELOG#",
-		open: function (event) {
-			if (event !== undefined) {
-				event.preventDefault();
-			}
-
+		open: function (message) {
 			if (!Changelog.acquiring) {
 				Changelog.acquiring = true;
 				Changelog.acquire(Changelog.on_get);
@@ -5590,8 +5586,15 @@
 			Changelog.popup = Popup.create("settings", [[{
 				small: true,
 				setup: function (container) {
+					var cls = "";
 					$.add(container, $.link("#HOMEPAGE#", "hl-settings-title" + theme, "#TITLE#"));
-					$.add(container, $.link(Changelog.url, "hl-settings-version" + theme, Main.version.join(".")));
+					if (message !== null) {
+						$.add(container, $.node("span", "hl-settings-title-info" + theme, message));
+						if (/\s+$/.test(message)) {
+							cls = " hl-settings-version-large";
+						}
+					}
+					$.add(container, $.link(Changelog.url, "hl-settings-version" + cls + theme, Main.version.join(".")));
 				}
 			}, {
 				align: "right",
@@ -5618,6 +5621,7 @@
 				}
 			}]);
 
+			$.on(Changelog.popup, "click", Changelog.close);
 			Popup.open(Changelog.popup);
 		},
 		close: function (event) {
@@ -6170,7 +6174,7 @@
 			HeaderBar.setup();
 
 			if (Main.version_change === 1 && conf["Show Changelog on Update"]) {
-				Changelog.open();
+				Changelog.open(" updated to ");
 			}
 
 			Debug.timer_log("init.ready.full duration", "init");

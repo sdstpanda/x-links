@@ -724,16 +724,23 @@ div.hl-popup-content.post.reply.post_wrapper {
 }
 
 .hl-settings-title {
-	font-size: 2.0em !important;
+	font-size: 2em !important;
 	font-weight: bold !important;
 	text-decoration: none !important;
 }
 .hl-settings-version {
-	margin: 0 4px;
+	margin: 0 0.25em;
 	opacity: 0.9;
 	vertical-align: 75%;
 	text-decoration: none !important;
 	color: inherit !important;
+}
+.hl-settings-title-info,
+.hl-settings-version.hl-settings-version-large {
+	margin: 0;
+	font-size: 1.8em;
+	vertical-align: baseline;
+	opacity: 1;
 }
 
 .hl-settings-heading {
@@ -1436,3 +1443,16 @@ button.hl-settings-entry-input.hl-theme-dark:hover {
 	margin-top: 0.5em !important;
 }
 
+/* Header */
+.hl-header-bar-link {
+	vertical-align: bottom;
+	cursor: pointer;
+}
+.hl-header-bar-svg {
+	width: 1.2em;
+	height: 1.16em;
+	display: inline-block;
+	vertical-align: middle;
+	fill: #000000;
+	stroke: none;
+}
