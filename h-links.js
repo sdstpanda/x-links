@@ -5446,6 +5446,7 @@
 		}
 	};
 	Popup = {
+		active: null,
 		create: function (class_ns, setup) {
 			var theme = Theme.get(),
 				container, list, obj, n1, n2, n3, n4, n5, n6, i, ii, j, jj, v;
@@ -5517,12 +5518,15 @@
 			}
 		},
 		open: function (overlay) {
+			if (Popup.active !== null && Popup.active.parentNode !== null) $.remove(Popup.active);
 			d.documentElement.classList.add("hl-popup-overlaying");
 			d.body.appendChild(overlay);
+			Popup.active = overlay;
 		},
 		close: function (overlay) {
 			d.documentElement.classList.remove("hl-popup-overlaying");
 			if (overlay.parentNode !== null) $.remove(overlay);
+			Popup.active = null;
 		}
 	};
 	Changelog = {
