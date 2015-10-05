@@ -3656,6 +3656,11 @@
 				this.textContent = "Cleared!";
 			}
 		},
+		on_settings_export: function (event) {
+			if (!event.which || event.which === 1) {
+				event.preventDefault();
+			}
+		},
 		open: function (event) {
 			if (event.which && event.which !== 1) return;
 			event.preventDefault();
@@ -3679,12 +3684,16 @@
 				align: "right",
 				setup: function (container) {
 					var n;
+					$.add(container, n = $.link("#ISSUES#", "hl-settings-button" + theme));
+					$.add(n, $.node("span", "hl-settings-button-text", "Issues"));
+
 					$.add(container, n = $.link(Changelog.url, "hl-settings-button" + theme));
 					$.add(n, $.node("span", "hl-settings-button-text", "Changelog"));
 					$.on(n, "click", Options.to_changelog);
 
-					$.add(container, n = $.link("#ISSUES#", "hl-settings-button" + theme));
-					$.add(n, $.node("span", "hl-settings-button-text", "Issues"));
+					$.add(container, n = $.link("#", "hl-settings-button" + theme));
+					$.add(n, $.node("span", "hl-settings-button-text", "Export"));
+					$.on(n, "click", Options.on_settings_export);
 
 					$.add(container, n = $.link("#", "hl-settings-button" + theme));
 					$.add(n, $.node("span", "hl-settings-button-text", "Save Settings"));
@@ -3719,9 +3728,6 @@
 			$.on($(".hl-settings-filter-guide-toggle", overlay), "click", Options.on_toggle_filter_guide);
 
 			// Add to body
-			if (Nodes.options_overlay !== null) {
-				Popup.close(Nodes.options_overlay);
-			}
 			Nodes.options_overlay = overlay;
 			Popup.open(overlay);
 
@@ -5580,9 +5586,6 @@
 
 			var theme = Theme.get();
 
-			if (Changelog.popup !== null) {
-				Popup.close(Changelog.popup);
-			}
 			Changelog.popup = Popup.create("settings", [[{
 				small: true,
 				setup: function (container) {
