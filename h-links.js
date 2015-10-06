@@ -6279,6 +6279,11 @@
 				}
 				$.on(n1, "click", on_click);
 
+				// Case
+				if ((flags & Flags.LowerCase) !== 0) {
+					n1.style.textTransform = "lowercase";
+				}
+
 				// Relative
 				if ((flags & Flags.Before) !== 0) {
 					par = node.parentNode;
@@ -6453,7 +6458,7 @@
 			Main.font_inserted = true;
 
 			if (!conf['Use Extenral Resources']) return;
-			
+
 			var font = $.node_simple("link");
 			font.rel = "stylesheet";
 			font.type = "text/css";
