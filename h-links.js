@@ -2363,115 +2363,117 @@
 			return SHA1.hex(H0) + SHA1.hex(H1) + SHA1.hex(H2) + SHA1.hex(H3) + SHA1.hex(H4);
 		}
 	};
-	Sauce = {
-		similar_uploading: false,
-		delays: {
-			similar_okay: 3000,
-			similar_error: 3000,
-			similar_retry: 5000,
-		},
-		UI: {
-			events: {
-				click: function (event) {
-					event.preventDefault();
+	Sauce = (function () {
 
-					var sha1 = this.getAttribute("data-sha1"),
-						results = Helper.get_exresults_from_exsauce(this),
-						hover;
+		// Private
+		var similar_uploading = false,
+			delays = {
+				similar_okay: 3000,
+				similar_error: 3000,
+				similar_retry: 5000,
+			};
 
-					if (results !== null) {
-						hover = Nodes.sauce_hover[sha1];
+		var ui_events = {
+			click: function (event) {
+				event.preventDefault();
 
-						if (results.classList.toggle("hl-exsauce-results-hidden")) {
-							if (conf['Show Short Results']) {
-								if (hover === undefined) hover = Sauce.UI.hover(sha1);
-								hover.classList.remove("hl-exsauce-hover-hidden");
-								Sauce.UI.events.mousemove.call(this, event);
-							}
-						}
-						else {
-							if (hover !== undefined) {
-								hover.classList.add("hl-exsauce-hover-hidden");
-							}
-						}
-					}
-				},
-				mouseover: function () {
-					if (conf['Show Short Results']) {
-						var sha1 = this.getAttribute("data-sha1"),
-							results = Helper.get_exresults_from_exsauce(this),
-							hover;
+				var sha1 = this.getAttribute("data-sha1"),
+					results = Helper.get_exresults_from_exsauce(this),
+					hover;
 
-						if (results === null || results.classList.contains("hl-exsauce-results-hidden")) {
-							hover = Nodes.sauce_hover[sha1];
-							if (hover === undefined) hover = Sauce.UI.hover(sha1);
+				if (results !== null) {
+					hover = Nodes.sauce_hover[sha1];
+
+					if (results.classList.toggle("hl-exsauce-results-hidden")) {
+						if (conf['Show Short Results']) {
+							if (hover === undefined) hover = ui_hover(sha1);
 							hover.classList.remove("hl-exsauce-hover-hidden");
+							ui_events.mousemove.call(this, event);
 						}
 					}
-				},
-				mouseout: function () {
-					if (conf['Show Short Results']) {
-						var sha1 = this.getAttribute("data-sha1"),
-							hover = Nodes.sauce_hover[sha1];
-
+					else {
 						if (hover !== undefined) {
 							hover.classList.add("hl-exsauce-hover-hidden");
 						}
 					}
-				},
-				mousemove: function (event) {
-					if (conf['Show Short Results']) {
-						var hover = Nodes.sauce_hover[this.getAttribute("data-sha1")];
+				}
+			},
+			mouseover: function () {
+				if (conf['Show Short Results']) {
+					var sha1 = this.getAttribute("data-sha1"),
+						results = Helper.get_exresults_from_exsauce(this),
+						hover;
 
-						if (hover === undefined || hover.classList.contains("hl-exsauce-hover-hidden")) return;
-
-						hover.style.left = "0";
-						hover.style.top = "0";
-
-						var w = window,
-							de = d.documentElement,
-							x = event.clientX,
-							y = event.clientY,
-							win_width = (de.clientWidth || w.innerWidth || 0),
-							win_height = (de.clientHeight || w.innerHeight || 0),
-							rect = hover.getBoundingClientRect();
-
-						x -= rect.width / 2;
-						x = Math.max(1, Math.min(win_width - rect.width - 1, x));
-						y += 20;
-						if (y + rect.height >= win_height) {
-							y = event.clientY - (rect.height + 20);
-						}
-
-						hover.style.left = x + "px";
-						hover.style.top = y + "px";
+					if (results === null || results.classList.contains("hl-exsauce-results-hidden")) {
+						hover = Nodes.sauce_hover[sha1];
+						if (hover === undefined) hover = ui_hover(sha1);
+						hover.classList.remove("hl-exsauce-hover-hidden");
 					}
 				}
 			},
-			hover: function (sha1) {
-				var result = Hash.get("sha1", sha1),
-					hover, i, ii;
+			mouseout: function () {
+				if (conf['Show Short Results']) {
+					var sha1 = this.getAttribute("data-sha1"),
+						hover = Nodes.sauce_hover[sha1];
 
-				hover = $.node("div",
-					"hl-exsauce-hover hl-exsauce-hover-hidden hl-hover-shadow post reply post_wrapper hl-fake-post" + Theme.get()
-				);
-				hover.setAttribute("data-sha1", sha1);
-
-				if (result !== null && (ii = result.length) > 0) {
-					i = 0;
-					while (true) {
-						$.add(hover, $.link(result[i][0], "hl-exsauce-hover-link", result[i][1]));
-						if (++i >= ii) break;
-						$.add(hover, $.node_simple("br"));
+					if (hover !== undefined) {
+						hover.classList.add("hl-exsauce-hover-hidden");
 					}
 				}
-				Popup.hovering(hover);
-				Nodes.sauce_hover[sha1] = hover;
+			},
+			mousemove: function (event) {
+				if (conf['Show Short Results']) {
+					var hover = Nodes.sauce_hover[this.getAttribute("data-sha1")];
 
-				return hover;
+					if (hover === undefined || hover.classList.contains("hl-exsauce-hover-hidden")) return;
+
+					hover.style.left = "0";
+					hover.style.top = "0";
+
+					var w = window,
+						de = d.documentElement,
+						x = event.clientX,
+						y = event.clientY,
+						win_width = (de.clientWidth || w.innerWidth || 0),
+						win_height = (de.clientHeight || w.innerHeight || 0),
+						rect = hover.getBoundingClientRect();
+
+					x -= rect.width / 2;
+					x = Math.max(1, Math.min(win_width - rect.width - 1, x));
+					y += 20;
+					if (y + rect.height >= win_height) {
+						y = event.clientY - (rect.height + 20);
+					}
+
+					hover.style.left = x + "px";
+					hover.style.top = y + "px";
+				}
 			}
-		},
-		format: function (a, result) {
+		};
+
+		var ui_hover = function (sha1) {
+			var result = Hash.get("sha1", sha1),
+				hover, i, ii;
+
+			hover = $.node("div",
+				"hl-exsauce-hover hl-exsauce-hover-hidden hl-hover-shadow post reply post_wrapper hl-fake-post" + Theme.get()
+			);
+			hover.setAttribute("data-sha1", sha1);
+
+			if (result !== null && (ii = result.length) > 0) {
+				i = 0;
+				while (true) {
+					$.add(hover, $.link(result[i][0], "hl-exsauce-hover-link", result[i][1]));
+					if (++i >= ii) break;
+					$.add(hover, $.node_simple("br"));
+				}
+			}
+			Popup.hovering(hover);
+			Nodes.sauce_hover[sha1] = hover;
+
+			return hover;
+		};
+		var format = function (a, result) {
 			var count = result.length,
 				theme = Theme.get(),
 				sha1 = a.getAttribute("data-sha1"),
@@ -2480,7 +2482,7 @@
 
 			a.classList.add("hl-exsauce-link-valid");
 			a.textContent = "Found: " + count;
-			a.href = Sauce.get_sha1_lookup_url(sha1);
+			a.href = get_sha1_lookup_url(sha1);
 			a.target = "_blank";
 			a.rel = "noreferrer";
 
@@ -2516,21 +2518,21 @@
 			}
 
 			Debug.log("Formatting complete");
-		},
-		lookup: function (a, sha1) {
+		};
+		var lookup = function (a, sha1) {
 			a.textContent = "Checking";
 
 			HttpRequest({
 				method: "GET",
-				url: Sauce.get_sha1_lookup_url(sha1),
+				url: get_sha1_lookup_url(sha1),
 				onload: function (xhr) {
 					if (xhr.status === 200) {
-						var results = Sauce.get_results(xhr.responseText);
+						var results = get_results(xhr.responseText);
 
 						Debug.log("Lookup successful; formatting...");
 						Hash.set("sha1", sha1, results);
-						if (conf["Show Short Results"]) Sauce.UI.hover(sha1);
-						Sauce.format(a, results);
+						if (conf["Show Short Results"]) ui_hover(sha1);
+						format(a, results);
 					}
 					else {
 						a.textContent = "Error: lookup/" + xhr.status;
@@ -2543,8 +2545,8 @@
 					a.textContent = "Error: lookup/aborted";
 				}
 			});
-		},
-		lookup_similar: function (a, image) {
+		};
+		var lookup_similar = function (a, image) {
 			var type = "jpeg",
 				m = /\.(png|gif)$/.exec(a.href || ""),
 				form_data = new FormData(),
@@ -2561,18 +2563,18 @@
 			}
 
 			reset_uploading = function () {
-				Sauce.similar_uploading = false;
+				similar_uploading = false;
 			};
 			error_fn = function (msg) {
 				return function () {
-					setTimeout(reset_uploading, Sauce.delays.similar_error);
+					setTimeout(reset_uploading, delays.similar_error);
 					a.textContent = "Error: " + msg;
 				};
 			};
 
 			a.textContent = "Uploading";
 
-			Sauce.similar_uploading = true;
+			similar_uploading = true;
 			HttpRequest({
 				method: "POST",
 				url: "http://ul." + conf["Lookup Domain"] + "/image_lookup.php",
@@ -2583,7 +2585,7 @@
 							md5, sha1, results, err, n;
 
 						if (m && (sha1 = m[2]) !== "corrupt") {
-							results = Sauce.get_results(xhr.responseText);
+							results = get_results(xhr.responseText);
 
 							a.href = xhr.finalUrl;
 
@@ -2603,18 +2605,18 @@
 
 								Debug.log("Lookup successful (" + m[1] + "); formatting...");
 								Hash.set("sha1", sha1, results);
-								if (conf["Show Short Results"]) Sauce.UI.hover(sha1);
-								Sauce.format(a, results);
+								if (conf["Show Short Results"]) ui_hover(sha1);
+								format(a, results);
 							}
 
-							setTimeout(reset_uploading, Sauce.delays.similar_okay);
+							setTimeout(reset_uploading, delays.similar_okay);
 						}
 						else {
 							if (/please\s+wait\s+a\s+bit\s+longer\s+between\s+each\s+file\s+search/i.test(xhr.responseText)) {
 								a.textContent = "Error: wait longer";
 								a.setAttribute("title", "Click again to retry");
-								$.on(a, "click", Sauce.fetch_similar);
-								setTimeout(reset_uploading, Sauce.delays.similar_retry);
+								$.on(a, "click", fetch_similar);
+								setTimeout(reset_uploading, delays.similar_retry);
 							}
 							else {
 								Debug.log("An error occured while reverse image searching", xhr);
@@ -2643,8 +2645,8 @@
 					onabort: error_fn("similar/upload/aborted")
 				}
 			});
-		},
-		get_sha1_lookup_url: function (sha1) {
+		};
+		var get_sha1_lookup_url = function (sha1) {
 			var url = "http://";
 			url += domain_info[conf["Lookup Domain"]].g_domain;
 			url += "/?f_doujinshi=1&f_manga=1&f_artistcg=1&f_gamecg=1&f_western=1&f_non-h=1&f_imageset=1&f_cosplay=1&f_asianporn=1&f_misc=1&f_search=Search+Keywords&f_apply=Apply+Filter&f_shash=";
@@ -2652,8 +2654,8 @@
 			url += "&fs_similar=0";
 			if (conf['Search Expunged']) url += "&fs_exp=1";
 			return url;
-		},
-		get_results: function (response_text) {
+		};
+		var get_results = function (response_text) {
 			var results = [],
 				html = Helper.html_parse_safe(response_text, null),
 				links, link, i, ii;
@@ -2668,8 +2670,8 @@
 			}
 
 			return results;
-		},
-		get_image: function (url, callback) {
+		};
+		var get_image = function (url, callback) {
 			HttpRequest({
 				method: "GET",
 				url: url,
@@ -2697,12 +2699,12 @@
 					callback("aborted", null, 0);
 				}
 			});
-		},
-		hash: function (a, md5) {
+		};
+		var hash = function (a, md5) {
 			Debug.log("Fetching image " + a.href);
 			a.textContent = "Loading";
 
-			Sauce.get_image(a.href, function (err, data) {
+			get_image(a.href, function (err, data) {
 				if (err !== null) {
 					a.textContent = "Error: hash/" + err;
 				}
@@ -2712,15 +2714,15 @@
 					a.setAttribute("data-sha1", sha1);
 					Hash.set("md5", md5, sha1);
 					Debug.log("SHA-1 hash for image: " + sha1);
-					var res = Sauce.check(a);
+					var res = check(a);
 					if (res !== true && res !== null) {
 						Debug.log('No cached result found; performing a lookup...');
-						Sauce.lookup(a, res);
+						lookup(a, res);
 					}
 				}
 			});
-		},
-		check: function (a) {
+		};
+		var check = function (a) {
 			var sha1, results;
 
 			if (
@@ -2729,54 +2731,56 @@
 			) {
 				Debug.log('Cached result found; formatting...');
 				a.setAttribute("data-sha1", sha1);
-				Sauce.format(a, results);
+				format(a, results);
 				return true;
 			}
 
 			return sha1;
-		},
-		fetch: function (event) {
+		};
+		var fetch = function (event) {
 			event.preventDefault();
-			$.off(this, "click", Sauce.fetch);
-			var res = Sauce.check(this);
+			$.off(this, "click", fetch);
+			var res = check(this);
 
 			if (res !== true) {
 				if (res === null) {
 					Debug.log('No SHA-1 hash found; fetching image...');
 					res = this.getAttribute("data-md5");
-					if (res) Sauce.hash(this, res);
+					if (res) hash(this, res);
 				}
 				else { // res = sha1
 					Debug.log('No cached result found; performing a lookup...');
-					Sauce.lookup(this, res);
+					lookup(this, res);
 				}
 			}
-		},
-		fetch_similar: function (event) {
+		};
+		var fetch_similar = function (event) {
 			event.preventDefault();
-			var res = Sauce.check(this),
+			var res = check(this),
 				a = this;
 
 			if (res !== true) {
 				// Can search?
-				if (Sauce.similar_uploading) return;
-				$.off(this, "click", Sauce.fetch_similar);
+				if (similar_uploading) return;
+				$.off(this, "click", fetch_similar);
 
 				// Load image and upload
 				a.textContent = "Loading";
 
-				Sauce.get_image(this.href, function (err, image, image_size) {
+				get_image(this.href, function (err, image, image_size) {
 					if (err !== null) {
 						a.textContent = "Error: similar/" + err;
 					}
 					else {
 						image = image.subarray(0, image_size);
-						Sauce.lookup_similar(a, image);
+						lookup_similar(a, image);
 					}
 				});
 			}
-		},
-		label: function () {
+		};
+
+		// Public
+		var label = function () {
 			var label = conf["Custom Label Text"];
 
 			if (label.length === 0) {
@@ -2784,8 +2788,19 @@
 			}
 
 			return label;
-		}
-	};
+		};
+
+		// Exports
+		return {
+			events: {
+				fetch: fetch,
+				fetch_similar: fetch_similar,
+				ui: ui_events
+			},
+			label: label
+		};
+
+	})();
 	Linkifier = (function () {
 
 		// Private
@@ -2833,9 +2848,9 @@
 			};
 
 		var link_events = {
-			exsauce_fetch: Sauce.fetch,
-			exsauce_fetch_similarity: Sauce.fetch_similar,
-			exsauce_toggle: Sauce.UI.events,
+			exsauce_fetch: Sauce.events.fetch,
+			exsauce_fetch_similarity: Sauce.events.fetch_similar,
+			exsauce_toggle: Sauce.events.ui,
 			exsauce_error: function (event) {
 				event.preventDefault();
 				return false;
