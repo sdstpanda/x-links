@@ -4871,44 +4871,46 @@
 			return [ 0 , 0 , 0 , 0 ];
 		}
 	};
-	EasyList = {
-		settings_key: "#PREFIX#easylist-settings",
-		overlay: null,
-		options_container: null,
-		items_container: null,
-		empty_notification: null,
-		queue: [],
-		current: [],
-		data_map: {},
-		queue_timer: null,
-		custom_filters: [],
-		node_sort_order_keys: {
-			thread: [ "data-hl-index", 1 ],
-			upload: [ "data-hl-date-uploaded", -1 ],
-			rating: [ "data-hl-rating", -1 ]
-		},
-		display_mode_names: [
-			"full",
-			"compact",
-			"minimal"
-		],
-		settings: {
-			sort_by: "thread",
-			group_by_category: false,
-			group_by_filters: false,
-			custom_filters: "# Custom filters follow the same rules as standard filters\n",
-			display_mode: 0 // 0 = full, 1 = compact, 2 = minimal
-		},
-		settings_save: function () {
-			Config.storage.setItem(EasyList.settings_key, JSON.stringify(EasyList.settings));
-		},
-		settings_load: function () {
+	EasyList = (function () {
+
+		// Private
+		var settings_key = "#PREFIX#easylist-settings",
+			popup = null,
+			options_container = null,
+			items_container = null,
+			empty_notification = null,
+			queue = [],
+			current = [],
+			data_map = {},
+			queue_timer = null,
+			custom_filters = [],
+			node_sort_order_keys = {
+				thread: [ "data-hl-index", 1 ],
+				upload: [ "data-hl-date-uploaded", -1 ],
+				rating: [ "data-hl-rating", -1 ]
+			},
+			display_mode_names = [
+				"full",
+				"compact",
+				"minimal"
+			],
+			settings = {
+				sort_by: "thread",
+				group_by_category: false,
+				group_by_filters: false,
+				custom_filters: "# Custom filters follow the same rules as standard filters\n",
+				display_mode: 0 // 0 = full, 1 = compact, 2 = minimal
+			};
+
+		var settings_save = function () {
+			Config.storage.setItem(settings_key, JSON.stringify(settings));
+		};
+		var settings_load = function () {
 			// Load
-			var value = EasyList.get_saved_settings(),
-				settings, k;
+			var value = get_saved_settings(),
+				k;
 
 			if (value !== null && typeof(value) === "object") {
-				settings = EasyList.settings;
 				for (k in settings) {
 					if (
 						Object.prototype.hasOwnProperty.call(settings, k) &&
@@ -4921,83 +4923,52 @@
 			}
 
 			// Load filters
-			EasyList.load_filters();
-		},
-		get_saved_settings: function () {
-			return Helper.json_parse_safe(Config.storage.getItem(EasyList.settings_key), null);
-		},
-		set_saved_settings: function (data) {
-			if (data === null) {
-				Config.storage.removeItem(EasyList.settings_key);
-			}
-			else {
-				Config.storage.setItem(EasyList.settings_key, JSON.stringify(data));
-			}
-		},
-		init: function () {
-			Navigation.insert_link("normal", "Easy List", Main.homepage, " hl-nav-link-easylist", EasyList.on_open_click);
-
-			HeaderBar.insert_shortcut_icon(
-				"panda",
-				"#TITLE# Easy List",
-				Main.homepage,
-				EasyList.on_toggle_click,
-				function (svg, svgns) {
-					var path = $.node_ns(svgns, "path", "hl-header-bar-svg-panda-path");
-					path.setAttribute("d",
-						"M 16.633179,51.146308 c 3.64987,0.96291 4.964143,6.353343 5.848553,6.951214 1.803534,1.219209 16.129984,0.579826 16.129984,0.579826 1.197865,-11.724731 1.212833,-8.671318 2.95548,-16.59613 -1.989075,-1.34607 -5.333693,-2.23712 -5.797288,-4.88791 -0.463595,-2.65078 0.255088,-2.142681 0.187543,-6.314371 -1.439647,-2.768736 -2.204016,-6.03551 -2.500789,-9.43479 -3.024907,-1.751033 -6.026517,-0.494694 -6.433955,-5.297229 -0.353512,-4.166916 6.132756,-5.138818 9.747309,-7.5194007 7.077373,-8.28015298 12.684056,-7.86614927 18.26733,-7.86614927 5.583275,0 12.190976,3.76366917 17.585988,11.22034497 6.53222,9.028459 10.674317,18.629087 14.466281,30.044847 3.791954,11.41577 4.453617,21.459054 1.537854,31.769198 2.36821,0.77671 4.928378,1.009485 5.226735,3.950385 0.298366,2.94089 -1.267399,5.363996 -3.607729,5.963956 -2.34033,0.59995 -4.60182,-0.139224 -6.646539,-0.619694 -3.86217,3.77416 -9.011474,7.538043 -17.479555,9.177123 -8.468078,1.63908 -26.453377,6.593222 -32.623916,6.30881 C 27.325926,98.291926 26.634713,94.42266 25.658825,90.03441 24.682937,85.64616 25.403148,82.440968 25.465957,78.696308 19.909553,79.123928 11.055576,79.654646 9.0799525,78.775913 5.9995252,77.405776 4.2346784,69.110754 5.7658643,59.974024 6.9338652,53.004454 12.660658,50.22377 16.633179,51.146308 z " +
-						"M 47.316173,40.278702 c -1.977441,10.244331 -5.318272,21.474541 -5.662805,29.784036 -0.242507,5.848836 2.420726,7.5586 5.348383,2.078223 5.586237,-10.45706 7.896687,-21.139251 10.839979,-32.018641 -1.376342,0.732535 -2.33581,0.805482 -3.567752,1.104816 2.20065,-1.826801 1.797963,-1.259845 4.683397,-4.356147 3.702042,-3.972588 11.505701,-7.842675 15.187296,-4.490869 4.597776,4.185917 3.4537,13.920509 -0.431829,18.735387 -1.301987,5.219157 -3.278232,10.993981 -4.691055,14.211545 1.650129,0.951997 7.1775,2.647886 8.723023,6.808838 1.818473,4.895806 0.447993,8.335081 -3.207776,12.929618 8.781279,-6.214409 9.875004,-12.24852 10.586682,-20.251062 C 85.596887,59.244915 85.615915,54.42819 83.82437,47.181873 82.032825,39.935556 77.484187,30.527275 73.806105,23.780748 70.128023,17.034221 68.465076,12.376515 60.467734,7.5782428 54.534892,4.0186364 44.006601,5.3633006 39.960199,11.716546 c -4.046402,6.353245 -2.052295,11.417199 0.339979,17.673546 -0.06795,1.969646 -1.145015,4.295256 0.105508,5.751383 1.875243,-0.914979 2.772108,-1.957655 4.421995,-2.639606 -0.01451,1.529931 0.320921,4.192236 -1.17535,5.722167 1.758316,1.116252 1.80495,1.414307 3.663842,2.054666 z"
-					);
-					$.add(svg, path);
-				}
-			);
-		},
-		create: function () {
-			Popup.create("easylist", function (overlay, container) {
+			load_filters();
+		};
+		var create = function () {
+			popup = Popup.create("easylist", function (overlay, container) {
 				var theme = Theme.get(),
-					n1, n2, n3;
+					n1, n2;
 
 				// Overlay
-				$.on(overlay, "click", EasyList.on_overlay_click);
-				EasyList.overlay = overlay;
-				n1 = container;
+				$.add(container, n1 = $.node("div", "hl-easylist-title"));
 
-				$.add(n1, n2 = $.node("div", "hl-easylist-title"));
-
-				$.add(n2, $.node("span", "hl-easylist-title-text", "#TITLE# Easy List"));
-				$.add(n2, $.node("span", "hl-easylist-subtitle", "More porn, less hassle"));
+				$.add(n1, $.node("span", "hl-easylist-title-text", "#TITLE# Easy List"));
+				$.add(n1, $.node("span", "hl-easylist-subtitle", "More porn, less hassle"));
 
 				// Close
-				$.add(n1, n2 = $.node("div", "hl-easylist-control-links"));
+				$.add(container, n1 = $.node("div", "hl-easylist-control-links"));
 
-				$.add(n2, n3 = $.link(undefined, "hl-easylist-control-link hl-easylist-control-link-options", "options"));
-				$.on(n3, "click", EasyList.on_options_click);
+				$.add(n1, n2 = $.link(undefined, "hl-easylist-control-link hl-easylist-control-link-options", "options"));
+				$.on(n2, "click", on_options_click);
 
-				$.add(n2, n3 = $.link(undefined, "hl-easylist-control-link", "close"));
-				$.on(n3, "click", EasyList.on_close_click);
+				$.add(n1, n2 = $.link(undefined, "hl-easylist-control-link", "close"));
+				$.on(n2, "click", on_close_click);
 
-				$.add(n1, $.node("div", "hl-easylist-title-line"));
+				$.add(container, $.node("div", "hl-easylist-title-line"));
 
 				// Options
-				EasyList.options_container = EasyList.create_options(theme);
-				$.add(n1, EasyList.options_container);
+				options_container = create_options(theme);
+				$.add(container, options_container);
 
 				// Empty notification
-				$.add(n1, n2 = $.node("div",
+				empty_notification = $.node("div",
 					"hl-easylist-empty-notification hl-easylist-empty-notification-visible",
 					"No galleries found"
-				));
-				EasyList.empty_notification = n2;
+				);
+				$.add(container, empty_notification);
 
 				// Items list
-				$.add(n1, n2 = $.node("div", "hl-easylist-items" + theme));
-				EasyList.items_container = n2;
+				items_container = $.node("div", "hl-easylist-items" + theme);
+				$.add(container, items_container);
 			});
 
+			$.on(popup, "click", on_overlay_click);
+
 			// Setup
-			EasyList.update_display_mode(true);
-		},
-		create_options: function (theme) {
+			update_display_mode(true);
+		};
+		var create_options = function (theme) {
 			var fn, n1, n2, n3, n4, n5;
 
 			n1 = $.node("div", "hl-easylist-options");
@@ -5016,13 +4987,13 @@
 
 				n2.name = "hl-easylist-options-sort-by";
 				n2.type = "radio";
-				n2.checked = (EasyList.settings.sort_by === value);
+				n2.checked = (settings.sort_by === value);
 				n2.value = value;
 
 				$.add(n1, n2);
 				$.add(n1, $.node("span", "hl-easylist-option-button" + theme, text));
 
-				$.on(n2, "change", EasyList.on_option_change.sort_by);
+				$.on(n2, "change", on_option_change.sort_by);
 
 				return n1;
 			};
@@ -5046,12 +5017,12 @@
 				$.add(n1, n2);
 				$.add(n1, $.node("span", "hl-easylist-option-button" + theme, text));
 
-				$.on(n2, "change", EasyList.on_option_change.group_by_filters);
+				$.on(n2, "change", on_option_change.group_by_filters);
 
 				return n1;
 			};
-			$.add(n4, fn(EasyList.settings.group_by_filters, "Filters"));
-			$.add(n4, fn(EasyList.settings.group_by_category, "Category"));
+			$.add(n4, fn(settings.group_by_filters, "Filters"));
+			$.add(n4, fn(settings.group_by_category, "Category"));
 
 
 			$.add(n2, n3 = $.node("div", "hl-easylist-option-row"));
@@ -5066,13 +5037,13 @@
 
 				n2.name = "hl-easylist-options-display";
 				n2.type = "radio";
-				n2.checked = (EasyList.settings.display_mode === value);
+				n2.checked = (settings.display_mode === value);
 				n2.value = "" + value;
 
 				$.add(n1, n2);
 				$.add(n1, $.node("span", "hl-easylist-option-button" + theme, text));
 
-				$.on(n2, "change", EasyList.on_option_change.display_mode);
+				$.on(n2, "change", on_option_change.display_mode);
 
 				return n1;
 			};
@@ -5088,60 +5059,18 @@
 			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
 
 			$.add(n4, n5 = $.node("textarea", "hl-easylist-option-textarea" + theme));
-			n5.value = EasyList.settings.custom_filters;
+			n5.value = settings.custom_filters;
 			n5.wrap = "off";
 			n5.spellcheck = false;
-			$.on(n5, "change", EasyList.on_option_change.custom_filters);
-			$.on(n5, "input", EasyList.on_option_change.custom_filters_input);
+			$.on(n5, "change", on_option_change.custom_filters);
+			$.on(n5, "input", on_option_change.custom_filters_input);
 
 
 			$.add(n1, $.node("div", "hl-easylist-title-line"));
 
 			return n1;
-		},
-		enable: function () {
-			Popup.open(EasyList.overlay);
-
-			// Focus
-			$.scroll_focus(EasyList.overlay);
-		},
-		disable: function () {
-			Popup.close(EasyList.overlay);
-
-			EasyList.set_options_visible(false);
-
-			Linkifier.off("format", EasyList.on_linkify);
-		},
-		populate: function () {
-			EasyList.on_linkify(Linkifier.get_links_formatted());
-			Linkifier.on("format", EasyList.on_linkify);
-		},
-		set_empty: function (empty) {
-			if (EasyList.empty_notification !== null) {
-				var cls = "hl-easylist-empty-notification-visible";
-				if (empty !== EasyList.empty_notification.classList.contains(cls)) {
-					EasyList.empty_notification.classList.toggle(cls);
-				}
-			}
-		},
-		get_options_visible: function () {
-			return EasyList.options_container.classList.contains("hl-easylist-options-visible");
-		},
-		set_options_visible: function (visible) {
-			var n = $(".hl-easylist-control-link-options", EasyList.overlay),
-				cl, cls;
-
-			if (n !== null) {
-				cl = n.classList;
-				cls = "hl-easylist-control-link-focus";
-				if (cl.contains(cls) !== visible) cl.toggle(cls);
-			}
-
-			cl = EasyList.options_container.classList;
-			cls = "hl-easylist-options-visible";
-			if (cl.contains(cls) !== visible) cl.toggle(cls);
-		},
-		create_gallery_nodes: function (data, theme, index, domain) {
+		};
+		var create_gallery_nodes = function (data, theme, index, domain) {
 			var url = Helper.Site.create_gallery_url(data, domain),
 				hl_res, n1, n2, n3, n4, n5, n6, n7, i;
 
@@ -5167,7 +5096,7 @@
 
 			if (data.thumb) {
 				$.add(n6, n7 = $.node("img", "hl-easylist-item-image" + theme));
-				$.on(n7, "error", EasyList.on_thumbnail_error);
+				$.on(n7, "error", on_thumbnail_error);
 				n7.src = data.thumb;
 				n7.alt = "";
 			}
@@ -5204,10 +5133,10 @@
 
 			$.add(n4, n5 = $.node("div", "hl-easylist-item-tags" + theme));
 
-			n6 = EasyList.create_full_tags(domain, data, theme);
+			n6 = create_full_tags(domain, data, theme);
 			$.add(n5, n6[0]);
 			if (!n6[1]) {
-				$.on(n1, "mouseover", EasyList.on_gallery_mouseover);
+				$.on(n1, "mouseover", on_gallery_mouseover);
 			}
 
 
@@ -5243,12 +5172,12 @@
 			}
 
 			// Highlight
-			hl_res = EasyList.update_filters(n1, data, true, false, true);
-			EasyList.tag_filtering_results(n1, hl_res);
+			hl_res = update_filters(n1, data, true, false, true);
+			tag_filtering_results(n1, hl_res);
 
 			return n1;
-		},
-		create_full_tags: function (domain, data, theme) {
+		};
+		var create_full_tags = function (domain, data, theme) {
 			var n1 = $.node("div", "hl-easylist-item-tag-table" + theme),
 				domain_type = domain_info[domain].type,
 				full_domain = domain_info[domain].g_domain,
@@ -5291,44 +5220,56 @@
 			}
 
 			return [ n1, namespace !== "" ];
-		},
-		add_gallery: function (entry, theme) {
+		};
+		var add_gallery = function (entry, theme) {
 			var data = Database.get(entry.namespace, entry.id),
 				n;
 
 			if (data !== null) {
-				n = EasyList.create_gallery_nodes(data, theme, EasyList.current.length, entry.domain);
+				n = create_gallery_nodes(data, theme, current.length, entry.domain);
 
 				Main.insert_custom_fonts();
 
-				$.add(EasyList.items_container, n);
+				$.add(items_container, n);
 
 				entry.node = n;
-				EasyList.current.push(entry);
+				current.push(entry);
 			}
-		},
-		add_gallery_complete: function () {
-			EasyList.set_empty(EasyList.current.length === 0);
+		};
+		var add_gallery_complete = function () {
+			set_empty(current.length === 0);
 
-			var set = EasyList.settings;
-			if (set.group_by_category || set.group_by_filters || set.sort_by !== "thread") {
-				EasyList.update_ordering();
+			if (settings.group_by_category || settings.group_by_filters || settings.sort_by !== "thread") {
+				update_ordering();
 			}
-		},
-		tag_filtering_results: function (node, hl_results) {
-			var list, bad, i, ii, k;
-			for (k in hl_results) {
-				list = hl_results[k];
-				bad = 0;
-				for (i = 0, ii = list.length; i < ii; ++i) {
-					if (list[i].bad) ++bad;
+		};
+		var set_empty = function (empty) {
+			if (empty_notification !== null) {
+				var cls = "hl-easylist-empty-notification-visible";
+				if (empty !== empty_notification.classList.contains(cls)) {
+					empty_notification.classList.toggle(cls);
 				}
-
-				node.setAttribute("data-hl-filter-matches-" + k, list.length - bad);
-				node.setAttribute("data-hl-filter-matches-" + k + "-bad", bad);
 			}
-		},
-		get_category_ordering: function () {
+		};
+		var get_options_visible = function () {
+			return options_container.classList.contains("hl-easylist-options-visible");
+		};
+		var set_options_visible = function (visible) {
+			var n = $(".hl-easylist-control-link-options", popup),
+				cl, cls;
+
+			if (n !== null) {
+				cl = n.classList;
+				cls = "hl-easylist-control-link-focus";
+				if (cl.contains(cls) !== visible) cl.toggle(cls);
+			}
+
+			cl = options_container.classList;
+			cls = "hl-easylist-options-visible";
+			if (cl.contains(cls) !== visible) cl.toggle(cls);
+		};
+
+		var get_category_ordering = function () {
 			var cat_order = {},
 				i = 0,
 				k;
@@ -5340,8 +5281,8 @@
 			cat_order[""] = i;
 
 			return cat_order;
-		},
-		get_node_filter_group: function (node) {
+		};
+		var get_node_filter_group = function (node) {
 			var v1 = parseInt(node.getAttribute("data-hl-filter-matches-title"), 10) || 0,
 				v2 = parseInt(node.getAttribute("data-hl-filter-matches-title-bad"), 10) || 0,
 				v3 = parseInt(node.getAttribute("data-hl-filter-matches-uploader"), 10) || 0,
@@ -5352,51 +5293,62 @@
 			v2 += v4 + v6;
 			if (v2 > 0) return -v2;
 			return v1 + v3 + v5;
-		},
-		get_node_category_group: function (node, ordering) {
+		};
+		var get_node_category_group = function (node, ordering) {
 			var k = node.getAttribute("data-hl-category") || "";
 			return ordering[k in ordering ? k : ""];
-		},
-		update_display_mode: function (first) {
-			var list = EasyList.display_mode_names,
-				mode = list[EasyList.settings.display_mode] || "",
-				cl = EasyList.items_container.classList,
+		};
+		var update_display_mode = function (first) {
+			var mode = display_mode_names[settings.display_mode] || "",
+				cl = items_container.classList,
 				i, ii;
 
 			if (!first) {
-				for (i = 0, ii = list.length; i < ii; ++i) {
-					cl.remove("hl-easylist-" + list[i]);
+				for (i = 0, ii = display_mode_names.length; i < ii; ++i) {
+					cl.remove("hl-easylist-" + display_mode_names[i]);
 				}
 			}
 
 			cl.add("hl-easylist-" + mode);
-		},
-		update_ordering: function () {
+		};
+		var tag_filtering_results = function (node, hl_results) {
+			var list, bad, i, ii, k;
+			for (k in hl_results) {
+				list = hl_results[k];
+				bad = 0;
+				for (i = 0, ii = list.length; i < ii; ++i) {
+					if (list[i].bad) ++bad;
+				}
+
+				node.setAttribute("data-hl-filter-matches-" + k, list.length - bad);
+				node.setAttribute("data-hl-filter-matches-" + k + "-bad", bad);
+			}
+		};
+		var update_ordering = function () {
 			var items = [],
-				list = EasyList.current,
-				mode = EasyList.settings.sort_by,
-				ordering, base_array, item, attr, cat_order, par, n, n2, i, ii;
+				mode = settings.sort_by,
+				ordering, base_array, item, attr, cat_order, n, n2, i, ii;
 
 			// Grouping
-			if (EasyList.settings.group_by_filters) {
-				if (EasyList.settings.group_by_category) {
-					cat_order = EasyList.get_category_ordering();
+			if (settings.group_by_filters) {
+				if (settings.group_by_category) {
+					cat_order = get_category_ordering();
 					base_array = function (node) {
-						return [ EasyList.get_node_filter_group(node), EasyList.get_node_category_group(node, cat_order) ];
+						return [ get_node_filter_group(node), get_node_category_group(node, cat_order) ];
 					};
 					ordering = [ -1, 1 ];
 				}
 				else {
 					base_array = function (node) {
-						return [ EasyList.get_node_filter_group(node) ];
+						return [ get_node_filter_group(node) ];
 					};
 					ordering = [ -1 ];
 				}
 			}
-			else if (EasyList.settings.group_by_category) {
-				cat_order = EasyList.get_category_ordering();
+			else if (settings.group_by_category) {
+				cat_order = get_category_ordering();
 				base_array = function (node) {
-					return [ EasyList.get_node_category_group(node, cat_order) ];
+					return [ get_node_category_group(node, cat_order) ];
 				};
 				ordering = [ 1 ];
 			}
@@ -5406,11 +5358,11 @@
 			}
 
 			// Iterate
-			attr = EasyList.node_sort_order_keys[mode in EasyList.node_sort_order_keys ? mode : "thread"];
+			attr = node_sort_order_keys[mode in node_sort_order_keys ? mode : "thread"];
 			ordering.push(attr[1], 1);
 			attr = attr[0];
-			for (i = 0, ii = list.length; i < ii; ++i) {
-				n = list[i].node;
+			for (i = 0, ii = current.length; i < ii; ++i) {
+				n = current[i].node;
 				item = {
 					order: base_array(n),
 					node: n
@@ -5438,16 +5390,15 @@
 
 			// Re-insert
 			// Maybe eventually add labels
-			par = EasyList.items_container;
 			for (i = 0, ii = items.length; i < ii; ++i) {
 				n = items[i].node;
-				$.add(par, n);
+				$.add(items_container, n);
 				if ((n2 = $(".hl-easylist-item-image-index", n)) !== null) {
 					n2.textContent = "#" + (i + 1);
 				}
 			}
-		},
-		update_filters: function (node, data, first, tags_only, get_results) {
+		};
+		var update_filters = function (node, data, first, tags_only, get_results) {
 			var results1 = null,
 				results2 = null,
 				results3 = null,
@@ -5506,74 +5457,74 @@
 			}
 
 			return ret;
-		},
-		update_all_filters: function () {
-			var list = EasyList.current,
-				hl_res, entry, data, i, ii;
+		};
+		var update_all_filters = function () {
+			var hl_res, entry, data, i, ii;
 
-			for (i = 0, ii = list.length; i < ii; ++i) {
-				entry = list[i];
+			for (i = 0, ii = current.length; i < ii; ++i) {
+				entry = current[i];
 				data = Database.get(entry.namespace, entry.id);
 				if (data !== null) {
-					hl_res = EasyList.update_filters(list[i].node, data, false, false, true);
-					EasyList.tag_filtering_results(list[i].node, hl_res);
+					hl_res = update_filters(current[i].node, data, false, false, true);
+					tag_filtering_results(current[i].node, hl_res);
 				}
 			}
-		},
-		load_filters: function () {
-			EasyList.custom_filters = Filter.parse(EasyList.settings.custom_filters);
-		},
-		on_option_change: {
+		};
+		var load_filters = function () {
+			custom_filters = Filter.parse(settings.custom_filters);
+		};
+
+		var on_option_change = {
 			sort_by: function () {
-				EasyList.settings.sort_by = this.value;
-				EasyList.settings_save();
-				EasyList.update_ordering();
+				settings.sort_by = this.value;
+				settings_save();
+				update_ordering();
 			},
 			group_by_category: function () {
-				EasyList.settings.group_by_category = this.checked;
-				EasyList.settings_save();
-				EasyList.update_ordering();
+				settings.group_by_category = this.checked;
+				settings_save();
+				update_ordering();
 			},
 			group_by_filters: function () {
-				EasyList.settings.group_by_filters = this.checked;
-				EasyList.settings_save();
-				EasyList.update_ordering();
+				settings.group_by_filters = this.checked;
+				settings_save();
+				update_ordering();
 			},
 			display_mode: function () {
-				EasyList.settings.display_mode = parseInt(this.value, 10) || 0;
-				EasyList.settings_save();
-				EasyList.update_display_mode(false);
+				settings.display_mode = parseInt(this.value, 10) || 0;
+				settings_save();
+				update_display_mode(false);
 			},
 			custom_filters: function () {
-				if (EasyList.settings.custom_filters !== this.value) {
-					EasyList.settings.custom_filters = this.value;
-					EasyList.settings_save();
-					EasyList.load_filters();
-					EasyList.update_all_filters();
+				if (settings.custom_filters !== this.value) {
+					settings.custom_filters = this.value;
+					settings_save();
+					load_filters();
+					update_all_filters();
 
 					// Update order
-					if (EasyList.settings.group_by_filters) {
-						EasyList.update_ordering();
+					if (settings.group_by_filters) {
+						update_ordering();
 					}
 				}
 			},
 			custom_filters_input: function () {
 				var node = this;
-				if (EasyList.on_option_change.custom_filters_input_delay_timer !== null) {
-					clearTimeout(EasyList.on_option_change.custom_filters_input_delay_timer);
+				if (on_option_change.custom_filters_input_delay_timer !== null) {
+					clearTimeout(on_option_change.custom_filters_input_delay_timer);
 				}
-				EasyList.on_option_change.custom_filters_input_delay_timer = setTimeout(
+				on_option_change.custom_filters_input_delay_timer = setTimeout(
 					function () {
-						EasyList.on_option_change.custom_filters_input_delay_timer = null;
-						EasyList.on_option_change.custom_filters.call(node);
+						on_option_change.custom_filters_input_delay_timer = null;
+						on_option_change.custom_filters.call(node);
 					},
 					1000
 				);
 			},
 			custom_filters_input_delay_timer: null
-		},
-		on_gallery_mouseover: function () {
-			$.off(this, "mouseover", EasyList.on_gallery_mouseover);
+		};
+		var on_gallery_mouseover = function () {
+			$.off(this, "mouseover", on_gallery_mouseover);
 
 			var node = this,
 				tags_container = $(".hl-easylist-item-tags", this),
@@ -5588,25 +5539,25 @@
 					var domain = node.getAttribute("data-hl-domain") || domains.exhentai,
 						n, hl_res;
 
-					n = EasyList.create_full_tags(domain, data, Theme.get());
+					n = create_full_tags(domain, data, Theme.get());
 					tags_container.textContent = "";
 					$.add(tags_container, n[0]);
 
-					hl_res = EasyList.update_filters(tags_container, data, false, true, true);
-					EasyList.tag_filtering_results(node, { tags: hl_res.tags });
+					hl_res = update_filters(tags_container, data, false, true, true);
+					tag_filtering_results(node, { tags: hl_res.tags });
 				}
 			});
-		},
-		on_thumbnail_error: function () {
-			$.off(this, "error", EasyList.on_thumbnail_error);
+		};
+		var on_thumbnail_error = function () {
+			$.off(this, "error", on_thumbnail_error);
 
 			var par = this.parentNode;
 			if (par === null) return;
 			par.style.width = "100%";
 			par.style.height = "100%";
 			this.style.visibility = "hidden";
-		},
-		on_linkify: function (links) {
+		};
+		var on_linkify = function (links) {
 			var link, id, id_key, d, i, ii;
 
 			for (i = 0, ii = links.length; i < ii; ++i) {
@@ -5614,80 +5565,149 @@
 				id = Helper.get_id_from_node(link);
 				if (id !== null && Database.valid_namespace(id[0])) {
 					id_key = id[0] + "_" + id[1];
-					if (EasyList.data_map[id_key] === undefined) {
+					if (data_map[id_key] === undefined) {
 						d = {
 							domain: Helper.get_domain(link.href || "") || domains.exhentai,
 							namespace: id[0],
 							id: id[1],
 							node: null
 						};
-						EasyList.queue.push(d);
-						EasyList.data_map[id_key] = d;
+						queue.push(d);
+						data_map[id_key] = d;
 					}
 				}
 			}
 
-			if (EasyList.queue.length > 0 && EasyList.queue_timer === null) {
-				EasyList.on_timer();
+			if (queue.length > 0 && queue_timer === null) {
+				on_timer();
 			}
-		},
-		on_timer: function () {
-			EasyList.queue_timer = null;
+		};
+		var on_timer = function () {
+			queue_timer = null;
 
-			var entries = EasyList.queue.splice(0, 20),
+			var entries = queue.splice(0, 20),
 				theme = Theme.get(),
 				i, ii;
 
 			for (i = 0, ii = entries.length; i < ii; ++i) {
-				EasyList.add_gallery(entries[i], theme);
+				add_gallery(entries[i], theme);
 			}
-			EasyList.add_gallery_complete();
+			add_gallery_complete();
 
-			if (EasyList.queue.length > 0) {
-				EasyList.queue_timer = setTimeout(EasyList.on_timer, 50);
+			if (queue.length > 0) {
+				queue_timer = setTimeout(on_timer, 50);
 			}
-		},
-		on_open_click: function (event) {
-			if (EasyList.overlay === null) {
-				EasyList.settings_load();
-				EasyList.create();
-			}
-			EasyList.enable();
-			EasyList.populate();
-			event.preventDefault();
-			return false;
-		},
-		on_close_click: function (event) {
+		};
+		var on_open_click = function (event) {
 			if ($.is_left_mouse(event)) {
-				EasyList.disable();
+				open();
+
+				event.preventDefault();
+				return false;
 			}
-		},
-		on_toggle_click: function (event) {
+		};
+		var on_close_click = function (event) {
 			if ($.is_left_mouse(event)) {
-				if (EasyList.overlay === null || !Popup.is_open(EasyList.overlay)) {
-					EasyList.on_open_click(event);
+				close();
+
+				event.preventDefault();
+				return false;
+			}
+		};
+		var on_toggle_click = function (event) {
+			if ($.is_left_mouse(event)) {
+				if (is_open()) {
+					close();
 				}
 				else {
-					EasyList.disable();
+					open();
 				}
 
 				event.preventDefault();
 				return false;
 			}
-		},
-		on_options_click: function (event) {
+		};
+		var on_options_click = function (event) {
 			if ($.is_left_mouse(event)) {
-				EasyList.set_options_visible(!EasyList.get_options_visible());
-			}
-		},
-		on_overlay_click: function (event) {
-			EasyList.disable();
+				set_options_visible(!get_options_visible());
 
-			event.preventDefault();
-			event.stopPropagation();
-			return false;
-		}
-	};
+				event.preventDefault();
+				return false;
+			}
+		};
+		var on_overlay_click = function (event) {
+			if ($.is_left_mouse(event)) {
+				close();
+
+				event.preventDefault();
+				return false;
+			}
+		};
+
+		// Public
+		var get_saved_settings = function () {
+			return Helper.json_parse_safe(Config.storage.getItem(settings_key), null);
+		};
+		var set_saved_settings = function (data) {
+			if (data === null) {
+				Config.storage.removeItem(settings_key);
+			}
+			else {
+				Config.storage.setItem(settings_key, JSON.stringify(data));
+			}
+		};
+		var ready = function () {
+			Navigation.insert_link("normal", "Easy List", Main.homepage, " hl-nav-link-easylist", on_open_click);
+
+			HeaderBar.insert_shortcut_icon(
+				"panda",
+				"#TITLE# Easy List",
+				Main.homepage,
+				on_toggle_click,
+				function (svg, svgns) {
+					var path = $.node_ns(svgns, "path", "hl-header-bar-svg-panda-path");
+					path.setAttribute("d",
+						"M 16.633179,51.146308 c 3.64987,0.96291 4.964143,6.353343 5.848553,6.951214 1.803534,1.219209 16.129984,0.579826 16.129984,0.579826 1.197865,-11.724731 1.212833,-8.671318 2.95548,-16.59613 -1.989075,-1.34607 -5.333693,-2.23712 -5.797288,-4.88791 -0.463595,-2.65078 0.255088,-2.142681 0.187543,-6.314371 -1.439647,-2.768736 -2.204016,-6.03551 -2.500789,-9.43479 -3.024907,-1.751033 -6.026517,-0.494694 -6.433955,-5.297229 -0.353512,-4.166916 6.132756,-5.138818 9.747309,-7.5194007 7.077373,-8.28015298 12.684056,-7.86614927 18.26733,-7.86614927 5.583275,0 12.190976,3.76366917 17.585988,11.22034497 6.53222,9.028459 10.674317,18.629087 14.466281,30.044847 3.791954,11.41577 4.453617,21.459054 1.537854,31.769198 2.36821,0.77671 4.928378,1.009485 5.226735,3.950385 0.298366,2.94089 -1.267399,5.363996 -3.607729,5.963956 -2.34033,0.59995 -4.60182,-0.139224 -6.646539,-0.619694 -3.86217,3.77416 -9.011474,7.538043 -17.479555,9.177123 -8.468078,1.63908 -26.453377,6.593222 -32.623916,6.30881 C 27.325926,98.291926 26.634713,94.42266 25.658825,90.03441 24.682937,85.64616 25.403148,82.440968 25.465957,78.696308 19.909553,79.123928 11.055576,79.654646 9.0799525,78.775913 5.9995252,77.405776 4.2346784,69.110754 5.7658643,59.974024 6.9338652,53.004454 12.660658,50.22377 16.633179,51.146308 z " +
+						"M 47.316173,40.278702 c -1.977441,10.244331 -5.318272,21.474541 -5.662805,29.784036 -0.242507,5.848836 2.420726,7.5586 5.348383,2.078223 5.586237,-10.45706 7.896687,-21.139251 10.839979,-32.018641 -1.376342,0.732535 -2.33581,0.805482 -3.567752,1.104816 2.20065,-1.826801 1.797963,-1.259845 4.683397,-4.356147 3.702042,-3.972588 11.505701,-7.842675 15.187296,-4.490869 4.597776,4.185917 3.4537,13.920509 -0.431829,18.735387 -1.301987,5.219157 -3.278232,10.993981 -4.691055,14.211545 1.650129,0.951997 7.1775,2.647886 8.723023,6.808838 1.818473,4.895806 0.447993,8.335081 -3.207776,12.929618 8.781279,-6.214409 9.875004,-12.24852 10.586682,-20.251062 C 85.596887,59.244915 85.615915,54.42819 83.82437,47.181873 82.032825,39.935556 77.484187,30.527275 73.806105,23.780748 70.128023,17.034221 68.465076,12.376515 60.467734,7.5782428 54.534892,4.0186364 44.006601,5.3633006 39.960199,11.716546 c -4.046402,6.353245 -2.052295,11.417199 0.339979,17.673546 -0.06795,1.969646 -1.145015,4.295256 0.105508,5.751383 1.875243,-0.914979 2.772108,-1.957655 4.421995,-2.639606 -0.01451,1.529931 0.320921,4.192236 -1.17535,5.722167 1.758316,1.116252 1.80495,1.414307 3.663842,2.054666 z"
+					);
+					$.add(svg, path);
+				}
+			);
+		};
+		var open = function () {
+			if (popup === null) {
+				settings_load();
+				create();
+			}
+
+			on_linkify(Linkifier.get_links_formatted());
+			Linkifier.on("format", on_linkify);
+
+			Popup.open(popup);
+			$.scroll_focus(popup);
+		};
+		var close = function () {
+			Popup.close(popup);
+
+			set_options_visible(false);
+
+			Linkifier.off("format", on_linkify);
+		};
+		var is_open = function () {
+			return (popup !== null && Popup.is_open(popup));
+		};
+
+		// Exports
+		return {
+			get_saved_settings: get_saved_settings,
+			set_saved_settings: set_saved_settings,
+			ready: ready,
+			open: open,
+			close: close,
+			is_open: is_open
+		};
+
+	})();
 	Popup = (function () {
 
 		// Private
@@ -6428,7 +6448,7 @@
 			$.add(d.head, style);
 
 			Theme.prepare();
-			EasyList.init();
+			EasyList.ready();
 
 			Debug.timer_log("init.ready duration", "init");
 
