@@ -1328,23 +1328,26 @@
 			}
 		}
 	};
-	API = {
-		full_version: 1,
-		nhentai_tag_namespaces: {
-			parodies: "parody",
-			characters: "character",
-			artists: "artist",
-			groups: "group"
-		},
-		request_types: {
-			ehentai: [ "ehentai_page", "ehentai_gallery" ],
-			nhentai: [ "nhentai_gallery" ],
-			hitomi: [ "hitomi_gallery" ]
-		},
-		Request: (function () {
-			var Queue, error_fn, queue_add, queue_get, trigger, perform_request, call_callbacks;
+	API = (function () {
 
-			Queue = {
+		// Private
+		var full_version = 1,
+			temp_div = $.node_simple("div"),
+			nhentai_tag_namespaces = {
+				parodies: "parody",
+				characters: "character",
+				artists: "artist",
+				groups: "group"
+			},
+			request_types = {
+				ehentai: [ "ehentai_page", "ehentai_gallery" ],
+				nhentai: [ "nhentai_gallery" ],
+				hitomi: [ "hitomi_gallery" ]
+			};
+
+		var Request = (function () {
+
+			var Queue = {
 				ehentai_gallery: {
 					data: [],
 					callbacks: [],
@@ -1405,7 +1408,7 @@
 					response: function (text) {
 						var html = Helper.html_parse_safe(text, null);
 						if (html !== null) {
-							return [ API.ehentai_parse_info(html) ];
+							return [ ehentai_parse_info(html) ];
 						}
 						return null;
 					}
@@ -1425,7 +1428,7 @@
 					response: function (text) {
 						var html = Helper.html_parse_safe(text, null);
 						if (html !== null) {
-							return [ API.nhentai_parse_info(html) ];
+							return [ nhentai_parse_info(html) ];
 						}
 						return null;
 					}
@@ -1445,14 +1448,14 @@
 					response: function (text) {
 						var html = Helper.html_parse_safe(text, null);
 						if (html !== null) {
-							return [ API.hitomi_parse_info(html) ];
+							return [ hitomi_parse_info(html) ];
 						}
 						return null;
 					}
 				}
 			};
 
-			error_fn = function (q, names, callbacks, msg) {
+			var error_fn = function (q, names, callbacks, msg) {
 				return function (xhr) {
 					Debug.log("API.request[" + names.join(",") + "] error: " + msg + "; time=" + Debug.timer("apirequest_" + names.join("_")), xhr);
 
@@ -1471,12 +1474,12 @@
 				};
 			};
 
-			queue_add = function (name, data, callback) {
+			var queue_add = function (name, data, callback) {
 				var q = Queue[name];
 				q.data.push(data);
 				q.callbacks.push(callback);
 			};
-			queue_get = function (names) {
+			var queue_get = function (names) {
 				var entries, callbacks, q, d, i, ii;
 
 				for (i = 0, ii = names.length; i < ii; ++i) {
@@ -1497,7 +1500,7 @@
 				return null;
 			};
 
-			trigger = function (names) {
+			var trigger = function (names) {
 				var q_data = queue_get.call(null, names);
 				if (q_data !== null) {
 					perform_request.apply(null, q_data);
@@ -1506,7 +1509,7 @@
 				return false;
 			};
 
-			perform_request = function (q, names, callbacks, xhr_data) {
+			var perform_request = function (q, names, callbacks, xhr_data) {
 				q.active = true;
 
 				var timer_name = "apirequest_" + names.join("_");
@@ -1540,7 +1543,7 @@
 				HttpRequest(xhr_data);
 			};
 
-			call_callbacks = function (q, names, callbacks, response) {
+			var call_callbacks = function (q, names, callbacks, response) {
 				var i = 0,
 					ii = callbacks.length,
 					data, err;
@@ -1589,117 +1592,32 @@
 				},
 				trigger: trigger
 			};
-		})(),
-		queue_gallery: function (gid, token) {
-			gid = parseInt(gid, 10);
-			API.Request.queue("ehentai_gallery",
-				[ gid, token ],
-				function (err, data, last) {
-					if (err === null) {
-						data = API.ehentai_normalize_info(data);
-						Database.set("ehentai", data);
-					}
-					else {
-						Database.set_error("ehentai", gid, err, data !== null);
-					}
-					if (last) {
-						Linkifier.check_incomplete("ehentai");
-					}
-				}
-			);
-		},
-		queue_gallery_page: function (gid, page_token, page) {
-			API.Request.queue("ehentai_page",
-				[ parseInt(gid, 10), page_token, parseInt(page, 10) ],
-				function (err, data) {
-					if (err === null) {
-						API.queue_gallery(data.gid, data.token);
-					}
-				}
-			);
-		},
-		get_full_gallery_info: function (id, token, site, cb) {
-			API.Request.get("ehentai_full",
-				[ site, id, token ],
-				function (err, full_data) {
-					if (err === null) {
-						var data = Database.get("ehentai", id);
-						if (data !== null) {
-							data.full = full_data;
-							Database.set("ehentai", data);
-							cb(null, data);
-						}
-						else {
-							cb("Could not update data", null);
-						}
-					}
-					else {
-						cb(err, null);
-					}
-				}
-			);
-		},
-		nhentai_queue_gallery: function (gid) {
-			API.Request.queue("nhentai_gallery",
-				gid,
-				function (err, data) {
-					if (err === null) {
-						Database.set("nhentai", data);
-						Linkifier.check_incomplete("nhentai");
-					}
-					else {
-						Database.set_error("nhentai", gid, err, data !== null);
-					}
-				}
-			);
-		},
-		hitomi_queue_gallery: function (gid) {
-			API.Request.queue("hitomi_gallery",
-				gid,
-				function (err, data) {
-					if (err === null) {
-						Database.set("hitomi", data);
-						Linkifier.check_incomplete("hitomi");
-					}
-					else {
-						Database.set_error("hitomi", gid, err, data !== null);
-					}
-				}
-			);
-		},
-		run_request_queue: function () {
-			API.Request.trigger(API.request_types.ehentai);
-			API.Request.trigger(API.request_types.nhentai);
-			API.Request.trigger(API.request_types.hitomi);
-		},
-		data_has_full: function (data) {
-			return data.full && data.full.version >= API.full_version;
-		},
-		ehentai_normalize_string: (function () {
-			var div = $.node_simple("div");
-			return function (text) {
-				div.innerHTML = text;
-				text = div.textContent;
-				div.textContent = "";
-				return text;
-			};
-		})(),
-		ehentai_normalize_info: function (info) {
-			info.title = API.ehentai_normalize_string(info.title || "");
-			info.title_jpn = API.ehentai_normalize_string(info.title_jpn || "");
-			info.uploader = API.ehentai_normalize_string(info.uploader || "");
+
+		})();
+
+		var ehentai_normalize_string = function (text) {
+			temp_div.innerHTML = text;
+			text = temp_div.textContent;
+			temp_div.textContent = "";
+			return text;
+		};
+		var ehentai_normalize_info = function (info) {
+			info.title = ehentai_normalize_string(info.title || "");
+			info.title_jpn = ehentai_normalize_string(info.title_jpn || "");
+			info.uploader = ehentai_normalize_string(info.uploader || "");
 			info.filecount = parseInt(info.filecount, 10) || 0;
 			info.posted = parseInt(info.posted, 10) || 0;
 			info.rating = parseFloat(info.rating) || 0;
 			info.torrentcount = parseInt(info.torrentcount, 10) || 0;
 
 			return info;
-		},
-		ehentai_parse_info: function (html) {
+		};
+		var ehentai_parse_info = function (html) {
 			var tags = {},
 				data = {
-					version: API.full_version,
-					tags: tags
+					version: full_version,
+					tags: tags,
+					favorites: -1
 				};
 
 			// Tags
@@ -1739,8 +1657,8 @@
 			}
 
 			return data;
-		},
-		nhentai_parse_info: function (html) {
+		};
+		var nhentai_parse_info = function (html) {
 			var info = $("#info", html),
 				data, nodes, tags, tag_ns, tag_ns_list, t, m, n, i, ii, j, jj;
 
@@ -1755,7 +1673,7 @@
 				filecount: 0,
 				filesize: -1,
 				full: {
-					version: API.full_version,
+					version: full_version,
 					tags: {},
 					favorites: 0
 				},
@@ -1807,7 +1725,7 @@
 
 					tags = $$(".tag", nodes[i]);
 
-					tag_ns = API.nhentai_tag_namespaces[tag_ns] || tag_ns;
+					tag_ns = nhentai_tag_namespaces[tag_ns] || tag_ns;
 
 					if (tag_ns === "category") {
 						if (
@@ -1869,8 +1787,8 @@
 			}
 
 			return data;
-		},
-		hitomi_parse_info: function (html) {
+		};
+		var hitomi_parse_info = function (html) {
 			var info = $(".content", html),
 				cellmap = {},
 				re_gender = /\s*(\u2640|\u2642)$/, // \u2640 = female, \u2642 = male
@@ -1892,7 +1810,7 @@
 				filecount: 0,
 				filesize: -1,
 				full: {
-					version: API.full_version,
+					version: full_version,
 					tags: tags_full,
 					favorites: -1,
 					thumb_external: ""
@@ -2065,8 +1983,107 @@
 			}
 
 			return data;
-		}
-	};
+		};
+
+		// Public
+		var queue_gallery = function (gid, token) {
+			gid = parseInt(gid, 10);
+			Request.queue("ehentai_gallery",
+				[ gid, token ],
+				function (err, data, last) {
+					if (err === null) {
+						data = ehentai_normalize_info(data);
+						Database.set("ehentai", data);
+					}
+					else {
+						Database.set_error("ehentai", gid, err, data !== null);
+					}
+					if (last) {
+						Linkifier.check_incomplete("ehentai");
+					}
+				}
+			);
+		};
+		var queue_gallery_page = function (gid, page_token, page) {
+			Request.queue("ehentai_page",
+				[ parseInt(gid, 10), page_token, parseInt(page, 10) ],
+				function (err, data) {
+					if (err === null) {
+						queue_gallery(data.gid, data.token);
+					}
+				}
+			);
+		};
+		var get_full_gallery_info = function (id, token, site, cb) {
+			Request.get("ehentai_full",
+				[ site, id, token ],
+				function (err, full_data) {
+					if (err === null) {
+						var data = Database.get("ehentai", id);
+						if (data !== null) {
+							data.full = full_data;
+							Database.set("ehentai", data);
+							cb(null, data);
+						}
+						else {
+							cb("Could not update data", null);
+						}
+					}
+					else {
+						cb(err, null);
+					}
+				}
+			);
+		};
+		var nhentai_queue_gallery = function (gid) {
+			Request.queue("nhentai_gallery",
+				gid,
+				function (err, data) {
+					if (err === null) {
+						Database.set("nhentai", data);
+						Linkifier.check_incomplete("nhentai");
+					}
+					else {
+						Database.set_error("nhentai", gid, err, data !== null);
+					}
+				}
+			);
+		};
+		var hitomi_queue_gallery = function (gid) {
+			Request.queue("hitomi_gallery",
+				gid,
+				function (err, data) {
+					if (err === null) {
+						Database.set("hitomi", data);
+						Linkifier.check_incomplete("hitomi");
+					}
+					else {
+						Database.set_error("hitomi", gid, err, data !== null);
+					}
+				}
+			);
+		};
+		var run_request_queue = function () {
+			Request.trigger(request_types.ehentai);
+			Request.trigger(request_types.nhentai);
+			Request.trigger(request_types.hitomi);
+		};
+		var data_has_full = function (data) {
+			return (data.full && data.full.version >= full_version);
+		};
+
+		// Exports
+		return {
+			queue_gallery: queue_gallery,
+			queue_gallery_page: queue_gallery_page,
+			get_full_gallery_info: get_full_gallery_info,
+			nhentai_queue_gallery: nhentai_queue_gallery,
+			hitomi_queue_gallery: hitomi_queue_gallery,
+			run_request_queue: run_request_queue,
+			data_has_full: data_has_full
+		};
+
+	})();
 	Cache = (function () {
 
 		// Private
