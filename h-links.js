@@ -355,31 +355,36 @@
 		is_opera: /presto/i.test("" + navigator.userAgent),
 		is_firefox: /firefox/i.test("" + navigator.userAgent)
 	};
-	Debug = {
-		started: false,
-		log: function () {},
-		timer: function () {},
-		timer_log: function (label, timer) {
+	Debug = (function () {
+
+		var started = false,
+			timer_names = null;
+
+		var dummy_fn = function () {};
+		var log = dummy_fn;
+		var timer_log = function (label, timer) {
 			var t = timing(),
 				value;
 
-			if (typeof(timer) === "string") timer = Debug.timer.timer_names[timer];
+			if (typeof(timer) === "string") timer = timer_names[timer];
 
 			value = (timer === undefined) ? "???ms" : (t - timer).toFixed(3) + "ms";
 
-			if (!Debug.started) return [ label, value ];
-			Debug.log(label, value);
-		},
-		init: function () {
-			Debug.started = true;
+			if (!started) return [ label, value ];
+			log(label, value);
+		};
+
+		var init = function () {
+			started = true;
+
 			if (!conf['Debug Mode']) {
-				Debug.timer_log = function () {};
+				timer_log = dummy_fn;
+				Module.timer_log = timer_log;
 				return;
 			}
 
 			// Find timing
-			var timer_names = {},
-				perf = window.performance,
+			var perf = window.performance,
 				now;
 
 			if (!perf || !(now = perf.now || perf.mozNow || perf.msNow || perf.oNow || perf.webkitNow)) {
@@ -388,10 +393,12 @@
 			}
 
 			// Debug functions
-			Debug.log = function () {
+			timer_names = {};
+			log = function () {
 				var args = [ "#TITLE# " + Main.version.join(".") + ":" ].concat(Array.prototype.slice.call(arguments));
 				console.log.apply(console, args);
 			};
+			Debug.log = log;
 			Debug.timer = function (name, dont_format) {
 				var t1 = now.call(perf),
 					t2;
@@ -404,9 +411,19 @@
 				}
 				return (t2 === undefined) ? "???ms" : (t1 - t2).toFixed(3) + "ms";
 			};
-			Debug.timer.timer_names = timer_names;
-		}
-	};
+		};
+
+		// Exports
+		var Module = {
+			log: log,
+			timer: dummy_fn,
+			timer_log: timer_log,
+			init: init
+		};
+
+		return Module;
+
+	})();
 	Helper = {
 		regex_escape: function (text) {
 			return text.replace(/[\$\(\)\*\+\-\.\/\?\[\\\]\^\{\|\}]/g, "\\$&");
