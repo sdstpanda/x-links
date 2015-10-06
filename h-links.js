@@ -5,7 +5,7 @@
 
 	var timing, domains, domain_info, options, conf, regex, cat, d, t, $, $$,
 		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Options, Config, Main,
-		MutationObserver, Browser, Helper, Nodes, HttpRequest, Linkifier, Filter, Theme,
+		MutationObserver, Browser, Helper, HttpRequest, Linkifier, Filter, Theme,
 		EasyList, Popup, Changelog, HeaderBar, Navigation;
 
 	timing = (function () {
@@ -891,10 +891,6 @@
 			return fns;
 		})()
 	};
-	Nodes = {
-		details: {},
-		sauce_hover: {}
-	};
 	HttpRequest = (function () {
 		try {
 			if (GM_xmlhttpRequest && typeof(GM_xmlhttpRequest) === "function") {
@@ -920,10 +916,12 @@
 	UI = (function () {
 
 		// Private
+		var details_nodes = {};
+
 		var gallery_link_events = {
 			mouseover: function () {
 				var full_id = Helper.get_id_from_node_full(this),
-					details = Nodes.details[full_id],
+					details = details_nodes[full_id],
 					domain, data, id;
 
 				if (details === undefined) {
@@ -938,14 +936,14 @@
 					}
 
 					details = create_details(data, domain);
-					Nodes.details[full_id] = details;
+					details_nodes[full_id] = details;
 				}
 
 				details.classList.remove("hl-details-hidden");
 			},
 			mouseout: function () {
 				var full_id = Helper.get_id_from_node_full(this),
-					details = Nodes.details[full_id],
+					details = details_nodes[full_id],
 					domain, data, id;
 
 				if (details === undefined) {
@@ -960,13 +958,13 @@
 					}
 
 					details = create_details(data, domain);
-					Nodes.details[full_id] = details;
+					details_nodes[full_id] = details;
 				}
 
 				details.classList.add("hl-details-hidden");
 			},
 			mousemove: function (event) {
-				var details = Nodes.details[Helper.get_id_from_node_full(this)];
+				var details = details_nodes[Helper.get_id_from_node_full(this)];
 
 				if (details === undefined) return;
 
@@ -2454,6 +2452,7 @@
 
 		// Private
 		var similar_uploading = false,
+			hover_nodes = {},
 			delays = {
 				similar_okay: 3000,
 				similar_error: 3000,
@@ -2469,7 +2468,7 @@
 					hover;
 
 				if (results !== null) {
-					hover = Nodes.sauce_hover[sha1];
+					hover = hover_nodes[sha1];
 
 					if (results.classList.toggle("hl-exsauce-results-hidden")) {
 						if (conf['Show Short Results']) {
@@ -2492,7 +2491,7 @@
 						hover;
 
 					if (results === null || results.classList.contains("hl-exsauce-results-hidden")) {
-						hover = Nodes.sauce_hover[sha1];
+						hover = hover_nodes[sha1];
 						if (hover === undefined) hover = ui_hover(sha1);
 						hover.classList.remove("hl-exsauce-hover-hidden");
 					}
@@ -2501,7 +2500,7 @@
 			mouseout: function () {
 				if (conf['Show Short Results']) {
 					var sha1 = this.getAttribute("data-sha1"),
-						hover = Nodes.sauce_hover[sha1];
+						hover = hover_nodes[sha1];
 
 					if (hover !== undefined) {
 						hover.classList.add("hl-exsauce-hover-hidden");
@@ -2510,7 +2509,7 @@
 			},
 			mousemove: function (event) {
 				if (conf['Show Short Results']) {
-					var hover = Nodes.sauce_hover[this.getAttribute("data-sha1")];
+					var hover = hover_nodes[this.getAttribute("data-sha1")];
 
 					if (hover === undefined || hover.classList.contains("hl-exsauce-hover-hidden")) return;
 
@@ -2556,7 +2555,7 @@
 				}
 			}
 			Popup.hovering(hover);
-			Nodes.sauce_hover[sha1] = hover;
+			hover_nodes[sha1] = hover;
 
 			return hover;
 		};
