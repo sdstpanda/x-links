@@ -5444,7 +5444,7 @@
 						n.classList.remove("hl-filter-good");
 						n.classList.remove("hl-filter-bad");
 					}
-					Filter.highlight(mode, n, data, results, EasyList.custom_filters);
+					Filter.highlight(mode, n, data, results, custom_filters);
 				}
 			}
 
@@ -5460,7 +5460,7 @@
 					}
 
 					link = link.cloneNode(true);
-					if ((hl = Filter.check(link, data, EasyList.custom_filters))[0] !== Filter.None) {
+					if ((hl = Filter.check(link, data, custom_filters))[0] !== Filter.None) {
 						Filter.highlight_tag(n, link, hl);
 					}
 				}
