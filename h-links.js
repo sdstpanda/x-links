@@ -158,21 +158,18 @@
 	conf = {};
 
 	MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver || null;
-	$ = function (selector, root) { // Inspired by 4chan X and jQuery API: https://api.jquery.com/ (functions are not chainable)
-		return (root || d).querySelector(selector);
-	};
 	$$ = function (selector, root) {
 		return (root || d).querySelectorAll(selector);
 	};
-	$.extend = function (obj, properties) {
-		for (var k in properties) {
-			if (Object.prototype.hasOwnProperty.call(properties, k)) {
-				obj[k] = properties[k];
-			}
-		}
-	};
-	$.extend($, {
-		ready: (function () {
+	$ = (function () {
+
+		// Inspired by 4chan X and jQuery API: https://api.jquery.com/ (functions are not chainable)
+		var Module = function (selector, root) {
+			return (root || d).querySelector(selector);
+		};
+
+		Module.ready = (function () {
+
 			var callbacks = [],
 				check_interval = null,
 				check_interval_time = 250;
@@ -222,11 +219,10 @@
 					}
 				}
 			};
-		})(),
-		clamp: function (value, min, max) {
-			return Math.min(max, Math.max(min, value));
-		},
-		frag: function (content) {
+
+		})();
+
+		Module.frag = function (content) {
 			var frag = d.createDocumentFragment(),
 				div = $.node_simple("div"),
 				n, next;
@@ -237,51 +233,48 @@
 				frag.appendChild(n);
 			}
 			return frag;
-		},
-		id: function (id) {
-			return d.getElementById(id);
-		},
-		prepend: function (parent, child) {
+		};
+		Module.prepend = function (parent, child) {
 			return parent.insertBefore(child, parent.firstChild);
-		},
-		add: function (parent, child) {
+		};
+		Module.add = function (parent, child) {
 			return parent.appendChild(child);
-		},
-		before: function (root, elem) {
+		};
+		Module.before = function (root, elem) {
 			return root.parentNode.insertBefore(elem, root);
-		},
-		before2: function (root, node, before) {
+		};
+		Module.before2 = function (root, node, before) {
 			return root.insertBefore(node, before);
-		},
-		after: function (root, elem) {
+		};
+		Module.after = function (root, elem) {
 			return root.parentNode.insertBefore(elem, root.nextSibling);
-		},
-		replace: function (root, elem) {
+		};
+		Module.replace = function (root, elem) {
 			return root.parentNode.replaceChild(elem, root);
-		},
-		remove: function (elem) {
+		};
+		Module.remove = function (elem) {
 			return elem.parentNode.removeChild(elem);
-		},
-		tnode: function (text) {
+		};
+		Module.tnode = function (text) {
 			return d.createTextNode(text);
-		},
-		node: function (tag, class_name, text) {
+		};
+		Module.node = function (tag, class_name, text) {
 			var elem = d.createElement(tag);
 			elem.className = class_name;
 			if (text !== undefined) {
 				elem.textContent = text;
 			}
 			return elem;
-		},
-		node_ns: function (namespace, tag, class_name) {
+		};
+		Module.node_ns = function (namespace, tag, class_name) {
 			var elem = d.createElementNS(namespace, tag);
 			elem.setAttribute("class", class_name);
 			return elem;
-		},
-		node_simple: function (tag) {
+		};
+		Module.node_simple = function (tag) {
 			return d.createElement(tag);
-		},
-		link: function (href, class_name, text) {
+		};
+		Module.link = function (href, class_name, text) {
 			var elem = d.createElement("a");
 			if (href !== undefined) {
 				elem.href = href;
@@ -295,8 +288,8 @@
 				elem.textContent = text;
 			}
 			return elem;
-		},
-		on: function (elem, eventlist, handler) {
+		};
+		Module.on = function (elem, eventlist, handler) {
 			var event, i, ii;
 			if (eventlist instanceof Array) {
 				for (i = 0, ii = eventlist.length; i < ii; ++i) {
@@ -307,8 +300,8 @@
 			else {
 				elem.addEventListener(eventlist, handler, false);
 			}
-		},
-		off: function (elem, eventlist, handler) {
+		};
+		Module.off = function (elem, eventlist, handler) {
 			var event, i, ii;
 			if (eventlist instanceof Array) {
 				for (i = 0, ii = eventlist.length; i < ii; ++i) {
@@ -319,30 +312,17 @@
 			else {
 				elem.removeEventListener(eventlist, handler, false);
 			}
-		},
-		test: function (elem, selector) {
+		};
+		Module.test = function (elem, selector) {
 			try {
 				if (elem.matches) return elem.matches(selector);
 				return elem.matchesSelector(selector);
 			}
 			catch (e) {}
 			return false;
-		},
-		is_left_mouse: function (event) {
-			return (event.which === undefined || event.which === 1);
-		},
-		push_many: function (target, new_entries) {
-			var max_push = 1000;
-			if (new_entries.length < max_push) {
-				Array.prototype.push.apply(target, new_entries);
-			}
-			else {
-				for (var i = 0, ii = new_entries.length; i < ii; i += max_push) {
-					Array.prototype.push.apply(target, new_entries.slice(i, i + max_push));
-				}
-			}
-		},
-		scroll_focus: function (element) {
+		};
+
+		Module.scroll_focus = function (element) {
 			// Focus
 			var n = $.node_simple("textarea");
 			$.prepend(element, n);
@@ -353,8 +333,28 @@
 			// Scroll to top
 			element.scrollTop = 0;
 			element.scrollLeft = 0;
-		}
-	});
+		};
+		Module.clamp = function (value, min, max) {
+			return Math.min(max, Math.max(min, value));
+		};
+		Module.is_left_mouse = function (event) {
+			return (event.which === undefined || event.which === 1);
+		};
+		Module.push_many = function (target, new_entries) {
+			var max_push = 1000;
+			if (new_entries.length < max_push) {
+				Array.prototype.push.apply(target, new_entries);
+			}
+			else {
+				for (var i = 0, ii = new_entries.length; i < ii; i += max_push) {
+					Array.prototype.push.apply(target, new_entries.slice(i, i + max_push));
+				}
+			}
+		};
+
+		return Module;
+
+	})();
 	Debug = (function () {
 
 		var started = false,
@@ -4274,7 +4274,7 @@
 		var ready = function () {
 			var site = d.URL,
 				doctype = d.doctype,
-				type;
+				type, cl;
 
 			if (/archive\.moe/i.test(site)) {
 				type = "<!DOCTYPE " +
@@ -4297,8 +4297,9 @@
 				Module.linkify = false;
 			}
 			else {
-				Module.mode_ext.fourchanx3 = d.documentElement.classList.contains("fourchan-x");
-				Module.mode_ext.oneechan = ($.id("OneeChanLink") !== null);
+				cl = d.documentElement.classList;
+				Module.mode_ext.fourchanx3 = cl.contains("fourchan-x");
+				Module.mode_ext.oneechan = cl.contains("oneechan");
 			}
 
 			return true;
