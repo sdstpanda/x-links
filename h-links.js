@@ -894,8 +894,7 @@
 	Nodes = {
 		details: {},
 		sauce_hover: {},
-		options_overlay: null,
-		header_bar: null
+		options_overlay: null
 	};
 	HttpRequest = (function () {
 		try {
@@ -4942,7 +4941,7 @@
 				"panda",
 				"#TITLE# Easy List",
 				Main.homepage,
-				HeaderBar.on_icon_click,
+				EasyList.on_toggle_click,
 				function (svg, svgns) {
 					var path = $.node_ns(svgns, "path", "hl-header-bar-svg-panda-path");
 					path.setAttribute("d",
@@ -5666,7 +5665,7 @@
 		on_toggle_click: function (event) {
 			if ($.is_left_mouse(event)) {
 				if (EasyList.overlay === null || !Popup.is_open(EasyList.overlay)) {
-					EasyList.on_open_click();
+					EasyList.on_open_click(event);
 				}
 				else {
 					EasyList.disable();
@@ -5792,68 +5791,14 @@
 			}
 		}
 	};
-	Changelog = {
-		data: null,
-		acquiring: false,
-		popup: null,
-		url: "#CHANGELOG#",
-		open: function (message) {
-			if (!Changelog.acquiring) {
-				Changelog.acquiring = true;
-				Changelog.acquire(Changelog.on_get);
-			}
+	Changelog = (function () {
 
-			var theme = Theme.get();
+		// Private
+		var change_data = null,
+			acquiring = false,
+			popup = null;
 
-			Changelog.popup = Popup.create("settings", [[{
-				small: true,
-				setup: function (container) {
-					var cls = "";
-					$.add(container, $.link(Main.homepage, "hl-settings-title" + theme, "#TITLE#"));
-					if (message !== null) {
-						$.add(container, $.node("span", "hl-settings-title-info" + theme, message));
-						if (/\s+$/.test(message)) {
-							cls = " hl-settings-version-large";
-						}
-					}
-					$.add(container, $.link(Changelog.url, "hl-settings-version" + cls + theme, Main.version.join(".")));
-				}
-			}, {
-				align: "right",
-				setup: function (container) {
-					var n1, n2;
-					$.add(container, n1 = $.node("label", "hl-settings-button" + theme));
-					$.add(n1, n2 = $.node("input", "hl-settings-button-checkbox"));
-					$.add(n1, $.node("span", "hl-settings-button-text hl-settings-button-checkbox-text", " Show on update"));
-					$.add(n1, $.node("span", "hl-settings-button-text hl-settings-button-checkbox-text", " Don't show on update"));
-					n2.type = "checkbox";
-					n2.checked = conf["Show Changelog on Update"];
-					$.on(n2, "change", Changelog.on_change_save);
-
-					$.add(container, n1 = $.link("#", "hl-settings-button" + theme));
-					$.add(n1, $.node("span", "hl-settings-button-text", "Close"));
-					$.on(n1, "click", Changelog.close);
-				}
-			}], {
-				body: true,
-				padding: false,
-				setup: function (container) {
-					container.classList.add("hl-changelog-content");
-					Changelog.display(container, theme);
-				}
-			}]);
-
-			$.on(Changelog.popup, "click", Changelog.close);
-			Popup.open(Changelog.popup);
-		},
-		close: function (event) {
-			event.preventDefault();
-			if (Changelog.popup !== null) {
-				Popup.close(Changelog.popup);
-				Changelog.popup = null;
-			}
-		},
-		parse: function (text) {
+		var parse = function (text) {
 			var m = /^([\w\W]*)\n=+(\r?\n|$)/.exec(text),
 				re_version = /^(\w+(?:\.\w+)+)\s*$/,
 				re_change = /^(\s*)[\-\+]\s*(.+)/,
@@ -5904,15 +5849,16 @@
 				error: null,
 				log_data: versions
 			};
-		},
-		display: function (container, theme) {
+		};
+		var display = function (container, theme) {
 			var versions, authors, changes,
 				e, n1, n2, n3, n4, n5, i, ii, j, jj, k, kk;
-			if (Changelog.data === null) {
+
+			if (change_data === null) {
 				n1 = $.node("div", "hl-changelog-message-container");
 				$.add(n1, $.node("div", "hl-changelog-message" + theme, "Loading changelog..."));
 			}
-			else if ((e = Changelog.data.error) !== null) {
+			else if ((e = change_data.error) !== null) {
 				n1 = $.node("div", "hl-changelog-message-container");
 				$.add(n1, n2 = $.node("div", "hl-changelog-message hl-changelog-message-error" + theme));
 				$.add(n2, $.node("strong", "hl-changelog-message-line" + theme, "Failed to load changelog:"));
@@ -5922,7 +5868,7 @@
 			else {
 				n1 = $.node("div", "hl-changelog-entries");
 
-				versions = Changelog.data.log_data;
+				versions = change_data.log_data;
 				for (i = 0, ii = versions.length; i < ii; ++i) {
 					$.add(n1, n2 = $.node("div", "hl-changelog-entry" + theme));
 					$.add(n2, $.node("div", "hl-changelog-entry-version" + theme, versions[i].version));
@@ -5941,79 +5887,149 @@
 					}
 				}
 			}
+
 			$.add(container, n1);
-		},
-		acquire: function (on_get) {
+		};
+		var acquire = function (callback) {
 			HttpRequest({
 				method: "GET",
-				url: Changelog.url,
+				url: Module.url,
 				onload: function (xhr) {
 					if (xhr.status === 200) {
-						on_get(null, xhr.responseText);
+						callback(null, xhr.responseText);
 					}
 					else {
-						on_get("Bad response status " + xhr.status, null);
+						callback("Bad response status " + xhr.status, null);
 					}
 				},
 				onerror: function () {
-					on_get("Connection error", null);
+					callback("Connection error", null);
 				},
 				onabort: function () {
-					on_get("Connection aborted", null);
+					callback("Connection aborted", null);
 				}
 			});
-		},
-		on_get: function (err, data) {
+		};
+
+		var on_changelog_get = function (err, data) {
 			if (err !== null) {
-				Changelog.data = { error: err };
+				change_data = { error: err };
 			}
 			else {
-				Changelog.data = Changelog.parse(data);
+				change_data = parse(data);
 			}
 
-			if (Changelog.popup !== null) {
-				var n = $(".hl-changelog-content", Changelog.popup);
+			if (popup !== null) {
+				var n = $(".hl-changelog-content", popup);
 				if (n !== null) {
 					n.innerHTML = "";
-					Changelog.display(n, Theme.get());
+					display(n, Theme.get());
 				}
 			}
-		},
-		on_change_save: function () {
+		};
+		var on_close_click = function (event) {
+			if ($.is_left_mouse(event)) {
+				event.preventDefault();
+				close();
+			}
+		};
+		var on_change_save = function () {
 			conf["Show Changelog on Update"] = this.checked;
 			Config.save();
-		}
-	};
-	HeaderBar = {
-		menu_nodes: [],
-		shortcut_icons: [],
-		mode: null,
-		setup: function () {
-			var n = $("#header-bar");
-			if (n !== null) {
-				HeaderBar.on_header_bar_detected(n);
+		};
+
+		// Public
+		var open = function (message) {
+			if (!acquiring) {
+				acquiring = true;
+				acquire(on_changelog_get);
 			}
-			else {
-				new MutationObserver(HeaderBar.on_body_observe).observe(d.body, { childList: true, subtree: false });
+
+			var theme = Theme.get();
+
+			popup = Popup.create("settings", [[{
+				small: true,
+				setup: function (container) {
+					var cls = "";
+					$.add(container, $.link(Main.homepage, "hl-settings-title" + theme, "#TITLE#"));
+					if (message !== null) {
+						$.add(container, $.node("span", "hl-settings-title-info" + theme, message));
+						if (/\s+$/.test(message)) {
+							cls = " hl-settings-version-large";
+						}
+					}
+					$.add(container, $.link(Module.url, "hl-settings-version" + cls + theme, Main.version.join(".")));
+				}
+			}, {
+				align: "right",
+				setup: function (container) {
+					var n1, n2;
+					$.add(container, n1 = $.node("label", "hl-settings-button" + theme));
+					$.add(n1, n2 = $.node("input", "hl-settings-button-checkbox"));
+					$.add(n1, $.node("span", "hl-settings-button-text hl-settings-button-checkbox-text", " Show on update"));
+					$.add(n1, $.node("span", "hl-settings-button-text hl-settings-button-checkbox-text", " Don't show on update"));
+					n2.type = "checkbox";
+					n2.checked = conf["Show Changelog on Update"];
+					$.on(n2, "change", on_change_save);
+
+					$.add(container, n1 = $.link("#", "hl-settings-button" + theme));
+					$.add(n1, $.node("span", "hl-settings-button-text", "Close"));
+					$.on(n1, "click", on_close_click);
+				}
+			}], {
+				body: true,
+				padding: false,
+				setup: function (container) {
+					container.classList.add("hl-changelog-content");
+					display(container, theme);
+				}
+			}]);
+
+			$.on(popup, "click", on_close_click);
+			Popup.open(popup);
+		};
+		var close = function () {
+			if (popup !== null) {
+				Popup.close(popup);
+				popup = null;
 			}
-		},
-		add_svg_icons: function (nodes) {
+		};
+
+		// Exports
+		var Module = {
+			url: "#CHANGELOG#",
+			open: open,
+			close: close
+		};
+
+		return Module;
+
+	})();
+	HeaderBar = (function () {
+
+		// Private
+		var menu_nodes = [],
+			shortcut_icons = [],
+			header_bar = null,
+			mode = null;
+
+		var add_svg_icons = function (nodes) {
 			var par = null,
-				is_appchan = (HeaderBar.mode === "appchanx"),
+				is_appchan = (mode === "appchanx"),
 				next, color, n1, n2, i, ii;
 
 			if (is_appchan) {
 				if (
-					(n1 = $("#shortcuts", Nodes.header_bar.parentNode)) !== null &&
+					(n1 = $("#shortcuts", header_bar.parentNode)) !== null &&
 					(n2 = $("a#appchan-gal", n1) || $("a.a-icon", n1)) !== null
 				) {
 					par = n2.parentNode;
 					next = n2;
 				}
 			}
-			else if (HeaderBar.mode === "4chanx3") {
+			else if (mode === "4chanx3") {
 				if (
-					(n1 = $("#shortcuts", Nodes.header_bar)) !== null &&
+					(n1 = $("#shortcuts", header_bar)) !== null &&
 					(n2 = $("a.fa.fa-picture-o", n1) || $("a.fa", n1)) !== null &&
 					(n2 = n2.parentNode) !== null
 				) {
@@ -6046,62 +6062,33 @@
 				}
 				n2.setAttribute("data-hl-color", color);
 			}
-		},
-		insert_shortcut_icon: function (namespace, title, url, on_click, svg_setup) {
-			var svgns = "http://www.w3.org/2000/svg",
-				n1, svg;
+		};
 
-			n1 = $.link(url, "hl-header-bar-link hl-header-bar-link-" + namespace);
-			n1.setAttribute("title", title);
-			$.add(n1, svg = $.node_ns(svgns, "svg", "hl-header-bar-svg hl-header-bar-svg-" + namespace));
-			svg.setAttribute("viewBox", "0 0 100 100");
-			svg.setAttribute("svgns", svgns);
-			svg.setAttribute("version", "1.1");
-			svg_setup(svg, svgns);
-
-			$.on(n1, "mouseover", HeaderBar.on_icon_mouseover);
-			$.on(n1, "mouseout", HeaderBar.on_icon_mouseout);
-			$.on(n1, "click", on_click);
-
-			HeaderBar.shortcut_icons.push(n1);
-
-			if (Nodes.header_bar !== null) HeaderBar.add_svg_icons([ n1 ]);
-		},
-		insert_menu_link: function (menu_node) {
-			menu_node.classList.add("entry");
-			menu_node.style.order = 112;
-
-			$.on(menu_node, "mouseover", HeaderBar.on_menu_item_mouseover);
-			$.on(menu_node, "mouseout", HeaderBar.on_menu_item_mouseout);
-			$.on(menu_node, "click", HeaderBar.on_menu_item_click);
-
-			HeaderBar.menu_nodes.push(menu_node);
-		},
-		on_header_bar_detected: function (node) {
-			Nodes.header_bar = node;
+		var on_header_bar_detected = function (node) {
+			header_bar = node;
 
 			if ($("#shortcuts", node) !== null) {
-				HeaderBar.mode = "4chanx3";
+				mode = "4chanx3";
 			}
 			else if ($("#shortcuts", node.parentNode) !== null) {
-				HeaderBar.mode = "appchanx";
+				mode = "appchanx";
 				node = $("#hoverUI");
 			}
 
 			// Observer
 			if (node !== null) {
-				new MutationObserver(HeaderBar.on_header_observe).observe(node, {
+				new MutationObserver(on_header_observe).observe(node, {
 					childList: true,
 					subtree: true
 				});
 			}
 
 			// Icons
-			if (HeaderBar.shortcut_icons.length > 0) {
-				HeaderBar.add_svg_icons(HeaderBar.shortcut_icons);
+			if (shortcut_icons.length > 0) {
+				add_svg_icons(shortcut_icons);
 			}
-		},
-		on_icon_mouseover: function () {
+		};
+		var on_icon_mouseover = function () {
 			var n = $("svg", this),
 				c;
 
@@ -6113,35 +6100,31 @@
 				}
 				n.style.fill = c;
 			}
-		},
-		on_icon_mouseout: function () {
+		};
+		var on_icon_mouseout = function () {
 			var n = $("svg", this);
 			if (n !== null) {
 				n.style.fill = this.getAttribute("data-hl-color");
 			}
-		},
-		on_icon_click: function (event) {
-			event.preventDefault();
-			return EasyList.on_toggle_click.call(this, event);
-		},
-		on_menu_item_mouseover: function () {
+		};
+		var on_menu_item_mouseover = function () {
 			var entries = $$(".entry", this.parent),
 				i, ii;
 			for (i = 0, ii = entries.length; i < ii; ++i) {
 				entries[i].classList.remove("focused");
 			}
 			this.classList.add("focused");
-		},
-		on_menu_item_mouseout: function () {
+		};
+		var on_menu_item_mouseout = function () {
 			this.classList.remove("focused");
-		},
-		on_menu_item_click: function (event) {
+		};
+		var on_menu_item_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				d.documentElement.click();
 			}
-		},
-		on_body_observe: function (records) {
+		};
+		var on_body_observe = function (records) {
 			var nodes, node, i, ii, j, jj;
 
 			for (i = 0, ii = records.length; i < ii; ++i) {
@@ -6149,15 +6132,15 @@
 					for (j = 0, jj = nodes.length; j < jj; ++j) {
 						node = nodes[j];
 						if (node.id === "header-bar") {
-							HeaderBar.on_header_bar_detected(node);
+							on_header_bar_detected(node);
 							this.disconnect();
 							return;
 						}
 					}
 				}
 			}
-		},
-		on_header_observe: function (records) {
+		};
+		var on_header_observe = function (records) {
 			var nodes, node, i, ii, j, jj;
 
 			for (i = 0, ii = records.length; i < ii; ++i) {
@@ -6167,7 +6150,7 @@
 						if (node.id === "menu") {
 							// Add menu items (if it's the main menu)
 							if ($(".entry.delete-link", node) === null) {
-								nodes = HeaderBar.menu_nodes;
+								nodes = menu_nodes;
 								for (j = 0, jj = nodes.length; j < jj; ++j) {
 									$.add(node, nodes[j]);
 								}
@@ -6177,8 +6160,57 @@
 					}
 				}
 			}
-		}
-	};
+		};
+
+		// Public
+		var ready = function () {
+			var n = $("#header-bar");
+			if (n !== null) {
+				on_header_bar_detected(n);
+			}
+			else {
+				new MutationObserver(on_body_observe).observe(d.body, { childList: true, subtree: false });
+			}
+		};
+		var insert_shortcut_icon = function (namespace, title, url, on_click, svg_setup) {
+			var svgns = "http://www.w3.org/2000/svg",
+				n1, svg;
+
+			n1 = $.link(url, "hl-header-bar-link hl-header-bar-link-" + namespace);
+			n1.setAttribute("title", title);
+			$.add(n1, svg = $.node_ns(svgns, "svg", "hl-header-bar-svg hl-header-bar-svg-" + namespace));
+			svg.setAttribute("viewBox", "0 0 100 100");
+			svg.setAttribute("svgns", svgns);
+			svg.setAttribute("version", "1.1");
+			svg_setup(svg, svgns);
+
+			$.on(n1, "mouseover", on_icon_mouseover);
+			$.on(n1, "mouseout", on_icon_mouseout);
+			$.on(n1, "click", on_click);
+
+			shortcut_icons.push(n1);
+
+			if (header_bar !== null) add_svg_icons([ n1 ]);
+		};
+		var insert_menu_link = function (menu_node) {
+			menu_node.classList.add("entry");
+			menu_node.style.order = 112;
+
+			$.on(menu_node, "mouseover", on_menu_item_mouseover);
+			$.on(menu_node, "mouseout", on_menu_item_mouseout);
+			$.on(menu_node, "click", on_menu_item_click);
+
+			menu_nodes.push(menu_node);
+		};
+
+		// Exports
+		return {
+			ready: ready,
+			insert_shortcut_icon: insert_shortcut_icon,
+			insert_menu_link: insert_menu_link
+		};
+
+	})();
 	Navigation = (function () {
 
 		// Private
@@ -6395,7 +6427,7 @@
 				$.on(d.body, "DOMNodeInserted", on_body_node_add);
 			}
 
-			HeaderBar.setup();
+			HeaderBar.ready();
 
 			if (Module.version_change === 1 && conf["Show Changelog on Update"]) {
 				Changelog.open(" updated to ");
