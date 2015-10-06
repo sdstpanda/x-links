@@ -5749,18 +5749,6 @@
 
 			return n1;
 		},
-		on_stop_propagation: function (event) {
-			if ($.is_left_mouse(event)) {
-				event.stopPropagation();
-			}
-		},
-		on_overlay_event: function (event) {
-			if ($.is_left_mouse(event)) {
-				event.preventDefault();
-				event.stopPropagation();
-				return false;
-			}
-		},
 		open: function (overlay) {
 			if (Popup.active !== null && Popup.active.parentNode !== null) $.remove(Popup.active);
 			d.documentElement.classList.add("hl-popup-overlaying");
@@ -5790,7 +5778,19 @@
 				}
 				$.add(container, node);
 			};
-		})()
+		})(),
+		on_stop_propagation: function (event) {
+			if ($.is_left_mouse(event)) {
+				event.stopPropagation();
+			}
+		},
+		on_overlay_event: function (event) {
+			if ($.is_left_mouse(event)) {
+				event.preventDefault();
+				event.stopPropagation();
+				return false;
+			}
+		}
 	};
 	Changelog = {
 		data: null,
@@ -5991,34 +5991,10 @@
 		setup: function () {
 			var n = $("#header-bar");
 			if (n !== null) {
-				HeaderBar.setup_header_bar(n);
+				HeaderBar.on_header_bar_detected(n);
 			}
 			else {
 				new MutationObserver(HeaderBar.on_body_observe).observe(d.body, { childList: true, subtree: false });
-			}
-		},
-		setup_header_bar: function (node) {
-			Nodes.header_bar = node;
-
-			if ($("#shortcuts", node) !== null) {
-				HeaderBar.mode = "4chanx3";
-			}
-			else if ($("#shortcuts", node.parentNode) !== null) {
-				HeaderBar.mode = "appchanx";
-				node = $("#hoverUI");
-			}
-
-			// Observer
-			if (node !== null) {
-				new MutationObserver(HeaderBar.on_header_observe).observe(node, {
-					childList: true,
-					subtree: true
-				});
-			}
-
-			// Icons
-			if (HeaderBar.shortcut_icons.length > 0) {
-				HeaderBar.add_svg_icons(HeaderBar.shortcut_icons);
 			}
 		},
 		add_svg_icons: function (nodes) {
@@ -6071,6 +6047,60 @@
 				n2.setAttribute("data-hl-color", color);
 			}
 		},
+		insert_shortcut_icon: function (namespace, title, url, on_click, svg_setup) {
+			var svgns = "http://www.w3.org/2000/svg",
+				n1, svg;
+
+			n1 = $.link(url, "hl-header-bar-link hl-header-bar-link-" + namespace);
+			n1.setAttribute("title", title);
+			$.add(n1, svg = $.node_ns(svgns, "svg", "hl-header-bar-svg hl-header-bar-svg-" + namespace));
+			svg.setAttribute("viewBox", "0 0 100 100");
+			svg.setAttribute("svgns", svgns);
+			svg.setAttribute("version", "1.1");
+			svg_setup(svg, svgns);
+
+			$.on(n1, "mouseover", HeaderBar.on_icon_mouseover);
+			$.on(n1, "mouseout", HeaderBar.on_icon_mouseout);
+			$.on(n1, "click", on_click);
+
+			HeaderBar.shortcut_icons.push(n1);
+
+			if (Nodes.header_bar !== null) HeaderBar.add_svg_icons([ n1 ]);
+		},
+		insert_menu_link: function (menu_node) {
+			menu_node.classList.add("entry");
+			menu_node.style.order = 112;
+
+			$.on(menu_node, "mouseover", HeaderBar.on_menu_item_mouseover);
+			$.on(menu_node, "mouseout", HeaderBar.on_menu_item_mouseout);
+			$.on(menu_node, "click", HeaderBar.on_menu_item_click);
+
+			HeaderBar.menu_nodes.push(menu_node);
+		},
+		on_header_bar_detected: function (node) {
+			Nodes.header_bar = node;
+
+			if ($("#shortcuts", node) !== null) {
+				HeaderBar.mode = "4chanx3";
+			}
+			else if ($("#shortcuts", node.parentNode) !== null) {
+				HeaderBar.mode = "appchanx";
+				node = $("#hoverUI");
+			}
+
+			// Observer
+			if (node !== null) {
+				new MutationObserver(HeaderBar.on_header_observe).observe(node, {
+					childList: true,
+					subtree: true
+				});
+			}
+
+			// Icons
+			if (HeaderBar.shortcut_icons.length > 0) {
+				HeaderBar.add_svg_icons(HeaderBar.shortcut_icons);
+			}
+		},
 		on_icon_mouseover: function () {
 			var n = $("svg", this),
 				c;
@@ -6119,7 +6149,7 @@
 					for (j = 0, jj = nodes.length; j < jj; ++j) {
 						node = nodes[j];
 						if (node.id === "header-bar") {
-							HeaderBar.setup_header_bar(node);
+							HeaderBar.on_header_bar_detected(node);
 							this.disconnect();
 							return;
 						}
@@ -6147,36 +6177,6 @@
 					}
 				}
 			}
-		},
-		insert_shortcut_icon: function (namespace, title, url, on_click, svg_setup) {
-			var svgns = "http://www.w3.org/2000/svg",
-				n1, svg;
-
-			n1 = $.link(url, "hl-header-bar-link hl-header-bar-link-" + namespace);
-			n1.setAttribute("title", title);
-			$.add(n1, svg = $.node_ns(svgns, "svg", "hl-header-bar-svg hl-header-bar-svg-" + namespace));
-			svg.setAttribute("viewBox", "0 0 100 100");
-			svg.setAttribute("svgns", svgns);
-			svg.setAttribute("version", "1.1");
-			svg_setup(svg, svgns);
-
-			$.on(n1, "mouseover", HeaderBar.on_icon_mouseover);
-			$.on(n1, "mouseout", HeaderBar.on_icon_mouseout);
-			$.on(n1, "click", on_click);
-
-			HeaderBar.shortcut_icons.push(n1);
-
-			if (Nodes.header_bar !== null) HeaderBar.add_svg_icons([ n1 ]);
-		},
-		insert_menu_link: function (menu_node) {
-			menu_node.classList.add("entry");
-			menu_node.style.order = 112;
-
-			$.on(menu_node, "mouseover", HeaderBar.on_menu_item_mouseover);
-			$.on(menu_node, "mouseout", HeaderBar.on_menu_item_mouseout);
-			$.on(menu_node, "click", HeaderBar.on_menu_item_click);
-
-			HeaderBar.menu_nodes.push(menu_node);
 		}
 	};
 	Navigation = {
@@ -6328,7 +6328,56 @@
 		version_change: 0,
 		homepage: "#HOMEPAGE#",
 		queue: [],
-		font_inserted: false,
+		init: function () {
+			var t = Debug.timer_log("init.pre duration", timing.start);
+			Config.init();
+			Debug.init();
+			if (Main.version_change === 1) {
+				Debug.log("Clearing cache on update");
+				Cache.clear();
+			}
+			Cache.init();
+			Debug.log(t[0], t[1]);
+			Debug.timer_log("init duration", timing.start);
+			$.ready(Main.ready);
+		},
+		ready: function () {
+			Debug.timer("init");
+
+			if (!Config.site()) return;
+			Options.init();
+
+			var style = $.node_simple("style"),
+				updater;
+
+			style.textContent = "#STYLESHEET#";
+			$.add(d.head, style);
+
+			Theme.prepare();
+			EasyList.init();
+
+			Debug.timer_log("init.ready duration", "init");
+
+			Linkifier.parse_posts(Helper.Post.get_all_posts(d));
+			Linkifier.check_incomplete();
+			API.run_request_queue();
+
+			if (MutationObserver !== null) {
+				updater = new MutationObserver(Main.on_body_observe);
+				updater.observe(d.body, { childList: true, subtree: true });
+			}
+			else {
+				$.on(d.body, "DOMNodeInserted", Main.on_body_node_add);
+			}
+
+			HeaderBar.setup();
+
+			if (Main.version_change === 1 && conf["Show Changelog on Update"]) {
+				Changelog.open(" updated to ");
+			}
+
+			Debug.timer_log("init.ready.full duration", "init");
+		},
 		version_compare: function (v1, v2) {
 			// Returns: -1 if v1<v2, 0 if v1==v2, 1 if v1>v2
 			var ii = Math.min(v1.length, v2.length),
@@ -6362,7 +6411,53 @@
 
 			return 0;
 		},
-		dom: function (event) {
+		insert_custom_fonts: (function () {
+			var font_inserted = false;
+			return function () {
+				if (font_inserted) return;
+				font_inserted = true;
+
+				if (!conf['Use Extenral Resources']) return;
+
+				var font = $.node_simple("link");
+				font.rel = "stylesheet";
+				font.type = "text/css";
+				font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
+				$.add(d.head, font);
+			};
+		})(),
+		reload_all_posts: (function () {
+			var happened = false;
+
+			return function () {
+				if (happened) return;
+				happened = true;
+
+				var posts = Helper.Post.get_all_posts(d),
+					post, post_body, post_links, link, i, ii, j, jj;
+
+				for (i = 0, ii = posts.length; i < ii; ++i) {
+					post = posts[i];
+					post.classList.remove("hl-post-linkified");
+					if ((post_body = Helper.Post.get_text_body(post)) !== null) {
+						post_links = Helper.Post.get_body_links(post_body);
+						for (j = 0, jj = post_links.length; j < jj; ++j) {
+							link = post_links[j];
+							if (link.classList.contains("hl-site-tag")) {
+								$.remove(link);
+							}
+							else if (link.classList.contains("hl-linkified")) {
+								link.classList.remove("hl-linkified");
+								Linkifier.change_link_events(link, null);
+							}
+						}
+					}
+				}
+
+				Linkifier.parse_posts(posts);
+			};
+		})(),
+		on_body_node_add: function (event) {
 			var node = event.target;
 			Main.observer([{
 				target: node.parentNode,
@@ -6371,7 +6466,7 @@
 				previousSibling: node.previousSibling
 			}]);
 		},
-		observer: function (records) {
+		on_body_observe: function (records) {
 			var post_list = [],
 				reload_all = false,
 				nodes, node, ns, e, i, ii, j, jj;
@@ -6452,99 +6547,6 @@
 			if (reload_all) {
 				Main.reload_all_posts();
 			}
-		},
-		insert_custom_fonts: function () {
-			if (Main.font_inserted) return;
-			Main.font_inserted = true;
-
-			if (!conf['Use Extenral Resources']) return;
-
-			var font = $.node_simple("link");
-			font.rel = "stylesheet";
-			font.type = "text/css";
-			font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
-			$.add(d.head, font);
-		},
-		reload_all_posts: (function () {
-			var happened = false;
-
-			return function () {
-				if (happened) return;
-				happened = true;
-
-				var posts = Helper.Post.get_all_posts(d),
-					post, post_body, post_links, link, i, ii, j, jj;
-
-				for (i = 0, ii = posts.length; i < ii; ++i) {
-					post = posts[i];
-					post.classList.remove("hl-post-linkified");
-					if ((post_body = Helper.Post.get_text_body(post)) !== null) {
-						post_links = Helper.Post.get_body_links(post_body);
-						for (j = 0, jj = post_links.length; j < jj; ++j) {
-							link = post_links[j];
-							if (link.classList.contains("hl-site-tag")) {
-								$.remove(link);
-							}
-							else if (link.classList.contains("hl-linkified")) {
-								link.classList.remove("hl-linkified");
-								Linkifier.change_link_events(link, null);
-							}
-						}
-					}
-				}
-
-				Linkifier.parse_posts(posts);
-			};
-		})(),
-		ready: function () {
-			Debug.timer("init");
-
-			if (!Config.site()) return;
-			Options.init();
-
-			var style = $.node_simple("style"),
-				updater;
-
-			style.textContent = "#STYLESHEET#";
-			$.add(d.head, style);
-
-			Theme.prepare();
-			EasyList.init();
-
-			Debug.timer_log("init.ready duration", "init");
-
-			Linkifier.parse_posts(Helper.Post.get_all_posts(d));
-			Linkifier.check_incomplete();
-			API.run_request_queue();
-
-			if (MutationObserver !== null) {
-				updater = new MutationObserver(Main.observer);
-				updater.observe(d.body, { childList: true, subtree: true });
-			}
-			else {
-				$.on(d.body, "DOMNodeInserted", Main.dom);
-			}
-
-			HeaderBar.setup();
-
-			if (Main.version_change === 1 && conf["Show Changelog on Update"]) {
-				Changelog.open(" updated to ");
-			}
-
-			Debug.timer_log("init.ready.full duration", "init");
-		},
-		init: function () {
-			var t = Debug.timer_log("init.pre duration", timing.start);
-			Config.init();
-			Debug.init();
-			if (Main.version_change === 1) {
-				Debug.log("Clearing cache on update");
-				Cache.clear();
-			}
-			Cache.init();
-			Debug.log(t[0], t[1]);
-			Debug.timer_log("init duration", timing.start);
-			$.ready(Main.ready);
 		}
 	};
 
