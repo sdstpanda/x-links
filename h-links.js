@@ -6179,8 +6179,10 @@
 			}
 		}
 	};
-	Navigation = {
-		Flags: {
+	Navigation = (function () {
+
+		// Private
+		var Flags = {
 			None: 0x0,
 			Prepend: 0x1,
 			Before: 0x2,
@@ -6190,10 +6192,11 @@
 			Brackets: 0x20,
 			Mobile: 0x40,
 			LowerCase: 0x80,
-		},
-		insert_link: function (mode, text, url, class_name, on_click) {
+		};
+
+		// Public
+		var insert_link = function (mode, text, url, class_name, on_click) {
 			var locations = [],
-				Flags = Navigation.Flags,
 				first_mobile = true,
 				container, flags, nodes, node, par, pre, next, cl, i, ii, n1, t;
 
@@ -6321,8 +6324,14 @@
 					}
 				}
 			}
-		}
-	};
+		};
+
+		// Exports
+		return {
+			insert_link: insert_link
+		};
+
+	})();
 	Main = (function () {
 
 		// Private
