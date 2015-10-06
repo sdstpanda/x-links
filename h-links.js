@@ -2786,50 +2786,53 @@
 			return label;
 		}
 	};
-	Linkifier = {
-		incomplete: {
-			types: [ "ehentai", "nhentai", "hitomi" ],
-			ehentai: {
-				types: [ "page", "gallery" ],
-				unchecked: { page: {}, gallery: {} },
-				checked: { page: {}, gallery: {} },
-				missing: {
-					page: function (id, info) {
-						API.queue_gallery_page(id, info.page_token, info.page);
-					},
-					gallery: function (id, info) {
-						API.queue_gallery(id, info.token);
+	Linkifier = (function () {
+
+		// Private
+		var incomplete = {
+				types: [ "ehentai", "nhentai", "hitomi" ],
+				ehentai: {
+					types: [ "page", "gallery" ],
+					unchecked: { page: {}, gallery: {} },
+					checked: { page: {}, gallery: {} },
+					missing: {
+						page: function (id, info) {
+							API.queue_gallery_page(id, info.page_token, info.page);
+						},
+						gallery: function (id, info) {
+							API.queue_gallery(id, info.token);
+						}
+					}
+				},
+				nhentai: {
+					types: [ "gallery" ],
+					unchecked: { gallery: {} },
+					checked: { gallery: {} },
+					missing: {
+						gallery: function (id) {
+							API.nhentai_queue_gallery(id);
+						}
+					}
+				},
+				hitomi: {
+					types: [ "gallery" ],
+					unchecked: { gallery: {} },
+					checked: { gallery: {} },
+					missing: {
+						gallery: function (id) {
+							API.hitomi_queue_gallery(id);
+						}
 					}
 				}
 			},
-			nhentai: {
-				types: [ "gallery" ],
-				unchecked: { gallery: {} },
-				checked: { gallery: {} },
-				missing: {
-					gallery: function (id) {
-						API.nhentai_queue_gallery(id);
-					}
-				}
+			event_queue = {
+				format: []
 			},
-			hitomi: {
-				types: [ "gallery" ],
-				unchecked: { gallery: {} },
-				checked: { gallery: {} },
-				missing: {
-					gallery: function (id) {
-						API.hitomi_queue_gallery(id);
-					}
-				}
-			}
-		},
-		event_queue: {
-			format: []
-		},
-		event_listeners: {
-			format: []
-		},
-		link_events: {
+			event_listeners = {
+				format: []
+			};
+
+		var link_events = {
 			exsauce_fetch: Sauce.fetch,
 			exsauce_fetch_similarity: Sauce.fetch_similar,
 			exsauce_toggle: Sauce.UI.events,
@@ -2848,7 +2851,7 @@
 				}
 			},
 			gallery_fetch: function (event) {
-				return Linkifier.on_tag_click_to_load.call(this, event);
+				return on_tag_click_to_load.call(this, event);
 			},
 			actions_torrent: function (event) {
 				if (conf['Torrent Popup']) {
@@ -2868,448 +2871,9 @@
 					return UI.popup.call(this, event);
 				}
 			},
-		},
-		check_incomplete: function (type) {
-			var incomplete = Linkifier.incomplete,
-				api_request = false,
-				obj, list1, list2, entry, data, info, t1, t2, fn_missing, i, ii, j, jj, k, m;
+		};
 
-			i = 0;
-			t1 = incomplete.types;
-			if (type === undefined) {
-				ii = t1.length;
-				obj = incomplete[t1[i]];
-			}
-			else {
-				ii = 1;
-				obj = incomplete[type];
-			}
-
-			while (true) {
-				t2 = obj.types;
-				for (j = 0, jj = t2.length; j < jj; ++j) {
-					m = t2[j];
-					fn_missing = obj.missing[m];
-
-					list1 = obj.checked[m];
-					for (k in list1) {
-						entry = list1[k];
-						info = entry[0];
-						data = Database.get(info.site, k);
-						if (data !== null) {
-							Linkifier.format(entry[1], data);
-							delete list1[k];
-						}
-						else if ((data = Database.get_error(info.site, k)) !== null) {
-							Linkifier.format_links_error(entry[1], data);
-							delete list1[k];
-						}
-					}
-
-					list2 = obj.unchecked[m];
-					for (k in list2) {
-						entry = list2[k];
-						info = entry[0];
-						data = Database.get(info.site, k);
-						if (data !== null) {
-							Linkifier.format(entry[1], data);
-						}
-						else {
-							api_request = true;
-							fn_missing.call(null, k, info);
-							list1[k] = entry;
-						}
-						delete list2[k];
-					}
-				}
-
-				if (++i >= ii) break;
-				obj = incomplete[t1[i]];
-			}
-
-			return api_request;
-		},
-		get_links: function (parent) {
-			return $$("a.hl-linkified-gallery[href]", parent);
-		},
-		get_links_formatted: function (parent) {
-			return $$("a.hl-linkified-gallery[data-hl-linkified-status=formatted]", parent);
-		},
-		linkify: function (container, results) {
-			var ddw = Linkifier.deep_dom_wrap,
-				re_link = regex.url,
-				re_ignore = /(?:\binlined?\b|\bex(?:links)?-)/;
-
-			ddw(
-				container,
-				"a",
-				function (text, pos) {
-					re_link.lastIndex = pos;
-					var m = re_link.exec(text);
-					if (m === null) return null;
-					return [ m.index , m.index + m[0].length, m ];
-				},
-				function (node) {
-					if (node.tagName === "BR" || node.tagName === "A") {
-						return ddw.EL_TYPE_NO_PARSE | ddw.EL_TYPE_LINE_BREAK;
-					}
-					else if (node.tagName === "WBR") {
-						return ddw.EL_TYPE_NO_PARSE;
-					}
-					else if (node.tagName === "DIV") {
-						if (re_ignore.test(node.className)) {
-							return ddw.EL_TYPE_NO_PARSE | ddw.EL_TYPE_LINE_BREAK;
-						}
-						return ddw.EL_TYPE_LINE_BREAK;
-					}
-					return ddw.EL_TYPE_PARSE;
-				},
-				function (node, match) {
-					var url = match[2][0];
-					if (!regex.protocol.test(url)) url = "http://" + url.replace(/^\/+/, "");
-					node.href = url;
-					node.target = "_blank";
-					node.rel = "noreferrer";
-					results.push(node);
-				},
-				false
-			);
-		},
-		create_link: function (text) {
-			return $.link(text, "hl-linkified", text);
-		},
-		preprocess_link: function (node, auto_load) {
-			var url = node.href,
-				info = Helper.get_url_info(url),
-				rewrite, button;
-
-			if (info === null) {
-				node.classList.remove('hl-linkified-gallery');
-				node.removeAttribute("data-hl-linkified-status");
-			}
-			else {
-				if (info.site === "ehentai") {
-					rewrite = conf['Rewrite Links'];
-					if (rewrite === domains.exhentai) {
-						if (info.domain !== rewrite) {
-							node.href = url.replace(regex.site_gehentai, domains.exhentai);
-							info.domain = rewrite;
-						}
-					}
-					else if (rewrite === domains.ehentai) {
-						if (info.domain !== rewrite) {
-							node.href = url.replace(regex.site_exhentai, domains.gehentai);
-							info.domain = rewrite;
-						}
-					}
-				}
-
-				node.classList.add("hl-link-events");
-				node.classList.add("hl-linkified");
-				node.classList.add("hl-linkified-gallery");
-				node.setAttribute("data-hl-link-events", "gallery_link");
-				node.setAttribute("data-hl-linkified-status", "processed");
-
-				node.setAttribute("data-hl-info", JSON.stringify(info));
-				node.setAttribute("data-hl-id", info.site + "_" + info.gid);
-
-				button = UI.button(url, info.domain);
-				$.before(node, button);
-
-				if (auto_load) {
-					Linkifier.check_link(node, info);
-				}
-			}
-		},
-		format: function (links, data) {
-			var events = (Linkifier.event_listeners.format.length > 0) ? Linkifier.event_queue.format : null,
-				link, i, ii;
-
-			for (i = 0, ii = links.length; i < ii; ++i) {
-				link = links[i];
-
-				if (link.parentNode !== null) {
-					Linkifier.format_link(link, data);
-					if (events !== null) events.push(link);
-				}
-			}
-
-			if (events !== null) {
-				Linkifier.trigger("format");
-			}
-		},
-		format_link: function (link, data) {
-			var button, actions, hl, c;
-
-			// Link title
-			link.textContent = data.title;
-			link.setAttribute("data-hl-linkified-status", "formatted");
-
-			// Button
-			button = Helper.get_tag_button_from_link(link);
-			if (button !== null) {
-				if ((hl = Filter.check(link, data))[0] !== Filter.None) {
-					c = (hl[0] === Filter.Good) ? conf['Good Tag Marker'] : conf['Bad Tag Marker'];
-					button.textContent = button.textContent.replace(/\]\s*$/, c + "]");
-					Filter.highlight_tag(button, link, hl);
-				}
-				Linkifier.change_link_events(button, "gallery_toggle_actions");
-			}
-
-			// Actions
-			actions = UI.actions(data, link);
-			$.after(link, actions);
-		},
-		format_links_error: function (links, error) {
-			var text = " (" + error.trim().replace(/\.$/, "") + ")",
-				button, link, i, ii;
-
-			for (i = 0, ii = links.length; i < ii; ++i) {
-				link = links[i];
-				button = Helper.get_tag_button_from_link(link);
-				if (button !== null) {
-					Linkifier.change_link_events(button, "gallery_error");
-					button.classList.add("hl-linkified-error");
-				}
-
-				link.classList.add("hl-linkified-error");
-				link.setAttribute("data-hl-linkified-status", "formatted_error");
-				$.add(link, $.node("span", "hl-linkified-error-message", text));
-			}
-		},
-		apply_link_events: function (node, check_children) {
-			var nodes = check_children ? $$("a.hl-link-events", node) : [ node ],
-				events, i, ii;
-
-			for (i = 0, ii = nodes.length; i < ii; ++i) {
-				node = nodes[i];
-				events = node.getAttribute("data-hl-link-events");
-				Linkifier.set_link_events(node, events);
-			}
-		},
-		set_link_events: function (node, new_events) {
-			var events = Linkifier.link_events[new_events],
-				k;
-
-			if (events) {
-				if (typeof(events) === "function") {
-					$.on(node, "click", events);
-				}
-				else {
-					// Array
-					for (k in events) {
-						$.on(node, k, events[k]);
-					}
-				}
-			}
-		},
-		change_link_events: function (node, new_events) {
-			var old_events = node.getAttribute("data-hl-link-events"),
-				events, k;
-
-			if (old_events === new_events) return;
-
-			events = Linkifier.link_events[old_events];
-			if (events) {
-				if (typeof(events) === "function") {
-					$.off(node, "click", events);
-				}
-				else {
-					// Array
-					for (k in events) {
-						$.off(node, k, events[k]);
-					}
-				}
-			}
-
-			if (new_events === null) {
-				node.removeAttribute("data-hl-link-events");
-			}
-			else {
-				node.setAttribute("data-hl-link-events", new_events);
-				Linkifier.set_link_events(node, new_events);
-			}
-		},
-		parse_posts: function (posts) {
-			var check_files_before = (Config.mode === "tinyboard"),
-				post, i, ii;
-
-			Debug.timer("process");
-
-			for (i = 0, ii = posts.length; i < ii; ++i) {
-				post = posts[i];
-				Linkifier.parse_post(post);
-				Linkifier.apply_link_events(post, true);
-				if (check_files_before && post.classList.contains("op")) {
-					if ((post = Helper.Post.get_op_post_files_container_tinyboard(post)) !== null) {
-						Linkifier.apply_link_events(post, true);
-					}
-				}
-			}
-
-			Debug.log("Total posts=" + posts.length + "; time=" + Debug.timer("process"));
-		},
-		parse_post: function (post) {
-			var auto_load_links = conf["Automatic Processing"],
-				post_body, post_links, links, nodes, link, i, ii;
-
-			// Exsauce
-			if (conf.ExSauce && !Browser.is_opera) {
-				Linkifier.setup_post_exsauce(post);
-			}
-
-			// Collapse info if it's an inline
-			if (conf['Hide in Quotes']) {
-				nodes = $$(".hl-exsauce-results", post);
-				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					nodes[i].classList.add("hl-exsauce-results-hidden");
-				}
-				nodes = $$(".hl-actions", post);
-				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					nodes[i].classList.add("hl-actions-hidden");
-				}
-			}
-
-			// Content
-			if (
-				!post.classList.contains("hl-post-linkified") &&
-				(post_body = Helper.Post.get_text_body(post)) !== null
-			) {
-				regex.url.lastIndex = 0;
-				if (!Config.linkify || regex.url.test(post_body.innerHTML)) {
-					links = [];
-					post_links = Helper.Post.get_body_links(post_body);
-					for (i = 0, ii = post_links.length; i < ii; ++i) {
-						link = post_links[i];
-						regex.url.lastIndex = 0;
-						if (regex.url.test(link.href)) {
-							link.classList.add("hl-link-events");
-							link.classList.add("hl-linkified");
-							link.classList.add("hl-linkified-gallery");
-							link.target = "_blank";
-							link.rel = "noreferrer";
-							link.setAttribute("data-hl-linkified-status", "unprocessed");
-							Linkifier.change_link_events(link, "gallery_link");
-							links.push(link);
-						}
-					}
-
-					if (Config.linkify) {
-						Linkifier.linkify(post_body, links);
-					}
-
-					for (i = 0, ii = links.length; i < ii; ++i) {
-						Linkifier.preprocess_link(links[i], auto_load_links);
-					}
-				}
-				post.classList.add("hl-post-linkified");
-			}
-		},
-		setup_post_exsauce: function (post) {
-			var index = 0,
-				file_infos, file_info, sauce, i, ii;
-
-			// File info
-			file_infos = Helper.Post.get_file_info(post);
-			for (i = 0, ii = file_infos.length; i < ii; ++i) {
-				file_info = file_infos[i];
-				if (file_info.md5 === null) continue;
-
-				// Create if not found
-				sauce = $(".hl-exsauce-link", file_info.options);
-				if (sauce === null && /^\.(png|gif|jpe?g)$/i.test(file_info.type)) {
-					sauce = $.link(file_info.url,
-						"hl-link-events hl-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
-						Sauce.label()
-					);
-					sauce.setAttribute("data-hl-link-events", "exsauce_fetch");
-					sauce.setAttribute("data-hl-filename", file_info.name);
-					sauce.setAttribute("data-hl-image-index", index);
-					sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
-					if (/^\.jpe?g$/i.test(file_info.type) && Config.mode !== "tinyboard") {
-						if (Browser.is_firefox) {
-							sauce.setAttribute("data-hl-link-events", "exsauce_fetch_similarity");
-							sauce.title = "This will only work on colored images";
-						}
-						else {
-							sauce.classList.add("hl-exsauce-link-disabled");
-							sauce.setAttribute("data-hl-link-events", "exsauce_error");
-							sauce.title = (
-								"Reverse Image Search doesn't work for .jpg images because 4chan manipulates them on upload"
-							);
-						}
-					}
-					if (file_info.options_sep) {
-						$.before2(file_info.options, $.tnode(file_info.options_sep), file_info.options_before);
-					}
-					$.before2(file_info.options, sauce, file_info.options_before);
-
-					++index;
-				}
-			}
-		},
-		on_tag_click_to_load: function (event) {
-			event.preventDefault();
-
-			var link, info;
-
-			if (
-				(link = Helper.get_link_from_tag_button(this)) !== null &&
-				(info = Helper.get_info_from_node(link)) !== null &&
-				Database.valid_namespace(info.site)
-			) {
-				Linkifier.check_link(link, info);
-				Linkifier.check_incomplete();
-			}
-		},
-		check_link: function (link, info) {
-			var obj, lists, list;
-
-			if (
-				(obj = Linkifier.incomplete[info.site]) !== undefined &&
-				(lists = obj.unchecked[info.type]) !== undefined
-			) {
-				list = lists[info.gid];
-				if (list !== undefined) {
-					list[1].push(link);
-				}
-				else {
-					lists[info.gid] = [ info, [ link ] ];
-				}
-			}
-		},
-		on: function (event_name, callback) {
-			var listeners = Linkifier.event_listeners[event_name];
-			if (!listeners) return false;
-			listeners.push(callback);
-			return true;
-		},
-		off: function (event_name, callback) {
-			var listeners = Linkifier.event_listeners[event_name],
-				i, ii;
-			if (listeners) {
-				for (i = 0, ii = listeners.length; i < ii; ++i) {
-					if (listeners[i] === callback) {
-						listeners.splice(i, 1);
-						return true;
-					}
-				}
-			}
-			return false;
-		},
-		trigger: function (event_name) {
-			var queue = Linkifier.event_queue[event_name],
-				listeners, i, ii;
-			if (queue && queue.length > 0) {
-				listeners = Linkifier.event_listeners[event_name];
-				for (i = 0, ii = listeners.length; i < ii; ++i) {
-					listeners[i].call(null, queue);
-				}
-
-				Linkifier.event_queue[event_name] = [];
-			}
-		},
-		deep_dom_wrap: (function () {
+		var deep_dom_wrap = (function () {
 
 			// Internal helper class
 			var Offset = function (text_offset, node) {
@@ -3591,8 +3155,460 @@
 			// Return the function
 			return deep_dom_wrap;
 
-		})()
-	};
+		})();
+
+		var linkify = function (container, results) {
+			var re_link = regex.url,
+				re_ignore = /(?:\binlined?\b|\bex(?:links)?-)/;
+
+			deep_dom_wrap(
+				container,
+				"a",
+				function (text, pos) {
+					re_link.lastIndex = pos;
+					var m = re_link.exec(text);
+					if (m === null) return null;
+					return [ m.index , m.index + m[0].length, m ];
+				},
+				function (node) {
+					if (node.tagName === "BR" || node.tagName === "A") {
+						return deep_dom_wrap.EL_TYPE_NO_PARSE | deep_dom_wrap.EL_TYPE_LINE_BREAK;
+					}
+					else if (node.tagName === "WBR") {
+						return deep_dom_wrap.EL_TYPE_NO_PARSE;
+					}
+					else if (node.tagName === "DIV") {
+						if (re_ignore.test(node.className)) {
+							return deep_dom_wrap.EL_TYPE_NO_PARSE | deep_dom_wrap.EL_TYPE_LINE_BREAK;
+						}
+						return deep_dom_wrap.EL_TYPE_LINE_BREAK;
+					}
+					return deep_dom_wrap.EL_TYPE_PARSE;
+				},
+				function (node, match) {
+					var url = match[2][0];
+					if (!regex.protocol.test(url)) url = "http://" + url.replace(/^\/+/, "");
+					node.href = url;
+					node.target = "_blank";
+					node.rel = "noreferrer";
+					results.push(node);
+				},
+				false
+			);
+		};
+		var format = function (links, data) {
+			var events = (event_listeners.format.length > 0) ? event_queue.format : null,
+				link, i, ii;
+
+			for (i = 0, ii = links.length; i < ii; ++i) {
+				link = links[i];
+
+				if (link.parentNode !== null) {
+					format_link(link, data);
+					if (events !== null) events.push(link);
+				}
+			}
+
+			if (events !== null) trigger("format");
+		};
+		var format_link = function (link, data) {
+			var button, actions, hl, c;
+
+			// Link title
+			link.textContent = data.title;
+			link.setAttribute("data-hl-linkified-status", "formatted");
+
+			// Button
+			button = Helper.get_tag_button_from_link(link);
+			if (button !== null) {
+				if ((hl = Filter.check(link, data))[0] !== Filter.None) {
+					c = (hl[0] === Filter.Good) ? conf['Good Tag Marker'] : conf['Bad Tag Marker'];
+					button.textContent = button.textContent.replace(/\]\s*$/, c + "]");
+					Filter.highlight_tag(button, link, hl);
+				}
+				change_link_events(button, "gallery_toggle_actions");
+			}
+
+			// Actions
+			actions = UI.actions(data, link);
+			$.after(link, actions);
+		};
+		var format_links_error = function (links, error) {
+			var text = " (" + error.trim().replace(/\.$/, "") + ")",
+				button, link, i, ii;
+
+			for (i = 0, ii = links.length; i < ii; ++i) {
+				link = links[i];
+				button = Helper.get_tag_button_from_link(link);
+				if (button !== null) {
+					change_link_events(button, "gallery_error");
+					button.classList.add("hl-linkified-error");
+				}
+
+				link.classList.add("hl-linkified-error");
+				link.setAttribute("data-hl-linkified-status", "formatted_error");
+				$.add(link, $.node("span", "hl-linkified-error-message", text));
+			}
+		};
+		var set_link_events = function (node, new_events) {
+			var events = link_events[new_events],
+				k;
+
+			if (events) {
+				if (typeof(events) === "function") {
+					$.on(node, "click", events);
+				}
+				else {
+					// Array
+					for (k in events) {
+						$.on(node, k, events[k]);
+					}
+				}
+			}
+		};
+		var parse_post = function (post) {
+			var auto_load_links = conf["Automatic Processing"],
+				post_body, post_links, links, nodes, link, i, ii;
+
+			// Exsauce
+			if (conf.ExSauce && !Browser.is_opera) {
+				setup_post_exsauce(post);
+			}
+
+			// Collapse info if it's an inline
+			if (conf['Hide in Quotes']) {
+				nodes = $$(".hl-exsauce-results", post);
+				for (i = 0, ii = nodes.length; i < ii; ++i) {
+					nodes[i].classList.add("hl-exsauce-results-hidden");
+				}
+				nodes = $$(".hl-actions", post);
+				for (i = 0, ii = nodes.length; i < ii; ++i) {
+					nodes[i].classList.add("hl-actions-hidden");
+				}
+			}
+
+			// Content
+			if (
+				!post.classList.contains("hl-post-linkified") &&
+				(post_body = Helper.Post.get_text_body(post)) !== null
+			) {
+				regex.url.lastIndex = 0;
+				if (!Config.linkify || regex.url.test(post_body.innerHTML)) {
+					links = [];
+					post_links = Helper.Post.get_body_links(post_body);
+					for (i = 0, ii = post_links.length; i < ii; ++i) {
+						link = post_links[i];
+						regex.url.lastIndex = 0;
+						if (regex.url.test(link.href)) {
+							link.classList.add("hl-link-events");
+							link.classList.add("hl-linkified");
+							link.classList.add("hl-linkified-gallery");
+							link.target = "_blank";
+							link.rel = "noreferrer";
+							link.setAttribute("data-hl-linkified-status", "unprocessed");
+							change_link_events(link, "gallery_link");
+							links.push(link);
+						}
+					}
+
+					if (Config.linkify) {
+						linkify(post_body, links);
+					}
+
+					for (i = 0, ii = links.length; i < ii; ++i) {
+						preprocess_link(links[i], auto_load_links);
+					}
+				}
+				post.classList.add("hl-post-linkified");
+			}
+		};
+		var setup_post_exsauce = function (post) {
+			var index = 0,
+				file_infos, file_info, sauce, i, ii;
+
+			// File info
+			file_infos = Helper.Post.get_file_info(post);
+			for (i = 0, ii = file_infos.length; i < ii; ++i) {
+				file_info = file_infos[i];
+				if (file_info.md5 === null) continue;
+
+				// Create if not found
+				sauce = $(".hl-exsauce-link", file_info.options);
+				if (sauce === null && /^\.(png|gif|jpe?g)$/i.test(file_info.type)) {
+					sauce = $.link(file_info.url,
+						"hl-link-events hl-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
+						Sauce.label()
+					);
+					sauce.setAttribute("data-hl-link-events", "exsauce_fetch");
+					sauce.setAttribute("data-hl-filename", file_info.name);
+					sauce.setAttribute("data-hl-image-index", index);
+					sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
+					if (/^\.jpe?g$/i.test(file_info.type) && Config.mode !== "tinyboard") {
+						if (Browser.is_firefox) {
+							sauce.setAttribute("data-hl-link-events", "exsauce_fetch_similarity");
+							sauce.title = "This will only work on colored images";
+						}
+						else {
+							sauce.classList.add("hl-exsauce-link-disabled");
+							sauce.setAttribute("data-hl-link-events", "exsauce_error");
+							sauce.title = (
+								"Reverse Image Search doesn't work for .jpg images because 4chan manipulates them on upload"
+							);
+						}
+					}
+					if (file_info.options_sep) {
+						$.before2(file_info.options, $.tnode(file_info.options_sep), file_info.options_before);
+					}
+					$.before2(file_info.options, sauce, file_info.options_before);
+
+					++index;
+				}
+			}
+		};
+		var on_tag_click_to_load = function (event) {
+			event.preventDefault();
+
+			var link, info;
+
+			if (
+				(link = Helper.get_link_from_tag_button(this)) !== null &&
+				(info = Helper.get_info_from_node(link)) !== null &&
+				Database.valid_namespace(info.site)
+			) {
+				check_link(link, info);
+				check_incomplete();
+			}
+		};
+		var check_link = function (link, info) {
+			var obj, lists, list;
+
+			if (
+				(obj = incomplete[info.site]) !== undefined &&
+				(lists = obj.unchecked[info.type]) !== undefined
+			) {
+				list = lists[info.gid];
+				if (list !== undefined) {
+					list[1].push(link);
+				}
+				else {
+					lists[info.gid] = [ info, [ link ] ];
+				}
+			}
+		};
+
+		// Public
+		var preprocess_link = function (node, auto_load) {
+			var url = node.href,
+				info = Helper.get_url_info(url),
+				rewrite, button;
+
+			if (info === null) {
+				node.classList.remove('hl-linkified-gallery');
+				node.removeAttribute("data-hl-linkified-status");
+			}
+			else {
+				if (info.site === "ehentai") {
+					rewrite = conf['Rewrite Links'];
+					if (rewrite === domains.exhentai) {
+						if (info.domain !== rewrite) {
+							node.href = url.replace(regex.site_gehentai, domains.exhentai);
+							info.domain = rewrite;
+						}
+					}
+					else if (rewrite === domains.ehentai) {
+						if (info.domain !== rewrite) {
+							node.href = url.replace(regex.site_exhentai, domains.gehentai);
+							info.domain = rewrite;
+						}
+					}
+				}
+
+				node.classList.add("hl-link-events");
+				node.classList.add("hl-linkified");
+				node.classList.add("hl-linkified-gallery");
+				node.setAttribute("data-hl-link-events", "gallery_link");
+				node.setAttribute("data-hl-linkified-status", "processed");
+
+				node.setAttribute("data-hl-info", JSON.stringify(info));
+				node.setAttribute("data-hl-id", info.site + "_" + info.gid);
+
+				button = UI.button(url, info.domain);
+				$.before(node, button);
+
+				if (auto_load) check_link(node, info);
+			}
+		};
+		var parse_posts = function (posts) {
+			var check_files_before = (Config.mode === "tinyboard"),
+				post, i, ii;
+
+			Debug.timer("process");
+
+			for (i = 0, ii = posts.length; i < ii; ++i) {
+				post = posts[i];
+				parse_post(post);
+				apply_link_events(post, true);
+				if (check_files_before && post.classList.contains("op")) {
+					if ((post = Helper.Post.get_op_post_files_container_tinyboard(post)) !== null) {
+						apply_link_events(post, true);
+					}
+				}
+			}
+
+			Debug.log("Total posts=" + posts.length + "; time=" + Debug.timer("process"));
+		};
+		var apply_link_events = function (node, check_children) {
+			var nodes = check_children ? $$("a.hl-link-events", node) : [ node ],
+				events, i, ii;
+
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				node = nodes[i];
+				events = node.getAttribute("data-hl-link-events");
+				set_link_events(node, events);
+			}
+		};
+		var change_link_events = function (node, new_events) {
+			var old_events = node.getAttribute("data-hl-link-events"),
+				events, k;
+
+			if (old_events === new_events) return;
+
+			events = link_events[old_events];
+			if (events) {
+				if (typeof(events) === "function") {
+					$.off(node, "click", events);
+				}
+				else {
+					// Array
+					for (k in events) {
+						$.off(node, k, events[k]);
+					}
+				}
+			}
+
+			if (new_events === null) {
+				node.removeAttribute("data-hl-link-events");
+			}
+			else {
+				node.setAttribute("data-hl-link-events", new_events);
+				set_link_events(node, new_events);
+			}
+		};
+		var check_incomplete = function (type) {
+			var api_request = false,
+				obj, list1, list2, entry, data, info, t1, t2, fn_missing, i, ii, j, jj, k, m;
+
+			i = 0;
+			t1 = incomplete.types;
+			if (type === undefined) {
+				ii = t1.length;
+				obj = incomplete[t1[i]];
+			}
+			else {
+				ii = 1;
+				obj = incomplete[type];
+			}
+
+			while (true) {
+				t2 = obj.types;
+				for (j = 0, jj = t2.length; j < jj; ++j) {
+					m = t2[j];
+					fn_missing = obj.missing[m];
+
+					list1 = obj.checked[m];
+					for (k in list1) {
+						entry = list1[k];
+						info = entry[0];
+						data = Database.get(info.site, k);
+						if (data !== null) {
+							format(entry[1], data);
+							delete list1[k];
+						}
+						else if ((data = Database.get_error(info.site, k)) !== null) {
+							format_links_error(entry[1], data);
+							delete list1[k];
+						}
+					}
+
+					list2 = obj.unchecked[m];
+					for (k in list2) {
+						entry = list2[k];
+						info = entry[0];
+						data = Database.get(info.site, k);
+						if (data !== null) {
+							format(entry[1], data);
+						}
+						else {
+							api_request = true;
+							fn_missing.call(null, k, info);
+							list1[k] = entry;
+						}
+						delete list2[k];
+					}
+				}
+
+				if (++i >= ii) break;
+				obj = incomplete[t1[i]];
+			}
+
+			return api_request;
+		};
+		var create_link = function (text) {
+			return $.link(text, "hl-linkified", text);
+		};
+		var get_links = function (parent) {
+			return $$("a.hl-linkified-gallery[href]", parent);
+		};
+		var get_links_formatted = function (parent) {
+			return $$("a.hl-linkified-gallery[data-hl-linkified-status=formatted]", parent);
+		};
+		var on = function (event_name, callback) {
+			var listeners = event_listeners[event_name];
+			if (!listeners) return false;
+			listeners.push(callback);
+			return true;
+		};
+		var off = function (event_name, callback) {
+			var listeners = event_listeners[event_name],
+				i, ii;
+			if (listeners) {
+				for (i = 0, ii = listeners.length; i < ii; ++i) {
+					if (listeners[i] === callback) {
+						listeners.splice(i, 1);
+						return true;
+					}
+				}
+			}
+			return false;
+		};
+		var trigger = function (event_name) {
+			var queue = event_queue[event_name],
+				listeners, i, ii;
+			if (queue && queue.length > 0) {
+				listeners = event_listeners[event_name];
+				for (i = 0, ii = listeners.length; i < ii; ++i) {
+					listeners[i].call(null, queue);
+				}
+
+				event_queue[event_name] = [];
+			}
+		};
+
+		// Exports
+		return {
+			preprocess_link: preprocess_link,
+			parse_posts: parse_posts,
+			apply_link_events: apply_link_events,
+			change_link_events: change_link_events,
+			check_incomplete: check_incomplete,
+			create_link: create_link,
+			get_links: get_links,
+			get_links_formatted: get_links_formatted,
+			on: on,
+			off: off
+		};
+
+	})();
 	Options = (function () {
 
 		// Private
