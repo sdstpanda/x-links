@@ -6,7 +6,7 @@
 	var timing, domains, domain_info, options, conf, regex, cat, d, t, $, $$,
 		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Options, Config, Main,
 		MutationObserver, Browser, Helper, HttpRequest, Linkifier, Filter, Theme,
-		CreateURL, EasyList, Popup, Changelog, HeaderBar, Navigation;
+		Post, CreateURL, EasyList, Popup, Changelog, HeaderBar, Navigation;
 
 	timing = (function () {
 		var perf = window.performance,
@@ -504,12 +504,12 @@
 			return null;
 		},
 		get_exresults_from_exsauce: function (node) {
-			var container = Helper.Post.get_post_container(node);
+			var container = Post.get_post_container(node);
 
 			if (
 				container !== null &&
 				(node = $(".hl-exsauce-results[data-hl-image-index='" + node.getAttribute("data-hl-image-index") + "']", container)) !== null &&
-				Helper.Post.get_post_container(node) === container
+				Post.get_post_container(node) === container
 			) {
 				return node;
 			}
@@ -586,85 +586,169 @@
 			return text.replace(/\b\w/g, function (m) {
 				return m.toUpperCase();
 			});
-		},
-		Post: (function () {
-			var specific, fns, post_selector, post_body_selector, post_parent_find, get_file_info,
-				get_op_post_files_container_tinyboard,
-				belongs_to, body_links, file_ext, file_name;
+		}
+	};
+	Post = (function () {
 
-			specific = function (obj, def) {
-				return obj[Config.mode] || obj[def];
-			};
-			file_ext = function (url) {
-				var m = /\.[^\.]*$/.exec(url);
-				return (m === null) ? "" : m[0].toLowerCase();
-			};
-			file_name = function (url) {
-				url = url.split("/");
-				return url[url.length - 1];
-			};
+		// Private
+		var specific = function (obj, def) {
+			return obj[Config.mode] || obj[def];
+		};
+		var file_ext = function (url) {
+			var m = /\.[^\.]*$/.exec(url);
+			return (m === null) ? "" : m[0].toLowerCase();
+		};
+		var file_name = function (url) {
+			url = url.split("/");
+			return url[url.length - 1];
+		};
 
-			get_op_post_files_container_tinyboard = function (node) {
-				while (true) {
-					if ((node = node.previousSibling) === null) return null;
-					if (node.classList && node.classList.contains("files")) return node;
+		var get_op_post_files_container_tinyboard = function (node) {
+			while (true) {
+				if ((node = node.previousSibling) === null) return null;
+				if (node.classList && node.classList.contains("files")) return node;
+			}
+		};
+
+		var post_selector = {
+			"4chan": ".postContainer:not(.hl-fake-post)",
+			"foolz": "article:not(.backlink_container)",
+			"tinyboard": ".post:not(.hl-fake-post)"
+		};
+		var post_body_selector = {
+			"4chan": "blockquote",
+			"foolz": ".text",
+			"tinyboard": ".body"
+		};
+		var post_parent_find = {
+			"4chan": function (node) {
+				while ((node = node.parentNode) !== null) {
+					if (node.classList.contains("postContainer")) return node;
 				}
-			};
-
-			post_selector = {
-				"4chan": ".postContainer:not(.hl-fake-post)",
-				"foolz": "article:not(.backlink_container)",
-				"tinyboard": ".post:not(.hl-fake-post)"
-			};
-			post_body_selector = {
-				"4chan": "blockquote",
-				"foolz": ".text",
-				"tinyboard": ".body"
-			};
-			post_parent_find = {
-				"4chan": function (node) {
-					while ((node = node.parentNode) !== null) {
-						if (node.classList.contains("postContainer")) return node;
-					}
-					return null;
-				},
-				"foolz": function (node) {
-					while ((node = node.parentNode) !== null) {
-						if (node.tagName === "ARTICLE") return node;
-					}
-					return null;
-				},
-				"tinyboard": function (node) {
-					while ((node = node.parentNode) !== null) {
-						if (node.classList.contains("post")) {
-							return node;
-						}
-						else if (node.classList.contains("thread")) {
-							return $(".post.op", node);
-						}
-					}
-					return null;
+				return null;
+			},
+			"foolz": function (node) {
+				while ((node = node.parentNode) !== null) {
+					if (node.tagName === "ARTICLE") return node;
 				}
-				// "fuuka": function (node) {}
-			};
-			get_file_info = {
-				"4chan": function (post) {
-					var n, ft, img, a1, url, i;
+				return null;
+			},
+			"tinyboard": function (node) {
+				while ((node = node.parentNode) !== null) {
+					if (node.classList.contains("post")) {
+						return node;
+					}
+					else if (node.classList.contains("thread")) {
+						return $(".post.op", node);
+					}
+				}
+				return null;
+			}
+			// "fuuka": function (node) {}
+		};
+		var get_file_info = {
+			"4chan": function (post) {
+				var n, ft, img, a1, url, i;
+
+				if (
+					(n = $(".file", post)) === null ||
+					!specific(belongs_to, "").call(null, n, post) ||
+					(ft = $(".fileText", n)) === null ||
+					(img = $("img", n)) === null ||
+					(a1 = $("a", n)) === null
+				) {
+					return [];
+				}
+
+				url = a1.href;
+				if ((i = url.indexOf("#")) >= 0) url = url.substr(0, i);
+
+				return [{
+					image: img,
+					image_link: img.parentNode,
+					text_link: a1,
+					options: ft,
+					options_before: null,
+					options_class: "",
+					options_sep: " ",
+					url: url,
+					type: file_ext(url),
+					name: file_name(url),
+					md5: img.getAttribute("data-md5") || null
+				}];
+			},
+			"foolz": function (post) {
+				var n, ft, img, a1, url, i;
+
+				if (
+					(n = $(".thread_image_box", post)) === null ||
+					!specific(belongs_to, "").call(null, n, post) ||
+					(ft = $(".post_file_controls", post)) === null ||
+					(img = $("img", n)) === null ||
+					(a1 = $(".post_file_filename", post)) === null
+				) {
+					return [];
+				}
+
+				url = a1.href;
+				if ((i = url.indexOf("#")) >= 0) url = url.substr(0, i);
+
+				return [{
+					image: img,
+					image_link: img.parentNode,
+					text_link: a1,
+					options: ft,
+					options_before: $("a[download]", ft),
+					options_class: "btnr parent",
+					options_sep: "",
+					url: url,
+					type: file_ext(url),
+					name: file_name(url),
+					md5: img.getAttribute("data-md5") || null
+				}];
+			},
+			"tinyboard": function (post) {
+				var results = [],
+					imgs, infos, img, array, ft, a1, n, url, i, ii, j;
+
+				if (post.classList.contains("op")) {
+					n = get_op_post_files_container_tinyboard(post);
+					if (n === null) return results;
+
+					imgs = $$("a>img", n);
+					infos = $$(".fileinfo", n);
+					ii = Math.min(imgs.length, infos.length);
+				}
+				else {
+					imgs = $$("a>img", post);
+					array = [];
+					for (i = 0, ii = imgs.length; i < ii; ++i) {
+						img = imgs[i];
+						if (specific(belongs_to, "").call(null, img, post)) {
+							array.push(img);
+						}
+					}
+					imgs = array;
+
+					infos = $$(".fileinfo", post);
+					ii = Math.min(imgs.length, infos.length);
+				}
+
+				for (i = 0; i < ii; ++i) {
+					img = imgs[i];
+					n = infos[i];
 
 					if (
-						(n = $(".file", post)) === null ||
-						!specific(belongs_to, "").call(null, n, post) ||
-						(ft = $(".fileText", n)) === null ||
-						(img = $("img", n)) === null ||
+						(ft = $(".unimportant", n)) === null ||
 						(a1 = $("a", n)) === null
 					) {
-						return [];
+						continue;
 					}
 
-					url = a1.href;
-					if ((i = url.indexOf("#")) >= 0) url = url.substr(0, i);
+					url = img.parentNode.href || a1.href;
+					if ((j = url.indexOf("#")) >= 0) url = url.substr(0, j);
 
-					return [{
+					results.push({
 						image: img,
 						image_link: img.parentNode,
 						text_link: a1,
@@ -676,143 +760,59 @@
 						type: file_ext(url),
 						name: file_name(url),
 						md5: img.getAttribute("data-md5") || null
-					}];
-				},
-				"foolz": function (post) {
-					var n, ft, img, a1, url, i;
-
-					if (
-						(n = $(".thread_image_box", post)) === null ||
-						!specific(belongs_to, "").call(null, n, post) ||
-						(ft = $(".post_file_controls", post)) === null ||
-						(img = $("img", n)) === null ||
-						(a1 = $(".post_file_filename", post)) === null
-					) {
-						return [];
-					}
-
-					url = a1.href;
-					if ((i = url.indexOf("#")) >= 0) url = url.substr(0, i);
-
-					return [{
-						image: img,
-						image_link: img.parentNode,
-						text_link: a1,
-						options: ft,
-						options_before: $("a[download]", ft),
-						options_class: "btnr parent",
-						options_sep: "",
-						url: url,
-						type: file_ext(url),
-						name: file_name(url),
-						md5: img.getAttribute("data-md5") || null
-					}];
-				},
-				"tinyboard": function (post) {
-					var results = [],
-						imgs, infos, img, array, ft, a1, n, url, i, ii, j;
-
-					if (post.classList.contains("op")) {
-						n = get_op_post_files_container_tinyboard(post);
-						if (n === null) return results;
-
-						imgs = $$("a>img", n);
-						infos = $$(".fileinfo", n);
-						ii = Math.min(imgs.length, infos.length);
-					}
-					else {
-						imgs = $$("a>img", post);
-						array = [];
-						for (i = 0, ii = imgs.length; i < ii; ++i) {
-							img = imgs[i];
-							if (specific(belongs_to, "").call(null, img, post)) {
-								array.push(img);
-							}
-						}
-						imgs = array;
-
-						infos = $$(".fileinfo", post);
-						ii = Math.min(imgs.length, infos.length);
-					}
-
-					for (i = 0; i < ii; ++i) {
-						img = imgs[i];
-						n = infos[i];
-
-						if (
-							(ft = $(".unimportant", n)) === null ||
-							(a1 = $("a", n)) === null
-						) {
-							continue;
-						}
-
-						url = img.parentNode.href || a1.href;
-						if ((j = url.indexOf("#")) >= 0) url = url.substr(0, j);
-
-						results.push({
-							image: img,
-							image_link: img.parentNode,
-							text_link: a1,
-							options: ft,
-							options_before: null,
-							options_class: "",
-							options_sep: " ",
-							url: url,
-							type: file_ext(url),
-							name: file_name(url),
-							md5: img.getAttribute("data-md5") || null
-						});
-					}
-
-					return results;
+					});
 				}
-			};
-			belongs_to = {
-				"4chan": function (node, post) {
-					var re = /\D+/g,
-						id1 = node.id.replace(re, ""),
-						id2 = post.id.replace(re, "");
 
-					return (id1 && id1 === id2);
-				},
-				"": function (node, post) {
-					return (fns.get_post_container(node) === post);
-				}
-			};
-			body_links = {
-				"4chan": "a:not(.quotelink)",
-				"foolz": "a:not(.backlink)",
-				"tinyboard": "a:not([onclick])"
-			};
+				return results;
+			}
+		};
+		var belongs_to = {
+			"4chan": function (node, post) {
+				var re = /\D+/g,
+					id1 = node.id.replace(re, ""),
+					id2 = post.id.replace(re, "");
 
-			fns = {
-				get_post_container: function (node) {
-					return specific(post_parent_find, "tinyboard").call(null, node);
-				},
-				get_text_body: function (node) {
-					var selector = specific(post_body_selector, "tinyboard");
-					return selector ? $(selector, node) : null;
-				},
-				is_post: function (node) {
-					return $.test(node, specific(post_selector, "tinyboard"));
-				},
-				get_all_posts: function (parent) {
-					var selector = specific(post_selector, "tinyboard");
-					return selector ? $$(selector, parent) : [];
-				},
-				get_file_info: function (post) {
-					return specific(get_file_info, "tinyboard").call(null, post);
-				},
-				get_body_links: function (post) {
-					var selector = specific(body_links, "tinyboard");
-					return selector ? $$(selector, post) : [];
-				},
-				get_op_post_files_container_tinyboard: get_op_post_files_container_tinyboard
-			};
+				return (id1 && id1 === id2);
+			},
+			"": function (node, post) {
+				return (Module.get_post_container(node) === post);
+			}
+		};
+		var body_links = {
+			"4chan": "a:not(.quotelink)",
+			"foolz": "a:not(.backlink)",
+			"tinyboard": "a:not([onclick])"
+		};
 
-			return fns;
-		})()
-	};
+		// Exports
+		var Module = {
+			get_post_container: function (node) {
+				return specific(post_parent_find, "tinyboard").call(null, node);
+			},
+			get_text_body: function (node) {
+				var selector = specific(post_body_selector, "tinyboard");
+				return selector ? $(selector, node) : null;
+			},
+			is_post: function (node) {
+				return $.test(node, specific(post_selector, "tinyboard"));
+			},
+			get_all_posts: function (parent) {
+				var selector = specific(post_selector, "tinyboard");
+				return selector ? $$(selector, parent) : [];
+			},
+			get_file_info: function (post) {
+				return specific(get_file_info, "tinyboard").call(null, post);
+			},
+			get_body_links: function (post) {
+				var selector = specific(body_links, "tinyboard");
+				return selector ? $$(selector, post) : [];
+			},
+			get_op_post_files_container_tinyboard: get_op_post_files_container_tinyboard
+		};
+
+		return Module;
+
+	})();
 	CreateURL = (function () {
 
 		// Private
@@ -2594,8 +2594,8 @@
 			if (count > 0) {
 				if (conf["Inline Results"] === true) {
 					if (
-						(n = Helper.Post.get_post_container(a)) !== null &&
-						(n = Helper.Post.get_text_body(n)) !== null
+						(n = Post.get_post_container(a)) !== null &&
+						(n = Post.get_text_body(n)) !== null
 					) {
 						results = $.node("div", "hl-exsauce-results" + theme);
 						results.setAttribute("data-hl-image-index", index);
@@ -3406,12 +3406,12 @@
 			// Content
 			if (
 				!post.classList.contains("hl-post-linkified") &&
-				(post_body = Helper.Post.get_text_body(post)) !== null
+				(post_body = Post.get_text_body(post)) !== null
 			) {
 				regex.url.lastIndex = 0;
 				if (!Config.linkify || regex.url.test(post_body.innerHTML)) {
 					links = [];
-					post_links = Helper.Post.get_body_links(post_body);
+					post_links = Post.get_body_links(post_body);
 					for (i = 0, ii = post_links.length; i < ii; ++i) {
 						link = post_links[i];
 						regex.url.lastIndex = 0;
@@ -3443,7 +3443,7 @@
 				file_infos, file_info, sauce, i, ii;
 
 			// File info
-			file_infos = Helper.Post.get_file_info(post);
+			file_infos = Post.get_file_info(post);
 			for (i = 0, ii = file_infos.length; i < ii; ++i) {
 				file_info = file_infos[i];
 				if (file_info.md5 === null) continue;
@@ -3565,7 +3565,7 @@
 				parse_post(post);
 				apply_link_events(post, true);
 				if (check_files_before && post.classList.contains("op")) {
-					if ((post = Helper.Post.get_op_post_files_container_tinyboard(post)) !== null) {
+					if ((post = Post.get_op_post_files_container_tinyboard(post)) !== null) {
 						apply_link_events(post, true);
 					}
 				}
@@ -6588,14 +6588,14 @@
 			if (all_posts_reloaded) return;
 			all_posts_reloaded = true;
 
-			var posts = Helper.Post.get_all_posts(d),
+			var posts = Post.get_all_posts(d),
 				post, post_body, post_links, link, i, ii, j, jj;
 
 			for (i = 0, ii = posts.length; i < ii; ++i) {
 				post = posts[i];
 				post.classList.remove("hl-post-linkified");
-				if ((post_body = Helper.Post.get_text_body(post)) !== null) {
-					post_links = Helper.Post.get_body_links(post_body);
+				if ((post_body = Post.get_text_body(post)) !== null) {
+					post_links = Post.get_body_links(post_body);
 					for (j = 0, jj = post_links.length; j < jj; ++j) {
 						link = post_links[j];
 						if (link.classList.contains("hl-site-tag")) {
@@ -6629,7 +6629,7 @@
 
 			Debug.timer_log("init.ready duration", "init");
 
-			Linkifier.parse_posts(Helper.Post.get_all_posts(d));
+			Linkifier.parse_posts(Post.get_all_posts(d));
 			Linkifier.check_incomplete();
 			API.run_request_queue();
 
@@ -6677,11 +6677,11 @@
 						reload_all = true;
 					}
 					else if (node.nodeType === Node.ELEMENT_NODE) {
-						if (Helper.Post.is_post(node)) {
+						if (Post.is_post(node)) {
 							post_list.push(node);
 						}
 						else if (node.classList.contains("thread")) {
-							ns = Helper.Post.get_all_posts(node);
+							ns = Post.get_all_posts(node);
 							if (ns.length > 0) {
 								$.push_many(post_list, ns);
 							}
@@ -6698,7 +6698,7 @@
 						e.previousSibling.classList &&
 						e.previousSibling.classList.contains("file-info")
 					) {
-						node = Helper.Post.get_post_container(e.target);
+						node = Post.get_post_container(e.target);
 						if (node !== null) {
 							post_list.push(node);
 						}
@@ -6722,7 +6722,7 @@
 
 						Linkifier.preprocess_link(node, conf["Automatic Processing"]);
 
-						node = Helper.Post.get_post_container(node);
+						node = Post.get_post_container(node);
 						if (node !== null) {
 							post_list.push(node);
 						}
