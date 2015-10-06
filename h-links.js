@@ -893,8 +893,7 @@
 	};
 	Nodes = {
 		details: {},
-		sauce_hover: {},
-		options_overlay: null
+		sauce_hover: {}
 	};
 	HttpRequest = (function () {
 		try {
@@ -3594,41 +3593,116 @@
 
 		})()
 	};
-	Options = {
-		conf: null,
-		export_url: null,
-		save: function (e) {
-			e.preventDefault();
-			conf = Options.conf;
-			Options.conf = null;
-			Config.save();
-			if (Nodes.options_overlay !== null) {
-				Popup.close(Nodes.options_overlay);
-				Nodes.options_overlay = null;
+	Options = (function () {
+
+		// Private
+		var conf_temp = null,
+			export_url = null,
+			popup = null;
+
+		var create_export_data = function () {
+			return {
+				config: Config.get_saved_settings(),
+				easy_list: EasyList.get_saved_settings()
+			};
+		};
+		var import_settings = function (data) {
+			if (data !== null && typeof(data) === "object") {
+				var v = data.config;
+				if (typeof(v) !== "object") v = null;
+				Config.set_saved_settings(v);
+
+				v = data.easy_list;
+				if (typeof(v) !== "object") v = null;
+				EasyList.set_saved_settings(v);
 			}
-		},
-		close: function (e) {
-			e.preventDefault();
-			Options.conf = null;
-			if (Nodes.options_overlay !== null) {
-				Popup.close(Nodes.options_overlay);
-				Nodes.options_overlay = null;
+		};
+		var gen = function (container, theme, option_type) {
+			var entry, table, row, cell, label, input,
+				args, values, name, desc, type, value, obj, key, i, ii, j, jj, n, v;
+
+			args = Array.prototype.slice.call(arguments, 2);
+			args[0] = options[option_type];
+			for (i = 0, ii = args.length; i < ii; ++i) {
+				obj = args[i];
+				for (key in obj) {
+					name = "hl-settings-" + key;
+					desc = obj[key][2];
+					type = obj[key][0];
+					value = conf_temp[key];
+
+					$.add(container, entry = $.node("div", "hl-settings-entry" + theme));
+					$.add(entry, table = $.node("div", "hl-settings-entry-table"));
+					$.add(table, row = $.node("div", "hl-settings-entry-row"));
+
+					$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+					$.add(cell, label = $.node("label", "hl-settings-entry-label"));
+					label.htmlFor = name;
+					$.add(label, $.node("strong", "hl-settings-entry-label-name", key + ":"));
+					if (desc.length > 0) {
+						n = $.node("span", "hl-settings-entry-label-description");
+						n.innerHTML = " " + desc;
+						$.add(label, n);
+					}
+
+					if (type === "checkbox") {
+						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+						$.add(cell, input = $.node("input", "hl-settings-entry-input" + theme));
+						input.type = "checkbox";
+						input.id = name;
+						input.checked = value;
+						$.on(input, "change", on_change);
+					}
+					else if (type === "select") {
+						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+						$.add(cell, input = $.node("select", "hl-settings-entry-input" + theme));
+						$.on(input, "change", on_change);
+
+						values = obj[key][3];
+						for (j = 0, jj = values.length; j < jj; ++j) {
+							v = values[j];
+							$.add(input, n = $.node("option", "hl-settings-entry-input-option", v[1]));
+							n.value = v[0];
+							n.selected = (v[0] === value);
+							if (v.length > 2) n.title = v[2];
+						}
+					}
+					else if (type === "textbox") {
+						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+						$.add(cell, input = $.node("input", "hl-settings-entry-input" + theme));
+						input.type = "text";
+						input.id = name;
+						input.value = value;
+						$.on(input, "change", on_change);
+					}
+					else if (type === "textarea") {
+						$.add(table, row = $.node("div", "hl-settings-entry-row"));
+						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+						$.add(cell, input = $.node("textarea", "hl-settings-entry-input" + theme));
+						input.wrap = "off";
+						input.spellcheck = false;
+						input.id = name;
+						input.value = value;
+						$.on(input, "change", on_change);
+					}
+					else if (type === "button") {
+						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+						$.add(cell, input = $.node("button", "hl-settings-entry-input" + theme, (obj[key][3] || "")));
+						$.on(input, "click", obj[key][4] || on_change);
+					}
+					input.setAttribute("data-hl-setting-name", key);
+					input.setAttribute("data-hl-setting-type", option_type);
+				}
 			}
-		},
-		to_changelog: function (event) {
-			if ($.is_left_mouse(event)) {
-				event.preventDefault();
-				Options.close(event);
-				Changelog.open(null);
-			}
-		},
-		on_change: function () {
+		};
+
+		var on_change = function () {
 			var node = this,
 				type = node.getAttribute("type"),
 				name = node.getAttribute("data-hl-setting-name"),
 				opt, v;
 
-			if (!(name in Options.conf)) return;
+			if (!(name in conf_temp)) return;
 
 			if (node.tagName === "SELECT") {
 				v = node.value;
@@ -3639,48 +3713,115 @@
 				) {
 					v = opt[4].call(this, v);
 				}
-				Options.conf[name] = v;
+				conf_temp[name] = v;
 			}
 			else if (type === "checkbox") {
-				Options.conf[name] = (node.checked ? true : false);
+				conf_temp[name] = (node.checked ? true : false);
 			}
 			else if (type === "text" || node.tagName === "TEXTAREA") {
-				Options.conf[name] = node.value;
+				conf_temp[name] = node.value;
 			}
-		},
-		on_data_clear: function (event) {
+		};
+		var on_cache_clear_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
+
 				var clears = Cache.clear();
 				Debug.log("Cleared cache; localStorage=" + clears[0] + "; sessionStorage=" + clears[1]);
 				this.textContent = "Cleared!";
 			}
-		},
-		on_settings_export: function (event) {
+		};
+		var on_changelog_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
-				Options.close(event);
-				Options.open_export();
+				close(event);
+				Changelog.open(null);
 			}
-		},
-		open: function (event) {
-			if (!$.is_left_mouse(event)) return;
-			event.preventDefault();
+		};
+		var on_export_click = function (event) {
+			if ($.is_left_mouse(event)) {
+				event.preventDefault();
+				close();
+				open_export();
+			}
+		};
+		var on_save_click = function (event) {
+			if ($.is_left_mouse(event)) {
+				event.preventDefault();
 
+				conf = conf_temp;
+				conf_temp = null;
+
+				Config.save();
+				close();
+			}
+		};
+		var on_cancel_click = function (event) {
+			if ($.is_left_mouse(event)) {
+				event.preventDefault();
+
+				close();
+			}
+		};
+		var on_toggle_filter_guide = function (event) {
+			if ($.is_left_mouse(event)) {
+				event.preventDefault();
+
+				try {
+					var n = this.parentNode.parentNode.parentNode.nextSibling;
+					if (n.classList.contains("hl-settings-filter-guide")) {
+						n.classList.toggle("hl-settings-filter-guide-visible");
+					}
+				}
+				catch (e) {}
+			}
+		};
+		var on_color_helper_change = function () {
+			var n = this.nextSibling,
+				m;
+
+			if (n !== null) {
+				n.value = this.value.toUpperCase();
+				n = n.nextSibling;
+				if (n !== null) {
+					m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(this.value);
+					if (m !== null) {
+						n.value = "rgba(" + parseInt(m[1], 16) + "," + parseInt(m[2], 16) + "," + parseInt(m[3], 16) + ",1)";
+					}
+				}
+			}
+		};
+		var on_settings_open_click = function (event) {
+			if ($.is_left_mouse(event)) {
+				event.preventDefault();
+
+				open();
+			}
+		};
+
+		// Public
+		var ready = function () {
+			Navigation.insert_link("main", "#TITLE#", Main.homepage, " hl-nav-link-settings", on_settings_open_click);
+
+			var n = $.link(Main.homepage, "hl-nav-link", "#TITLE# Settings");
+			$.on(n, "click", on_settings_open_click);
+			HeaderBar.insert_menu_link(n);
+		};
+		var open = function () {
 			var theme = Theme.get(),
-				overlay, n;
+				n;
 
 			// Config
-			Options.conf = JSON.parse(JSON.stringify(conf));
+			conf_temp = JSON.parse(JSON.stringify(conf));
 
 			// Popup
-			overlay = Popup.create("settings", [[{
+			popup = Popup.create("settings", [[{
 				small: true,
 				setup: function (container) {
 					var n;
 					$.add(container, $.link(Main.homepage, "hl-settings-title" + theme, "#TITLE#"));
 					$.add(container, n = $.link(Changelog.url, "hl-settings-version" + theme, Main.version.join(".")));
-					$.on(n, "click", Options.to_changelog);
+					$.on(n, "click", on_changelog_click);
 				}
 			}, {
 				align: "right",
@@ -3691,19 +3832,19 @@
 
 					$.add(container, n = $.link(Changelog.url, "hl-settings-button" + theme));
 					$.add(n, $.node("span", "hl-settings-button-text", "Changelog"));
-					$.on(n, "click", Options.to_changelog);
+					$.on(n, "click", on_changelog_click);
 
 					$.add(container, n = $.link("#", "hl-settings-button" + theme));
 					$.add(n, $.node("span", "hl-settings-button-text", "Export"));
-					$.on(n, "click", Options.on_settings_export);
+					$.on(n, "click", on_export_click);
 
 					$.add(container, n = $.link("#", "hl-settings-button" + theme));
 					$.add(n, $.node("span", "hl-settings-button-text", "Save settings"));
-					$.on(n, "click", Options.save);
+					$.on(n, "click", on_save_click);
 
 					$.add(container, n = $.link("#", "hl-settings-button" + theme));
 					$.add(n, $.node("span", "hl-settings-button-text", "Cancel"));
-					$.on(n, "click", Options.close);
+					$.on(n, "click", on_cancel_click);
 				}
 			}], {
 				body: true,
@@ -3716,42 +3857,39 @@
 			}]);
 
 			// Options
-			Options.gen($(".hl-settings-group-general", overlay), theme, "general");
-			Options.gen($(".hl-settings-group-actions", overlay), theme, "actions");
-			Options.gen($(".hl-settings-group-sauce", overlay), theme, "sauce");
-			Options.gen($(".hl-settings-group-filter", overlay), theme, "filter");
-			Options.gen($(".hl-settings-group-debug", overlay), theme, "debug", {
-				"Clear Stored Data": [ "button", false, "Clear all stored data <em>except</em> for settings", "Clear", Options.on_data_clear ],
+			gen($(".hl-settings-group-general", popup), theme, "general");
+			gen($(".hl-settings-group-actions", popup), theme, "actions");
+			gen($(".hl-settings-group-sauce", popup), theme, "sauce");
+			gen($(".hl-settings-group-filter", popup), theme, "filter");
+			gen($(".hl-settings-group-debug", popup), theme, "debug", {
+				"Clear Stored Data": [ "button", false, "Clear all stored data <em>except</em> for settings", "Clear", on_cache_clear_click ],
 			});
 
 			// Events
-			$.on(overlay, "click", Options.close);
-			$.on($("input.hl-settings-color-input[type=color]", overlay), "change", Options.on_color_helper_change);
-			$.on($(".hl-settings-filter-guide-toggle", overlay), "click", Options.on_toggle_filter_guide);
+			$.on(popup, "click", on_cancel_click);
+			$.on($("input.hl-settings-color-input[type=color]", popup), "change", on_color_helper_change);
+			$.on($(".hl-settings-filter-guide-toggle", popup), "click", on_toggle_filter_guide);
 
 			// Add to body
-			Nodes.options_overlay = overlay;
-			Popup.open(overlay);
+			Popup.open(popup);
 
 			// Focus
-			n = $(".hl-popup-cell-size-scroll", overlay);
+			n = $(".hl-popup-cell-size-scroll", popup);
 			if (n !== null) $.scroll_focus(n);
-		},
-		open_export: function () {
+		};
+		var open_export = function () {
 			var theme = Theme.get(),
 				nodes = {
 					textarea: null
 				},
-				export_data_string, overlay, n;
+				export_data_string, n;
 
 			// Config
-			Options.conf = JSON.parse(JSON.stringify(conf));
-
-			export_data_string = JSON.stringify(Options.create_export_data(), null, 2);
-			Options.export_url = window.URL.createObjectURL(new Blob([ export_data_string ], { type: "application/json" }));
+			export_data_string = JSON.stringify(create_export_data(), null, 2);
+			export_url = window.URL.createObjectURL(new Blob([ export_data_string ], { type: "application/json" }));
 
 			// Popup
-			overlay = Popup.create("settings", [[{
+			popup = Popup.create("settings", [[{
 				small: true,
 				setup: function (container) {
 					$.add(container, $.link(Main.homepage, "hl-settings-title" + theme, "#TITLE#"));
@@ -3797,7 +3935,7 @@
 						fn.click();
 					});
 
-					$.add(container, n = $.link(Options.export_url, "hl-settings-button" + theme));
+					$.add(container, n = $.link(export_url, "hl-settings-button" + theme));
 					n.removeAttribute("target");
 					n.setAttribute("download",
 						"#TITLE#".toLowerCase() + "-settings-" +
@@ -3818,7 +3956,7 @@
 							var v = Helper.json_parse_safe(nodes.textarea.value, null);
 							if (v !== null) {
 								nodes.textarea.classList.remove("hl-settings-export-textarea-error");
-								Options.import_settings(v);
+								import_settings(v);
 							}
 							else {
 								nodes.textarea.classList.add("hl-settings-export-textarea-error");
@@ -3829,7 +3967,7 @@
 
 					$.add(container, n = $.link("#", "hl-settings-button" + theme));
 					$.add(n, $.node("span", "hl-settings-button-text", "Cancel"));
-					$.on(n, "click", Options.close_export);
+					$.on(n, "click", on_cancel_click);
 				}
 			}], {
 				padding: false,
@@ -3872,160 +4010,36 @@
 					$.add(container, n);
 				}
 			}]);
-			$.on(overlay, "click", Options.close_export);
+			$.on(popup, "click", on_cancel_click);
 
 			// Add to body
-			Nodes.options_overlay = overlay;
-			Popup.open(overlay);
+			Popup.open(popup);
 
 			// Focus
-			n = $(".hl-settings-export-textarea", overlay);
+			n = $(".hl-settings-export-textarea", popup);
 			if (n !== null) n.focus();
-		},
-		close_export: function (event) {
-			if ($.is_left_mouse(event)) {
-				event.preventDefault();
-
-				if (Nodes.options_overlay !== null) {
-					Popup.close(Nodes.options_overlay);
-					Nodes.options_overlay = null;
-				}
-
-				if (Options.export_url !== null) {
-					window.URL.revokeObjectURL(Options.export_url);
-					Options.export_url = null;
-				}
+		};
+		var close = function () {
+			conf_temp = null;
+			if (popup !== null) {
+				Popup.close(popup);
+				popup = null;
 			}
-		},
-		create_export_data: function () {
-			return {
-				config: Config.get_saved_settings(),
-				easy_list: EasyList.get_saved_settings()
-			};
-		},
-		import_settings: function (data) {
-			if (data !== null && typeof(data) === "object") {
-				var v = data.config;
-				if (typeof(v) !== "object") v = null;
-				Config.set_saved_settings(v);
-
-				v = data.easy_list;
-				if (typeof(v) !== "object") v = null;
-				EasyList.set_saved_settings(v);
+			if (export_url !== null) {
+				window.URL.revokeObjectURL(export_url);
+				export_url = null;
 			}
-		},
-		gen: function (container, theme, option_type) {
-			var entry, table, row, cell, label, input,
-				args, values, name, desc, type, value, obj, key, i, ii, j, jj, n, v;
+		};
 
-			args = Array.prototype.slice.call(arguments, 2);
-			args[0] = options[option_type];
-			for (i = 0, ii = args.length; i < ii; ++i) {
-				obj = args[i];
-				for (key in obj) {
-					name = "hl-settings-" + key;
-					desc = obj[key][2];
-					type = obj[key][0];
-					value = Options.conf[key];
+		// Exports
+		return {
+			ready: ready,
+			open: open,
+			open_export: open_export,
+			close: close
+		};
 
-					$.add(container, entry = $.node("div", "hl-settings-entry" + theme));
-					$.add(entry, table = $.node("div", "hl-settings-entry-table"));
-					$.add(table, row = $.node("div", "hl-settings-entry-row"));
-
-					$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
-					$.add(cell, label = $.node("label", "hl-settings-entry-label"));
-					label.htmlFor = name;
-					$.add(label, $.node("strong", "hl-settings-entry-label-name", key + ":"));
-					if (desc.length > 0) {
-						n = $.node("span", "hl-settings-entry-label-description");
-						n.innerHTML = " " + desc;
-						$.add(label, n);
-					}
-
-					if (type === "checkbox") {
-						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
-						$.add(cell, input = $.node("input", "hl-settings-entry-input" + theme));
-						input.type = "checkbox";
-						input.id = name;
-						input.checked = value;
-						$.on(input, "change", Options.on_change);
-					}
-					else if (type === "select") {
-						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
-						$.add(cell, input = $.node("select", "hl-settings-entry-input" + theme));
-						$.on(input, "change", Options.on_change);
-
-						values = obj[key][3];
-						for (j = 0, jj = values.length; j < jj; ++j) {
-							v = values[j];
-							$.add(input, n = $.node("option", "hl-settings-entry-input-option", v[1]));
-							n.value = v[0];
-							n.selected = (v[0] === value);
-							if (v.length > 2) n.title = v[2];
-						}
-					}
-					else if (type === "textbox") {
-						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
-						$.add(cell, input = $.node("input", "hl-settings-entry-input" + theme));
-						input.type = "text";
-						input.id = name;
-						input.value = value;
-						$.on(input, "change", Options.on_change);
-					}
-					else if (type === "textarea") {
-						$.add(table, row = $.node("div", "hl-settings-entry-row"));
-						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
-						$.add(cell, input = $.node("textarea", "hl-settings-entry-input" + theme));
-						input.wrap = "off";
-						input.spellcheck = false;
-						input.id = name;
-						input.value = value;
-						$.on(input, "change", Options.on_change);
-					}
-					else if (type === "button") {
-						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
-						$.add(cell, input = $.node("button", "hl-settings-entry-input" + theme, (obj[key][3] || "")));
-						$.on(input, "click", obj[key][4] || Options.on_change);
-					}
-					input.setAttribute("data-hl-setting-name", key);
-					input.setAttribute("data-hl-setting-type", option_type);
-				}
-			}
-		},
-		on_toggle_filter_guide: function (event) {
-			event.preventDefault();
-
-			try {
-				var n = this.parentNode.parentNode.parentNode.nextSibling;
-				if (n.classList.contains("hl-settings-filter-guide")) {
-					n.classList.toggle("hl-settings-filter-guide-visible");
-				}
-			}
-			catch (e) {}
-		},
-		on_color_helper_change: function () {
-			var n = this.nextSibling,
-				m;
-
-			if (n !== null) {
-				n.value = this.value.toUpperCase();
-				n = n.nextSibling;
-				if (n !== null) {
-					m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(this.value);
-					if (m !== null) {
-						n.value = "rgba(" + parseInt(m[1], 16) + "," + parseInt(m[2], 16) + "," + parseInt(m[3], 16) + ",1)";
-					}
-				}
-			}
-		},
-		init: function () {
-			Navigation.insert_link("main", "#TITLE#", Main.homepage, " hl-nav-link-settings", Options.open);
-
-			var n = $.link(Main.homepage, "hl-nav-link", "#TITLE# Settings");
-			$.on(n, "click", Options.open);
-			HeaderBar.insert_menu_link(n);
-		}
-	};
+	})();
 	Config = (function () {
 
 		// Private
@@ -6467,7 +6481,7 @@
 			Debug.timer("init");
 
 			if (!Config.ready()) return;
-			Options.init();
+			Options.ready();
 
 			var style = $.node_simple("style"),
 				updater;
