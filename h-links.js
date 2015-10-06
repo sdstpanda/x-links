@@ -2274,36 +2274,40 @@
 			Hash.data[type][key] = value;
 		}
 	};
-	SHA1 = {
+	SHA1 = (function () {
+
 		// SHA-1 JS implementation originally created by Chris Verness; http://movable-type.co.uk/scripts/sha1.html
-		f: function (s, x, y, z) {
+		// Private
+		var f = function (s, x, y, z) {
 			switch (s) {
 				case 0: return (x & y) ^ (~x & z);
 				case 1: return x ^ y ^ z;
 				case 2: return (x & y) ^ (x & z) ^ (y & z);
 				case 3: return x ^ y ^ z;
 			}
-		},
-		ROTL: function (x, n) {
+		};
+		var rotl = function (x, n) {
 			return (x << n) | (x >>> (32 - n));
-		},
-		hex: function (str) {
-			var s = '',
+		};
+		var hex = function (str) {
+			var s = "",
 				v, i;
 			for (i = 7; i >= 0; --i) {
 				v = (str >>> (i * 4)) & 0xf;
 				s += v.toString(16);
 			}
 			return s;
-		},
-		hash: function (image) {
+		};
+
+		// Public
+		var hash = function (data, data_length) {
 			var H0, H1, H2, H3, H4, K, M, N, W, T,
 				a, b, c, d, e, i, j, l, s;
 
 			K = new Uint32Array([ 0x5A827999, 0x6ED9EBA1, 0x8F1BBCDC, 0xCA62C1D6 ]);
-			image[image.length - 1] = 0x80; // this is valid because the typed array always contains 1 extra padding byte
+			data[data_length] = 0x80; // this is valid because the typed array always contains 1 extra padding byte
 
-			l = image.length / 4 + 2;
+			l = data.length / 4 + 2;
 			N = Math.ceil(l / 16);
 			M = [];
 
@@ -2311,15 +2315,15 @@
 				M[i] = [];
 				for (j = 0; j < 16; ++j) {
 					M[i][j] =
-						(image[i * 64 + j * 4] << 24) |
-						(image[i * 64 + j * 4 + 1] << 16) |
-						(image[i * 64 + j * 4 + 2] << 8) |
-						(image[i * 64 + j * 4 + 3]);
+						(data[i * 64 + j * 4] << 24) |
+						(data[i * 64 + j * 4 + 1] << 16) |
+						(data[i * 64 + j * 4 + 2] << 8) |
+						(data[i * 64 + j * 4 + 3]);
 				}
 			}
 
-			M[N - 1][14] = Math.floor(((image.length - 1) * 8) / Math.pow(2, 32));
-			M[N - 1][15] = ((image.length - 1) * 8) & 0xffffffff;
+			M[N - 1][14] = Math.floor(((data.length - 1) * 8) / Math.pow(2, 32));
+			M[N - 1][15] = ((data.length - 1) * 8) & 0xffffffff;
 
 			H0 = 0x67452301;
 			H1 = 0xefcdab89;
@@ -2334,7 +2338,7 @@
 					W[j] = M[i][j];
 				}
 				for (j = 16; j < 80; ++j) {
-					W[j] = SHA1.ROTL(W[j - 3] ^ W[j - 8] ^ W[j - 14] ^ W[j - 16], 1);
+					W[j] = rotl(W[j - 3] ^ W[j - 8] ^ W[j - 14] ^ W[j - 16], 1);
 				}
 
 				a = H0;
@@ -2345,10 +2349,10 @@
 
 				for (j = 0; j < 80; ++j) {
 					s = Math.floor(j / 20);
-					T = (SHA1.ROTL(a, 5) + SHA1.f(s, b, c, d) + e + K[s] + W[j]) & 0xffffffff;
+					T = (rotl(a, 5) + f(s, b, c, d) + e + K[s] + W[j]) & 0xffffffff;
 					e = d;
 					d = c;
-					c = SHA1.ROTL(b, 30);
+					c = rotl(b, 30);
 					b = a;
 					a = T;
 				}
@@ -2360,9 +2364,15 @@
 				H4 = (H4 + e) & 0xffffffff;
 			}
 
-			return SHA1.hex(H0) + SHA1.hex(H1) + SHA1.hex(H2) + SHA1.hex(H3) + SHA1.hex(H4);
-		}
-	};
+			return hex(H0) + hex(H1) + hex(H2) + hex(H3) + hex(H4);
+		};
+
+		// Exports
+		return {
+			hash: hash
+		};
+
+	})();
 	Sauce = (function () {
 
 		// Private
@@ -2709,7 +2719,7 @@
 					a.textContent = "Error: hash/" + err;
 				}
 				else {
-					var sha1 = SHA1.hash(data);
+					var sha1 = SHA1.hash(data, data.length - 1);
 					a.textContent = "Hashing";
 					a.setAttribute("data-sha1", sha1);
 					Hash.set("md5", md5, sha1);
