@@ -3,9 +3,9 @@
 (function () {
 	"use strict";
 
-	var timing, domains, domain_info, options, conf, regex, cat, d, t, $, $$,
+	var timing, domains, domain_info, options, conf, regex, cat, browser, d, t, $, $$,
 		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Options, Config, Main,
-		MutationObserver, Browser, Helper, HttpRequest, Linkifier, Filter, Theme,
+		MutationObserver, Helper, HttpRequest, Linkifier, Filter, Theme,
 		Post, CreateURL, EasyList, Popup, Changelog, HeaderBar, Navigation;
 
 	timing = (function () {
@@ -48,6 +48,10 @@
 		}
 	})(true);
 
+	browser = {
+		is_opera: /presto/i.test("" + navigator.userAgent),
+		is_firefox: /firefox/i.test("" + navigator.userAgent)
+	};
 	cat = {
 		"Artist CG Sets": { "short": "artistcg",  "name": "Artist CG"  },
 		"Asian Porn":     { "short": "asianporn", "name": "Asian Porn" },
@@ -351,10 +355,6 @@
 			element.scrollLeft = 0;
 		}
 	});
-	Browser = {
-		is_opera: /presto/i.test("" + navigator.userAgent),
-		is_firefox: /firefox/i.test("" + navigator.userAgent)
-	};
 	Debug = (function () {
 
 		var started = false,
@@ -424,99 +424,29 @@
 		return Module;
 
 	})();
-	Helper = {
-		regex_escape: function (text) {
+	Helper = (function () {
+
+		// Public
+		var regex_escape = function (text) {
 			return text.replace(/[\$\(\)\*\+\-\.\/\?\[\\\]\^\{\|\}]/g, "\\$&");
-		},
-		json_parse_safe: function (text, def) {
+		};
+		var json_parse_safe = function (text, def) {
 			try {
 				return JSON.parse(text);
 			}
 			catch (e) {
 				return def;
 			}
-		},
-		html_parse_safe: function (text, def) {
+		};
+		var html_parse_safe = function (text, def) {
 			try {
 				return (new DOMParser()).parseFromString(text, "text/html");
 			}
 			catch (e) {
 				return def;
 			}
-		},
-		get_uid_from_node: function (node) {
-			var a = node.getAttribute("data-hl-id"),
-				i;
-			return (a && (i = a.indexOf("_")) >= 0) ? a.substr(i + 1) : "";
-		},
-		get_id_from_node: function (node) {
-			var a = node.getAttribute("data-hl-id"),
-				i;
-			return (a && (i = a.indexOf("_")) >= 0) ? [ a.substr(0, i), a.substr(i + 1) ] : null;
-		},
-		get_id_from_node_full: function (node) {
-			return node.getAttribute("data-hl-id") || "";
-		},
-		get_info_from_node: function (node) {
-			var attr = node.getAttribute("data-hl-info");
-			try {
-				return JSON.parse(attr);
-			}
-			catch (e) {}
-			return null;
-		},
-		get_tag_button_from_link: function (node) {
-			// Assume the button is the previous (or previous-previous) sibling
-			if (
-				(node = node.previousSibling) !== null &&
-				(node.classList || ((node = node.previousSibling) !== null && node.classList)) &&
-				node.classList.contains("hl-site-tag")
-			) {
-				return node;
-			}
-			return null;
-		},
-		get_link_from_tag_button: function (node) {
-			// Assume the link is the next (or next-next) sibling
-			if (
-				(node = node.nextSibling) !== null &&
-				(node.classList || ((node = node.nextSibling) !== null && node.classList)) &&
-				node.classList.contains("hl-linkified-gallery")
-			) {
-				return node;
-			}
-			return null;
-		},
-		get_actions_from_link: function (node, is_tag) {
-			// Get
-			if (is_tag) {
-				node = Helper.get_link_from_tag_button(node);
-				if (node === null) return null;
-			}
-
-			if (
-				(node = node.nextSibling) !== null &&
-				(node.classList || ((node = node.nextSibling) !== null && node.classList)) &&
-				node.classList.contains("hl-actions")
-			) {
-				return node;
-			}
-			return null;
-		},
-		get_exresults_from_exsauce: function (node) {
-			var container = Post.get_post_container(node);
-
-			if (
-				container !== null &&
-				(node = $(".hl-exsauce-results[data-hl-image-index='" + node.getAttribute("data-hl-image-index") + "']", container)) !== null &&
-				Post.get_post_container(node) === container
-			) {
-				return node;
-			}
-
-			return null;
-		},
-		get_url_info: function (url) {
+		};
+		var get_url_info = function (url) {
 			var match = /^(https?):\/*((?:[\w-]+\.)*)([\w-]+\.[\w]+)((?:[\/\?\#][\w\W]*)?)/.exec(url),
 				domain, remaining, m;
 
@@ -573,21 +503,108 @@
 			}
 
 			return null;
-		},
-		get_full_domain: function (url) {
+		};
+		var get_full_domain = function (url) {
 			var m = /^https?:\/*([\w\-]+(?:\.[\w\-]+)*)/i.exec(url);
 			return (m === null) ? "" : m[1];
-		},
-		get_domain: function (url) {
+		};
+		var get_domain = function (url) {
 			var m = /^https?:\/*(?:[\w-]+\.)*([\w-]+\.[\w]+)/i.exec(url);
 			return (m === null) ? "" : m[1].toLowerCase();
-		},
-		title_case: function (text) {
+		};
+		var title_case = function (text) {
 			return text.replace(/\b\w/g, function (m) {
 				return m.toUpperCase();
 			});
-		}
-	};
+		};
+
+		var get_id_from_node = function (node) {
+			var a = node.getAttribute("data-hl-id"),
+				i;
+			return (a && (i = a.indexOf("_")) >= 0) ? [ a.substr(0, i), a.substr(i + 1) ] : null;
+		};
+		var get_id_from_node_full = function (node) {
+			return node.getAttribute("data-hl-id") || "";
+		};
+		var get_info_from_node = function (node) {
+			var attr = node.getAttribute("data-hl-info");
+			try {
+				return JSON.parse(attr);
+			}
+			catch (e) {}
+			return null;
+		};
+		var get_tag_button_from_link = function (node) {
+			// Assume the button is the previous (or previous-previous) sibling
+			if (
+				(node = node.previousSibling) !== null &&
+				(node.classList || ((node = node.previousSibling) !== null && node.classList)) &&
+				node.classList.contains("hl-site-tag")
+			) {
+				return node;
+			}
+			return null;
+		};
+		var get_link_from_tag_button = function (node) {
+			// Assume the link is the next (or next-next) sibling
+			if (
+				(node = node.nextSibling) !== null &&
+				(node.classList || ((node = node.nextSibling) !== null && node.classList)) &&
+				node.classList.contains("hl-linkified-gallery")
+			) {
+				return node;
+			}
+			return null;
+		};
+		var get_actions_from_link = function (node, is_tag) {
+			// Get
+			if (is_tag) {
+				node = get_link_from_tag_button(node);
+				if (node === null) return null;
+			}
+
+			if (
+				(node = node.nextSibling) !== null &&
+				(node.classList || ((node = node.nextSibling) !== null && node.classList)) &&
+				node.classList.contains("hl-actions")
+			) {
+				return node;
+			}
+			return null;
+		};
+		var get_exresults_from_exsauce = function (node) {
+			var container = Post.get_post_container(node);
+
+			if (
+				container !== null &&
+				(node = $(".hl-exsauce-results[data-hl-image-index='" + node.getAttribute("data-hl-image-index") + "']", container)) !== null &&
+				Post.get_post_container(node) === container
+			) {
+				return node;
+			}
+
+			return null;
+		};
+
+		// Exports
+		return {
+			regex_escape: regex_escape,
+			json_parse_safe: json_parse_safe,
+			html_parse_safe: html_parse_safe,
+			get_url_info: get_url_info,
+			get_full_domain: get_full_domain,
+			get_domain: get_domain,
+			title_case: title_case,
+			get_id_from_node: get_id_from_node,
+			get_id_from_node_full: get_id_from_node_full,
+			get_info_from_node: get_info_from_node,
+			get_tag_button_from_link: get_tag_button_from_link,
+			get_link_from_tag_button: get_link_from_tag_button,
+			get_actions_from_link: get_actions_from_link,
+			get_exresults_from_exsauce: get_exresults_from_exsauce
+		};
+
+	})();
 	Post = (function () {
 
 		// Private
@@ -3387,7 +3404,7 @@
 				post_body, post_links, links, nodes, link, i, ii;
 
 			// Exsauce
-			if (conf.ExSauce && !Browser.is_opera) {
+			if (conf.ExSauce && !browser.is_opera) {
 				setup_post_exsauce(post);
 			}
 
@@ -3460,7 +3477,7 @@
 					sauce.setAttribute("data-hl-image-index", index);
 					sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
 					if (/^\.jpe?g$/i.test(file_info.type) && Config.mode !== "tinyboard") {
-						if (Browser.is_firefox) {
+						if (browser.is_firefox) {
 							sauce.setAttribute("data-hl-link-events", "exsauce_fetch_similarity");
 							sauce.title = "This will only work on colored images";
 						}
