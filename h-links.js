@@ -4026,15 +4026,13 @@
 			HeaderBar.insert_menu_link(n);
 		}
 	};
-	Config = {
-		settings_key: "#PREFIX#settings",
-		mode: "4chan", // foolz, fuuka, tinyboard
-		mode_ext: {
-			fourchanx3: false,
-			oneechan: false
-		},
-		linkify: true,
-		storage: (function () {
+	Config = (function () {
+
+		// Private
+		var settings_key = "#PREFIX#settings";
+
+		// Public
+		var storage = (function () {
 			try {
 				if (!(
 					GM_setValue && typeof(GM_setValue) === "function" &&
@@ -4070,67 +4068,14 @@
 					return GM_listValues().length;
 				}
 			};
-		})(),
-		site: function () {
-			var site = d.URL,
-				doctype = d.doctype,
-				type;
+		})();
 
-			if (/archive\.moe/i.test(site)) {
-				type = "<!DOCTYPE " +
-					doctype.name +
-					(doctype.publicId ? " PUBLIC \"" + doctype.publicId + "\"" : "") +
-					(!doctype.publicId && doctype.systemId ? " SYSTEM" : "") +
-					(doctype.systemId ? " \"" + doctype.systemId + "\"" : "") +
-					">";
-
-				Config.mode = (/<!DOCTYPE html>/.test(type)) ? "foolz" : "fuuka";
-				Config.linkify = false;
-			}
-			else if (/8ch\.net/i.test(site)) {
-				Config.mode = "tinyboard";
-				Config.linkify = false;
-				if ($("form[name=postcontrols]") === null) return false;
-			}
-			else if (/boards\.38chan\.net/i.test(site)) {
-				Config.mode = "tinyboard";
-				Config.linkify = false;
-			}
-			else {
-				Config.mode_ext.fourchanx3 = d.documentElement.classList.contains("fourchan-x");
-				Config.mode_ext.oneechan = ($.id("OneeChanLink") !== null);
-			}
-
-			return true;
-		},
-		save: function () {
-			var temp = {},
-				i, k;
-			for (i in options) {
-				for (k in options[i]) {
-					temp[k] = conf[k];
-				}
-			}
-			temp.version = Main.version;
-			Config.storage.setItem(Config.settings_key, JSON.stringify(temp));
-		},
-		get_saved_settings: function () {
-			return Helper.json_parse_safe(Config.storage.getItem(Config.settings_key), null);
-		},
-		set_saved_settings: function (data) {
-			if (data === null) {
-				Config.storage.removeItem(Config.settings_key);
-			}
-			else {
-				Config.storage.setItem(Config.settings_key, JSON.stringify(data));
-			}
-		},
-		init: function () {
+		var init = function () {
 			var update = false,
 				temp, value, i, k;
 
 			if (
-				(temp = Config.get_saved_settings()) === null ||
+				(temp = get_saved_settings()) === null ||
 				typeof(temp) !== "object"
 			) {
 				temp = {};
@@ -4158,9 +4103,82 @@
 				}
 			}
 
-			if (update) Config.save();
-		}
-	};
+			if (update) save();
+		};
+		var ready = function () {
+			var site = d.URL,
+				doctype = d.doctype,
+				type;
+
+			if (/archive\.moe/i.test(site)) {
+				type = "<!DOCTYPE " +
+					doctype.name +
+					(doctype.publicId ? " PUBLIC \"" + doctype.publicId + "\"" : "") +
+					(!doctype.publicId && doctype.systemId ? " SYSTEM" : "") +
+					(doctype.systemId ? " \"" + doctype.systemId + "\"" : "") +
+					">";
+
+				Module.mode = (/<!DOCTYPE html>/.test(type)) ? "foolz" : "fuuka";
+				Module.linkify = false;
+			}
+			else if (/8ch\.net/i.test(site)) {
+				Module.mode = "tinyboard";
+				Module.linkify = false;
+				if ($("form[name=postcontrols]") === null) return false;
+			}
+			else if (/boards\.38chan\.net/i.test(site)) {
+				Module.mode = "tinyboard";
+				Module.linkify = false;
+			}
+			else {
+				Module.mode_ext.fourchanx3 = d.documentElement.classList.contains("fourchan-x");
+				Module.mode_ext.oneechan = ($.id("OneeChanLink") !== null);
+			}
+
+			return true;
+		};
+		var save = function () {
+			var temp = {},
+				i, k;
+			for (i in options) {
+				for (k in options[i]) {
+					temp[k] = conf[k];
+				}
+			}
+			temp.version = Main.version;
+			storage.setItem(settings_key, JSON.stringify(temp));
+		};
+		var get_saved_settings = function () {
+			return Helper.json_parse_safe(storage.getItem(settings_key), null);
+		};
+		var set_saved_settings = function (data) {
+			if (data === null) {
+				storage.removeItem(settings_key);
+			}
+			else {
+				storage.setItem(settings_key, JSON.stringify(data));
+			}
+		};
+
+		// Exports
+		var Module = {
+			mode: "4chan", // foolz, fuuka, tinyboard
+			mode_ext: {
+				fourchanx3: false,
+				oneechan: false
+			},
+			linkify: true,
+			storage: storage,
+			init: init,
+			ready: ready,
+			save: save,
+			get_saved_settings: get_saved_settings,
+			set_saved_settings: set_saved_settings
+		};
+
+		return Module;
+
+	})();
 	Filter = (function () {
 
 		// Private
@@ -6448,7 +6466,7 @@
 		var on_ready = function () {
 			Debug.timer("init");
 
-			if (!Config.site()) return;
+			if (!Config.ready()) return;
 			Options.init();
 
 			var style = $.node_simple("style"),
