@@ -3726,7 +3726,7 @@
 
 			// Events
 			$.on(overlay, "click", Options.close);
-			$.on($("input.hl-settings-color-input[type=color]", overlay), "change", Filter.settings_color_change);
+			$.on($("input.hl-settings-color-input[type=color]", overlay), "change", Options.on_color_helper_change);
 			$.on($(".hl-settings-filter-guide-toggle", overlay), "click", Options.on_toggle_filter_guide);
 
 			// Add to body
@@ -4003,6 +4003,21 @@
 			}
 			catch (e) {}
 		},
+		on_color_helper_change: function () {
+			var n = this.nextSibling,
+				m;
+
+			if (n !== null) {
+				n.value = this.value.toUpperCase();
+				n = n.nextSibling;
+				if (n !== null) {
+					m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(this.value);
+					if (m !== null) {
+						n.value = "rgba(" + parseInt(m[1], 16) + "," + parseInt(m[2], 16) + "," + parseInt(m[3], 16) + ",1)";
+					}
+				}
+			}
+		},
 		init: function () {
 			Navigation.insert_link("main", "#TITLE#", Main.homepage, " hl-nav-link-settings", Options.open);
 
@@ -4146,93 +4161,40 @@
 			if (update) Config.save();
 		}
 	};
-	Filter = {
-		filters: null,
-		None: 0,
-		Bad: -1,
-		Good: 1,
-		cache: {
-			tags: {}
-		},
-		regex_default_flags: "color:#ee2200;link-color:#ee2200;",
-		Segment: function (start, end, data) {
+	Filter = (function () {
+
+		// Private
+		var filters = null,
+			regex_default_flags = "color:#ee2200;link-color:#ee2200;",
+			good_values = [ "", "true", "yes" ],
+			Status = { None: 0, Bad: -1, Good: 1 },
+			cache = { tags: {} };
+
+		var Segment = function (start, end, data) {
 			this.start = start;
 			this.end = end;
 			this.data = data;
-		},
-		MatchInfo: function () {
+		};
+		var MatchInfo = function () {
 			this.matches = [];
 			this.any = false;
 			this.bad = false;
-		},
-		init: function () {
-			Filter.filters = Filter.parse(conf.Filters);
-		},
-		genregex: function (pattern, flags) {
-			if (flags.indexOf("g") < 0) {
-				flags += "g";
-			}
+		};
+
+		var create_regex = function (pattern, flags) {
+			if (flags.indexOf("g") < 0) flags += "g";
+
 			try {
 				return new RegExp(pattern, flags);
 			}
 			catch (e) {
 				return null;
 			}
-		},
-		parse: function (input) {
-			var filters = [],
-				lines = (input || "").split("\n"),
-				i, pos, pos2, flags, line, regex;
-
-			for (i = 0; i < lines.length; ++i) {
-				line = lines[i].trim();
-				if (line.length === 0) continue;
-				if (line[0] === "/" && (pos = line.lastIndexOf("/")) > 0) {
-					++pos;
-					pos2 = line.indexOf(";", pos);
-
-					regex = line.substr(1, pos - 2);
-					if (pos2 >= 0) {
-						flags = line.substr(pos, pos2 - pos);
-						pos = pos2 + 1;
-					}
-					else {
-						flags = line.substr(pos);
-						pos = line.length;
-					}
-					regex = Filter.genregex(regex, flags);
-
-					if (regex) {
-						flags = Filter.parse_flags((pos < line.length) ? line.substr(pos) : Filter.regex_default_flags);
-						filters.push({
-							regex: regex,
-							flags: flags
-						});
-					}
-				}
-				else if (line[0] !== "#") {
-					if ((pos = line.indexOf(";")) > 0) {
-						regex = line.substr(0, pos);
-						flags = (pos < line.length) ? Filter.parse_flags(line.substr(pos)) : null;
-					}
-					else {
-						regex = line;
-						flags = Filter.parse_flags(Filter.regex_default_flags);
-					}
-					regex = new RegExp(Helper.regex_escape(regex), "ig");
-
-					filters.push({
-						regex: regex,
-						flags: flags
-					});
-				}
-			}
-			return filters;
-		},
-		parse_flags: function (text) {
-			var flaglist, flags, key, m, i;
-			flags = {};
-			flaglist = text.split(";");
+		};
+		var parse_flags = function (text) {
+			var flaglist = text.split(";"),
+				flags = {},
+				key, m, i;
 
 			for (i = 0; i < flaglist.length; ++i) {
 				if (flaglist[i].length > 0) {
@@ -4243,11 +4205,10 @@
 				}
 			}
 
-			return Filter.normalize_flags(flags);
-		},
-		normalize_flags: function (flags) {
+			return normalize_flags(flags);
+		};
+		var normalize_flags = function (flags) {
 			var any = false,
-				good = [ "", "true", "yes" ],
 				norm = {
 					title: true,
 					tags: true,
@@ -4256,9 +4217,9 @@
 				v;
 
 			if (flags.title !== undefined || flags.tags !== undefined || flags.tag !== undefined || flags.uploader !== undefined) {
-				norm.title = ((v = flags.title) === undefined ? false : good.indexOf(v.trim().toLowerCase()) >= 0);
-				norm.tags = ((v = flags.tags) === undefined && (v = flags.tag) === undefined ? false : good.indexOf(v.trim().toLowerCase()) >= 0);
-				norm.uploader = ((v = flags.uploader) === undefined ? false : good.indexOf(v.trim().toLowerCase()) >= 0);
+				norm.title = ((v = flags.title) === undefined ? false : good_values.indexOf(v.trim().toLowerCase()) >= 0);
+				norm.tags = ((v = flags.tags) === undefined && (v = flags.tag) === undefined ? false : good_values.indexOf(v.trim().toLowerCase()) >= 0);
+				norm.uploader = ((v = flags.uploader) === undefined ? false : good_values.indexOf(v.trim().toLowerCase()) >= 0);
 				any = true;
 			}
 
@@ -4266,14 +4227,14 @@
 				((v = flags.only) !== undefined || (v = flags.category) !== undefined || (v = flags.cat) !== undefined) &&
 				v.length > 0
 			) {
-				norm.only = Filter.normalize_split(v);
+				norm.only = normalize_split(v);
 				any = true;
 			}
 			if ((v = flags.not) !== undefined && v.length > 0) {
-				norm.not = Filter.normalize_split(v);
+				norm.not = normalize_split(v);
 				any = true;
 			}
-			if ((v = flags.bad) !== undefined && (good.indexOf(v.trim().toLowerCase()) >= 0)) {
+			if ((v = flags.bad) !== undefined && (good_values.indexOf(v.trim().toLowerCase()) >= 0)) {
 				norm.bad = true;
 				any = true;
 			}
@@ -4306,36 +4267,33 @@
 			}
 
 			return any ? norm : null;
-		},
-		normalize_split: function (text) {
-			var array, i;
-			array = text.split(",");
+		};
+		var normalize_split = function (text) {
+			var array = text.split(","),
+				i;
 			for (i = 0; i < array.length; ++i) {
 				array[i] = array[i].trim().toLowerCase();
 			}
 			return array;
-		},
-		matches_to_segments: function (text, matches) {
-			var Segment, segments, fast, hit, m, s, i, j;
+		};
+		var matches_to_segments = function (text, matches) {
+			var segments = [ new Segment(0, text.length, []) ],
+				hit, m, s, i, ii, j, jj;
 
-			Segment = Filter.Segment;
-			segments = [ new Segment(0, text.length, []) ];
-			fast = conf['Full Highlighting'];
-
-			if (fast) {
-				for (i = 0; i < matches.length; ++i) {
+			if (conf["Full Highlighting"]) { // fast mode
+				for (i = 0, ii = matches.length; i < ii; ++i) {
 					segments[0].data.push(matches[i].data);
 				}
 			}
 			else {
-				for (i = 0; i < matches.length; ++i) {
+				for (i = 0, ii = matches.length; i < ii; ++i) {
 					m = matches[i];
 					hit = false;
-					for (j = 0; j < segments.length; ++j) {
+					for (j = 0, jj = segments.length; j < jj; ++j) {
 						s = segments[j];
 						if (m.start < s.end && m.end > s.start) {
 							hit = true;
-							j = Filter.update_segments(segments, j, m, s);
+							j = update_segments(segments, j, m, s);
 						}
 						else if (hit) {
 							break;
@@ -4345,18 +4303,18 @@
 			}
 
 			return segments;
-		},
-		update_segments: function (segments, pos, seg1, seg2) {
-			var s1, s2, data;
+		};
+		var update_segments = function (segments, pos, seg1, seg2) {
+			var data = seg2.data.slice(0),
+				s1, s2;
 
-			data = seg2.data.slice(0);
 			seg2.data.push(seg1.data);
 
 			if (seg1.start > seg2.start) {
 				if (seg1.end < seg2.end) {
 					// cut at both
-					s1 = new Filter.Segment(seg2.start, seg1.start, data);
-					s2 = new Filter.Segment(seg1.end, seg2.end, data.slice(0));
+					s1 = new Segment(seg2.start, seg1.start, data);
+					s2 = new Segment(seg1.end, seg2.end, data.slice(0));
 					seg2.start = seg1.start;
 					seg2.end = seg1.end;
 					segments.splice(pos, 0, s1);
@@ -4365,7 +4323,7 @@
 				}
 				else {
 					// cut at start
-					s1 = new Filter.Segment(seg2.start, seg1.start, data);
+					s1 = new Segment(seg2.start, seg1.start, data);
 					seg2.start = seg1.start;
 					segments.splice(pos, 0, s1);
 					pos += 1;
@@ -4374,7 +4332,7 @@
 			else {
 				if (seg1.end < seg2.end) {
 					// cut at end
-					s2 = new Filter.Segment(seg1.end, seg2.end, data);
+					s2 = new Segment(seg1.end, seg2.end, data);
 					seg2.end = seg1.end;
 					pos += 1;
 					segments.splice(pos, 0, s2);
@@ -4383,26 +4341,23 @@
 			}
 
 			return pos;
-		},
-		apply_styles: function (node, styles) {
-			var color = null, background = null, underline = null, style, i, s;
+		};
+		var apply_styles = function (node, styles) {
+			var color = null,
+				background = null,
+				underline = null,
+				style, i, ii, s;
 
-			for (i = 0; i < styles.length; ++i) {
+			for (i = 0, ii = styles.length; i < ii; ++i) {
 				style = styles[i];
-				if ((s = style.color)) {
-					color = s;
-				}
-				if ((s = style.background)) {
-					background = s;
-				}
-				if ((s = style.underline)) {
-					underline = s;
-				}
+				if ((s = style.color) !== undefined) color = s;
+				if ((s = style.background) !== undefined) background = s;
+				if ((s = style.underline) !== undefined) underline = s;
 			}
 
-			Filter.apply_styling(node, color, background, underline);
-		},
-		apply_styling: function (node, color, background, underline) {
+			apply_styling(node, color, background, underline);
+		};
+		var apply_styling = function (node, color, background, underline) {
 			if (color !== null) {
 				node.style.setProperty("color", color, "important");
 			}
@@ -4412,13 +4367,13 @@
 			if (underline !== null) {
 				node.style.setProperty("border-bottom", "0.125em solid " + underline, "important");
 			}
-		},
-		append_match_datas: function (matchinfo, target) {
+		};
+		var append_match_datas = function (matchinfo, target) {
 			for (var i = 0, ii = matchinfo.matches.length; i < ii; ++i) {
 				target.push(matchinfo.matches[i].data);
 			}
-		},
-		remove_non_bad: function (list) {
+		};
+		var remove_non_bad = function (list) {
 			for (var i = 0; i < list.length; ) {
 				if (!list[i].bad) {
 					list.splice(i, 1);
@@ -4426,17 +4381,17 @@
 				}
 				++i;
 			}
-		},
-		check_multiple: function (type, text, filters, data) {
-			var info = new Filter.MatchInfo(),
-				filter, match, i;
+		};
+		var check_multiple = function (type, text, filters, data) {
+			var info = new MatchInfo(),
+				filter, match, i, ii;
 
-			for (i = 0; i < filters.length; ++i) {
+			for (i = 0, ii = filters.length; i < ii; ++i) {
 				filter = filters[i];
 				if (filter.flags[type] !== true) continue;
 				filter.regex.lastIndex = 0;
 				while (true) {
-					match = Filter.check_single(text, filter, data);
+					match = check_single(text, filter, data);
 					if (match === false) break;
 
 					info.any = true;
@@ -4449,9 +4404,9 @@
 				}
 			}
 			return info;
-		},
-		check_single: function (text, filter, data) {
-			var list, cat, i, m;
+		};
+		var check_single = function (text, filter, data) {
+			var list, cat, i, ii, m;
 
 			m = filter.regex.exec(text);
 			if (filter.flags === null) {
@@ -4460,18 +4415,16 @@
 
 			// Category filtering
 			cat = data.category.toLowerCase();
-			if ((list = filter.flags.only)) {
-				for (i = 0; i < list.length; ++i) {
+			if ((list = filter.flags.only) !== undefined) {
+				for (i = 0, ii = list.length; i < ii; ++i) {
 					if (list[i] === cat) {
 						break;
 					}
 				}
-				if (i >= list.length) {
-					return false;
-				}
+				if (i >= ii) return false;
 			}
-			if ((list = filter.flags.not)) {
-				for (i = 0; i < list.length; ++i) {
+			if ((list = filter.flags.not) !== undefined) {
+				for (i = 0, ii = list.length; i < ii; ++i) {
 					if (list[i] === cat) {
 						return false;
 					}
@@ -4479,98 +4432,98 @@
 			}
 
 			// Text filter
-			return (m === null) ? false : new Filter.Segment(m.index, m.index + m[0].length, filter.flags);
-		},
-		check: function (titlenode, data, extras) {
-			if (Filter.filters === null) return [ Filter.None, null ];
-
-			var filters = Filter.filters,
-				status, str, tags, result, i, info;
-
-			if (extras && extras.length > 0) {
-				filters = filters.concat(extras);
+			return (m === null) ? false : new Segment(m.index, m.index + m[0].length, filter.flags);
+		};
+		var hl_return = function (bad, node) {
+			if (bad) {
+				node.classList.add("hl-filter-bad");
+				return Status.Bad;
 			}
+			else {
+				node.classList.add("hl-filter-good");
+				return Status.Good;
+			}
+		};
 
-			result = {
-				tags: [],
-				uploader: [],
-				title: [],
-			};
+		// Public
+		var parse = function (input) {
+			var filters = [],
+				lines = (input || "").split("\n"),
+				i, pos, pos2, flags, line, regex;
 
-			// Title
-			status = Filter.highlight("title", titlenode, data, result.title, extras);
+			for (i = 0; i < lines.length; ++i) {
+				line = lines[i].trim();
+				if (line.length === 0) continue;
+				if (line[0] === "/" && (pos = line.lastIndexOf("/")) > 0) {
+					++pos;
+					pos2 = line.indexOf(";", pos);
 
-			if (filters.length > 0) {
-				// Uploader
-				if ((str = data.uploader)) {
-					info = Filter.check_multiple("uploader", str, filters, data);
-					if (info.any) {
-						Filter.append_match_datas(info, result.uploader);
-						if (info.bad) {
-							status = Filter.Bad;
-						}
-						else if (status === Filter.None) {
-							status = Filter.Good;
-						}
+					regex = line.substr(1, pos - 2);
+					if (pos2 >= 0) {
+						flags = line.substr(pos, pos2 - pos);
+						pos = pos2 + 1;
+					}
+					else {
+						flags = line.substr(pos);
+						pos = line.length;
+					}
+					regex = create_regex(regex, flags);
+
+					if (regex !== null) {
+						flags = parse_flags((pos < line.length) ? line.substr(pos) : regex_default_flags);
+						filters.push({
+							regex: regex,
+							flags: flags
+						});
 					}
 				}
-
-				// Tags
-				if ((tags = data.tags) && tags.length > 0) {
-					for (i = 0; i < tags.length; ++i) {
-						info = Filter.check_multiple("tags", tags[i], filters, data);
-						if (info.any) {
-							Filter.append_match_datas(info, result.tags);
-							if (info.bad) {
-								status = Filter.Bad;
-							}
-							else if (status === Filter.None) {
-								status = Filter.Good;
-							}
-						}
+				else if (line[0] !== "#") {
+					if ((pos = line.indexOf(";")) > 0) {
+						regex = line.substr(0, pos);
+						flags = (pos < line.length) ? parse_flags(line.substr(pos)) : null;
 					}
-					// Remove dups
-					result.tags = result.tags.filter(function (item, pos, self) {
-						return (self.indexOf(item) === pos);
+					else {
+						regex = line;
+						flags = parse_flags(regex_default_flags);
+					}
+					regex = new RegExp(Helper.regex_escape(regex), "ig");
+
+					filters.push({
+						regex: regex,
+						flags: flags
 					});
 				}
 			}
 
-			// Remove non-bad filters on result.tags and result.uploader
-			if (status === Filter.Bad) {
-				Filter.remove_non_bad(result.uploader);
-				Filter.remove_non_bad(result.tags);
-			}
-
-			return [ status , (status === Filter.None ? null : result) ];
-		},
-		highlight: function (type, node, data, results, extras) {
-			if (Filter.filters === null) {
-				Filter.init();
+			return filters;
+		};
+		var highlight = function (type, node, data, results, extras) {
+			if (filters === null) {
+				filters = parse(conf.Filters);
 			}
 
 			var no_extras = true,
-				filters = Filter.filters,
-				info, matches, text, frag, segment, cache, c, i, t, n1, n2;
+				filters_temp = filters,
+				info, matches, text, frag, segment, cache_type, c, i, t, n1, n2;
 
 			if (extras && extras.length > 0) {
-				filters = filters.concat(extras);
+				filters_temp = filters_temp.concat(extras);
 				no_extras = false;
 			}
-			if (filters.length === 0) {
-				return Filter.None;
+			if (filters_temp.length === 0) {
+				return Status.None;
 			}
 
 			// Cache for tags
 			text = node.textContent;
-			if (no_extras && (cache = Filter.cache[type]) !== undefined && (c = cache[text]) !== undefined) {
+			if (no_extras && (cache_type = cache[type]) !== undefined && (c = cache_type[text]) !== undefined) {
 				if (c === null) {
-					return Filter.None;
+					return Status.None;
 				}
 
 				// Results
 				if (results !== null) {
-					Filter.append_match_datas(c[0], results);
+					append_match_datas(c[0], results);
 				}
 
 				// Clone
@@ -4579,16 +4532,16 @@
 				while ((n2 = n1.firstChild) !== null) {
 					$.add(node, n2);
 				}
-				return Filter.hl_return(n1.classList.contains("hl-filter-bad"), node);
+				return hl_return(n1.classList.contains("hl-filter-bad"), node);
 			}
 
 			// Check filters
-			info = Filter.check_multiple(type, text, filters, data);
+			info = check_multiple(type, text, filters_temp, data);
 			if (!info.any) {
-				if (cache !== undefined) {
-					cache[text] = null;
+				if (cache_type !== undefined) {
+					cache_type[text] = null;
 				}
-				return Filter.None;
+				return Status.None;
 			}
 
 			// If bad, remove all non-bad filters
@@ -4604,11 +4557,11 @@
 
 			// Results
 			if (results !== null) {
-				Filter.append_match_datas(info, results);
+				append_match_datas(info, results);
 			}
 
 			// Merge
-			matches = Filter.matches_to_segments(text, info.matches);
+			matches = matches_to_segments(text, info.matches);
 
 			frag = d.createDocumentFragment();
 			for (i = 0; i < matches.length; ++i) {
@@ -4622,20 +4575,20 @@
 					n2 = $.node("span", "hl-filter-text-inner", t);
 					$.add(n1, n2);
 					$.add(frag, n1);
-					Filter.apply_styles(n1, segment.data);
+					apply_styles(n1, segment.data);
 				}
 			}
 
 			// Replace
 			node.innerHTML = "";
 			$.add(node, frag);
-			if (cache !== undefined) {
-				cache[text] = [ info, node ];
+			if (cache_type !== undefined) {
+				cache_type[text] = [ info, node ];
 			}
-			return Filter.hl_return(info.bad, node);
-		},
-		highlight_tag: function (node, link, filter_data) {
-			if (filter_data[0] === Filter.Bad) {
+			return hl_return(info.bad, node);
+		};
+		var highlight_tag = function (node, link, filter_data) {
+			if (filter_data[0] === Status.Bad) {
 				node.classList.add("hl-filter-bad");
 				link.classList.add("hl-filter-bad");
 				link.classList.remove("hl-filter-good");
@@ -4678,33 +4631,85 @@
 				}
 				$.add(n1, n2);
 				$.add(node, n1);
-				Filter.apply_styling(n1, color, background, underline);
+				apply_styling(n1, color, background, underline);
 			}
-		},
-		hl_return: function (bad, node) {
-			if (bad) {
-				node.classList.add("hl-filter-bad");
-				return Filter.Bad;
+		};
+		var check = function (titlenode, data, extras) {
+			if (filters === null) return [ Status.None, null ];
+
+			var filters_temp = filters,
+				status, str, tags, result, i, info;
+
+			if (extras && extras.length > 0) {
+				filters_temp = filters_temp.concat(extras);
 			}
-			else {
-				node.classList.add("hl-filter-good");
-				return Filter.Good;
-			}
-		},
-		settings_color_change: function () {
-			var n = this.nextSibling, m;
-			if (n) {
-				n.value = this.value.toUpperCase();
-				n = n.nextSibling;
-				if (n) {
-					m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(this.value);
-					if (m !== null) {
-						n.value = "rgba(" + parseInt(m[1], 16) + "," + parseInt(m[2], 16) + "," + parseInt(m[3], 16) + ",1)";
+
+			result = {
+				tags: [],
+				uploader: [],
+				title: [],
+			};
+
+			// Title
+			status = highlight("title", titlenode, data, result.title, extras);
+
+			if (filters_temp.length > 0) {
+				// Uploader
+				if ((str = data.uploader)) {
+					info = check_multiple("uploader", str, filters_temp, data);
+					if (info.any) {
+						append_match_datas(info, result.uploader);
+						if (info.bad) {
+							status = Status.Bad;
+						}
+						else if (status === Status.None) {
+							status = Status.Good;
+						}
 					}
 				}
+
+				// Tags
+				if ((tags = data.tags) && tags.length > 0) {
+					for (i = 0; i < tags.length; ++i) {
+						info = check_multiple("tags", tags[i], filters_temp, data);
+						if (info.any) {
+							append_match_datas(info, result.tags);
+							if (info.bad) {
+								status = Status.Bad;
+							}
+							else if (status === Status.None) {
+								status = Status.Good;
+							}
+						}
+					}
+					// Remove dups
+					result.tags = result.tags.filter(function (item, pos, self) {
+						return (self.indexOf(item) === pos);
+					});
+				}
 			}
-		}
-	};
+
+			// Remove non-bad filters on result.tags and result.uploader
+			if (status === Status.Bad) {
+				remove_non_bad(result.uploader);
+				remove_non_bad(result.tags);
+			}
+
+			return [ status , (status === Status.None ? null : result) ];
+		};
+
+		// Export
+		return {
+			None: Status.None,
+			Bad: Status.Bad,
+			Good: Status.Good,
+			parse: parse,
+			check: check,
+			highlight: highlight,
+			highlight_tag: highlight_tag
+		};
+
+	})();
 	Theme = (function () {
 
 		// Private
