@@ -3677,7 +3677,7 @@
 				small: true,
 				setup: function (container) {
 					var n;
-					$.add(container, $.link("#HOMEPAGE#", "hl-settings-title" + theme, "#TITLE#"));
+					$.add(container, $.link(Main.homepage, "hl-settings-title" + theme, "#TITLE#"));
 					$.add(container, n = $.link(Changelog.url, "hl-settings-version" + theme, Main.version.join(".")));
 					$.on(n, "click", Options.to_changelog);
 				}
@@ -3753,7 +3753,7 @@
 			overlay = Popup.create("settings", [[{
 				small: true,
 				setup: function (container) {
-					$.add(container, $.link("#HOMEPAGE#", "hl-settings-title" + theme, "#TITLE#"));
+					$.add(container, $.link(Main.homepage, "hl-settings-title" + theme, "#TITLE#"));
 					$.add(container, $.node("span", "hl-settings-title-info" + theme, " - Settings export"));
 				}
 			}, {
@@ -4004,9 +4004,9 @@
 			catch (e) {}
 		},
 		init: function () {
-			Navigation.insert_link("main", "#TITLE#", "#HOMEPAGE#", " hl-nav-link-settings", Options.open);
+			Navigation.insert_link("main", "#TITLE#", Main.homepage, " hl-nav-link-settings", Options.open);
 
-			var n = $.link("#HOMEPAGE#", "hl-nav-link", "#TITLE# Settings");
+			var n = $.link(Main.homepage, "hl-nav-link", "#TITLE# Settings");
 			$.on(n, "click", Options.open);
 			HeaderBar.insert_menu_link(n);
 		}
@@ -4935,12 +4935,12 @@
 			}
 		},
 		init: function () {
-			Navigation.insert_link("normal", "Easy List", "#HOMEPAGE#", " hl-nav-link-easylist", EasyList.on_open_click);
+			Navigation.insert_link("normal", "Easy List", Main.homepage, " hl-nav-link-easylist", EasyList.on_open_click);
 
 			HeaderBar.insert_shortcut_icon(
 				"panda",
 				"#TITLE# Easy List",
-				"#HOMEPAGE#",
+				Main.homepage,
 				HeaderBar.on_icon_click,
 				function (svg, svgns) {
 					var path = $.node_ns(svgns, "path", "hl-header-bar-svg-panda-path");
@@ -5808,7 +5808,7 @@
 				small: true,
 				setup: function (container) {
 					var cls = "";
-					$.add(container, $.link("#HOMEPAGE#", "hl-settings-title" + theme, "#TITLE#"));
+					$.add(container, $.link(Main.homepage, "hl-settings-title" + theme, "#TITLE#"));
 					if (message !== null) {
 						$.add(container, $.node("span", "hl-settings-title-info" + theme, message));
 						if (/\s+$/.test(message)) {
@@ -6321,6 +6321,7 @@
 	Main = {
 		version: [/*#VERSION#*/],
 		version_change: 0,
+		homepage: "#HOMEPAGE#",
 		queue: [],
 		font_inserted: false,
 		version_compare: function (v1, v2) {
