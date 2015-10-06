@@ -6323,25 +6323,41 @@
 			}
 		}
 	};
-	Main = {
-		version: [/*#VERSION#*/],
-		version_change: 0,
-		homepage: "#HOMEPAGE#",
-		queue: [],
-		init: function () {
-			var t = Debug.timer_log("init.pre duration", timing.start);
-			Config.init();
-			Debug.init();
-			if (Main.version_change === 1) {
-				Debug.log("Clearing cache on update");
-				Cache.clear();
+	Main = (function () {
+
+		// Private
+		var fonts_inserted = false,
+			all_posts_reloaded = false;
+
+		var reload_all_posts = function () {
+			if (all_posts_reloaded) return;
+			all_posts_reloaded = true;
+
+			var posts = Helper.Post.get_all_posts(d),
+				post, post_body, post_links, link, i, ii, j, jj;
+
+			for (i = 0, ii = posts.length; i < ii; ++i) {
+				post = posts[i];
+				post.classList.remove("hl-post-linkified");
+				if ((post_body = Helper.Post.get_text_body(post)) !== null) {
+					post_links = Helper.Post.get_body_links(post_body);
+					for (j = 0, jj = post_links.length; j < jj; ++j) {
+						link = post_links[j];
+						if (link.classList.contains("hl-site-tag")) {
+							$.remove(link);
+						}
+						else if (link.classList.contains("hl-linkified")) {
+							link.classList.remove("hl-linkified");
+							Linkifier.change_link_events(link, null);
+						}
+					}
+				}
 			}
-			Cache.init();
-			Debug.log(t[0], t[1]);
-			Debug.timer_log("init duration", timing.start);
-			$.ready(Main.ready);
-		},
-		ready: function () {
+
+			Linkifier.parse_posts(posts);
+		};
+
+		var on_ready = function () {
 			Debug.timer("init");
 
 			if (!Config.site()) return;
@@ -6363,110 +6379,31 @@
 			API.run_request_queue();
 
 			if (MutationObserver !== null) {
-				updater = new MutationObserver(Main.on_body_observe);
+				updater = new MutationObserver(on_body_observe);
 				updater.observe(d.body, { childList: true, subtree: true });
 			}
 			else {
-				$.on(d.body, "DOMNodeInserted", Main.on_body_node_add);
+				$.on(d.body, "DOMNodeInserted", on_body_node_add);
 			}
 
 			HeaderBar.setup();
 
-			if (Main.version_change === 1 && conf["Show Changelog on Update"]) {
+			if (Module.version_change === 1 && conf["Show Changelog on Update"]) {
 				Changelog.open(" updated to ");
 			}
 
 			Debug.timer_log("init.ready.full duration", "init");
-		},
-		version_compare: function (v1, v2) {
-			// Returns: -1 if v1<v2, 0 if v1==v2, 1 if v1>v2
-			var ii = Math.min(v1.length, v2.length),
-				i, x, y;
-
-			for (i = 0; i < ii; ++i) {
-				x = v1[i];
-				y = v2[i];
-				if (x < y) return -1;
-				if (x > y) return 1;
-			}
-
-			ii = v1.length;
-			y = v2.length;
-			if (ii === y) return 0;
-
-			if (ii > y) {
-				y = 1;
-			}
-			else {
-				ii = y;
-				v1 = v2;
-				y = -1;
-			}
-
-			for (; i < ii; ++i) {
-				x = v1[i];
-				if (x < 0) return -y;
-				if (x > 0) return y;
-			}
-
-			return 0;
-		},
-		insert_custom_fonts: (function () {
-			var font_inserted = false;
-			return function () {
-				if (font_inserted) return;
-				font_inserted = true;
-
-				if (!conf['Use Extenral Resources']) return;
-
-				var font = $.node_simple("link");
-				font.rel = "stylesheet";
-				font.type = "text/css";
-				font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
-				$.add(d.head, font);
-			};
-		})(),
-		reload_all_posts: (function () {
-			var happened = false;
-
-			return function () {
-				if (happened) return;
-				happened = true;
-
-				var posts = Helper.Post.get_all_posts(d),
-					post, post_body, post_links, link, i, ii, j, jj;
-
-				for (i = 0, ii = posts.length; i < ii; ++i) {
-					post = posts[i];
-					post.classList.remove("hl-post-linkified");
-					if ((post_body = Helper.Post.get_text_body(post)) !== null) {
-						post_links = Helper.Post.get_body_links(post_body);
-						for (j = 0, jj = post_links.length; j < jj; ++j) {
-							link = post_links[j];
-							if (link.classList.contains("hl-site-tag")) {
-								$.remove(link);
-							}
-							else if (link.classList.contains("hl-linkified")) {
-								link.classList.remove("hl-linkified");
-								Linkifier.change_link_events(link, null);
-							}
-						}
-					}
-				}
-
-				Linkifier.parse_posts(posts);
-			};
-		})(),
-		on_body_node_add: function (event) {
+		};
+		var on_body_node_add = function (event) {
 			var node = event.target;
-			Main.observer([{
+			on_body_observe([{
 				target: node.parentNode,
 				addedNodes: [ node ],
 				nextSibling: node.nextSibling,
 				previousSibling: node.previousSibling
 			}]);
-		},
-		on_body_observe: function (records) {
+		};
+		var on_body_observe = function (records) {
 			var post_list = [],
 				reload_all = false,
 				nodes, node, ns, e, i, ii, j, jj;
@@ -6545,10 +6482,83 @@
 				}
 			}
 			if (reload_all) {
-				Main.reload_all_posts();
+				reload_all_posts();
 			}
-		}
-	};
+		};
+
+		// Public
+		var init = function () {
+			var t = Debug.timer_log("init.pre duration", timing.start);
+			Config.init();
+			Debug.init();
+			if (Module.version_change === 1) {
+				Debug.log("Clearing cache on update");
+				Cache.clear();
+			}
+			Cache.init();
+			Debug.log(t[0], t[1]);
+			Debug.timer_log("init duration", timing.start);
+			$.ready(on_ready);
+		};
+		var version_compare = function (v1, v2) {
+			// Returns: -1 if v1<v2, 0 if v1==v2, 1 if v1>v2
+			var ii = Math.min(v1.length, v2.length),
+				i, x, y;
+
+			for (i = 0; i < ii; ++i) {
+				x = v1[i];
+				y = v2[i];
+				if (x < y) return -1;
+				if (x > y) return 1;
+			}
+
+			ii = v1.length;
+			y = v2.length;
+			if (ii === y) return 0;
+
+			if (ii > y) {
+				y = 1;
+			}
+			else {
+				ii = y;
+				v1 = v2;
+				y = -1;
+			}
+
+			for (; i < ii; ++i) {
+				x = v1[i];
+				if (x < 0) return -y;
+				if (x > 0) return y;
+			}
+
+			return 0;
+		};
+		var insert_custom_fonts = function () {
+			if (fonts_inserted) return;
+			fonts_inserted = true;
+
+			if (!conf['Use Extenral Resources']) return;
+
+			var font = $.node_simple("link");
+			font.rel = "stylesheet";
+			font.type = "text/css";
+			font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
+			$.add(d.head, font);
+		};
+
+		// Exports
+		var Module = {
+			homepage: "#HOMEPAGE#",
+			version: [/*#VERSION#*/],
+			version_change: 0,
+			init: init,
+			version_compare: version_compare,
+			insert_custom_fonts: insert_custom_fonts
+		};
+
+		return Module;
+
+	})();
 
 	Main.init();
 	Debug.timer_log("init.full duration", timing.start);
