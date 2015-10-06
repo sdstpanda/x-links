@@ -3,7 +3,7 @@
 (function () {
 	"use strict";
 
-	var timing, domains, domain_info, options, conf, regex, cat, browser, d, t, $, $$,
+	var timing, domains, domain_info, options, conf, regex, cat, browser, d, $, $$,
 		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Options, Config, Main,
 		MutationObserver, Helper, HttpRequest, Linkifier, Filter, Theme,
 		Post, CreateURL, EasyList, Popup, Changelog, HeaderBar, Navigation;
@@ -147,12 +147,6 @@
 		fjord: /abortion|bestiality|incest|lolicon|shotacon|toddlercon/,
 		site_exhentai: /exhentai\.org/i,
 		site_gehentai: /g\.e\-hentai\.org/i
-	};
-	t = {
-		SECOND: 1000,
-		MINUTE: 1000 * 60,
-		HOUR: 1000 * 60 * 60,
-		DAY: 1000 * 60 * 60 * 24
 	};
 	d = document;
 	conf = {};
@@ -2142,7 +2136,8 @@
 
 		// Private
 		var prefix = "#PREFIX#cache-",
-			storage = window.localStorage;
+			storage = window.localStorage,
+			ttl_hour = 60 * 60 * 1000;
 
 		var get_key = function (storage, key) {
 			var json = Helper.json_parse_safe(storage.getItem(key));
@@ -2240,7 +2235,7 @@
 			var now = Date.now();
 
 			if (ttl === 0) {
-				ttl = ((now - data.posted < 12 * t.HOUR) ? 1 : 12) * t.HOUR; // Update more frequently for recent uploads
+				ttl = ((now - data.posted < 12 * ttl_hour) ? ttl_hour : 12 * ttl_hour); // Update more frequently for recent uploads
 			}
 
 			storage.setItem(prefix + type + "-" + key, JSON.stringify({
@@ -2347,6 +2342,9 @@
 	Hash = (function () {
 
 		// Private
+		var ttl_12_hours = 12 * 60 * 60 * 1000,
+			ttl_1_year = 365 * 24 * 60 * 60 * 1000;
+
 		var saved_data = {
 			md5: {},
 			sha1: {},
@@ -2369,7 +2367,7 @@
 			return null;
 		};
 		var set = function (type, key, value) {
-			var ttl = (type === "md5") ? 365 * t.DAY : 12 * t.HOUR;
+			var ttl = (type === "md5") ? ttl_1_year : ttl_12_hours;
 			saved_data[type][key] = value;
 			Cache.set(type, key, value, ttl);
 		};
