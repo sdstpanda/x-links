@@ -2245,13 +2245,17 @@
 			return v === undefined ? null : v;
 		}
 	};
-	Hash = {
-		data: {
+	Hash = (function () {
+
+		// Private
+		var saved_data = {
 			md5: {},
 			sha1: {},
-		},
-		get: function (type, key) {
-			var hash_data = Hash.data[type],
+		};
+
+		// Public
+		var get = function (type, key) {
+			var hash_data = saved_data[type],
 				value;
 
 			value = hash_data[key];
@@ -2264,16 +2268,24 @@
 			}
 
 			return null;
-		},
-		set: function (type, key, value) {
+		};
+		var set = function (type, key, value) {
 			var ttl = (type === "md5") ? 365 * t.DAY : 12 * t.HOUR;
-			Hash.data[type][key] = value;
+			saved_data[type][key] = value;
 			Cache.set(type, key, value, ttl);
-		},
-		set_nocache: function (type, key, value) {
-			Hash.data[type][key] = value;
-		}
-	};
+		};
+		var set_nocache = function (type, key, value) {
+			saved_data[type][key] = value;
+		};
+
+		// Exports
+		return {
+			get: get,
+			set: set,
+			set_nocache: set_nocache
+		};
+
+	})();
 	SHA1 = (function () {
 
 		// SHA-1 JS implementation originally created by Chris Verness; http://movable-type.co.uk/scripts/sha1.html
