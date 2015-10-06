@@ -4705,94 +4705,12 @@
 			}
 		}
 	};
-	Theme = {
-		current: "light",
-		get: function () {
-			return (Theme.current === "light" ? " hl-theme" : " hl-theme hl-theme-dark");
-		},
-		apply: function (node) {
-			if (Theme.current !== "light") {
-				var nodes = $$(".hl-theme", node),
-					i, ii;
+	Theme = (function () {
 
-				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					nodes[i].classList.add("hl-theme-dark");
-				}
+		// Private
+		var current = "light";
 
-				if (node.classList && node.classList.contains("hl-theme")) {
-					node.classList.add("hl-theme-dark");
-				}
-			}
-		},
-		prepare: function (first) {
-			Theme.update(!first);
-
-			var add_mo = function (nodes, init, callback) {
-				if (MutationObserver === null) return;
-
-				var mo = new MutationObserver(callback),
-					i;
-				for (i = 0; i < nodes.length; ++i) {
-					if (nodes[i]) mo.observe(nodes[i], init);
-				}
-			};
-
-			add_mo([ d.head ], { childList: true }, function (records) {
-				var update = false,
-					nodes, node, tag, i, ii, j, jj;
-
-				outer:
-				for (i = 0, ii = records.length; i < ii; ++i) {
-					if ((nodes = records[i].addedNodes)) {
-						for (j = 0, jj = nodes.length; j < jj; ++j) {
-							node = nodes[j];
-							tag = node.tagName;
-							if (tag === "STYLE" || (tag === "LINK" && /\bstylesheet\b/.test(node.rel))) {
-								update = true;
-								break outer;
-							}
-						}
-					}
-					if ((nodes = records[i].removedNodes)) {
-						for (j = 0, jj = nodes.length; j < jj; ++j) {
-							node = nodes[j];
-							tag = node.tagName;
-							if (tag === "STYLE" || (tag === "LINK" && /\bstylesheet\b/.test(node.rel))) {
-								update = true;
-								break outer;
-							}
-						}
-					}
-				}
-
-				if (update) {
-					Theme.update();
-				}
-			});
-		},
-		update: function (update_nodes) {
-			var new_theme = Theme.detect();
-			if (new_theme !== null && new_theme !== Theme.current) {
-				if (update_nodes) {
-					var nodes = $$("hl-theme"),
-						cls, i;
-					if (new_theme === "light") {
-						cls = "hl-theme-" + Theme.current;
-						for (i = 0; i < nodes.length; ++i) {
-							nodes.classList.remove(cls);
-						}
-					}
-					else {
-						cls = "hl-theme-" + new_theme;
-						for (i = 0; i < nodes.length; ++i) {
-							nodes.classList.add(cls);
-						}
-					}
-				}
-				Theme.current = new_theme;
-			}
-		},
-		detect: function () {
+		var detect = function () {
 			var doc_el = d.documentElement,
 				body = d.body,
 				n = d.createElement("div"),
@@ -4805,10 +4723,10 @@
 			n.className = "post reply post_wrapper hl-fake-post";
 			$.add(body, n);
 
-			color = Theme.parse_css_color(Theme.get_computed_style(doc_el).backgroundColor);
+			color = parse_css_color(get_computed_style(doc_el).backgroundColor);
 			colors = [
-				Theme.parse_css_color(Theme.get_computed_style(body).backgroundColor),
-				Theme.parse_css_color(Theme.get_computed_style(n).backgroundColor),
+				parse_css_color(get_computed_style(body).backgroundColor),
+				parse_css_color(get_computed_style(n).backgroundColor),
 			];
 
 			for (i = 0; i < colors.length; ++i) {
@@ -4826,19 +4744,96 @@
 			if (color[3] === 0) return null;
 
 			return (color[0] + color[1] + color[2] < 384) ? "dark" : "light";
-		},
-		get_computed_style: function (node) {
+		};
+		var update = function (change_nodes) {
+			var new_theme = detect();
+			if (new_theme !== null && new_theme !== current) {
+				if (change_nodes) update_nodes(new_theme);
+				current = new_theme;
+				return true;
+			}
+			return false;
+		};
+		var update_nodes = function (new_theme) {
+			var nodes = $$("hl-theme"),
+				cls, i;
+			if (new_theme === "light") {
+				cls = "hl-theme-" + current;
+				for (i = 0; i < nodes.length; ++i) {
+					nodes.classList.remove(cls);
+				}
+			}
+			else {
+				cls = "hl-theme-" + new_theme;
+				for (i = 0; i < nodes.length; ++i) {
+					nodes.classList.add(cls);
+				}
+			}
+		};
+
+		var on_head_mutate = function (records) {
+			var nodes, node, tag, i, ii, j, jj;
+
+			for (i = 0, ii = records.length; i < ii; ++i) {
+				if ((nodes = records[i].addedNodes)) {
+					for (j = 0, jj = nodes.length; j < jj; ++j) {
+						node = nodes[j];
+						tag = node.tagName;
+						if (tag === "STYLE" || (tag === "LINK" && /\bstylesheet\b/.test(node.rel))) {
+							update(true);
+							return;
+						}
+					}
+				}
+				if ((nodes = records[i].removedNodes)) {
+					for (j = 0, jj = nodes.length; j < jj; ++j) {
+						node = nodes[j];
+						tag = node.tagName;
+						if (tag === "STYLE" || (tag === "LINK" && /\bstylesheet\b/.test(node.rel))) {
+							update(true);
+							return;
+						}
+					}
+				}
+			}
+		};
+
+		// Public
+		var ready = function () {
+			update(false);
+
+			if (MutationObserver !== null && d.head) {
+				new MutationObserver(on_head_mutate).observe(d.head, { childList: true });
+			}
+		};
+		var get = function () {
+			return (current === "light" ? " hl-theme" : " hl-theme hl-theme-dark");
+		};
+		var apply = function (node) {
+			if (current !== "light") {
+				var nodes = $$(".hl-theme", node),
+					i, ii;
+
+				for (i = 0, ii = nodes.length; i < ii; ++i) {
+					nodes[i].classList.add("hl-theme-dark");
+				}
+
+				if (node.classList && node.classList.contains("hl-theme")) {
+					node.classList.add("hl-theme-dark");
+				}
+			}
+		};
+		var get_computed_style = function (node) {
 			try {
 				// Don't use window.getComputedStyle: https://code.google.com/p/chromium/issues/detail?id=538650
 				return document.defaultView.getComputedStyle(node);
 			}
 			catch (e) {
-				return node.style;
+				return node.style || {};
 			}
-		},
-		parse_css_color: function (color) {
-			color = color || "";
-			if (color !== "transparent") {
+		};
+		var parse_css_color = function (color) {
+			if (color && color !== "transparent") {
 				var m;
 				if ((m = /^rgba?\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)\s*(?:,\s*([0-9\.]+)\s*)?\)$/.exec(color))) {
 					return [
@@ -4869,8 +4864,18 @@
 			}
 
 			return [ 0 , 0 , 0 , 0 ];
-		}
-	};
+		};
+
+		// Exports
+		return {
+			ready: ready,
+			get: get,
+			apply: apply,
+			get_computed_style: get_computed_style,
+			parse_css_color: parse_css_color
+		};
+
+	})();
 	EasyList = (function () {
 
 		// Private
@@ -6447,7 +6452,7 @@
 			style.textContent = "#STYLESHEET#";
 			$.add(d.head, style);
 
-			Theme.prepare();
+			Theme.ready();
 			EasyList.ready();
 
 			Debug.timer_log("init.ready duration", "init");
