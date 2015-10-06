@@ -2067,18 +2067,33 @@
 			return data;
 		}
 	};
-	Cache = {
-		namespace: "#PREFIX#cache-",
-		type: window.localStorage,
-		init: function () {
-			var re_matcher = new RegExp("^" + Helper.regex_escape(Cache.namespace) + "((?:([en]hentai|hitomi)_)gallery|md5|sha1)-([^-]+)"),
+	Cache = (function () {
+
+		// Private
+		var prefix = "#PREFIX#cache-",
+			storage = window.localStorage;
+
+		var get_key = function (storage, key) {
+			var json = Helper.json_parse_safe(storage.getItem(key));
+
+			if (json && typeof(json) === "object" && Date.now() < json.expires) {
+				return json.data;
+			}
+
+			storage.removeItem(key);
+			return null;
+		};
+
+		// Public
+		var init = function () {
+			var re_matcher = new RegExp("^" + Helper.regex_escape(prefix) + "((?:([en]hentai|hitomi)_)gallery|md5|sha1)-([^-]+)"),
 				removed = 0,
 				keys = [],
 				populate = conf['Populate Database on Load'],
-				cache_type, key, data, m, i, ii;
+				key, data, m, i, ii;
 
 			if (conf['Disable Caching']) {
-				Cache.type = (function () {
+				storage = (function () {
 					var data = {};
 
 					var fn = {
@@ -2113,19 +2128,18 @@
 				})();
 			}
 			else if (conf['Disable Local Storage Cache']) {
-				Cache.type = window.sessionStorage;
+				storage = window.sessionStorage;
 			}
-			cache_type = Cache.type;
 
-			for (i = 0, ii = cache_type.length; i < ii; ++i) {
-				key = cache_type.key(i);
+			for (i = 0, ii = storage.length; i < ii; ++i) {
+				key = storage.key(i);
 				if ((m = re_matcher.exec(key)) !== null) {
 					keys.push(key, m);
 				}
 			}
 
 			for (i = 0, ii = keys.length; i < ii; ++i) {
-				data = Cache.get_key(cache_type, keys[i]);
+				data = get_key(storage, keys[i]);
 				++i;
 				if (data === null) {
 					++removed;
@@ -2147,59 +2161,58 @@
 			if (removed > 0) {
 				Debug.log("Purged " + removed + " old entries from cache");
 			}
-		},
-		get_key: function (cache_type, key) {
-			var json = Helper.json_parse_safe(cache_type.getItem(key));
-
-			if (json && typeof(json) === "object" && Date.now() < json.expires) {
-				return json.data;
-			}
-
-			cache_type.removeItem(key);
-			return null;
-		},
-		get: function (type, key) {
-			return Cache.get_key(Cache.type, Cache.namespace + type + "-" + key);
-		},
-		set: function (type, key, data, ttl) {
+		};
+		var get = function (type, key) {
+			return get_key(storage, prefix + type + "-" + key);
+		};
+		var set = function (type, key, data, ttl) {
 			var now = Date.now();
 
 			if (ttl === 0) {
 				ttl = ((now - data.posted < 12 * t.HOUR) ? 1 : 12) * t.HOUR; // Update more frequently for recent uploads
 			}
 
-			Cache.type.setItem(Cache.namespace + type + "-" + key, JSON.stringify({
+			storage.setItem(prefix + type + "-" + key, JSON.stringify({
 				expires: now + ttl,
 				data: data
 			}));
-		},
-		clear: function () {
-			var re_matcher = new RegExp("^" + Helper.regex_escape(Cache.namespace)),
-				types = [ window.localStorage, window.sessionStorage ],
+		};
+		var clear = function () {
+			var re_matcher = new RegExp("^" + Helper.regex_escape(prefix)),
+				storage_types = [ window.localStorage, window.sessionStorage ],
 				results = [],
-				remove, cache_type, key, i, ii, j, jj;
+				remove, storage, key, i, ii, j, jj;
 
-			for (i = 0, ii = types.length; i < ii; ++i) {
-				cache_type = types[i];
+			for (i = 0, ii = storage_types.length; i < ii; ++i) {
+				storage = storage_types[i];
 				remove = [];
 
-				for (j = 0, jj = cache_type.length; j < jj; ++j) {
-					key = cache_type.key(j);
+				for (j = 0, jj = storage.length; j < jj; ++j) {
+					key = storage.key(j);
 					if (re_matcher.test(key)) {
 						remove.push(key);
 					}
 				}
 
 				for (j = 0, jj = remove.length; j < jj; ++j) {
-					cache_type.removeItem(remove[j]);
+					storage.removeItem(remove[j]);
 				}
 
 				results.push(jj);
 			}
 
 			return results;
-		}
-	};
+		};
+
+		// Exports
+		return {
+			init: init,
+			get: get,
+			set: set,
+			clear: clear
+		};
+
+	})();
 	Database = (function () {
 
 		// Private
