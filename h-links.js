@@ -2200,24 +2200,28 @@
 			return results;
 		}
 	};
-	Database = {
-		data: {
-			ehentai: {},
-			nhentai: {},
-			hitomi: {}
-		},
-		errors: {
-			ehentai: {},
-			nhentai: {},
-			hitomi: {}
-		},
-		valid_namespace: function (namespace) {
-			return (Database.data[namespace] !== undefined);
-		},
-		get: function (namespace, uid) { // , debug
+	Database = (function () {
+
+		// Private
+		var saved_data = {
+				ehentai: {},
+				nhentai: {},
+				hitomi: {}
+			},
+			errors = {
+				ehentai: {},
+				nhentai: {},
+				hitomi: {}
+			};
+
+		// Public
+		var valid_namespace = function (namespace) {
+			return (saved_data[namespace] !== undefined);
+		};
+		var get = function (namespace, uid) { // , debug
 			// Use this if you want to break database gets randomly for debugging
 			// if (arguments[2] === true && Math.random() > 0.8) return false;
-			var db = Database.data[namespace],
+			var db = saved_data[namespace],
 				data = db[uid];
 
 			if (data !== undefined) return data;
@@ -2229,22 +2233,33 @@
 			}
 
 			return null;
-		},
-		set: function (namespace, data) {
-			Database.data[data.gid] = data;
+		};
+		var set = function (namespace, data) {
+			saved_data[namespace][data.gid] = data;
 			Cache.set(namespace + "_gallery", data.gid, data, 0);
-		},
-		set_nocache: function (namespace, data) {
-			Database.data[namespace][data.gid] = data;
-		},
-		set_error: function (namespace, gid, error/*, cache*/) {
-			Database.errors[namespace][gid] = error;
-		},
-		get_error: function (namespace, gid) {
-			var v = Database.errors[namespace][gid];
+		};
+		var set_nocache = function (namespace, data) {
+			saved_data[namespace][data.gid] = data;
+		};
+		var set_error = function (namespace, gid, error) { // , cache
+			errors[namespace][gid] = error;
+		};
+		var get_error = function (namespace, gid) {
+			var v = errors[namespace][gid];
 			return v === undefined ? null : v;
-		}
-	};
+		};
+
+		// Exports
+		return {
+			valid_namespace: valid_namespace,
+			get: get,
+			set: set,
+			set_nocache: set_nocache,
+			set_error: set_error,
+			get_error: get_error
+		};
+
+	})();
 	Hash = (function () {
 
 		// Private
