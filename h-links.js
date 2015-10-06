@@ -3029,9 +3029,10 @@
 			for (i = 0, ii = links.length; i < ii; ++i) {
 				link = links[i];
 
-				Linkifier.format_link(link, data);
-
-				if (events !== null) events.push(link);
+				if (link.parentNode !== null) {
+					Linkifier.format_link(link, data);
+					if (events !== null) events.push(link);
+				}
 			}
 
 			if (events !== null) {
@@ -3892,7 +3893,6 @@
 
 				if (Options.export_url !== null) {
 					window.URL.revokeObjectURL(Options.export_url);
-					console.log("Revoked ", Options.export_url);
 					Options.export_url = null;
 				}
 			}
@@ -6249,7 +6249,6 @@
 			for (i = 0, ii = locations.length; i < ii; i += 2) {
 				node = locations[i];
 				flags = locations[i + 1];
-				console.log(node,flags);
 
 				// Text
 				t = text;
@@ -6368,7 +6367,8 @@
 		},
 		observer: function (records) {
 			var post_list = [],
-				nodes, node, e, i, ii, j, jj;
+				reload_all = false,
+				nodes, node, ns, e, i, ii, j, jj;
 
 			for (i = 0, ii = records.length; i < ii; ++i) {
 				e = records[i];
@@ -6377,7 +6377,23 @@
 
 				// Look for posts
 				for (j = 0, jj = nodes.length; j < jj; ++j) {
-					Main.observe_post_change(nodes[j], post_list);
+					node = nodes[j];
+					if (node.id === "toggleMsgBtn" && Config.mode === "4chan") {
+						// Reload every single post because 4chan's inline script messed it all up
+						// This seems to be some sort of timing issue where 4chan-inline replaces the body contents of EVERY SINGLE POST on ready()
+						reload_all = true;
+					}
+					else if (node.nodeType === Node.ELEMENT_NODE) {
+						if (Helper.Post.is_post(node)) {
+							post_list.push(node);
+						}
+						else if (node.classList.contains("thread")) {
+							ns = Helper.Post.get_all_posts(node);
+							if (ns.length > 0) {
+								$.push_many(post_list, ns);
+							}
+						}
+					}
 				}
 
 				// 4chan X specific hacks.
@@ -6427,18 +6443,8 @@
 					API.run_request_queue();
 				}
 			}
-		},
-		observe_post_change: function (node, nodelist) {
-			if (node.nodeType === Node.ELEMENT_NODE) {
-				if (Helper.Post.is_post(node)) {
-					nodelist.push(node);
-				}
-				else if (node.classList.contains("thread")) {
-					var ns = Helper.Post.get_all_posts(node);
-					if (ns.length > 0) {
-						$.push_many(nodelist, ns);
-					}
-				}
+			if (reload_all) {
+				Main.reload_all_posts();
 			}
 		},
 		insert_custom_fonts: function () {
@@ -6451,6 +6457,37 @@
 			font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
 			$.add(d.head, font);
 		},
+		reload_all_posts: (function () {
+			var happened = false;
+
+			return function () {
+				if (happened) return;
+				happened = true;
+
+				var posts = Helper.Post.get_all_posts(d),
+					post, post_body, post_links, link, i, ii, j, jj;
+
+				for (i = 0, ii = posts.length; i < ii; ++i) {
+					post = posts[i];
+					post.classList.remove("hl-post-linkified");
+					if ((post_body = Helper.Post.get_text_body(post)) !== null) {
+						post_links = Helper.Post.get_body_links(post_body);
+						for (j = 0, jj = post_links.length; j < jj; ++j) {
+							link = post_links[j];
+							if (link.classList.contains("hl-site-tag")) {
+								$.remove(link);
+							}
+							else if (link.classList.contains("hl-linkified")) {
+								link.classList.remove("hl-linkified");
+								Linkifier.change_link_events(link, null);
+							}
+						}
+					}
+				}
+
+				Linkifier.parse_posts(posts);
+			};
+		})(),
 		ready: function () {
 			Debug.timer("init");
 
