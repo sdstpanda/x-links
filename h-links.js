@@ -5,7 +5,8 @@
 
 	var timing, domains, domain_info, options, conf, regex, cat, d, t, $, $$,
 		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Options, Config, Main,
-		MutationObserver, Browser, Helper, Nodes, HttpRequest, Linkifier, Filter, Theme, EasyList, Popup, Changelog, HeaderBar;
+		MutationObserver, Browser, Helper, Nodes, HttpRequest, Linkifier, Filter, Theme,
+		EasyList, Popup, Changelog, HeaderBar, Navigation;
 
 	timing = (function () {
 		var perf = window.performance,
@@ -4003,7 +4004,11 @@
 			catch (e) {}
 		},
 		init: function () {
-			Main.insert_nav_link("main", "#TITLE#", "#TITLE# Settings", " hl-nav-link-settings", Options.open);
+			Navigation.insert_link("main", "#TITLE#", "#HOMEPAGE#", " hl-nav-link-settings", Options.open);
+
+			var n = $.link("#HOMEPAGE#", "hl-nav-link", "#TITLE# Settings");
+			$.on(n, "click", Options.open);
+			HeaderBar.insert_menu_link(n);
 		}
 	};
 	Config = {
@@ -4930,7 +4935,22 @@
 			}
 		},
 		init: function () {
-			Main.insert_nav_link("normal", "Easy List", "Easy List", " hl-nav-link-easylist", EasyList.on_open_click);
+			Navigation.insert_link("normal", "Easy List", "#HOMEPAGE#", " hl-nav-link-easylist", EasyList.on_open_click);
+
+			HeaderBar.insert_shortcut_icon(
+				"panda",
+				"#TITLE# Easy List",
+				"#HOMEPAGE#",
+				HeaderBar.on_icon_click,
+				function (svg, svgns) {
+					var path = $.node_ns(svgns, "path", "hl-header-bar-svg-panda-path");
+					path.setAttribute("d",
+						"M 16.633179,51.146308 c 3.64987,0.96291 4.964143,6.353343 5.848553,6.951214 1.803534,1.219209 16.129984,0.579826 16.129984,0.579826 1.197865,-11.724731 1.212833,-8.671318 2.95548,-16.59613 -1.989075,-1.34607 -5.333693,-2.23712 -5.797288,-4.88791 -0.463595,-2.65078 0.255088,-2.142681 0.187543,-6.314371 -1.439647,-2.768736 -2.204016,-6.03551 -2.500789,-9.43479 -3.024907,-1.751033 -6.026517,-0.494694 -6.433955,-5.297229 -0.353512,-4.166916 6.132756,-5.138818 9.747309,-7.5194007 7.077373,-8.28015298 12.684056,-7.86614927 18.26733,-7.86614927 5.583275,0 12.190976,3.76366917 17.585988,11.22034497 6.53222,9.028459 10.674317,18.629087 14.466281,30.044847 3.791954,11.41577 4.453617,21.459054 1.537854,31.769198 2.36821,0.77671 4.928378,1.009485 5.226735,3.950385 0.298366,2.94089 -1.267399,5.363996 -3.607729,5.963956 -2.34033,0.59995 -4.60182,-0.139224 -6.646539,-0.619694 -3.86217,3.77416 -9.011474,7.538043 -17.479555,9.177123 -8.468078,1.63908 -26.453377,6.593222 -32.623916,6.30881 C 27.325926,98.291926 26.634713,94.42266 25.658825,90.03441 24.682937,85.64616 25.403148,82.440968 25.465957,78.696308 19.909553,79.123928 11.055576,79.654646 9.0799525,78.775913 5.9995252,77.405776 4.2346784,69.110754 5.7658643,59.974024 6.9338652,53.004454 12.660658,50.22377 16.633179,51.146308 z " +
+						"M 47.316173,40.278702 c -1.977441,10.244331 -5.318272,21.474541 -5.662805,29.784036 -0.242507,5.848836 2.420726,7.5586 5.348383,2.078223 5.586237,-10.45706 7.896687,-21.139251 10.839979,-32.018641 -1.376342,0.732535 -2.33581,0.805482 -3.567752,1.104816 2.20065,-1.826801 1.797963,-1.259845 4.683397,-4.356147 3.702042,-3.972588 11.505701,-7.842675 15.187296,-4.490869 4.597776,4.185917 3.4537,13.920509 -0.431829,18.735387 -1.301987,5.219157 -3.278232,10.993981 -4.691055,14.211545 1.650129,0.951997 7.1775,2.647886 8.723023,6.808838 1.818473,4.895806 0.447993,8.335081 -3.207776,12.929618 8.781279,-6.214409 9.875004,-12.24852 10.586682,-20.251062 C 85.596887,59.244915 85.615915,54.42819 83.82437,47.181873 82.032825,39.935556 77.484187,30.527275 73.806105,23.780748 70.128023,17.034221 68.465076,12.376515 60.467734,7.5782428 54.534892,4.0186364 44.006601,5.3633006 39.960199,11.716546 c -4.046402,6.353245 -2.052295,11.417199 0.339979,17.673546 -0.06795,1.969646 -1.145015,4.295256 0.105508,5.751383 1.875243,-0.914979 2.772108,-1.957655 4.421995,-2.639606 -0.01451,1.529931 0.320921,4.192236 -1.17535,5.722167 1.758316,1.116252 1.80495,1.414307 3.663842,2.054666 z"
+					);
+					$.add(svg, path);
+				}
+			);
 		},
 		create: function () {
 			Popup.create("easylist", function (overlay, container) {
@@ -5965,6 +5985,7 @@
 	};
 	HeaderBar = {
 		menu_nodes: [],
+		shortcut_icons: [],
 		mode: null,
 		setup: function () {
 			var n = $("#header-bar");
@@ -5978,92 +5999,76 @@
 		setup_header_bar: function (node) {
 			Nodes.header_bar = node;
 
-			var par = null,
-				next, n1, n2;
-
-			if ((n1 = $("#shortcuts", node)) !== null) {
-				if (
-					(n2 = $("a.fa.fa-picture-o", n1) || $("a.fa", n1)) !== null &&
-					(n2 = n2.parentNode) !== null
-				) {
-					HeaderBar.mode = "4chanx3";
-					par = n2.parentNode;
-					next = n2.nextSibling;
-				}
+			if ($("#shortcuts", node) !== null) {
+				HeaderBar.mode = "4chanx3";
 			}
-			else if ((n1 = $("#shortcuts", node.parentNode)) !== null) {
-				if (
-					(n2 = $("a#appchan-gal", n1) || $("a.a-icon", n1)) !== null
-				) {
-					HeaderBar.mode = "appchanx";
-					par = n2.parentNode;
-					next = n2;
-				}
-			}
-
-			if (par !== null) {
-				HeaderBar.create_svg_icon(
-					"panda",
-					"#TITLE# Easy List",
-					undefined,
-					par, next,
-					HeaderBar.on_icon_click,
-					function (svg, svgns) {
-						var path = $.node_ns(svgns, "path", "hl-header-bar-svg-panda-path");
-						path.setAttribute("d",
-							"M 16.633179,51.146308 c 3.64987,0.96291 4.964143,6.353343 5.848553,6.951214 1.803534,1.219209 16.129984,0.579826 16.129984,0.579826 1.197865,-11.724731 1.212833,-8.671318 2.95548,-16.59613 -1.989075,-1.34607 -5.333693,-2.23712 -5.797288,-4.88791 -0.463595,-2.65078 0.255088,-2.142681 0.187543,-6.314371 -1.439647,-2.768736 -2.204016,-6.03551 -2.500789,-9.43479 -3.024907,-1.751033 -6.026517,-0.494694 -6.433955,-5.297229 -0.353512,-4.166916 6.132756,-5.138818 9.747309,-7.5194007 7.077373,-8.28015298 12.684056,-7.86614927 18.26733,-7.86614927 5.583275,0 12.190976,3.76366917 17.585988,11.22034497 6.53222,9.028459 10.674317,18.629087 14.466281,30.044847 3.791954,11.41577 4.453617,21.459054 1.537854,31.769198 2.36821,0.77671 4.928378,1.009485 5.226735,3.950385 0.298366,2.94089 -1.267399,5.363996 -3.607729,5.963956 -2.34033,0.59995 -4.60182,-0.139224 -6.646539,-0.619694 -3.86217,3.77416 -9.011474,7.538043 -17.479555,9.177123 -8.468078,1.63908 -26.453377,6.593222 -32.623916,6.30881 C 27.325926,98.291926 26.634713,94.42266 25.658825,90.03441 24.682937,85.64616 25.403148,82.440968 25.465957,78.696308 19.909553,79.123928 11.055576,79.654646 9.0799525,78.775913 5.9995252,77.405776 4.2346784,69.110754 5.7658643,59.974024 6.9338652,53.004454 12.660658,50.22377 16.633179,51.146308 z " +
-							"M 47.316173,40.278702 c -1.977441,10.244331 -5.318272,21.474541 -5.662805,29.784036 -0.242507,5.848836 2.420726,7.5586 5.348383,2.078223 5.586237,-10.45706 7.896687,-21.139251 10.839979,-32.018641 -1.376342,0.732535 -2.33581,0.805482 -3.567752,1.104816 2.20065,-1.826801 1.797963,-1.259845 4.683397,-4.356147 3.702042,-3.972588 11.505701,-7.842675 15.187296,-4.490869 4.597776,4.185917 3.4537,13.920509 -0.431829,18.735387 -1.301987,5.219157 -3.278232,10.993981 -4.691055,14.211545 1.650129,0.951997 7.1775,2.647886 8.723023,6.808838 1.818473,4.895806 0.447993,8.335081 -3.207776,12.929618 8.781279,-6.214409 9.875004,-12.24852 10.586682,-20.251062 C 85.596887,59.244915 85.615915,54.42819 83.82437,47.181873 82.032825,39.935556 77.484187,30.527275 73.806105,23.780748 70.128023,17.034221 68.465076,12.376515 60.467734,7.5782428 54.534892,4.0186364 44.006601,5.3633006 39.960199,11.716546 c -4.046402,6.353245 -2.052295,11.417199 0.339979,17.673546 -0.06795,1.969646 -1.145015,4.295256 0.105508,5.751383 1.875243,-0.914979 2.772108,-1.957655 4.421995,-2.639606 -0.01451,1.529931 0.320921,4.192236 -1.17535,5.722167 1.758316,1.116252 1.80495,1.414307 3.663842,2.054666 z"
-						);
-						$.add(svg, path);
-					}
-				);
+			else if ($("#shortcuts", node.parentNode) !== null) {
+				HeaderBar.mode = "appchanx";
+				node = $("#hoverUI");
 			}
 
 			// Observer
-			if (HeaderBar.mode === "appchanx") {
-				node = $("#hoverUI");
-			}
 			if (node !== null) {
 				new MutationObserver(HeaderBar.on_header_observe).observe(node, {
 					childList: true,
 					subtree: true
 				});
 			}
+
+			// Icons
+			if (HeaderBar.shortcut_icons.length > 0) {
+				HeaderBar.add_svg_icons(HeaderBar.shortcut_icons);
+			}
 		},
-		create_svg_icon: function (namespace, title, url, parent_node, before, on_click, svg_setup) {
-			var svgns = "http://www.w3.org/2000/svg",
-				color, n1, n2, svg;
+		add_svg_icons: function (nodes) {
+			var par = null,
+				is_appchan = (HeaderBar.mode === "appchanx"),
+				next, color, n1, n2, i, ii;
 
-			n2 = $.link(url, "hl-header-bar-link hl-header-bar-link-" + namespace);
-			n2.setAttribute("title", title);
-			$.add(n2, svg = $.node_ns(svgns, "svg", "hl-header-bar-svg hl-header-bar-svg-" + namespace));
-			svg.setAttribute("viewBox", "0 0 100 100");
-			svg.setAttribute("svgns", svgns);
-			svg.setAttribute("version", "1.1");
-			svg_setup(svg, svgns);
-
-			$.on(n2, "mouseover", HeaderBar.on_icon_mouseover);
-			$.on(n2, "mouseout", HeaderBar.on_icon_mouseout);
-			$.on(n2, "click", on_click);
-
-
-			if (HeaderBar.mode === "appchanx") {
-				n2.classList.add("hl-appchanx");
-				n2.classList.add("a-icon");
-				n2.classList.add("shortcut");
-				n2.classList.add("fa");
-				$.before2(parent_node, n2, before);
-				n2.style.setProperty("background-image", "none", "important");
+			if (is_appchan) {
+				if (
+					(n1 = $("#shortcuts", Nodes.header_bar.parentNode)) !== null &&
+					(n2 = $("a#appchan-gal", n1) || $("a.a-icon", n1)) !== null
+				) {
+					par = n2.parentNode;
+					next = n2;
+				}
 			}
-			else {
-				n1 = $.node("span", "shortcut brackets-wrap");
-				$.add(n1, n2);
-				$.before2(parent_node, n1, before);
+			else if (HeaderBar.mode === "4chanx3") {
+				if (
+					(n1 = $("#shortcuts", Nodes.header_bar)) !== null &&
+					(n2 = $("a.fa.fa-picture-o", n1) || $("a.fa", n1)) !== null &&
+					(n2 = n2.parentNode) !== null
+				) {
+					par = n2.parentNode;
+					next = n2.nextSibling;
+				}
 			}
 
-			color = Theme.get_computed_style(n2).color;
-			if (color) svg.setAttribute("style", "fill:" + color + ";");
-			n2.setAttribute("data-hl-color", color);
+			if (par === null) return;
+
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				n2 = nodes[i];
+				if (is_appchan) {
+					n2.classList.add("hl-appchanx");
+					n2.classList.add("a-icon");
+					n2.classList.add("shortcut");
+					n2.classList.add("fa");
+					$.before2(par, n2, next);
+					n2.style.setProperty("background-image", "none", "important");
+				}
+				else {
+					n1 = $.node("span", "shortcut brackets-wrap");
+					$.add(n1, n2);
+					$.before2(par, n1, next);
+				}
+
+				color = Theme.get_computed_style(n2).color;
+				if (color && (n1 = $("svg", n2)) !== null) {
+					n1.setAttribute("style", "fill:" + color + ";");
+				}
+				n2.setAttribute("data-hl-color", color);
+			}
 		},
 		on_icon_mouseover: function () {
 			var n = $("svg", this),
@@ -6142,6 +6147,26 @@
 				}
 			}
 		},
+		insert_shortcut_icon: function (namespace, title, url, on_click, svg_setup) {
+			var svgns = "http://www.w3.org/2000/svg",
+				n1, svg;
+
+			n1 = $.link(url, "hl-header-bar-link hl-header-bar-link-" + namespace);
+			n1.setAttribute("title", title);
+			$.add(n1, svg = $.node_ns(svgns, "svg", "hl-header-bar-svg hl-header-bar-svg-" + namespace));
+			svg.setAttribute("viewBox", "0 0 100 100");
+			svg.setAttribute("svgns", svgns);
+			svg.setAttribute("version", "1.1");
+			svg_setup(svg, svgns);
+
+			$.on(n1, "mouseover", HeaderBar.on_icon_mouseover);
+			$.on(n1, "mouseout", HeaderBar.on_icon_mouseout);
+			$.on(n1, "click", on_click);
+
+			HeaderBar.shortcut_icons.push(n1);
+
+			if (Nodes.header_bar !== null) HeaderBar.add_svg_icons([ n1 ]);
+		},
 		insert_menu_link: function (menu_node) {
 			menu_node.classList.add("entry");
 			menu_node.style.order = 112;
@@ -6151,6 +6176,146 @@
 			$.on(menu_node, "click", HeaderBar.on_menu_item_click);
 
 			HeaderBar.menu_nodes.push(menu_node);
+		}
+	};
+	Navigation = {
+		Flags: {
+			None: 0x0,
+			Prepend: 0x1,
+			Before: 0x2,
+			After: 0x4,
+			InnerSpace: 0x8,
+			OuterSpace: 0x10,
+			Brackets: 0x20,
+			Mobile: 0x40,
+			LowerCase: 0x80,
+		},
+		insert_link: function (mode, text, url, class_name, on_click) {
+			var locations = [],
+				Flags = Navigation.Flags,
+				first_mobile = true,
+				container, flags, nodes, node, par, pre, next, cl, i, ii, n1, t;
+
+			if (Config.mode === "4chan") {
+				if (mode === "main") {
+					nodes = $$("#navtopright,#navbotright");
+					for (i = 0, ii = nodes.length; i < ii; ++i) {
+						locations.push(nodes[i], Flags.OuterSpace | Flags.Brackets | Flags.Prepend);
+					}
+					nodes = $$("#settingsWindowLinkMobile");
+					for (i = 0, ii = nodes.length; i < ii; ++i) {
+						locations.push(nodes[i], Flags.Before);
+					}
+				}
+				else {
+					cl = d.documentElement.classList;
+					if (
+						!cl.contains("catalog-mode") &&
+						!cl.contains("archive") &&
+						$("#order-ctrl,#arc-list") === null
+					) {
+						nodes = $$("#ctrl-top,.navLinks");
+						for (i = 0, ii = nodes.length; i < ii; ++i) {
+							node = nodes[i];
+							locations.push(node);
+							if (node.classList.contains("mobile")) {
+								locations.push(Flags.Mobile);
+							}
+							else {
+								locations.push(Flags.OuterSpace | Flags.Brackets);
+							}
+						}
+					}
+				}
+			}
+			else if (Config.mode === "foolz") {
+				nodes = $$(".letters");
+				for (i = 0, ii = nodes.length; i < ii; ++i) {
+					locations.push(nodes[i], Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets);
+				}
+			}
+			else if (Config.mode === "fuuka") {
+				if ((node = $("div")) !== null) {
+					locations.push(node, Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets);
+				}
+			}
+			else if (Config.mode === "tinyboard") {
+				nodes = $$(".boardlist");
+				for (i = 0, ii = nodes.length; i < ii; ++i) {
+					locations.push(nodes[i], Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets | Flags.LowerCase);
+				}
+			}
+
+			for (i = 0, ii = locations.length; i < ii; i += 2) {
+				node = locations[i];
+				flags = locations[i + 1];
+				console.log(node,flags);
+
+				// Text
+				t = text;
+				if ((flags & Flags.InnerSpace) !== 0) t = " " + t + " ";
+
+				// Create
+				if ((flags & Flags.Mobile) !== 0) {
+					container = first_mobile ? node.previousSibling : node.nextSibling;
+					if (container === null || !container.classList || !container.classList.contains("hl-nav-extras")) {
+						container = $.node("div", "mobile hl-nav-extras-mobile");
+					}
+
+					$.add(container, n1 = $.node("span", "mobileib button hl-nav-button" + class_name));
+					$.add(n1, $.link(url, "hl-nav-button-inner" + class_name, t));
+
+					if (first_mobile) {
+						$.before(node, container);
+						first_mobile = false;
+					}
+					else {
+						$.after(node, container);
+					}
+					node = container;
+				}
+				else {
+					n1 = $.link(url, "hl-nav-link" + class_name, t);
+				}
+				$.on(n1, "click", on_click);
+
+				// Relative
+				if ((flags & Flags.Before) !== 0) {
+					par = node.parentNode;
+					next = node;
+				}
+				else if ((flags & Flags.After) !== 0) {
+					par = node.parentNode;
+					next = node.nextSibling;
+				}
+				else {
+					par = node;
+					next = ((flags & Flags.Prepend) !== 0) ? node.firstChild : null;
+				}
+
+				// Node
+				$.before2(par, n1, next);
+
+				// Brackets
+				if ((flags & Flags.Brackets) !== 0) {
+					t = ((flags & Flags.OuterSpace) !== 0) ? "] " : "]";
+					if (next !== null && next.nodeType === Node.TEXT_NODE) {
+						next.nodeValue = t + next.nodeValue.replace(/^\s*\[/, "[");
+					}
+					else {
+						$.after(n1, $.tnode(t));
+					}
+
+					pre = n1.previousSibling;
+					t = ((flags & Flags.OuterSpace) !== 0) ? " [" : "[";
+					if (pre !== null && pre.nodeType === Node.TEXT_NODE) {
+						pre.nodeValue = pre.nodeValue.replace(/\]\s*$/, "]") + t;
+					}
+					else {
+						$.before(n1, $.tnode(t));
+					}
+				}
+			}
 		}
 	};
 	Main = {
@@ -6284,109 +6449,6 @@
 			font.type = "text/css";
 			font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
 			$.add(d.head, font);
-		},
-		insert_nav_link: function (mode, text, text_menu, class_name, on_click) {
-			var mobile_top = true,
-				append = true,
-				exclude_mobile = false,
-				navlinks, navlink, is_desktop, link_mod, cl, n1, n2, i, ii;
-
-			if (Config.mode === "4chan") {
-				if (mode === "main") {
-					navlinks = $$("#navtopright,#navbotright");
-					exclude_mobile = true;
-					append = false;
-
-					if (Config.mode_ext.fourchanx3) {
-						n2 = $.link("#HOMEPAGE#", "hl-nav-link-menu" + class_name, text_menu);
-						$.on(n2, "click", on_click);
-						HeaderBar.insert_menu_link(n2);
-					}
-				}
-				else {
-					cl = d.documentElement.classList;
-					navlinks = (
-						!cl.contains("catalog-mode") &&
-						!cl.contains("archive") &&
-						$("#order-ctrl,#arc-list") === null
-					) ? $$("#ctrl-top,.navLinks") : [];
-				}
-				is_desktop = function (node) { return !node.classList.contains("mobile"); };
-				link_mod = function (text) { return text; };
-			}
-			else if (Config.mode === "foolz") {
-				navlinks = $$(".letters");
-				is_desktop = function () { return true; };
-				link_mod = function (text) { return " " + text + " "; };
-			}
-			else if (Config.mode === "fuuka") {
-				navlinks = [ $("div") ];
-				if (navlinks[0] === null) return;
-				is_desktop = function () { return true; };
-				link_mod = function (text) { return " " + text + " "; };
-			}
-			else if (Config.mode === "tinyboard") {
-				navlinks = $$(".boardlist");
-				is_desktop = function () { return true; };
-				link_mod = function (text) { return " " + text.toLowerCase() + " "; };
-			}
-			else {
-				return;
-			}
-
-			for (i = 0, ii = navlinks.length; i < ii; ++i) {
-				navlink = navlinks[i];
-				if (is_desktop(navlink)) {
-					// Desktop
-					n2 = $.link("#HOMEPAGE#", "hl-nav-link" + class_name, link_mod(text, true));
-
-					if (append) {
-						if ((n1 = navlink.lastChild) !== null && n1.nodeType === Node.TEXT_NODE) {
-							n1.nodeValue = n1.nodeValue.replace(/\]\s*$/, "]") + " [";
-						}
-						else {
-							$.add(navlink, $.tnode(" ["));
-						}
-
-						$.add(navlink, n2);
-						$.add(navlink, $.tnode("]"));
-					}
-					else {
-						if ((n1 = navlink.firstChild) !== null && n1.nodeType === Node.TEXT_NODE) {
-							n1.nodeValue = "] " + n1.nodeValue.replace(/^\s*\[/, "[");
-						}
-						else {
-							$.add(navlink, $.tnode("] "));
-						}
-
-						$.prepend(navlink, n2);
-						$.prepend(navlink, $.tnode("["));
-					}
-				}
-				else if (!exclude_mobile) {
-					// Mobile
-					n1 = mobile_top ? navlink.previousSibling : navlink.nextSibling;
-					if (n1 === null || !n1.classList || !n1.classList.contains("hl-nav-extras")) {
-						n1 = $.node("div", "mobile hl-nav-extras-mobile");
-					}
-
-					$.add(n1, n2 = $.node("span", "mobileib button hl-nav-button" + class_name));
-					$.add(n2, $.link(undefined, "hl-nav-button-inner" + class_name, link_mod(text, false)));
-					if (mobile_top) {
-						$.before(navlink, n1);
-					}
-					else {
-						$.after(navlink, n1);
-					}
-
-					mobile_top = false;
-				}
-				else {
-					continue;
-				}
-
-				$.on(n2, "click", on_click);
-			}
 		},
 		ready: function () {
 			Debug.timer("init");
