@@ -1,5 +1,17 @@
 ﻿master
 
+1.0.4
+- dnsev-h
+  + Fixed a bug on 8ch that would cause excessive auto-reload requests and not display new posts
+  + Fixed a bug when using the 4chan-inline extension that would cause links to not work
+  + Fixed the changelog not being able to be closed by clicking the dimmer
+  + Added a link to the EasyList to the 4chan-x header bar
+  + Added an option to disable web-font loading from Google
+  + Added a settings import/export options
+  + Removed the [Easy List] link on the catalog and 7-day archive
+  + Made the settings link appear in the menu on appchan-x
+  + Made the settings link appear on the 4chan inline extension's header bar
+
 1.0.3
 - dnsev-h
   + Fixed a bug that could cause similarity image search to fail
