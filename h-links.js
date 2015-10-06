@@ -5688,9 +5688,27 @@
 			return false;
 		}
 	};
-	Popup = {
-		active: null,
-		create: function (class_ns, setup) {
+	Popup = (function () {
+
+		// Private
+		var active = null,
+			hovering_container = null;
+
+		var on_stop_propagation = function (event) {
+			if ($.is_left_mouse(event)) {
+				event.stopPropagation();
+			}
+		};
+		var on_overlay_event = function (event) {
+			if ($.is_left_mouse(event)) {
+				event.preventDefault();
+				event.stopPropagation();
+				return false;
+			}
+		};
+
+		// Public
+		var create = function (class_ns, setup) {
 			var theme = Theme.get(),
 				container, list, obj, n1, n2, n3, n4, n5, n6, i, ii, j, jj, v;
 
@@ -5699,9 +5717,9 @@
 			$.add(n2, n3 = $.node("div", "hl-popup-align hl-" + class_ns + "-popup-align" + theme));
 			$.add(n3, container = $.node("div", "hl-popup-content hl-" + class_ns + "-popup-content hl-hover-shadow post reply post_wrapper hl-fake-post" + theme));
 
-			$.on(n1, "mousedown", Popup.on_overlay_event);
-			$.on(container, "click", Popup.on_stop_propagation);
-			$.on(container, "mousedown", Popup.on_stop_propagation);
+			$.on(n1, "mousedown", on_overlay_event);
+			$.on(container, "click", on_stop_propagation);
+			$.on(container, "mousedown", on_stop_propagation);
 
 			if (typeof(setup) === "function") {
 				setup.call(null, n1, container);
@@ -5747,50 +5765,49 @@
 			}
 
 			return n1;
-		},
-		open: function (overlay) {
-			if (Popup.active !== null && Popup.active.parentNode !== null) $.remove(Popup.active);
+		};
+		var open = function (overlay) {
+			if (active !== null && active.parentNode !== null) {
+				$.remove(active);
+			}
 			d.documentElement.classList.add("hl-popup-overlaying");
-			Popup.hovering(overlay);
-			Popup.active = overlay;
-		},
-		close: function (overlay) {
+			hovering(overlay);
+			active = overlay;
+		};
+		var close = function (overlay) {
 			d.documentElement.classList.remove("hl-popup-overlaying");
-			if (overlay.parentNode !== null) $.remove(overlay);
-			Popup.active = null;
-		},
-		is_open: function (overlay) {
+			if (overlay.parentNode !== null) {
+				$.remove(overlay);
+			}
+			active = null;
+		};
+		var is_open = function (overlay) {
 			return (overlay.parentNode !== null);
-		},
-		hovering: (function () {
-			var container = null;
-			return function (node) {
-				if (container === null) {
-					container = $.node("div", "hl-hovering-elements");
-					if (Config.mode === "tinyboard") {
-						// Fix some poor choices of selectors (div.post:last) that infinity uses
-						$.prepend(d.body, container);
-					}
-					else {
-						$.add(d.body, container);
-					}
+		};
+		var hovering = function (node) {
+			if (hovering_container === null) {
+				hovering_container = $.node("div", "hl-hovering-elements");
+				if (Config.mode === "tinyboard") {
+					// Fix some poor choices of selectors (div.post:last) that infinity uses
+					$.prepend(d.body, hovering_container);
 				}
-				$.add(container, node);
-			};
-		})(),
-		on_stop_propagation: function (event) {
-			if ($.is_left_mouse(event)) {
-				event.stopPropagation();
+				else {
+					$.add(d.body, hovering_container);
+				}
 			}
-		},
-		on_overlay_event: function (event) {
-			if ($.is_left_mouse(event)) {
-				event.preventDefault();
-				event.stopPropagation();
-				return false;
-			}
-		}
-	};
+			$.add(hovering_container, node);
+		};
+
+		// Exports
+		return {
+			create: create,
+			open: open,
+			close: close,
+			is_open: is_open,
+			hovering: hovering
+		};
+
+	})();
 	Changelog = (function () {
 
 		// Private
