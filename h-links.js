@@ -78,6 +78,7 @@
 		general: {
 			'Automatic Processing':        ['checkbox', true,  'Get data and format links automatically.'],
 			'Show Changelog on Update':    ['checkbox', true,  'Show the changelog after an update.'],
+			'Use Extenral Resources':      ['checkbox', true,  'Enable the usage of web-fonts provided by Google servers.'],
 			'Gallery Details':             ['checkbox', true,  'Show gallery details for link on hover.'],
 			'Gallery Actions':             ['checkbox', true,  'Generate gallery actions for links.'],
 			'ExSauce':                     ['checkbox', true,  'Add ExSauce reverse image search to posts. Disabled in Opera.'],
@@ -6451,6 +6452,8 @@
 			if (Main.font_inserted) return;
 			Main.font_inserted = true;
 
+			if (!conf['Use Extenral Resources']) return;
+			
 			var font = $.node_simple("link");
 			font.rel = "stylesheet";
 			font.type = "text/css";
