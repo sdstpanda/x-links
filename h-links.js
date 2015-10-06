@@ -917,79 +917,10 @@
 			}, 10);
 		};
 	})();
-	UI = {
-		html: {
-			details: function (data, data_alt) { return '#DETAILS#'; },
-			actions: function (data, domain) {
-				var gid = data.gid,
-					token = data.token,
-					theme = Theme.get(),
-					domain_type = domain_info[domain].type,
-					url, src;
+	UI = (function () {
 
-				src = '<div class="hl-actions hl-actions-hidden' + theme + '" data-hl-id="' + domain_type + '_' + gid + '">';
-				src += '<div class="hl-actions-info">';
-				src += '<span>' + data.category + '</span>';
-				src += '<span class="hl-actions-sep">|</span>';
-				src += '<span>' + data.filecount + ' files</span>';
-				src += '<span class="hl-actions-sep">|</span>';
-				src += '<span class="hl-actions-label">View on:</span>';
-
-				if (domain_type === "ehentai") {
-					url = Helper.Site.create_gallery_url(data, domains.ehentai);
-					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_view_on_eh">e-hentai</a>';
-
-					url = Helper.Site.create_gallery_url(data, domains.exhentai);
-					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_view_on_ex">exhentai</a>';
-
-					src += '<span class="hl-actions-sep">|</span>';
-					src += '<span class="hl-actions-label">Uploader:</span>';
-
-					url = Helper.Site.create_uploader_url(data, domain);
-					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_uploader">' + data.uploader + '</a>';
-
-					src += '<span class="hl-actions-sep">|</span>';
-
-					url = domains.gehentai + "/stats.php?gid=" + gid + "&t=" + token;
-					src += '<a href="http://' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_stats">Stats</a>';
-				}
-				else if (domain_type === "nhentai") {
-					url = Helper.Site.create_gallery_url(data, domain);
-					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_view_on_nh">nhentai</a>';
-				}
-				else if (domain_type === "hitomi") {
-					url = Helper.Site.create_gallery_url(data, domain);
-					src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_view_on_nh">hitomi.la</a>';
-				}
-				src += '</div>';
-				src += '<div class="hl-actions-tag-block">';
-				src += '<strong class="hl-actions-tag-block-label">Tags:</strong><span class="hl-actions-tags hl-tags" data-hl-id="' + domain_type + '_' + gid + '"></span>';
-				src += '</div>';
-				src += '</div>';
-
-				return src;
-			},
-			options: function () { return '#OPTIONS#'; },
-			stars: function (rating) {
-				var str = "",
-					star, tmp, i;
-
-				rating = Math.round(rating * 2);
-
-				for (i = 0; i < 5; ++i) {
-					tmp = $.clamp(rating - (i * 2), 0, 2);
-					switch (tmp) {
-						case 1: star = "half"; break;
-						case 2: star = "full"; break;
-						default: star = "none"; break;
-					}
-					str += '<div class="hl-star hl-star-' + (i + 1) + ' hl-star-' + star + '"></div>';
-				}
-
-				return str;
-			}
-		},
-		events: {
+		// Private
+		var gallery_link_events = {
 			mouseover: function () {
 				var full_id = Helper.get_id_from_node_full(this),
 					details = Nodes.details[full_id],
@@ -1006,7 +937,7 @@
 						return;
 					}
 
-					details = UI.details(data, domain);
+					details = create_details(data, domain);
 					Nodes.details[full_id] = details;
 				}
 
@@ -1028,7 +959,7 @@
 						return;
 					}
 
-					details = UI.details(data, domain);
+					details = create_details(data, domain);
 					Nodes.details[full_id] = details;
 				}
 
@@ -1057,8 +988,62 @@
 				details.style.left = x + "px";
 				details.style.top = y + "px";
 			}
-		},
-		details: function (data, domain) {
+		};
+
+		var html_details = function (data, data_alt) {
+			return '#DETAILS#';
+		};
+		var html_actions = function (data, domain) {
+			var gid = data.gid,
+				token = data.token,
+				theme = Theme.get(),
+				domain_type = domain_info[domain].type,
+				url, src;
+
+			src = '<div class="hl-actions hl-actions-hidden' + theme + '" data-hl-id="' + domain_type + '_' + gid + '">';
+			src += '<div class="hl-actions-info">';
+			src += '<span>' + data.category + '</span>';
+			src += '<span class="hl-actions-sep">|</span>';
+			src += '<span>' + data.filecount + ' files</span>';
+			src += '<span class="hl-actions-sep">|</span>';
+			src += '<span class="hl-actions-label">View on:</span>';
+
+			if (domain_type === "ehentai") {
+				url = Helper.Site.create_gallery_url(data, domains.ehentai);
+				src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_view_on_eh">e-hentai</a>';
+
+				url = Helper.Site.create_gallery_url(data, domains.exhentai);
+				src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_view_on_ex">exhentai</a>';
+
+				src += '<span class="hl-actions-sep">|</span>';
+				src += '<span class="hl-actions-label">Uploader:</span>';
+
+				url = Helper.Site.create_uploader_url(data, domain);
+				src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_uploader">' + data.uploader + '</a>';
+
+				src += '<span class="hl-actions-sep">|</span>';
+
+				url = domains.gehentai + "/stats.php?gid=" + gid + "&t=" + token;
+				src += '<a href="http://' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_stats">Stats</a>';
+			}
+			else if (domain_type === "nhentai") {
+				url = Helper.Site.create_gallery_url(data, domain);
+				src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_view_on_nh">nhentai</a>';
+			}
+			else if (domain_type === "hitomi") {
+				url = Helper.Site.create_gallery_url(data, domain);
+				src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_view_on_nh">hitomi.la</a>';
+			}
+			src += '</div>';
+			src += '<div class="hl-actions-tag-block">';
+			src += '<strong class="hl-actions-tag-block-label">Tags:</strong><span class="hl-actions-tags hl-tags" data-hl-id="' + domain_type + '_' + gid + '"></span>';
+			src += '</div>';
+			src += '</div>';
+
+			return src;
+		};
+
+		var create_details = function (data, domain) {
 			var data_alt = {},
 				di = domain_info[domain],
 				g_domain = di.g_domain,
@@ -1067,11 +1052,11 @@
 			data_alt.jtitle = data.title_jpn ? ('<br /><span class="hl-details-title-jp">' + data.title_jpn + '</span>') : '';
 			data_alt.site = di.type;
 			data_alt.size = Math.round((data.filesize / 1024 / 1024) * 100) / 100;
-			data_alt.datetext = UI.date(new Date(data.posted * 1000));
+			data_alt.datetext = format_date(new Date(data.posted * 1000));
 			data_alt.visible = data.expunged ? 'No' : 'Yes';
 			data_alt.category_type = (o = cat[data.category]) === undefined ? "misc" : o.short;
 
-			content = $.frag(UI.html.details(data, data_alt)).firstChild;
+			content = $.frag(html_details(data, data_alt)).firstChild;
 			Theme.apply(content);
 
 			if (data.thumb && (n = $(".hl-details-thumbnail", content)) !== null) {
@@ -1096,7 +1081,7 @@
 				$.remove(n);
 			}
 
-			$.add($(".hl-tags", content), UI.create_tags_best(di.type, g_domain, data));
+			$.add($(".hl-tags", content), create_tags_best(di.type, g_domain, data));
 
 			Popup.hovering(content);
 
@@ -1104,7 +1089,7 @@
 			if (conf['Extended Info'] && di.type === "ehentai" && !API.data_has_full(data)) {
 				API.get_full_gallery_info(data.gid, data.token, g_domain, function (err) {
 					if (err === null) {
-						UI.update_full(data);
+						update_full(data);
 					}
 					else {
 						Debug.log("Error requesting full information: " + err);
@@ -1117,8 +1102,8 @@
 
 			// Done
 			return content;
-		},
-		actions: function (data, link) {
+		};
+		var create_actions = function (data, link) {
 			var fjord = regex.fjord.test(data.tags.join(',')),
 				domain, button, container, di, n;
 
@@ -1131,7 +1116,7 @@
 						link.href = link.href.replace(regex.site_gehentai, domains.exhentai);
 						if ((button = Helper.get_tag_button_from_link(link)) !== null) {
 							button.href = link.href;
-							button.textContent = UI.button_text(domain);
+							button.textContent = button_text(domain);
 						}
 					}
 				}
@@ -1141,7 +1126,7 @@
 						link.href = link.href.replace(regex.site_exhentai, domains.gehentai);
 						if ((button = Helper.get_tag_button_from_link(link)) !== null) {
 							button.href = link.href;
-							button.textContent = UI.button_text(domain);
+							button.textContent = button_text(domain);
 						}
 					}
 				}
@@ -1149,75 +1134,21 @@
 
 			di = domain_info[domain];
 
-			container = $.frag(UI.html.actions(data, domain)).firstChild;
+			container = $.frag(html_actions(data, domain)).firstChild;
 
 			if ((n = $(".hl-actions-link-uploader", container)) !== null) {
 				Filter.highlight("uploader", n, data, null);
 			}
 
 			if (conf['Show by Default']) container.classList.remove("hl-actions-hidden");
-			$.add($(".hl-tags", container), UI.create_tags_best(di.type, di.g_domain, data));
+			$.add($(".hl-tags", container), create_tags_best(di.type, di.g_domain, data));
 
 			return container;
-		},
-		button: function (url, domain) {
-			var button = $.link(url, "hl-link-events hl-site-tag", UI.button_text(domain));
-			button.setAttribute("data-hl-link-events", "gallery_fetch");
-			return button;
-		},
-		button_text: function (domain) {
-			var d = domain_info[domain];
-			return (d !== undefined ? "[" + d.tag + "]" : "[?]");
-		},
-		toggle: function (event) {
-			if ($.is_left_mouse(event)) {
-				var actions = Helper.get_actions_from_link(this, true);
-				if (actions !== null) {
-					actions.classList.toggle("hl-actions-hidden");
-				}
-				event.preventDefault();
-			}
-		},
-		popup: function (event) {
-			event.preventDefault();
-
-			var w = 400,
-				h = 400,
-				link = this,
-				type = /gallerytorrents|gallerypopups|archiver/i.exec(link.href);
-
-			if (type === null) return;
-			type = type[0];
-
-			if (type === "gallerytorrents") {
-				w = 610;
-				h = 590;
-			}
-			else if (type === "gallerypopups") {
-				w = 675;
-				h = 415;
-			}
-			else { // if (type === "archiver") {
-				w = 350;
-				h = 320;
-			}
-			window.open(
-				link.href,
-				"_pu" + (Math.random() + "").replace(/0\./, ""),
-				"toolbar=0,scrollbars=0,location=0,statusbar=0,menubar=0,resizable=0,width=" + w + ",height=" + h + ",left=" + ((screen.width - w) / 2) + ",top=" + ((screen.height - h) / 2)
-			);
-		},
-		date: function (d) {
-			var pad = function (n, sep) {
-				return (n < 10 ? '0' : '') + n + sep;
-			};
-			return d.getUTCFullYear() + '-' +
-				pad(d.getUTCMonth() + 1, '-') +
-				pad(d.getUTCDate(), ' ') +
-				pad(d.getUTCHours(), ':') +
-				pad(d.getUTCMinutes(), '');
-		},
-		create_tags: function (domain, site, data) {
+		};
+		var pad = function (n, sep) {
+			return (n < 10 ? "0" : "") + n + sep;
+		};
+		var create_tags = function (domain, site, data) {
 			var tagfrag = d.createDocumentFragment(),
 				tags = data.tags,
 				theme = Theme.get(),
@@ -1236,8 +1167,8 @@
 			$.remove(tagfrag.lastChild.lastChild);
 
 			return tagfrag;
-		},
-		create_tags_full: function (domain, site, data) {
+		};
+		var create_tags_full = function (domain, site, data) {
 			var tagfrag = d.createDocumentFragment(),
 				tags_ns = data.full.tags,
 				theme = Theme.get(),
@@ -1281,16 +1212,16 @@
 			}
 
 			return tagfrag;
-		},
-		create_tags_best: function (domain, site, data) {
+		};
+		var create_tags_best = function (domain, site, data) {
 			if (data.full) {
 				for (var k in data.full.tags) {
-					return UI.create_tags_full(domain, site, data);
+					return create_tags_full(domain, site, data);
 				}
 			}
-			return UI.create_tags(domain, site, data);
-		},
-		update_full: function (data) {
+			return create_tags(domain, site, data);
+		};
+		var update_full = function (data) {
 			var tagfrag, nodes, link, site, tags, last, i, ii, j, jj, n, f;
 
 			nodes = $$(".hl-tags[data-hl-id='ehentai_" + data.gid + "']");
@@ -1298,7 +1229,7 @@
 			ii = nodes.length;
 			if (ii === 0 || Object.keys(data.full.tags).length === 0) return;
 
-			tagfrag = UI.create_tags_full("ehentai", domains.exhentai, data);
+			tagfrag = create_tags_full("ehentai", domains.exhentai, data);
 
 			i = 0;
 			while (true) {
@@ -1326,8 +1257,97 @@
 
 				if (last) break;
 			}
-		}
-	};
+		};
+
+		// Public
+		var html_stars = function (rating) {
+			var str = "",
+				star, tmp, i;
+
+			rating = Math.round(rating * 2);
+
+			for (i = 0; i < 5; ++i) {
+				tmp = $.clamp(rating - (i * 2), 0, 2);
+				switch (tmp) {
+					case 1: star = "half"; break;
+					case 2: star = "full"; break;
+					default: star = "none"; break;
+				}
+				str += '<div class="hl-star hl-star-' + (i + 1) + ' hl-star-' + star + '"></div>';
+			}
+
+			return str;
+		};
+		var popup = function (event) {
+			event.preventDefault();
+
+			var w = 400,
+				h = 400,
+				link = this,
+				type = /gallerytorrents|gallerypopups|archiver/i.exec(link.href);
+
+			if (type === null) return;
+			type = type[0];
+
+			if (type === "gallerytorrents") {
+				w = 610;
+				h = 590;
+			}
+			else if (type === "gallerypopups") {
+				w = 675;
+				h = 415;
+			}
+			else { // if (type === "archiver") {
+				w = 350;
+				h = 320;
+			}
+			window.open(
+				link.href,
+				"_pu" + (Math.random() + "").replace(/0\./, ""),
+				"toolbar=0,scrollbars=0,location=0,statusbar=0,menubar=0,resizable=0,width=" + w + ",height=" + h + ",left=" + ((screen.width - w) / 2) + ",top=" + ((screen.height - h) / 2)
+			);
+		};
+		var button = function (url, domain) {
+			var button = $.link(url, "hl-link-events hl-site-tag", button_text(domain));
+			button.setAttribute("data-hl-link-events", "gallery_fetch");
+			return button;
+		};
+		var button_text = function (domain) {
+			var d = domain_info[domain];
+			return (d !== undefined ? "[" + d.tag + "]" : "[?]");
+		};
+		var format_date = function (d) {
+			return d.getUTCFullYear() + "-" +
+				pad(d.getUTCMonth() + 1, "-") +
+				pad(d.getUTCDate(), " ") +
+				pad(d.getUTCHours(), ":") +
+				pad(d.getUTCMinutes(), "");
+		};
+		var gallery_toggle_actions = function (event) {
+			if ($.is_left_mouse(event) && conf['Gallery Actions']) {
+				var actions = Helper.get_actions_from_link(this, true);
+				if (actions !== null) {
+					actions.classList.toggle("hl-actions-hidden");
+				}
+				event.preventDefault();
+			}
+		};
+
+		// Exports
+		return {
+			events: {
+				gallery_link: gallery_link_events,
+				gallery_toggle_actions: gallery_toggle_actions
+			},
+			html_stars: html_stars,
+			popup: popup,
+			button: button,
+			button_text: button_text,
+			format_date: format_date,
+			create_actions: create_actions
+		};
+
+	})();
 	API = (function () {
 
 		// Private
@@ -2922,16 +2942,12 @@
 				event.preventDefault();
 				return false;
 			},
-			gallery_link: UI.events,
+			gallery_link: UI.events.gallery_link,
 			gallery_error: function (event) {
 				event.preventDefault();
 				return false;
 			},
-			gallery_toggle_actions: function (event) {
-				if (conf['Gallery Actions']) {
-					return UI.toggle.call(this, event);
-				}
-			},
+			gallery_toggle_actions: UI.events.gallery_toggle_actions,
 			gallery_fetch: function (event) {
 				return on_tag_click_to_load.call(this, event);
 			},
@@ -3312,7 +3328,7 @@
 			}
 
 			// Actions
-			actions = UI.actions(data, link);
+			actions = UI.create_actions(data, link);
 			$.after(link, actions);
 		};
 		var format_links_error = function (links, error) {
@@ -3698,6 +3714,9 @@
 			export_url = null,
 			popup = null;
 
+		var html_options = function () {
+			return '#OPTIONS#';
+		};
 		var create_export_data = function () {
 			return {
 				config: Config.get_saved_settings(),
@@ -3947,7 +3966,7 @@
 			}], {
 				body: true,
 				setup: function (container) {
-					var n = $.frag(UI.html.options());
+					var n = $.frag(html_options());
 					Theme.apply(n);
 
 					$.add(container, n);
@@ -5269,7 +5288,7 @@
 			$.add(n5, n6 = $.link(Helper.Site.create_uploader_url(data, domain), "hl-easylist-item-uploader" + theme, data.uploader));
 			n6.setAttribute("data-hl-original", n6.textContent);
 			$.add(n5, $.tnode(" on "));
-			$.add(n5, $.node("span", "hl-easylist-item-upload-date" + theme, UI.date(new Date(data.posted * 1000))));
+			$.add(n5, $.node("span", "hl-easylist-item-upload-date" + theme, UI.format_date(new Date(data.posted * 1000))));
 
 			$.add(n4, n5 = $.node("div", "hl-easylist-item-tags" + theme));
 
@@ -5293,7 +5312,7 @@
 
 			$.add(n5, n6 = $.node("div", "hl-easylist-item-info-item hl-easylist-item-info-item-rating" + theme));
 			$.add(n6, n7 = $.node("div", "hl-stars-container"));
-			n7.innerHTML = UI.html.stars(data.rating);
+			n7.innerHTML = UI.html_stars(data.rating);
 			if (data.rating >= 0) {
 				$.add(n6, $.node("span", "hl-easylist-item-info-light", "(Avg: " + data.rating.toFixed(2) + ")"));
 			}
