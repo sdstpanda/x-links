@@ -171,7 +171,7 @@
 
 					window.removeEventListener("load", callback_check, false);
 					window.removeEventListener("DOMContentLoaded", callback_check, false);
-					window.removeEventListener("readystatechange", callback_check, false);
+					document.removeEventListener("readystatechange", callback_check, false);
 
 					if (check_interval !== null) {
 						clearInterval(check_interval);
@@ -186,7 +186,7 @@
 
 			window.addEventListener("load", callback_check, false);
 			window.addEventListener("DOMContentLoaded", callback_check, false);
-			window.addEventListener("readystatechange", callback_check, false);
+			document.addEventListener("readystatechange", callback_check, false);
 
 			return function (cb) {
 				if (callbacks === null) {
@@ -517,7 +517,7 @@
 			return (m === null) ? "" : m[1];
 		};
 		var get_domain = function (url) {
-			var m = /^https?:\/*(?:[\w-]+\.)*([\w-]+\.[\w]+)/i.exec(url);
+			var m = /^(?:[\w\-]+):\/*(?:[\w-]+\.)*([\w-]+\.[\w]+)/i.exec(url);
 			return (m === null) ? "" : m[1].toLowerCase();
 		};
 		var title_case = function (text) {
@@ -674,7 +674,6 @@
 				}
 				return null;
 			}
-			// "fuuka": function (node) {}
 		};
 		var get_file_info = {
 			"4chan": function (post) {
@@ -4352,34 +4351,22 @@
 			if (update) save();
 		};
 		var ready = function () {
-			var site = d.URL,
-				doctype = d.doctype,
-				type, cl;
+			var domain = Helper.get_domain(window.location.href),
+				cl;
 
-			if (/archive\.moe/i.test(site)) {
-				type = "<!DOCTYPE " +
-					doctype.name +
-					(doctype.publicId ? " PUBLIC \"" + doctype.publicId + "\"" : "") +
-					(!doctype.publicId && doctype.systemId ? " SYSTEM" : "") +
-					(doctype.systemId ? " \"" + doctype.systemId + "\"" : "") +
-					">";
-
-				Module.mode = (/<!DOCTYPE html>/.test(type)) ? "foolz" : "fuuka";
-				Module.linkify = false;
-			}
-			else if (/8ch\.net/i.test(site)) {
-				Module.mode = "tinyboard";
-				Module.linkify = false;
-				if ($("form[name=postcontrols]") === null) return false;
-			}
-			else if (/boards\.38chan\.net/i.test(site)) {
-				Module.mode = "tinyboard";
-				Module.linkify = false;
-			}
-			else {
+			if (domain === "4chan.org") {
 				cl = d.documentElement.classList;
 				Module.mode_ext.fourchanx3 = cl.contains("fourchan-x");
 				Module.mode_ext.oneechan = cl.contains("oneechan");
+			}
+			else if (domain === "desustorage.org" || domain === "archive.moe") {
+				Module.mode = "foolz";
+				Module.linkify = false;
+			}
+			else { // assume tinyboard
+				Module.mode = "tinyboard";
+				Module.linkify = false;
+				if ($("form[name=postcontrols]") === null) return false;
 			}
 
 			return true;
@@ -4409,7 +4396,7 @@
 
 		// Exports
 		var Module = {
-			mode: "4chan", // foolz, fuuka, tinyboard
+			mode: "4chan", // foolz, tinyboard
 			mode_ext: {
 				fourchanx3: false,
 				oneechan: false
@@ -6595,11 +6582,6 @@
 				nodes = $$(".letters");
 				for (i = 0, ii = nodes.length; i < ii; ++i) {
 					locations.push(nodes[i], Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets);
-				}
-			}
-			else if (Config.mode === "fuuka") {
-				if ((node = $("div")) !== null) {
-					locations.push(node, Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets);
 				}
 			}
 			else if (Config.mode === "tinyboard") {

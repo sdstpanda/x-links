@@ -36,10 +36,11 @@
 		"targets": [
 			"http://boards.4chan.org/*",
 			"https://boards.4chan.org/*",
-			"http://boards.38chan.net/*",
-			"https://archive.moe/*",
 			"http://8ch.net/*",
-			"https://8ch.net/*"
+			"https://8ch.net/*",
+			"https://archive.moe/*",
+			"https://desustorage.org/*",
+			"http://boards.38chan.net/*"
 		],
 		"gm_permissions": [
 			"GM_xmlhttpRequest",
