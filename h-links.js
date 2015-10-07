@@ -3,7 +3,7 @@
 (function () {
 	"use strict";
 
-	var timing, domains, domain_info, options, conf, regex, cat, browser, d, $, $$,
+	var timing, domains, domain_info, options, conf, regex, categories, browser, d, $, $$,
 		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Options, Config, Main,
 		MutationObserver, Helper, HttpRequest, Linkifier, Filter, Theme,
 		Post, CreateURL, EasyList, Popup, Changelog, HeaderBar, Navigation;
@@ -52,7 +52,7 @@
 		is_opera: /presto/i.test("" + navigator.userAgent),
 		is_firefox: /firefox/i.test("" + navigator.userAgent)
 	};
-	cat = {
+	categories = {
 		"Artist CG Sets": { "short": "artistcg",  "name": "Artist CG"  },
 		"Asian Porn":     { "short": "asianporn", "name": "Asian Porn" },
 		"Cosplay":        { "short": "cosplay",   "name": "Cosplay"    },
@@ -511,6 +511,10 @@
 				return m.toUpperCase();
 			});
 		};
+		var category = function (name) {
+			var c = categories[name];
+			return (c !== undefined) ? c : categories.Misc;
+		};
 
 		var get_id_from_node = function (node) {
 			var a = node.getAttribute("data-hl-id"),
@@ -589,6 +593,7 @@
 			get_full_domain: get_full_domain,
 			get_domain: get_domain,
 			title_case: title_case,
+			category: category,
 			get_id_from_node: get_id_from_node,
 			get_id_from_node_full: get_id_from_node_full,
 			get_info_from_node: get_info_from_node,
@@ -851,7 +856,7 @@
 		};
 		var to_category = {
 			ehentai: function (data, domain) {
-				return "http://" + domain_info[domain].g_domain + "/" + cat[data.category].short;
+				return "http://" + domain_info[domain].g_domain + "/" + Helper.category(data.category).short;
 			},
 			nhentai: function (data) {
 				return "http://" + domains.nhentai + "/category/" + data.category.toLowerCase() + "/";
@@ -1075,14 +1080,14 @@
 			var data_alt = {},
 				di = domain_info[domain],
 				g_domain = di.g_domain,
-				content, n, o;
+				content, n;
 
 			data_alt.jtitle = data.title_jpn ? ('<br /><span class="hl-details-title-jp">' + data.title_jpn + '</span>') : '';
 			data_alt.site = di.type;
 			data_alt.size = Math.round((data.filesize / 1024 / 1024) * 100) / 100;
 			data_alt.datetext = format_date(new Date(data.posted * 1000));
 			data_alt.visible = data.expunged ? 'No' : 'Yes';
-			data_alt.category_type = (o = cat[data.category]) === undefined ? "misc" : o.short;
+			data_alt.category_type = Helper.category(data.category).short;
 
 			content = $.frag(html_details(data, data_alt)).firstChild;
 			Theme.apply(content);
@@ -4589,7 +4594,7 @@
 			return info;
 		};
 		var check_single = function (text, filter, data) {
-			var list, cat, i, ii, m;
+			var list, category, i, ii, m;
 
 			m = filter.regex.exec(text);
 			if (filter.flags === null) {
@@ -4597,10 +4602,10 @@
 			}
 
 			// Category filtering
-			cat = data.category.toLowerCase();
+			category = data.category.toLowerCase();
 			if ((list = filter.flags.only) !== undefined) {
 				for (i = 0, ii = list.length; i < ii; ++i) {
-					if (list[i] === cat) {
+					if (list[i] === category) {
 						break;
 					}
 				}
@@ -4608,7 +4613,7 @@
 			}
 			if ((list = filter.flags.not) !== undefined) {
 				for (i = 0, ii = list.length; i < ii; ++i) {
-					if (list[i] === cat) {
+					if (list[i] === category) {
 						return false;
 					}
 				}
@@ -5339,9 +5344,9 @@
 			$.add(n4, n5 = $.node("div", "hl-easylist-item-info" + theme));
 
 			$.add(n5, n6 = $.link(CreateURL.to_category(data, domain),
-				"hl-easylist-item-info-button hl-button hl-button-eh hl-button-" + cat[data.category].short + theme
+				"hl-easylist-item-info-button hl-button hl-button-eh hl-button-" + Helper.category(data.category).short + theme
 			));
-			$.add(n6, $.node("div", "hl-noise", cat[data.category].name));
+			$.add(n6, $.node("div", "hl-noise", Helper.category(data.category).name));
 
 
 			$.add(n5, n6 = $.node("div", "hl-easylist-item-info-item hl-easylist-item-info-item-rating" + theme));
@@ -5467,8 +5472,8 @@
 				i = 0,
 				k;
 
-			for (k in cat) {
-				cat_order[cat[k].short] = i;
+			for (k in categories) {
+				cat_order[categories[k].short] = i;
 				++i;
 			}
 			cat_order[""] = i;
