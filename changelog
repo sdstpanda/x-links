@@ -1,5 +1,14 @@
 ﻿master
 
+1.0.5
+- dnsev-h
+  + Fixed a bug where the database would not properly store data
+  + Fixed navigation links not being lower case on 8ch
+  + Fixed the Easy List occasionally fetching full info from the wrong domain
+  + Changed update/changelog URLs
+  + Removed obsolete options
+  + Code refactor
+
 1.0.4
 - dnsev-h
   + Fixed a bug on 8ch that would cause excessive auto-reload requests and not display new posts
@@ -10,7 +19,7 @@
   + Added a settings import/export options
   + Removed the [Easy List] link on the catalog and 7-day archive
   + Made the settings link appear in the menu on appchan-x
-  + Made the settings link appear on the 4chan inline extension's header bar
+  + Made the settings link appear on the 4chan-inline extension's header bar
 
 1.0.3
 - dnsev-h
