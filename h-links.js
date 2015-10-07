@@ -19,8 +19,9 @@
 
 	(function (debug) {
 		try {
-			if (debug) {
-				Function.prototype._w = function () {
+			Function.prototype._w = debug ?
+				function () { return this; } :
+				function () {
 					var fn = this;
 					return function () {
 						try {
@@ -32,15 +33,8 @@
 						}
 					};
 				};
-			}
-			else {
-				Function.prototype._w = function () { return this; };
-			}
 		}
-		catch (e) {
-			console.log("Exception:", e);
-			throw e;
-		}
+		catch (e) {}
 	})(true);
 
 	var browser = {
