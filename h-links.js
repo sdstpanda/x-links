@@ -300,6 +300,17 @@
 			catch (e) {}
 			return false;
 		};
+		Module.unwrap = function (node) {
+			var par = node.parentNode,
+				next, n;
+
+			if (par !== null) {
+				next = node.nextSibling;
+				while ((n = node.firstChild) !== null) {
+					par.insertBefore(n, next);
+				}
+			}
+		};
 
 		Module.scroll_focus = function (element) {
 			// Focus
@@ -3530,6 +3541,9 @@
 
 			Debug.log("Total posts=" + posts.length + "; time=" + Debug.timer("process"));
 		};
+		var get_link_events = function (node) {
+			return node.getAttribute("data-hl-link-events") || null;
+		};
 		var apply_link_events = function (node, check_children) {
 			var nodes = check_children ? $$("a.hl-link-events", node) : [ node ],
 				events, i, ii;
@@ -3671,6 +3685,7 @@
 		return {
 			preprocess_link: preprocess_link,
 			parse_posts: parse_posts,
+			get_link_events: get_link_events,
 			apply_link_events: apply_link_events,
 			change_link_events: change_link_events,
 			check_incomplete: check_incomplete,
@@ -6572,6 +6587,38 @@
 			Linkifier.parse_posts(posts);
 		};
 
+		var fix_broken_external_linkification = function (node, event_links) {
+			// Somehow one of the links gets cloned, and then they all get wrapped inside another link
+			var next = node.nextSibling,
+				fix = [],
+				link, events, i, ii;
+
+			if (next !== null && next.tagName === "A" && next.classList.contains("hl-linkified")) {
+				$.remove(next);
+			}
+
+			for (i = 0, ii = event_links.length; i < ii; ++i) {
+				link = event_links[i];
+				events = Linkifier.get_link_events(link);
+				Linkifier.change_link_events(link, null);
+
+				if (link.classList.contains("hl-site-tag")) {
+					$.remove(link);
+				}
+				else if (link.classList.contains("hl-linkified")) {
+					fix.push(link, events);
+				}
+			}
+
+			$.unwrap(node);
+
+			for (i = 0, ii = fix.length; i < ii; i += 2) {
+				link = fix[i];
+				Linkifier.preprocess_link(link, conf["Automatic Processing"]);
+				Linkifier.apply_link_events(link, false);
+			}
+		};
+
 		var on_ready = function () {
 			Debug.timer("init");
 
@@ -6668,23 +6715,12 @@
 				// Detect 4chan X's linkification muck-ups
 				for (j = 0, jj = nodes.length; j < jj; ++j) {
 					node = nodes[j];
-					if (
-						node.tagName === "A" &&
-						node.classList.contains("linkified") &&
-						node.previousSibling &&
-						node.previousSibling.classList &&
-						node.previousSibling.classList.contains("hl-site-tag")
-					) {
-						node.className = "hl-link-events hl-linkified hl-linkified-gallery";
-						node.setAttribute("data-hl-linkified-status", "unprocessed");
-						Linkifier.change_link_events(node, "gallery_link");
-						$.remove(node.previousSibling);
-
-						Linkifier.preprocess_link(node, conf["Automatic Processing"]);
-
-						node = Post.get_post_container(node);
-						if (node !== null) {
-							post_list.push(node);
+					if (node.tagName === "A") {
+						if (node.classList.contains("linkify")) {
+							ns = $$("a.hl-link-events", node);
+							if (ns.length > 0) {
+								fix_broken_external_linkification(node, ns);
+							}
 						}
 					}
 				}
