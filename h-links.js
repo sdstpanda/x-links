@@ -73,7 +73,6 @@
 			'Show Changelog on Update':    ['checkbox', true,  'Show the changelog after an update.'],
 			'Use Extenral Resources':      ['checkbox', true,  'Enable the usage of web-fonts provided by Google servers.'],
 			'Gallery Details':             ['checkbox', true,  'Show gallery details for link on hover.'],
-			'Gallery Actions':             ['checkbox', true,  'Generate gallery actions for links.'],
 			'ExSauce':                     ['checkbox', true,  'Add ExSauce reverse image search to posts. Disabled in Opera.'],
 			'Extended Info':               ['checkbox', true,  'Fetch additional gallery info, such as tag namespaces.'],
 			'Rewrite Links':               ['select', 'none', 'Rewrite all E*Hentai links to use a specific site.', [
@@ -88,6 +87,7 @@
 			], function (v) { return parseFloat(v) || 0.0; } ]
 		},
 		actions: {
+			'Gallery Actions':             ['checkbox', true,  'Generate gallery actions for links.'],
 			'Show by Default':             ['checkbox', false, 'Show gallery actions by default.'],
 			'Hide in Quotes':              ['checkbox', true,  'Hide any open gallery actions in inline quotes.']
 		},
