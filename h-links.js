@@ -19,7 +19,7 @@
 
 	(function (debug) {
 		try {
-			Function.prototype._w = debug ?
+			Function.prototype._w = !debug ?
 				function () { return this; } :
 				function () {
 					var fn = this;
@@ -75,6 +75,7 @@
 			'Gallery Details':             ['checkbox', true,  'Show gallery details for link on hover.'],
 			'ExSauce':                     ['checkbox', true,  'Add ExSauce reverse image search to posts. Disabled in Opera.'],
 			'Extended Info':               ['checkbox', true,  'Fetch additional gallery info, such as tag namespaces.'],
+			'Disable Image Leeching':      ['checkbox', false, 'Thumbnails should be fetched with no referrer information.'],
 			'Rewrite Links':               ['select', 'none', 'Rewrite all E*Hentai links to use a specific site.', [
 				[ "none", "Disabled" ], // [ value, label_text, description ]
 				[ "smart", "Smart", "All links lead to " + domains.gehentai + " unless they have fjording tags." ],
@@ -339,6 +340,23 @@
 				for (var i = 0, ii = new_entries.length; i < ii; i += max_push) {
 					Array.prototype.push.apply(target, new_entries.slice(i, i + max_push));
 				}
+			}
+		};
+		Module.bind = function (fn, self) {
+			if (arguments.length > 2) {
+				var args = Array.prototype.slice.call(arguments, 2);
+
+				return function () {
+					var full_args = Array.prototype.slice.call(args);
+					Array.prototype.push.apply(full_args, arguments);
+
+					return fn.apply(self, full_args);
+				};
+			}
+			else {
+				return function () {
+					return fn.apply(self, arguments);
+				};
 			}
 		};
 
@@ -1088,8 +1106,12 @@
 			content = $.frag(html_details(data, data_alt)).firstChild;
 			Theme.apply(content);
 
-			if (data.thumbnail !== null && (data.flags & API.Flags.ThumbnailNoLeech) === 0 && (n = $(".hl-details-thumbnail", content)) !== null) {
-				n.style.backgroundImage = "url('" + data.thumbnail + "')";
+			if ((n = $(".hl-details-thumbnail", content)) !== null) {
+				API.get_thumbnail(data, $.bind(function (err, url) {
+					if (err === null) {
+						this.style.backgroundImage = "url('" + url + "')";
+					}
+				}, n));
 			}
 			if ((n = $(".hl-details-title", content)) !== null) {
 				Filter.highlight("title", n, data, null);
@@ -1351,6 +1373,11 @@
 
 		// Private
 		var temp_div = $.node_simple("div"),
+			saved_thumbnails = {
+				ehentai: {},
+				nhentai: {},
+				hitomi: {}
+			},
 			nhentai_tag_namespaces = {
 				parodies: "parody",
 				characters: "character",
@@ -1645,6 +1672,14 @@
 				tags: null,
 				tags_ns: null
 			};
+		};
+		var uint8_array_to_url = function (data, mime) {
+			try {
+				var blob = new Blob([ data ], { type: mime });
+				return window.URL.createObjectURL(blob) || null;
+			}
+			catch (e) {}
+			return null;
 		};
 
 		var ehentai_simple_string = function (value, default_value) {
@@ -2125,6 +2160,85 @@
 		var data_has_full = function (data) {
 			return data.full;
 		};
+		var get_thumbnail = function (data, callback) {
+			var thumbnail = data.thumbnail,
+				url, cache, gid;
+
+			if (thumbnail === null) {
+				callback.call(null, "No thumbnail", null);
+			}
+
+			// Use direct URL
+			if ((data.flags & API.Flags.ThumbnailNoLeech) === 0 && !conf["Disable Image Leeching"])  {
+				callback.call(null, null, thumbnail);
+				return;
+			}
+
+			// Cached
+			cache = saved_thumbnails[data.type];
+			if (cache === undefined) {
+				callback.call(null, "Malformed data", null);
+				return;
+			}
+
+			gid = data.gid;
+			url = cache[gid];
+			if (url !== undefined) {
+				callback.call(null, null, url);
+				return;
+			}
+
+			// Fetch
+			get_image(thumbnail, function (err, data, data_length, final_url) {
+				if (err === null) {
+					var m = /\.(png|gif)$/i.exec(final_url),
+						mime = "image/" + (m === null ? "jpeg" : m[1].toLowerCase()),
+						img_url = uint8_array_to_url(data.subarray(0, data_length), mime);
+
+					if (img_url !== null) {
+						cache[gid] = img_url;
+						callback.call(null, null, img_url);
+					}
+					else {
+						callback.call(null, "Failed to load image", null);
+					}
+				}
+				else {
+					callback.call(null, err, null);
+				}
+			});
+		};
+		var get_image = function (url, callback) {
+			// Note that the Uint8Array's length is longer than image_length
+			// callback(err, image_data, image_length);
+			HttpRequest({
+				method: "GET",
+				url: url,
+				overrideMimeType: "text/plain; charset=x-user-defined",
+				onload: function (xhr) {
+					if (xhr.status === 200) {
+						var text = xhr.responseText,
+							ta = new Uint8Array(text.length + 1),
+							i, ii;
+
+						for (i = 0, ii = text.length; i < ii; ++i) {
+							ta[i] = text.charCodeAt(i);
+						}
+
+						callback(null, ta, ii, xhr.finalUrl);
+					}
+					else {
+						callback(xhr.status, null, 0, null);
+					}
+				},
+				onerror: function () {
+					callback("connection error", null, 0, null);
+				},
+				onabort: function () {
+					callback("aborted", null, 0, null);
+				}
+			});
+		};
 
 		// Exports
 		return {
@@ -2135,7 +2249,9 @@
 			nhentai_queue_gallery: nhentai_queue_gallery,
 			hitomi_queue_gallery: hitomi_queue_gallery,
 			run_request_queue: run_request_queue,
-			data_has_full: data_has_full
+			data_has_full: data_has_full,
+			get_thumbnail: get_thumbnail,
+			get_image: get_image
 		};
 
 	})();
@@ -2798,40 +2914,11 @@
 
 			return results;
 		};
-		var get_image = function (url, callback) {
-			HttpRequest({
-				method: "GET",
-				url: url,
-				overrideMimeType: "text/plain; charset=x-user-defined",
-				onload: function (xhr) {
-					if (xhr.status === 200) {
-						var text = xhr.responseText,
-							ta = new Uint8Array(text.length + 1),
-							i, ii;
-
-						for (i = 0, ii = text.length; i < ii; ++i) {
-							ta[i] = text.charCodeAt(i);
-						}
-
-						callback(null, ta, ii);
-					}
-					else {
-						callback(xhr.status, null, 0);
-					}
-				},
-				onerror: function () {
-					callback("connection error", null, 0);
-				},
-				onabort: function () {
-					callback("aborted", null, 0);
-				}
-			});
-		};
 		var hash = function (a, md5) {
 			Debug.log("Fetching image " + a.href);
 			a.textContent = "Loading";
 
-			get_image(a.href, function (err, data) {
+			API.get_image(a.href, function (err, data) {
 				if (err !== null) {
 					a.textContent = "Error: hash/" + err;
 				}
@@ -2894,7 +2981,7 @@
 				// Load image and upload
 				a.textContent = "Loading";
 
-				get_image(this.href, function (err, image, image_size) {
+				API.get_image(this.href, function (err, image, image_size) {
 					if (err !== null) {
 						a.textContent = "Error: similar/" + err;
 					}
@@ -5280,11 +5367,23 @@
 
 			$.add(n5, n6 = $.node("div", "hl-easylist-item-image-outer" + theme));
 
-			if (data.thumbnail !== null && (data.flags & API.Flags.ThumbnailNoLeech) === 0) {
+			if (data.thumbnail !== null) {
 				$.add(n6, n7 = $.node("img", "hl-easylist-item-image" + theme));
 				$.on(n7, "error", on_thumbnail_error);
-				n7.src = data.thumbnail;
 				n7.alt = "";
+
+				API.get_thumbnail(data, $.bind(function (err, url) {
+					if (err === null) {
+						this.src = url;
+					}
+					else {
+						var par = this.parentNode;
+						if (par !== null) {
+							par.style.width = "100%";
+							par.style.height = "100%";
+						}
+					}
+				}, n7));
 			}
 			else {
 				n6.style.width = "100%";
