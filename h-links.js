@@ -1203,6 +1203,7 @@
 			var tagfrag = d.createDocumentFragment(),
 				tags = data.tags,
 				theme = Theme.get(),
+				last = null,
 				tag, link, i, ii;
 
 			for (i = 0, ii = tags.length; i < ii; ++i) {
@@ -1212,10 +1213,10 @@
 				Filter.highlight("tags", link, data, null);
 
 				$.add(tag, link);
-				$.add(tag, $.tnode(","));
+				$.add(tag, last = $.tnode(","));
 				$.add(tagfrag, tag);
 			}
-			$.remove(tagfrag.lastChild.lastChild);
+			if (last !== null) $.remove(last);
 
 			return tagfrag;
 		};
