@@ -1105,7 +1105,7 @@
 
 			// Full info
 			if (conf['Extended Info'] && di.type === "ehentai" && !API.data_has_full(data)) {
-				API.get_full_gallery_info(data.gid, data.token, g_domain, function (err) {
+				API.ehentai_get_full_info(data.gid, data.token, g_domain, function (err) {
 					if (err === null) {
 						update_full(data);
 					}
@@ -1994,7 +1994,7 @@
 		};
 
 		// Public
-		var queue_gallery = function (gid, token) {
+		var ehentai_queue_gallery = function (gid, token) {
 			gid = parseInt(gid, 10);
 			Request.queue("ehentai_gallery",
 				[ gid, token ],
@@ -2012,17 +2012,17 @@
 				}
 			);
 		};
-		var queue_gallery_page = function (gid, page_token, page) {
+		var ehentai_queue_gallery_page = function (gid, page_token, page) {
 			Request.queue("ehentai_page",
 				[ parseInt(gid, 10), page_token, parseInt(page, 10) ],
 				function (err, data) {
 					if (err === null) {
-						queue_gallery(data.gid, data.token);
+						ehentai_queue_gallery(data.gid, data.token);
 					}
 				}
 			);
 		};
-		var get_full_gallery_info = function (id, token, site, cb) {
+		var ehentai_get_full_info = function (id, token, site, cb) {
 			Request.get("ehentai_full",
 				[ site, id, token ],
 				function (err, full_data) {
@@ -2082,9 +2082,9 @@
 
 		// Exports
 		return {
-			queue_gallery: queue_gallery,
-			queue_gallery_page: queue_gallery_page,
-			get_full_gallery_info: get_full_gallery_info,
+			ehentai_queue_gallery: ehentai_queue_gallery,
+			ehentai_queue_gallery_page: ehentai_queue_gallery_page,
+			ehentai_get_full_info: ehentai_get_full_info,
 			nhentai_queue_gallery: nhentai_queue_gallery,
 			hitomi_queue_gallery: hitomi_queue_gallery,
 			run_request_queue: run_request_queue,
@@ -2892,10 +2892,10 @@
 					checked: { page: {}, gallery: {} },
 					missing: {
 						page: function (id, info) {
-							API.queue_gallery_page(id, info.page_token, info.page);
+							API.ehentai_queue_gallery_page(id, info.page_token, info.page);
 						},
 						gallery: function (id, info) {
-							API.queue_gallery(id, info.token);
+							API.ehentai_queue_gallery(id, info.token);
 						}
 					}
 				},
@@ -5663,25 +5663,27 @@
 
 			var node = this,
 				tags_container = $(".hl-easylist-item-tags", this),
-				gid = this.getAttribute("data-hl-gid") || "",
-				token = this.getAttribute("data-hl-token") || "",
-				site = this.getAttribute("data-hl-site");
+				gid, token, domain, g_domain;
 
-			if (!site) site = domains.exhentai;
+			if (
+				(gid = this.getAttribute("data-hl-gid")) &&
+				(token = this.getAttribute("data-hl-token")) &&
+				(domain = this.getAttribute("data-hl-domain")) &&
+				(g_domain = domain_info[domain].g_domain)
+			) {
+				API.ehentai_get_full_info(gid, token, g_domain, function (err, data) {
+					if (err === null && tags_container !== null) {
+						var n, hl_res;
 
-			API.get_full_gallery_info(gid, token, site, function (err, data) {
-				if (err === null && tags_container !== null) {
-					var domain = node.getAttribute("data-hl-domain") || domains.exhentai,
-						n, hl_res;
+						n = create_full_tags(domain, data, Theme.get());
+						tags_container.textContent = "";
+						$.add(tags_container, n[0]);
 
-					n = create_full_tags(domain, data, Theme.get());
-					tags_container.textContent = "";
-					$.add(tags_container, n[0]);
-
-					hl_res = update_filters(tags_container, data, false, true, true);
-					tag_filtering_results(node, { tags: hl_res.tags });
-				}
-			});
+						hl_res = update_filters(tags_container, data, false, true, true);
+						tag_filtering_results(node, { tags: hl_res.tags });
+					}
+				});
+			}
 		};
 		var on_thumbnail_error = function () {
 			$.off(this, "error", on_thumbnail_error);
