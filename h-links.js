@@ -3,12 +3,7 @@
 (function () {
 	"use strict";
 
-	var timing, domains, domain_info, options, conf, regex, categories, browser, d, $, $$,
-		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Settings, Config, Main,
-		MutationObserver, Helper, HttpRequest, Linkifier, Filter, Theme,
-		Post, CreateURL, EasyList, Popup, Changelog, HeaderBar, Navigation;
-
-	timing = (function () {
+	var timing = (function () {
 		var perf = window.performance,
 			now, fn;
 
@@ -48,11 +43,11 @@
 		}
 	})(true);
 
-	browser = {
+	var browser = {
 		is_opera: /presto/i.test("" + navigator.userAgent),
 		is_firefox: /firefox/i.test("" + navigator.userAgent)
 	};
-	categories = {
+	var categories = {
 		"Artist CG Sets": { "short": "artistcg",  "name": "Artist CG"  },
 		"Asian Porn":     { "short": "asianporn", "name": "Asian Porn" },
 		"Cosplay":        { "short": "cosplay",   "name": "Cosplay"    },
@@ -65,20 +60,20 @@
 		"Private":        { "short": "private",   "name": "Private"    },
 		"Western":        { "short": "western",   "name": "Western"    }
 	};
-	domains = {
+	var domains = {
 		exhentai: "exhentai.org",
 		gehentai: "g.e-hentai.org",
 		ehentai: "e-hentai.org",
 		nhentai: "nhentai.net",
 		hitomi: "hitomi.la"
 	};
-	domain_info = {
+	var domain_info = {
 		"exhentai.org": { tag: "Ex", g_domain: "exhentai.org", type: "ehentai" },
 		"e-hentai.org": { tag: "EH", g_domain: "g.e-hentai.org", type: "ehentai" },
 		"nhentai.net": { tag: "n", g_domain: "nhentai.net", type: "nhentai" },
 		"hitomi.la": { tag: "Hi", g_domain: "hitomi.la", type: "hitomi" }
 	};
-	options = {
+	var options = {
 		general: {
 			'Automatic Processing':        ['checkbox', true,  'Get data and format links automatically.'],
 			'Show Changelog on Update':    ['checkbox', true,  'Show the changelog after an update.'],
@@ -141,21 +136,21 @@
 			].join('\n'), '']
 		}
 	};
-	regex = {
+	var regex = {
 		url: /(?:https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)\/[^<>\s\'\"]*/ig,
 		protocol: /^https?\:\/*/i,
 		fjord: /abortion|bestiality|incest|lolicon|shotacon|toddlercon/,
 		site_exhentai: /exhentai\.org/i,
 		site_gehentai: /g\.e\-hentai\.org/i
 	};
-	d = document;
-	conf = {};
+	var d = document;
+	var conf = {};
 
-	MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver || null;
-	$$ = function (selector, root) {
+	var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver || null;
+	var $$ = function (selector, root) {
 		return (root || d).querySelectorAll(selector);
 	};
-	$ = (function () {
+	var $ = (function () {
 
 		// Inspired by 4chan X and jQuery API: https://api.jquery.com/ (functions are not chainable)
 		var Module = function (selector, root) {
@@ -349,7 +344,7 @@
 		return Module;
 
 	})();
-	Debug = (function () {
+	var Debug = (function () {
 
 		var started = false,
 			timer_names = null;
@@ -418,7 +413,7 @@
 		return Module;
 
 	})();
-	Helper = (function () {
+	var Helper = (function () {
 
 		// Public
 		var regex_escape = function (text) {
@@ -604,7 +599,7 @@
 		};
 
 	})();
-	Post = (function () {
+	var Post = (function () {
 
 		// Private
 		var specific = function (obj, def) {
@@ -829,7 +824,7 @@
 		return Module;
 
 	})();
-	CreateURL = (function () {
+	var CreateURL = (function () {
 
 		// Private
 		var to_gallery = {
@@ -926,7 +921,7 @@
 		};
 
 	})();
-	HttpRequest = (function () {
+	var HttpRequest = (function () {
 		try {
 			if (GM_xmlhttpRequest && typeof(GM_xmlhttpRequest) === "function") {
 				return function (data) {
@@ -948,7 +943,7 @@
 			}, 10);
 		};
 	})();
-	UI = (function () {
+	var UI = (function () {
 
 		// Private
 		var details_nodes = {};
@@ -1381,7 +1376,7 @@
 		};
 
 	})();
-	API = (function () {
+	var API = (function () {
 
 		// Private
 		var full_version = 1,
@@ -2137,7 +2132,7 @@
 		};
 
 	})();
-	Cache = (function () {
+	var Cache = (function () {
 
 		// Private
 		var prefix = "#PREFIX#cache-",
@@ -2284,7 +2279,7 @@
 		};
 
 	})();
-	Database = (function () {
+	var Database = (function () {
 
 		// Private
 		var saved_data = {
@@ -2344,7 +2339,7 @@
 		};
 
 	})();
-	Hash = (function () {
+	var Hash = (function () {
 
 		// Private
 		var ttl_12_hours = 12 * 60 * 60 * 1000,
@@ -2388,7 +2383,7 @@
 		};
 
 	})();
-	SHA1 = (function () {
+	var SHA1 = (function () {
 
 		// SHA-1 JS implementation originally created by Chris Verness; http://movable-type.co.uk/scripts/sha1.html
 		// Private
@@ -2487,7 +2482,7 @@
 		};
 
 	})();
-	Sauce = (function () {
+	var Sauce = (function () {
 
 		// Private
 		var similar_uploading = false,
@@ -2926,7 +2921,7 @@
 		};
 
 	})();
-	Linkifier = (function () {
+	var Linkifier = (function () {
 
 		// Private
 		var incomplete = {
@@ -3745,7 +3740,7 @@
 		};
 
 	})();
-	Settings = (function () {
+	var Settings = (function () {
 
 		// Private
 		var conf_temp = null,
@@ -4195,7 +4190,7 @@
 		};
 
 	})();
-	Config = (function () {
+	var Config = (function () {
 
 		// Private
 		var settings_key = "#PREFIX#settings";
@@ -4349,7 +4344,7 @@
 		return Module;
 
 	})();
-	Filter = (function () {
+	var Filter = (function () {
 
 		// Private
 		var filters = null,
@@ -4898,7 +4893,7 @@
 		};
 
 	})();
-	Theme = (function () {
+	var Theme = (function () {
 
 		// Private
 		var current = "light";
@@ -5069,7 +5064,7 @@
 		};
 
 	})();
-	EasyList = (function () {
+	var EasyList = (function () {
 
 		// Private
 		var settings_key = "#PREFIX#easylist-settings",
@@ -5906,7 +5901,7 @@
 		};
 
 	})();
-	Popup = (function () {
+	var Popup = (function () {
 
 		// Private
 		var active = null,
@@ -6026,7 +6021,7 @@
 		};
 
 	})();
-	Changelog = (function () {
+	var Changelog = (function () {
 
 		// Private
 		var change_data = null,
@@ -6240,7 +6235,7 @@
 		return Module;
 
 	})();
-	HeaderBar = (function () {
+	var HeaderBar = (function () {
 
 		// Private
 		var menu_nodes = [],
@@ -6446,7 +6441,7 @@
 		};
 
 	})();
-	Navigation = (function () {
+	var Navigation = (function () {
 
 		// Private
 		var Flags = {
@@ -6599,7 +6594,7 @@
 		};
 
 	})();
-	Main = (function () {
+	var Main = (function () {
 
 		// Private
 		var fonts_inserted = false,
