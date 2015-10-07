@@ -89,11 +89,7 @@
 		},
 		actions: {
 			'Show by Default':             ['checkbox', false, 'Show gallery actions by default.'],
-			'Hide in Quotes':              ['checkbox', true,  'Hide any open gallery actions in inline quotes.'],
-			'Torrent Popup':               ['checkbox', true,  'Use the default pop-up window for torrents.'],
-			'Archiver Popup':              ['checkbox', true,  'Use the default pop-up window for archiver.'],
-			'Favorite Popup':              ['checkbox', true,  'Use the default pop-up window for favorites.']
-			// 'Favorite Autosave':         ['checkbox', false, 'Autosave to favorites. Overrides normal behavior.']
+			'Hide in Quotes':              ['checkbox', true,  'Hide any open gallery actions in inline quotes.']
 		},
 		sauce: {
 			'Inline Results':              ['checkbox', true,  'Shows the results inlined rather than opening the site.'],
@@ -1300,35 +1296,6 @@
 
 			return str;
 		};
-		var popup = function (event) {
-			event.preventDefault();
-
-			var w = 400,
-				h = 400,
-				link = this,
-				type = /gallerytorrents|gallerypopups|archiver/i.exec(link.href);
-
-			if (type === null) return;
-			type = type[0];
-
-			if (type === "gallerytorrents") {
-				w = 610;
-				h = 590;
-			}
-			else if (type === "gallerypopups") {
-				w = 675;
-				h = 415;
-			}
-			else { // if (type === "archiver") {
-				w = 350;
-				h = 320;
-			}
-			window.open(
-				link.href,
-				"_pu" + (Math.random() + "").replace(/0\./, ""),
-				"toolbar=0,scrollbars=0,location=0,statusbar=0,menubar=0,resizable=0,width=" + w + ",height=" + h + ",left=" + ((screen.width - w) / 2) + ",top=" + ((screen.height - h) / 2)
-			);
-		};
 		var button = function (url, domain) {
 			var button = $.link(url, "hl-link-events hl-site-tag", button_text(domain));
 			button.setAttribute("data-hl-link-events", "gallery_fetch");
@@ -1362,7 +1329,6 @@
 				gallery_toggle_actions: gallery_toggle_actions
 			},
 			html_stars: html_stars,
-			popup: popup,
 			button: button,
 			button_text: button_text,
 			format_date: format_date,
@@ -2977,25 +2943,7 @@
 			gallery_toggle_actions: UI.events.gallery_toggle_actions,
 			gallery_fetch: function (event) {
 				return on_tag_click_to_load.call(this, event);
-			},
-			actions_torrent: function (event) {
-				if (conf['Torrent Popup']) {
-					return UI.popup.call(this, event);
-				}
-			},
-			actions_archiver: function (event) {
-				if (conf['Archiver Popup']) {
-					return UI.popup.call(this, event);
-				}
-			},
-			actions_favorite: function (event) {
-				if (conf['Favorite Autosave']) {
-					return UI.favorite.call(this, event);
-				}
-				else if (conf['Favorite Popup']) {
-					return UI.popup.call(this, event);
-				}
-			},
+			}
 		};
 
 		var deep_dom_wrap = (function () {
