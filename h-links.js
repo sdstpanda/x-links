@@ -3429,7 +3429,8 @@
 			// Button
 			button = Helper.get_tag_button_from_link(link);
 			if (button !== null) {
-				if ((hl = Filter.check(link, data))[0] !== Filter.None) {
+				hl = Filter.check(link, data);
+				if (hl[0] !== Filter.None) {
 					c = (hl[0] === Filter.Good) ? conf['Good Tag Marker'] : conf['Bad Tag Marker'];
 					button.textContent = button.textContent.replace(/\]\s*$/, c + "]");
 					Filter.highlight_tag(button, link, hl);
@@ -4708,6 +4709,9 @@
 				return Status.Good;
 			}
 		};
+		var init_filters = function () {
+			filters = parse(conf.Filters);
+		};
 
 		// Public
 		var parse = function (input) {
@@ -4762,9 +4766,7 @@
 			return filters;
 		};
 		var highlight = function (type, node, data, results, extras) {
-			if (filters === null) {
-				filters = parse(conf.Filters);
-			}
+			if (filters === null) init_filters();
 
 			var no_extras = true,
 				filters_temp = filters,
@@ -4899,7 +4901,7 @@
 			}
 		};
 		var check = function (titlenode, data, extras) {
-			if (filters === null) return [ Status.None, null ];
+			if (filters === null) init_filters();
 
 			var filters_temp = filters,
 				status, str, tags, result, i, info;
