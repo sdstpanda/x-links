@@ -4,7 +4,7 @@
 	"use strict";
 
 	var timing, domains, domain_info, options, conf, regex, categories, browser, d, $, $$,
-		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Options, Config, Main,
+		Debug, UI, Cache, API, Database, Hash, SHA1, Sauce, Settings, Config, Main,
 		MutationObserver, Helper, HttpRequest, Linkifier, Filter, Theme,
 		Post, CreateURL, EasyList, Popup, Changelog, HeaderBar, Navigation;
 
@@ -3745,7 +3745,7 @@
 		};
 
 	})();
-	Options = (function () {
+	Settings = (function () {
 
 		// Private
 		var conf_temp = null,
@@ -4011,7 +4011,7 @@
 				}
 			}]);
 
-			// Options
+			// Settings
 			gen($(".hl-settings-group-general", popup), theme, "general");
 			gen($(".hl-settings-group-actions", popup), theme, "actions");
 			gen($(".hl-settings-group-sauce", popup), theme, "sauce");
@@ -5145,7 +5145,7 @@
 
 				$.add(container, $.node("div", "hl-easylist-title-line"));
 
-				// Options
+				// Settings
 				options_container = create_options(theme);
 				$.add(container, options_container);
 
@@ -6637,7 +6637,7 @@
 			Debug.timer("init");
 
 			if (!Config.ready()) return;
-			Options.ready();
+			Settings.ready();
 
 			var style = $.node_simple("style"),
 				updater;
