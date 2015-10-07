@@ -5061,7 +5061,7 @@
 			load_filters();
 		};
 		var create = function () {
-			popup = Popup.create("easylist", function (overlay, container) {
+			popup = Popup.create("easylist", function (container) {
 				var theme = Theme.get(),
 					n1, n2;
 
@@ -5877,7 +5877,7 @@
 			$.on(container, "mousedown", on_stop_propagation);
 
 			if (typeof(setup) === "function") {
-				setup.call(null, n1, container);
+				setup.call(null, container);
 			}
 			else {
 				$.add(container, n2 = $.node("div", "hl-popup-table" + theme));
