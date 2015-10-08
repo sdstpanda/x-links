@@ -621,9 +621,6 @@
 	var Post = (function () {
 
 		// Private
-		var specific = function (obj, def) {
-			return obj[Config.mode] || obj[def];
-		};
 		var file_ext = function (url) {
 			var m = /\.[^\.]*$/.exec(url);
 			return (m === null) ? "" : m[0].toLowerCase();
@@ -700,7 +697,7 @@
 
 				if (
 					(n = $(".file", post)) === null ||
-					!specific(belongs_to, "").call(null, n, post) ||
+					!belongs_to[Config.mode].call(null, n, post) ||
 					(ft = $(".fileText", n)) === null ||
 					(img = $("img", n)) === null ||
 					(a1 = $("a", n)) === null
@@ -727,7 +724,7 @@
 
 				if (
 					(n = $(".thread_image_box", post)) === null ||
-					!specific(belongs_to, "").call(null, n, post) ||
+					!belongs_to[Config.mode].call(null, n, post) ||
 					(ft = $(".post_file_controls", post)) === null ||
 					(img = $("img", n)) === null ||
 					(a1 = $(".post_file_filename", post)) === null
@@ -754,7 +751,7 @@
 
 				if (
 					(img = $("a>img.thumb", post)) === null ||
-					!specific(belongs_to, "").call(null, img, post)
+					!belongs_to[Config.mode].call(null, img, post)
 				) {
 					return [];
 				}
@@ -792,7 +789,7 @@
 					array = [];
 					for (i = 0, ii = imgs.length; i < ii; ++i) {
 						img = imgs[i];
-						if (specific(belongs_to, "").call(null, img, post)) {
+						if (belongs_to[Config.mode].call(null, img, post)) {
 							array.push(img);
 						}
 					}
@@ -844,8 +841,7 @@
 			},
 			"foolz": belongs_to_default,
 			"fuuka": belongs_to_default,
-			"tinyboard": belongs_to_default,
-			"": belongs_to_default
+			"tinyboard": belongs_to_default
 		};
 		var create_image_meta_link_default = function (file_info, node) {
 			var par = file_info.options;
@@ -897,28 +893,25 @@
 		// Exports
 		var Module = {
 			get_post_container: function (node) {
-				return specific(post_parent_find, "tinyboard").call(null, node);
+				return post_parent_find[Config.mode].call(null, node);
 			},
 			get_text_body: function (node) {
-				var selector = specific(post_body_selector, "tinyboard");
-				return selector ? $(selector, node) : null;
+				return $(post_body_selector[Config.mode], node);
 			},
 			is_post: function (node) {
-				return $.test(node, specific(post_selector, "tinyboard"));
+				return $.test(node, post_selector[Config.mode]);
 			},
 			get_all_posts: function (parent) {
-				var selector = specific(post_selector, "tinyboard");
-				return selector ? $$(selector, parent) : [];
+				return $$(post_selector[Config.mode], parent);
 			},
 			get_file_info: function (post) {
-				return specific(get_file_info, "tinyboard").call(null, post);
+				return get_file_info[Config.mode].call(null, post);
 			},
 			get_body_links: function (post) {
-				var selector = specific(body_links_selector, "tinyboard");
-				return selector ? $$(selector, post) : [];
+				return $$(body_links_selector[Config.mode], post);
 			},
 			create_image_meta_link: function (file_info, node) {
-				return specific(create_image_meta_link, "tinyboard").call(null, file_info, node);
+				return create_image_meta_link[Config.mode].call(null, file_info, node);
 			},
 			get_op_post_files_container_tinyboard: get_op_post_files_container_tinyboard
 		};
@@ -3627,10 +3620,7 @@
 				// Create if not found
 				sauce = $(".hl-exsauce-link", file_info.options);
 				if (sauce === null && /^\.(png|gif|jpe?g)$/i.test(file_info.type)) {
-					sauce = $.link(file_info.url,
-						"hl-link-events hl-exsauce-link",
-						Sauce.label()
-					);
+					sauce = $.link(file_info.url, "hl-link-events hl-exsauce-link", Sauce.label());
 					sauce.setAttribute("data-hl-link-events", "exsauce_fetch");
 					sauce.setAttribute("data-hl-filename", file_info.name);
 					sauce.setAttribute("data-hl-image-index", index);
