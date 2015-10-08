@@ -43,7 +43,7 @@
 			s += "" + exception + "\n" + (format_stack("" + exception.stack));
 			node.value += s;
 
-			console.log("Exception:", e);
+			console.log("Exception:", exception);
 		};
 		try {
 			Function.prototype._w = function () {

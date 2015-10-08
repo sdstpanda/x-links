@@ -92,7 +92,7 @@ build = (output, version, tag, no_update, debug) ->
 
 task 'build', (options) ->
 	build options.output || OUTFILE, pkg.version, '', false, false
-	build options.output_debug || OUTFILEDB, pkg.version + '.1', ' (debug)', true, true
+	build options.output_debug || OUTFILEDB, pkg.version + '.0xDB', ' (debug)', true, true
 	log 'Build successful!'
 
 task 'dev', (options) ->
