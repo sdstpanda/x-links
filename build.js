@@ -116,13 +116,22 @@
 			child_process.spawnSync(cmd[0], cmd.slice(1), { stdio: "inherit" });
 		}
 	};
+	var full_build_safe = function () {
+		try {
+			full_build();
+		}
+		catch (e) {
+			var pad = "========================================\n";
+			process.stderr.write(pad + "" + e + "\n" + pad);
+		}
+	};
 
 
-	full_build();
+	full_build_safe();
 	if (process.argv[2] === "dev") {
 		var check = function (curr, prev) {
 			if (curr.mtime > prev.mtime) {
-				full_build();
+				full_build_safe();
 			}
 		};
 		var settings = { interval: 250 };
@@ -136,7 +145,7 @@
 		fs.watchFile(PACKAGE_JSON, settings, function (curr, prev) {
 			if (curr.mtime > prev.mtime) {
 				pkg = require(PACKAGE_JSON);
-				full_build();
+				full_build_safe();
 			}
 		});
 	}
