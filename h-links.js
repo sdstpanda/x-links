@@ -1190,10 +1190,10 @@
 				}, n));
 			}
 			if ((n = $(".hl-details-title", content)) !== null) {
-				Filter.highlight("title", n, data, null);
+				Filter.highlight("title", n, data, Filter.None);
 			}
 			if ((n = $(".hl-details-uploader", content)) !== null) {
-				Filter.highlight("uploader", n, data, null);
+				Filter.highlight("uploader", n, data, Filter.None);
 			}
 			if (data.total_size < 0 && (n = $(".hl-details-file-size", content)) !== null) {
 				$.remove(n);
@@ -1264,7 +1264,7 @@
 			container = $.frag(html_actions(data, domain)).firstChild;
 
 			if ((n = $(".hl-actions-link-uploader", container)) !== null) {
-				Filter.highlight("uploader", n, data, null);
+				Filter.highlight("uploader", n, data, Filter.None);
 			}
 
 			if (conf['Show by Default']) container.classList.remove("hl-actions-hidden");
@@ -1286,7 +1286,7 @@
 				tag = $.node("span", "hl-tag-block" + theme);
 				link = $.link(CreateURL.to_tag(tags[i], domain, site), "hl-tag", tags[i]);
 
-				Filter.highlight("tags", link, data, null);
+				Filter.highlight("tags", link, data, Filter.None);
 
 				$.add(tag, link);
 				$.add(tag, last = $.tnode(","));
@@ -1321,7 +1321,7 @@
 					tag = $.node("span", "hl-tag-block" + namespace_style);
 					link = $.link(CreateURL.to_tag_ns(tags[i], namespace, domain, site), "hl-tag", tags[i]);
 
-					Filter.highlight("tags", link, data, null);
+					Filter.highlight("tags", link, data, Filter.None);
 
 					$.add(tag, link);
 					if (i < ii - 1) {
@@ -4823,12 +4823,12 @@
 
 			return filters;
 		};
-		var highlight = function (type, node, data, results, extras) {
+		var highlight = function (type, node, data, input_state, results, extras) {
 			if (filters === null) init_filters();
 
 			var no_extras = true,
 				filters_temp = filters,
-				info, matches, text, frag, segment, cache_type, c, i, t, n1, n2;
+				info, matches, text, frag, segment, cache_type, bad, c, i, t, n1, n2;
 
 			if (extras && extras.length > 0) {
 				filters_temp = filters_temp.concat(extras);
@@ -4840,13 +4840,18 @@
 
 			// Cache for tags
 			text = node.textContent;
-			if (no_extras && (cache_type = cache[type]) !== undefined && (c = cache_type[text]) !== undefined) {
+			if (
+				no_extras &&
+				input_state !== Status.Bad &&
+				(cache_type = cache[type]) !== undefined &&
+				(c = cache_type[text]) !== undefined
+			) {
 				if (c === null) {
 					return Status.None;
 				}
 
 				// Results
-				if (results !== null) {
+				if (results !== undefined) {
 					append_match_datas(c[0], results);
 				}
 
@@ -4869,7 +4874,8 @@
 			}
 
 			// If bad, remove all non-bad filters
-			if (info.bad) {
+			bad = (info.bad || input_state === Status.Bad);
+			if (bad) {
 				for (i = 0; i < info.matches.length; ) {
 					if (!info.matches[i].data.bad) {
 						info.matches.splice(i, 1);
@@ -4880,7 +4886,7 @@
 			}
 
 			// Results
-			if (results !== null) {
+			if (results !== undefined) {
 				append_match_datas(info, results);
 			}
 
@@ -4909,7 +4915,7 @@
 			if (cache_type !== undefined) {
 				cache_type[text] = [ info, node ];
 			}
-			return hl_return(info.bad, node);
+			return hl_return(bad, node);
 		};
 		var highlight_tag = function (node, link, filter_data) {
 			if (filter_data[0] === Status.Bad) {
@@ -4975,8 +4981,6 @@
 			};
 
 			// Title
-			status = highlight("title", titlenode, data, result.title, extras);
-
 			if (filters_temp.length > 0) {
 				// Uploader
 				if ((str = data.uploader)) {
@@ -5012,6 +5016,9 @@
 					});
 				}
 			}
+
+			i = highlight("title", titlenode, data, status, result.title, extras);
+			if (status === Status.None) status = i;
 
 			// Remove non-bad filters on result.tags and result.uploader
 			if (status === Status.Bad) {
@@ -5751,7 +5758,7 @@
 				for (j = 0, jj = nodes.length; j < jj; ++j) {
 					n = nodes[j];
 					if (!first) reset_filter_state(n);
-					Filter.highlight(mode, n, data, results, custom_filters);
+					Filter.highlight(mode, n, data, Filter.None, results, custom_filters);
 				}
 
 				bad = 0;
