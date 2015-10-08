@@ -9,13 +9,8 @@
 		"clean-css": "~3.4.4",
 		"complexion-js": "~0.1.5"
 	},
-	"devDependencies": {
-		"coffee-script": "~1.8.0"
-	},
-	"scripts": {
-		"start": "cake dev",
-		"build": "cake build"
-	},
+	"devDependencies": {},
+	"scripts": {},
 	"repository": {
 		"type": "git",
 		"url": "git://github.com/dnsev-h/h-links.git"
