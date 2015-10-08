@@ -358,6 +358,12 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	box-shadow: 0 0 0.5em rgba(255,255,255,0.125);
 	text-shadow: 0 0.1em 0 rgba(0,0,0,0.5);
 }
+.hl-details-side-box-error {
+	color: #e00000;
+}
+.hl-details-side-box-error.hl-theme-dark {
+	color: #ff1f1f;
+}
 
 .hl-details-title {
 	font-size: 1.5em !important;

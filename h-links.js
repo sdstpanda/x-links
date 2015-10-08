@@ -1152,10 +1152,9 @@
 			var data_alt = {},
 				di = domain_info[domain],
 				g_domain = di.g_domain,
-				content, n;
+				content, n, n2;
 
 			data_alt.jtitle = data.title_jpn !== null ? ('<br /><span class="hl-details-title-jp">' + data.title_jpn + '</span>') : '';
-			data_alt.site = di.type;
 			data_alt.size = Math.round((data.total_size / 1024 / 1024) * 100) / 100;
 			data_alt.datetext = format_date(new Date(data.upload_date));
 			data_alt.visible = data.visible ? 'Yes' : 'No';
@@ -1186,7 +1185,17 @@
 			if (data.rating < 0 && (n = $(".hl-details-side-box-rating", content)) !== null) {
 				$.remove(n);
 			}
-			if (data.visible === null && (n = $(".hl-details-side-box-visible", content)) !== null) {
+			if (data.removed === true && (n = $(".hl-details-side-box-visible", content)) !== null) {
+				if (
+					(n = n.firstChild) !== null &&
+					n.tagName === "DIV"
+				) {
+					n.innerHTML = "";
+					n2 = $.node("strong", "hl-details-side-box-error" + Theme.get(), "Removed");
+					n.appendChild(n2);
+				}
+			}
+			else if (data.visible === null && (n = $(".hl-details-side-box-visible", content)) !== null) {
 				$.remove(n);
 			}
 
@@ -1334,9 +1343,20 @@
 		var update_full = function (data) {
 			var tagfrag, nodes, link, site, tags, last, i, ii, j, jj, n, f;
 
-			nodes = $$(".hl-tags[data-hl-id='ehentai_" + data.gid + "']");
+			if (data.removed === true) {
+				if (
+					(n = details_nodes[data.type + "_" + data.gid]) !== null &&
+					(link = $(".hl-details-side-box-visible>div", n)) !== null
+				) {
+					link.innerHTML = "";
+					n = $.node("strong", "hl-details-side-box-error" + Theme.get(), "Removed");
+					link.appendChild(n);
+				}
+			}
 
+			nodes = $$(".hl-tags[data-hl-id='" + data.type + "_" + data.gid + "']");
 			ii = nodes.length;
+
 			if (ii === 0 || Object.keys(data.tags_ns).length === 0) return;
 
 			tagfrag = create_tags_full("ehentai", domains.exhentai, data);
@@ -1512,6 +1532,7 @@
 					response: function (text) {
 						var html = Helper.html_parse_safe(text, null);
 						if (html !== null) {
+							console.log(text);
 							return [ html ];
 						}
 						return null;
@@ -1779,16 +1800,31 @@
 		};
 		var ehentai_parse_info = function (html, data) {
 			// Tags
-			var tags = {},
-				pattern = /(.+):/,
-				par = $$("#taglist tr", html),
-				updated_tag_count = 0,
-				tds, namespace, ns, i, j, m, n;
+			var updated_tag_count = 0,
+				tags, pattern, par, tds, namespace, ns, i, ii, j, jj, m, n;
 
-			for (i = 0; i < par.length; ++i) {
-				// Class
-				tds = $$("td", par[i]);
-				if (tds.length > 0) {
+			if (
+				(n = $("title", html)) !== null &&
+				/^\s*Gallery\s+Not\s+Available/i.test(n.textContent) &&
+				$("#continue", html) !== null
+			) {
+				data.removed = true;
+				data.tags_ns = {};
+			}
+			else {
+				tags = {};
+				pattern = /(.+):/;
+
+				data.removed = false;
+				data.tags_ns = tags;
+
+				par = $$("#taglist tr", html);
+				for (i = 0, ii = par.length; i < ii; ++i) {
+					// Class
+					tds = $$("td", par[i]);
+					jj = tds.length;
+					if (jj === 0) continue;
+
 					// Namespace
 					namespace = ((m = pattern.exec(tds[0].textContent)) ? m[1].trim() : "");
 					if (!(namespace in tags)) {
@@ -1800,8 +1836,8 @@
 					}
 
 					// Tags
-					tds = $$("div", tds[tds.length - 1]);
-					for (j = 0; j < tds.length; ++j) {
+					tds = $$("div", tds[jj - 1]);
+					for (j = 0; j < jj; ++j) {
 						// Create tag
 						if ((n = $("a", tds[j])) !== null) {
 							// Add tag
@@ -1820,7 +1856,6 @@
 			}
 
 			// Done
-			data.tags_ns = tags;
 			data.full = true;
 			return data;
 		};
