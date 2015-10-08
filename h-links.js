@@ -643,12 +643,20 @@
 		var post_selector = {
 			"4chan": ".postContainer:not(.hl-fake-post)",
 			"foolz": "article:not(.backlink_container)",
+			"fuuka": ".content>div[id],.content>table",
 			"tinyboard": ".post:not(.hl-fake-post)"
 		};
 		var post_body_selector = {
 			"4chan": "blockquote",
 			"foolz": ".text",
+			"fuuka": "blockquote>p",
 			"tinyboard": ".body"
+		};
+		var body_links_selector = {
+			"4chan": "a:not(.quotelink)",
+			"foolz": "a:not(.backlink)",
+			"fuuka": "a:not(.backlink)",
+			"tinyboard": "a:not([onclick])"
 		};
 		var post_parent_find = {
 			"4chan": function (node) {
@@ -660,6 +668,17 @@
 			"foolz": function (node) {
 				while ((node = node.parentNode) !== null) {
 					if (node.tagName === "ARTICLE") return node;
+				}
+				return null;
+			},
+			"fuuka": function (node) {
+				while ((node = node.parentNode) !== null) {
+					if (
+						node.tagName === "TABLE" || // Reply
+						(node.tagName === "DIV" && node.id && node.parentNode.classList.contains("content")) // OP
+					) {
+						return node;
+					}
 				}
 				return null;
 			},
@@ -697,9 +716,6 @@
 					image_link: img.parentNode,
 					text_link: a1,
 					options: ft,
-					options_before: null,
-					options_class: "",
-					options_sep: " ",
 					url: url,
 					type: file_ext(url),
 					name: file_name(url),
@@ -727,9 +743,32 @@
 					image_link: img.parentNode,
 					text_link: a1,
 					options: ft,
-					options_before: $("a[download]", ft),
-					options_class: "btnr parent",
-					options_sep: "",
+					url: url,
+					type: file_ext(url),
+					name: file_name(url),
+					md5: img.getAttribute("data-md5") || null
+				}];
+			},
+			"fuuka": function (post) {
+				var n, img, a1, url, i;
+
+				if (
+					(img = $("a>img.thumb", post)) === null ||
+					!specific(belongs_to, "").call(null, img, post)
+				) {
+					return [];
+				}
+
+				a1 = img.parentNode;
+				n = a1.parentNode;
+				url = a1.href;
+				if ((i = url.indexOf("#")) >= 0) url = url.substr(0, i);
+
+				return [{
+					image: img,
+					image_link: a1,
+					text_link: null,
+					options: n,
 					url: url,
 					type: file_ext(url),
 					name: file_name(url),
@@ -782,9 +821,6 @@
 						image_link: img.parentNode,
 						text_link: a1,
 						options: ft,
-						options_before: null,
-						options_class: "",
-						options_sep: " ",
 						url: url,
 						type: file_ext(url),
 						name: file_name(url),
@@ -795,22 +831,67 @@
 				return results;
 			}
 		};
+		var belongs_to_default = function (node, post) {
+			return (Module.get_post_container(node) === post);
+		};
+		var belongs_to_re_non_digit = /\D+/g;
 		var belongs_to = {
 			"4chan": function (node, post) {
-				var re = /\D+/g,
-					id1 = node.id.replace(re, ""),
-					id2 = post.id.replace(re, "");
+				var id1 = node.id.replace(belongs_to_re_non_digit, ""),
+					id2 = post.id.replace(belongs_to_re_non_digit, "");
 
 				return (id1 && id1 === id2);
 			},
-			"": function (node, post) {
-				return (Module.get_post_container(node) === post);
-			}
+			"foolz": belongs_to_default,
+			"fuuka": belongs_to_default,
+			"tinyboard": belongs_to_default,
+			"": belongs_to_default
 		};
-		var body_links = {
-			"4chan": "a:not(.quotelink)",
-			"foolz": "a:not(.backlink)",
-			"tinyboard": "a:not([onclick])"
+		var create_image_meta_link_default = function (file_info, node) {
+			var par = file_info.options;
+			$.add(par, $.tnode(" "));
+			$.add(par, node);
+		};
+		var create_image_meta_link = {
+			"4chan": create_image_meta_link_default,
+			"foolz": function (file_info, node) {
+				var par = file_info.options,
+					next;
+
+				for (next = par.lastChild; next !== null; next = next.previousSibling) {
+					if (next.tagName === "A" && next.hasAttribute("download")) break;
+				}
+
+				node.classList.add("btnr");
+				node.classList.add("parent");
+				$.before2(par, node, next);
+			},
+			"fuuka": function (file_info, node) {
+				var par = file_info.options,
+					t = " [",
+					i = 0,
+					j = (par.tagName === "DIV" ? 1 : 2),
+					next, n;
+
+				for (next = par.firstChild; next !== null; next = next.nextSibling) {
+					if (next.tagName === "BR" && ++i === j) break;
+				}
+
+				if (
+					next !== null &&
+					(n = next.previousSibling) !== null &&
+					n.nodeType === Node.TEXT_NODE
+				) {
+					n.nodeValue = n.nodeValue.replace(/\]\s*$/, "]") + t;
+				}
+				else {
+					$.before2(par, $.tnode(t), next);
+				}
+
+				$.before2(par, node, next);
+				$.before2(par, $.tnode("]"), next);
+			},
+			"tinyboard": create_image_meta_link_default
 		};
 
 		// Exports
@@ -833,8 +914,11 @@
 				return specific(get_file_info, "tinyboard").call(null, post);
 			},
 			get_body_links: function (post) {
-				var selector = specific(body_links, "tinyboard");
+				var selector = specific(body_links_selector, "tinyboard");
 				return selector ? $$(selector, post) : [];
+			},
+			create_image_meta_link: function (file_info, node) {
+				return specific(create_image_meta_link, "tinyboard").call(null, file_info, node);
 			},
 			get_op_post_files_container_tinyboard: get_op_post_files_container_tinyboard
 		};
@@ -3544,7 +3628,7 @@
 				sauce = $(".hl-exsauce-link", file_info.options);
 				if (sauce === null && /^\.(png|gif|jpe?g)$/i.test(file_info.type)) {
 					sauce = $.link(file_info.url,
-						"hl-link-events hl-exsauce-link" + (file_info.options_class ? " " + file_info.options_class : ""),
+						"hl-link-events hl-exsauce-link",
 						Sauce.label()
 					);
 					sauce.setAttribute("data-hl-link-events", "exsauce_fetch");
@@ -3564,10 +3648,7 @@
 							);
 						}
 					}
-					if (file_info.options_sep) {
-						$.before2(file_info.options, $.tnode(file_info.options_sep), file_info.options_before);
-					}
-					$.before2(file_info.options, sauce, file_info.options_before);
+					Post.create_image_meta_link(file_info, sauce);
 
 					++index;
 				}
@@ -4360,7 +4441,7 @@
 				Module.mode_ext.oneechan = cl.contains("oneechan");
 			}
 			else if (domain === "desustorage.org" || domain === "archive.moe") {
-				Module.mode = "foolz";
+				Module.mode = d.doctype.publicId ? "fuuka" : "foolz";
 				Module.linkify = false;
 			}
 			else { // assume tinyboard
@@ -4396,7 +4477,7 @@
 
 		// Exports
 		var Module = {
-			mode: "4chan", // foolz, tinyboard
+			mode: "4chan", // foolz, fuuka, tinyboard
 			mode_ext: {
 				fourchanx3: false,
 				oneechan: false
@@ -6582,6 +6663,12 @@
 				nodes = $$(".letters");
 				for (i = 0, ii = nodes.length; i < ii; ++i) {
 					locations.push(nodes[i], Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets);
+				}
+			}
+			else if (Config.mode === "fuuka") {
+				node = $("body>div:first-child");
+				if (node !== null) {
+					locations.push(node, Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets);
 				}
 			}
 			else if (Config.mode === "tinyboard") {
