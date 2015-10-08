@@ -5406,7 +5406,7 @@
 		};
 		var create_gallery_nodes = function (data, theme, index, domain) {
 			var url = CreateURL.to_gallery(data, domain),
-				hl_res, n1, n2, n3, n4, n5, n6, n7, i;
+				n1, n2, n3, n4, n5, n6, n7, i;
 
 			n1 = $.node("div", "hl-easylist-item" + theme);
 			n1.setAttribute("data-hl-index", index);
@@ -5518,8 +5518,7 @@
 			}
 
 			// Highlight
-			hl_res = update_filters(n1, data, true, false, true);
-			tag_filtering_results(n1, hl_res);
+			update_filters(n1, data, true, false);
 
 			return n1;
 		};
@@ -5657,19 +5656,6 @@
 
 			cl.add("hl-easylist-" + mode);
 		};
-		var tag_filtering_results = function (node, hl_results) {
-			var list, bad, i, ii, k;
-			for (k in hl_results) {
-				list = hl_results[k];
-				bad = 0;
-				for (i = 0, ii = list.length; i < ii; ++i) {
-					if (list[i].bad) ++bad;
-				}
-
-				node.setAttribute("data-hl-filter-matches-" + k, list.length - bad);
-				node.setAttribute("data-hl-filter-matches-" + k + "-bad", bad);
-			}
-		};
 		var update_ordering = function () {
 			var items = [],
 				mode = settings.sort_by,
@@ -5744,44 +5730,37 @@
 				}
 			}
 		};
-		var update_filters = function (node, data, first, tags_only, get_results) {
-			var results1 = null,
-				results2 = null,
-				results3 = null,
-				ret = null,
-				targets, nodes, mode, results, link, hl, n, i, ii, j, jj;
+		var reset_filter_state = function (node) {
+			node.textContent = node.getAttribute("data-hl-original") || "";
+			node.classList.remove("hl-filter-good");
+			node.classList.remove("hl-filter-bad");
+		};
+		var update_filters_targets = [
+			[ ".hl-easylist-item-title-link,.hl-easylist-item-title-jp", "title" ],
+			[ ".hl-easylist-item-uploader", "uploader" ],
+			[ ".hl-easylist-item-tag", "tags" ],
+		];
+		var update_filters = function (node, data, first, tags_only) {
+			var target, nodes, mode, results, link, bad, hl, n, i, ii, j, jj;
 
-			if (get_results) {
-				results1 = [];
-				results2 = [];
-				results3 = [];
-				ret = {
-					title: results1,
-					uploader: results2,
-					tags: results3
-				};
-			}
-
-			targets = [
-				[ ".hl-easylist-item-title-link", "title", results1 ],
-				[ ".hl-easylist-item-title-jp", "title", results1 ],
-				[ ".hl-easylist-item-uploader", "uploader", results2 ],
-				[ ".hl-easylist-item-tag", "tags", results3 ],
-			];
-
-			for (i = (tags_only ? 3 : 0), ii = targets.length; i < ii; ++i) {
-				nodes = $$(targets[i][0], node);
-				mode = targets[i][1];
-				results = targets[i][2];
+			for (i = (tags_only ? 2 : 0), ii = update_filters_targets.length; i < ii; ++i) {
+				target = update_filters_targets[i];
+				nodes = $$(target[0], node);
+				mode = target[1];
+				results = [];
 				for (j = 0, jj = nodes.length; j < jj; ++j) {
 					n = nodes[j];
-					if (!first) {
-						n.textContent = n.getAttribute("data-hl-original") || "";
-						n.classList.remove("hl-filter-good");
-						n.classList.remove("hl-filter-bad");
-					}
+					if (!first) reset_filter_state(n);
 					Filter.highlight(mode, n, data, results, custom_filters);
 				}
+
+				bad = 0;
+				for (j = 0, jj = results.length; j < jj; ++j) {
+					if (results[j].bad) ++bad;
+				}
+
+				node.setAttribute("data-hl-filter-matches-" + mode, results.length - bad);
+				node.setAttribute("data-hl-filter-matches-" + mode + "-bad", bad);
 			}
 
 			if (!tags_only) {
@@ -5789,11 +5768,7 @@
 				n = $(".hl-easylist-item-title-tag-link", node);
 
 				if (link !== null && n !== null) {
-					if (!first) {
-						n.textContent = n.getAttribute("data-hl-original") || "";
-						n.classList.remove("hl-filter-good");
-						n.classList.remove("hl-filter-bad");
-					}
+					if (!first) reset_filter_state(n);
 
 					link = link.cloneNode(true);
 					if ((hl = Filter.check(link, data, custom_filters))[0] !== Filter.None) {
@@ -5801,18 +5776,15 @@
 					}
 				}
 			}
-
-			return ret;
 		};
 		var update_all_filters = function () {
-			var hl_res, entry, data, i, ii;
+			var entry, data, i, ii;
 
 			for (i = 0, ii = current.length; i < ii; ++i) {
 				entry = current[i];
 				data = Database.get(entry.namespace, entry.id);
 				if (data !== null) {
-					hl_res = update_filters(current[i].node, data, false, false, true);
-					tag_filtering_results(current[i].node, hl_res);
+					update_filters(current[i].node, data, false, false);
 				}
 			}
 		};
@@ -5873,7 +5845,6 @@
 			$.off(this, "mouseover", on_gallery_mouseover);
 
 			var node = this,
-				tags_container = $(".hl-easylist-item-tags", this),
 				gid, token, domain, g_domain;
 
 			if (
@@ -5883,15 +5854,17 @@
 				(g_domain = domain_info[domain].g_domain)
 			) {
 				API.ehentai_get_full_info(gid, token, g_domain, function (err, data) {
-					if (err === null && tags_container !== null) {
-						var n, hl_res;
+					var tags_container, n;
 
+					if (
+						err === null &&
+						(tags_container = $(".hl-easylist-item-tags", node)) !== null
+					) {
 						n = create_full_tags(domain, data, Theme.get());
 						tags_container.textContent = "";
 						$.add(tags_container, n[0]);
 
-						hl_res = update_filters(tags_container, data, false, true, true);
-						tag_filtering_results(node, { tags: hl_res.tags });
+						update_filters(node, data, false, true);
 					}
 				});
 			}
