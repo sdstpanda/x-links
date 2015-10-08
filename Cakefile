@@ -5,6 +5,7 @@ fs       = require 'fs'
 ugly     = require 'uglify-js'
 pkg      = require './package.json'
 CleanCSS = require 'clean-css'
+debug_wrap = require './debug_wrap'
 
 
 CAKEFILE  = 'Cakefile'
@@ -13,6 +14,7 @@ ELEMENTS  = './elements'
 IMAGES    = './images'
 STYLEFILE = 'style.css'
 OUTFILE   = 'h-links.user.js'
+OUTFILEDB = 'h-links.debug.user.js'
 LATEST    = 'latest.js'
 CHANGELOG = 'changelog'
 
@@ -25,29 +27,28 @@ option '-u', '--uglify [uglify]', 'Minify with UglifyJS. Options: "mangle,squeez
 option '-v', '--version [version]', 'Release version.'
 
 
-task 'build', (options) ->
+build = (output, version, tag, no_update, debug) ->
 	jsp = ugly.parser
 	pro = ugly.uglify
-	output = options.output || OUTFILE
 	output_meta = output.replace /\.user\./, ".meta."
 
-	header =
-	"// ==UserScript==\n" +
-	"// @name        #{pkg.name}\n" +
-	"// @namespace   #{pkg.custom.namespace}\n" +
-	"// @author      #{pkg.author}\n" +
-	"// @version     #{pkg.version}\n" +
-	"// @description #{pkg.description}\n" +
-	(("// @include     #{a}\n" for a in pkg.custom.targets).join "") +
-	"// @homepage    #{pkg.homepage}\n" +
-	"// @supportURL  #{pkg.bugs.url}\n" +
-	"// @updateURL   #{pkg.custom.update_url_base}#{output_meta}\n" +
-	"// @downloadURL #{pkg.custom.update_url_base}#{output}\n" +
-	"// @icon        data:image/png;base64,#{(fs.readFileSync ICON48).toString 'base64'}\n" +
-	"// @icon64      data:image/png;base64,#{(fs.readFileSync ICON64).toString 'base64'}\n" +
-	(("// @grant       #{a}\n" for a in pkg.custom.gm_permissions).join "") +
-	"// @run-at      document-start\n" +
-	"// ==/UserScript=="
+	header = "// ==UserScript==\n"
+	header += "// @name        #{pkg.name}#{tag || ''}\n"
+	header += "// @namespace   #{pkg.custom.namespace}\n"
+	header += "// @author      #{pkg.author}\n"
+	header += "// @version     #{version}\n"
+	header += "// @description #{pkg.description}\n"
+	header += (("// @include     #{a}\n" for a in pkg.custom.targets).join "")
+	header += "// @homepage    #{pkg.homepage}\n"
+	header += "// @supportURL  #{pkg.bugs.url}\n"
+	if !no_update
+		header += "// @updateURL   #{pkg.custom.update_url_base}#{output_meta}\n"
+		header += "// @downloadURL #{pkg.custom.update_url_base}#{output}\n"
+	header += "// @icon        data:image/png;base64,#{(fs.readFileSync ICON48).toString 'base64'}\n"
+	header += "// @icon64      data:image/png;base64,#{(fs.readFileSync ICON64).toString 'base64'}\n"
+	header += (("// @grant       #{a}\n" for a in pkg.custom.gm_permissions).join "")
+	header += "// @run-at      document-start\n"
+	header += "// ==/UserScript=="
 
 	html = {}
 	store = (path) ->
@@ -67,7 +68,7 @@ task 'build', (options) ->
 	style = new CleanCSS({}).minify(style).styles
 	input = input.replace /\#DETAILS\#/g, html.details
 	input = input.replace /\#OPTIONS\#/g, html.options
-	input = input.replace /\/\*\#VERSION\#\*\//g, (pkg.version.split ".").join ","
+	input = input.replace /\/\*\#VERSION\#\*\//g, (version.split ".").join ","
 	input = input.replace /\#HOMEPAGE\#/g, pkg.homepage
 	input = input.replace /\#ISSUES\#/g, pkg.bugs.url
 	input = input.replace /\#CHANGELOG\#/g, pkg.custom.changelog_url
@@ -80,11 +81,18 @@ task 'build', (options) ->
 
 	input = header + "\n" + input
 
+	if debug
+		input = debug_wrap.debug_wrap_code input
+
 	fs.writeFileSync output, input, 'utf8', (err) ->
 		throw err if err
-	fs.writeFileSync output_meta, header, 'utf8', (err) ->
-		throw err if err
+	if !no_update
+		fs.writeFileSync output_meta, header, 'utf8', (err) ->
+			throw err if err
 
+task 'build', (options) ->
+	build options.output || OUTFILE, pkg.version, '', false, false
+	build options.output_debug || OUTFILEDB, pkg.version + '.1', ' (debug)', true, true
 	log 'Build successful!'
 
 task 'dev', (options) ->

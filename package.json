@@ -6,7 +6,8 @@
 	"dependencies": {
 		"html-minifier": "~0.6.9",
 		"uglify-js": "~2.4.15",
-		"clean-css": "~3.4.4"
+		"clean-css": "~3.4.4",
+		"complexion-js": "~0.1.5"
 	},
 	"devDependencies": {
 		"coffee-script": "~1.8.0"

@@ -17,25 +17,7 @@
 		return fn;
 	})();
 
-	(function (debug) {
-		try {
-			Function.prototype._w = !debug ?
-				function () { return this; } :
-				function () {
-					var fn = this;
-					return function () {
-						try {
-							return fn.apply(this, arguments);
-						}
-						catch (e) {
-							console.log("Exception:", e);
-							throw e;
-						}
-					};
-				};
-		}
-		catch (e) {}
-	})(true);
+	// begin_debug
 
 	var browser = {
 		is_opera: /presto/i.test("" + navigator.userAgent),
