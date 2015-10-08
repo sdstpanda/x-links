@@ -2,14 +2,15 @@
 // @name        H-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.5
+// @version     1.0.6
 // @description Userscript for pretty linkification of hentai links on 4chan and friends
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
-// @include     http://boards.38chan.net/*
-// @include     https://archive.moe/*
 // @include     http://8ch.net/*
 // @include     https://8ch.net/*
+// @include     https://archive.moe/*
+// @include     https://desustorage.org/*
+// @include     http://boards.38chan.net/*
 // @homepage    https://dnsev-h.github.io/h-links/
 // @supportURL  https://github.com/dnsev-h/h-links/issues
 // @updateURL   https://raw.githubusercontent.com/dnsev-h/h-links/stable/h-links.meta.js
@@ -42,7 +43,7 @@
 
 	(function (debug) {
 		try {
-			Function.prototype._w = debug ?
+			Function.prototype._w = !debug ?
 				function () { return this; } :
 				function () {
 					var fn = this;
@@ -98,6 +99,7 @@
 			'Gallery Details':             ['checkbox', true,  'Show gallery details for link on hover.'],
 			'ExSauce':                     ['checkbox', true,  'Add ExSauce reverse image search to posts. Disabled in Opera.'],
 			'Extended Info':               ['checkbox', true,  'Fetch additional gallery info, such as tag namespaces.'],
+			'Disable Image Leeching':      ['checkbox', false, 'Thumbnails should be fetched with no referrer information.'],
 			'Rewrite Links':               ['select', 'none', 'Rewrite all E*Hentai links to use a specific site.', [
 				[ "none", "Disabled" ], // [ value, label_text, description ]
 				[ "smart", "Smart", "All links lead to " + domains.gehentai + " unless they have fjording tags." ],
@@ -193,7 +195,7 @@
 
 					window.removeEventListener("load", callback_check, false);
 					window.removeEventListener("DOMContentLoaded", callback_check, false);
-					window.removeEventListener("readystatechange", callback_check, false);
+					document.removeEventListener("readystatechange", callback_check, false);
 
 					if (check_interval !== null) {
 						clearInterval(check_interval);
@@ -208,7 +210,7 @@
 
 			window.addEventListener("load", callback_check, false);
 			window.addEventListener("DOMContentLoaded", callback_check, false);
-			window.addEventListener("readystatechange", callback_check, false);
+			document.addEventListener("readystatechange", callback_check, false);
 
 			return function (cb) {
 				if (callbacks === null) {
@@ -323,6 +325,17 @@
 			catch (e) {}
 			return false;
 		};
+		Module.unwrap = function (node) {
+			var par = node.parentNode,
+				next, n;
+
+			if (par !== null) {
+				next = node.nextSibling;
+				while ((n = node.firstChild) !== null) {
+					par.insertBefore(n, next);
+				}
+			}
+		};
 
 		Module.scroll_focus = function (element) {
 			// Focus
@@ -351,6 +364,23 @@
 				for (var i = 0, ii = new_entries.length; i < ii; i += max_push) {
 					Array.prototype.push.apply(target, new_entries.slice(i, i + max_push));
 				}
+			}
+		};
+		Module.bind = function (fn, self) {
+			if (arguments.length > 2) {
+				var args = Array.prototype.slice.call(arguments, 2);
+
+				return function () {
+					var full_args = Array.prototype.slice.call(args);
+					Array.prototype.push.apply(full_args, arguments);
+
+					return fn.apply(self, full_args);
+				};
+			}
+			else {
+				return function () {
+					return fn.apply(self, arguments);
+				};
 			}
 		};
 
@@ -511,7 +541,7 @@
 			return (m === null) ? "" : m[1];
 		};
 		var get_domain = function (url) {
-			var m = /^https?:\/*(?:[\w-]+\.)*([\w-]+\.[\w]+)/i.exec(url);
+			var m = /^(?:[\w\-]+):\/*(?:[\w-]+\.)*([\w-]+\.[\w]+)/i.exec(url);
 			return (m === null) ? "" : m[1].toLowerCase();
 		};
 		var title_case = function (text) {
@@ -668,7 +698,6 @@
 				}
 				return null;
 			}
-			// "fuuka": function (node) {}
 		};
 		var get_file_info = {
 			"4chan": function (post) {
@@ -1032,7 +1061,7 @@
 		};
 
 		var html_details = function (data, data_alt) {
-			return '<div class="hl-details hl-hover-shadow post reply post_wrapper hl-fake-post hl-theme" data-hl-id="'+data_alt.site+'_'+data.gid+'"><div class="hl-details-thumbnail"></div><div class="hl-details-side-panel"><span class="hl-button hl-button-eh hl-button-'+data_alt.category_type+'"><div class="hl-noise">'+Helper.category(data.category).name+'</div></span><div class="hl-details-side-box hl-details-side-box-rating hl-theme"><div><strong>Rating:</strong></div><div class="hl-details-rating hl-stars-container">'+html_stars(data.rating)+'</div><div class="hl-details-rating-text">(Avg. '+data.rating.toFixed(2)+')</div></div><div class="hl-details-side-box hl-details-side-box-files hl-theme"><div><strong>Files:</strong></div><div class="hl-details-file-count">'+data.filecount+' image'+(data.filecount === 1 ? "" : "s")+'</div><div class="hl-details-file-size">('+data_alt.size+' MB)</div></div><div class="hl-details-side-box hl-details-side-box-torrents hl-theme"><div><strong>Torrents:</strong> '+data.torrentcount+'</div></div><div class="hl-details-side-box hl-details-side-box-visible hl-theme"><div><strong>Visible:</strong> '+data_alt.visible+'</div></div></div><a class="hl-details-title" href="#">'+data.title+'</a> '+data_alt.jtitle+'<br><br><span class="hl-details-upload-info">Uploaded by <strong class="hl-details-uploader">'+data.uploader+'</strong> on <strong class="hl-details-upload-date">'+data_alt.datetext+'</strong></span><br><br><span class="hl-details-tag-block"><strong class="hl-details-tag-block-label">Tags:</strong><span class="hl-details-tags hl-tags" data-hl-id="'+data_alt.site+'_'+data.gid+'"></span></span><div class="hl-details-clear"></div></div>';
+			return '<div class="hl-details hl-hover-shadow post reply post_wrapper hl-fake-post hl-theme" data-hl-id="'+data_alt.site+'_'+data.gid+'"><div class="hl-details-thumbnail"></div><div class="hl-details-side-panel"><span class="hl-button hl-button-eh hl-button-'+data_alt.category_type+'"><div class="hl-noise">'+Helper.category(data.category).name+'</div></span><div class="hl-details-side-box hl-details-side-box-rating hl-theme"><div><strong>Rating:</strong></div><div class="hl-details-rating hl-stars-container">'+html_stars(data.rating)+'</div><div class="hl-details-rating-text">(Avg. '+data.rating.toFixed(2)+')</div></div><div class="hl-details-side-box hl-details-side-box-files hl-theme"><div><strong>Files:</strong></div><div class="hl-details-file-count">'+data.file_count+' image'+(data.file_count === 1 ? "" : "s")+'</div><div class="hl-details-file-size">('+data_alt.size+' MB)</div></div><div class="hl-details-side-box hl-details-side-box-torrents hl-theme"><div><strong>Torrents:</strong> '+data.torrent_count+'</div></div><div class="hl-details-side-box hl-details-side-box-visible hl-theme"><div><strong>Visible:</strong> '+data_alt.visible+'</div></div></div><a class="hl-details-title" href="#">'+data.title+'</a> '+data_alt.jtitle+'<br><br><span class="hl-details-upload-info">Uploaded by <strong class="hl-details-uploader">'+data.uploader+'</strong> on <strong class="hl-details-upload-date">'+data_alt.datetext+'</strong></span><br><br><span class="hl-details-tag-block"><strong class="hl-details-tag-block-label">Tags:</strong><span class="hl-details-tags hl-tags" data-hl-id="'+data_alt.site+'_'+data.gid+'"></span></span><div class="hl-details-clear"></div></div>';
 		};
 		var html_actions = function (data, domain) {
 			var gid = data.gid,
@@ -1045,7 +1074,7 @@
 			src += '<div class="hl-actions-info">';
 			src += '<span>' + data.category + '</span>';
 			src += '<span class="hl-actions-sep">|</span>';
-			src += '<span>' + data.filecount + ' files</span>';
+			src += '<span>' + data.file_count + ' files</span>';
 			src += '<span class="hl-actions-sep">|</span>';
 			src += '<span class="hl-actions-label">View on:</span>';
 
@@ -1090,18 +1119,22 @@
 				g_domain = di.g_domain,
 				content, n;
 
-			data_alt.jtitle = data.title_jpn ? ('<br /><span class="hl-details-title-jp">' + data.title_jpn + '</span>') : '';
+			data_alt.jtitle = data.title_jpn !== null ? ('<br /><span class="hl-details-title-jp">' + data.title_jpn + '</span>') : '';
 			data_alt.site = di.type;
-			data_alt.size = Math.round((data.filesize / 1024 / 1024) * 100) / 100;
-			data_alt.datetext = format_date(new Date(data.posted * 1000));
-			data_alt.visible = data.expunged ? 'No' : 'Yes';
+			data_alt.size = Math.round((data.total_size / 1024 / 1024) * 100) / 100;
+			data_alt.datetext = format_date(new Date(data.upload_date));
+			data_alt.visible = data.visible ? 'Yes' : 'No';
 			data_alt.category_type = Helper.category(data.category).short;
 
 			content = $.frag(html_details(data, data_alt)).firstChild;
 			Theme.apply(content);
 
-			if (data.thumb && (n = $(".hl-details-thumbnail", content)) !== null) {
-				n.style.backgroundImage = "url('" + data.thumb + "')";
+			if ((n = $(".hl-details-thumbnail", content)) !== null) {
+				API.get_thumbnail(data, $.bind(function (err, url) {
+					if (err === null) {
+						this.style.backgroundImage = "url('" + url + "')";
+					}
+				}, n));
 			}
 			if ((n = $(".hl-details-title", content)) !== null) {
 				Filter.highlight("title", n, data, null);
@@ -1109,16 +1142,16 @@
 			if ((n = $(".hl-details-uploader", content)) !== null) {
 				Filter.highlight("uploader", n, data, null);
 			}
-			if (data.filesize < 0 && (n = $(".hl-details-file-size", content)) !== null) {
+			if (data.total_size < 0 && (n = $(".hl-details-file-size", content)) !== null) {
 				$.remove(n);
 			}
-			if (data.torrentcount < 0 && (n = $(".hl-details-side-box-torrents", content)) !== null) {
+			if (data.torrent_count < 0 && (n = $(".hl-details-side-box-torrents", content)) !== null) {
 				$.remove(n);
 			}
 			if (data.rating < 0 && (n = $(".hl-details-side-box-rating", content)) !== null) {
 				$.remove(n);
 			}
-			if (data.expunged === null && (n = $(".hl-details-side-box-visible", content)) !== null) {
+			if (data.visible === null && (n = $(".hl-details-side-box-visible", content)) !== null) {
 				$.remove(n);
 			}
 
@@ -1193,6 +1226,7 @@
 			var tagfrag = d.createDocumentFragment(),
 				tags = data.tags,
 				theme = Theme.get(),
+				last = null,
 				tag, link, i, ii;
 
 			for (i = 0, ii = tags.length; i < ii; ++i) {
@@ -1202,16 +1236,16 @@
 				Filter.highlight("tags", link, data, null);
 
 				$.add(tag, link);
-				$.add(tag, $.tnode(","));
+				$.add(tag, last = $.tnode(","));
 				$.add(tagfrag, tag);
 			}
-			$.remove(tagfrag.lastChild.lastChild);
+			if (last !== null) $.remove(last);
 
 			return tagfrag;
 		};
 		var create_tags_full = function (domain, site, data) {
 			var tagfrag = d.createDocumentFragment(),
-				tags_ns = data.full.tags,
+				tags_ns = data.tags_ns,
 				theme = Theme.get(),
 				tag = null,
 				namespace, namespace_style, tags, link, tf, i, ii;
@@ -1255,8 +1289,8 @@
 			return tagfrag;
 		};
 		var create_tags_best = function (domain, site, data) {
-			if (data.full) {
-				for (var k in data.full.tags) {
+			if (API.data_has_full(data)) {
+				for (var k in data.tags_ns) {
 					return create_tags_full(domain, site, data);
 				}
 			}
@@ -1268,7 +1302,7 @@
 			nodes = $$(".hl-tags[data-hl-id='ehentai_" + data.gid + "']");
 
 			ii = nodes.length;
-			if (ii === 0 || Object.keys(data.full.tags).length === 0) return;
+			if (ii === 0 || Object.keys(data.tags_ns).length === 0) return;
 
 			tagfrag = create_tags_full("ehentai", domains.exhentai, data);
 
@@ -1362,8 +1396,12 @@
 	var API = (function () {
 
 		// Private
-		var full_version = 1,
-			temp_div = $.node_simple("div"),
+		var temp_div = $.node_simple("div"),
+			saved_thumbnails = {
+				ehentai: {},
+				nhentai: {},
+				hitomi: {}
+			},
 			nhentai_tag_namespaces = {
 				parodies: "parody",
 				characters: "character",
@@ -1439,7 +1477,7 @@
 					response: function (text) {
 						var html = Helper.html_parse_safe(text, null);
 						if (html !== null) {
-							return [ ehentai_parse_info(html) ];
+							return [ html ];
 						}
 						return null;
 					}
@@ -1626,34 +1664,90 @@
 
 		})();
 
-		var ehentai_normalize_string = function (text) {
-			temp_div.innerHTML = text;
-			text = temp_div.textContent;
+		var Flags = {
+			None: 0x0,
+			ThumbnailNoLeech: 0x1
+		};
+
+		var create_empty_gallery_info = function () {
+			return {
+				gid: 0,
+				token: null,
+				type: "",
+				title: "",
+				title_jpn: null,
+				uploader: "",
+				category: "",
+				thumbnail: null,
+
+				flags: 0,
+				upload_date: 0,
+				file_count: 0,
+				total_size: -1,
+				favorites: -1,
+				rating: -1,
+				torrent_count: -1,
+
+				full: false,
+				visible: null,
+				removed: null,
+				archiver_key: null,
+
+				tags: null,
+				tags_ns: null
+			};
+		};
+		var uint8_array_to_url = function (data, mime) {
+			try {
+				var blob = new Blob([ data ], { type: mime });
+				return window.URL.createObjectURL(blob) || null;
+			}
+			catch (e) {}
+			return null;
+		};
+
+		var ehentai_simple_string = function (value, default_value) {
+			return (typeof(value) !== "string" || value.length === 0) ? default_value : value;
+		};
+		var ehentai_normalize_string = function (value, default_value) {
+			if (typeof(value) !== "string" || value.length === 0) {
+				return default_value;
+			}
+			temp_div.innerHTML = value;
+			value = temp_div.textContent;
 			temp_div.textContent = "";
-			return text;
+			return value;
 		};
 		var ehentai_normalize_info = function (info) {
-			info.title = ehentai_normalize_string(info.title || "");
-			info.title_jpn = ehentai_normalize_string(info.title_jpn || "");
-			info.uploader = ehentai_normalize_string(info.uploader || "");
-			info.filecount = parseInt(info.filecount, 10) || 0;
-			info.posted = parseInt(info.posted, 10) || 0;
-			info.rating = parseFloat(info.rating) || 0;
-			info.torrentcount = parseInt(info.torrentcount, 10) || 0;
+			var data = create_empty_gallery_info(),
+				t;
 
-			return info;
+			data.gid = parseInt(info.gid, 10) || 0;
+			data.token = ehentai_simple_string(info.token, null);
+			data.type = "ehentai";
+			data.archiver_key = ehentai_simple_string(info.archiver_key, null);
+			data.title = ehentai_normalize_string(info.title, "");
+			data.title_jpn = ehentai_normalize_string(info.title_jpn, null);
+			data.uploader = ehentai_normalize_string(info.uploader, null);
+			data.category = ehentai_simple_string(info.category, "");
+			data.thumbnail = ehentai_simple_string(info.thumb, null);
+			data.upload_date = (parseInt(info.posted, 10) || 0) * 1000;
+			data.file_count = parseInt(info.filecount, 10) || 0;
+			data.total_size = parseInt(info.filesize, 10) || 0;
+			data.rating = parseFloat(info.rating) || 0.0;
+			data.torrent_count = parseInt(info.torrentcount, 10) || 0;
+			data.visible = !info.expunged;
+			t = info.tags;
+			data.tags = Array.isArray(t) ? t : [];
+
+			return data;
 		};
-		var ehentai_parse_info = function (html) {
-			var tags = {},
-				data = {
-					version: full_version,
-					tags: tags,
-					favorites: -1
-				};
-
+		var ehentai_parse_info = function (html, data) {
 			// Tags
-			var pattern = /(.+):/,
+			var tags = {},
+				pattern = /(.+):/,
 				par = $$("#taglist tr", html),
+				updated_tag_count = 0,
 				tds, namespace, ns, i, j, m, n;
 
 			for (i = 0; i < par.length; ++i) {
@@ -1684,10 +1778,22 @@
 					if (ns.length === 0) {
 						delete tags[namespace];
 					}
+					else {
+						++updated_tag_count;
+					}
 				}
 			}
 
+			// Done
+			data.tags_ns = tags;
+			data.full = true;
 			return data;
+		};
+		var nhentai_normalize_category = function (category) {
+			return Helper.title_case(category);
+		};
+		var nhentai_normalize_tag_namespace = function (namespace) {
+			return nhentai_tag_namespaces[namespace] || namespace;
 		};
 		var nhentai_parse_info = function (html) {
 			var info = $("#info", html),
@@ -1698,27 +1804,12 @@
 			}
 
 			// Create data
-			data = {
-				category: "",
-				expunged: null,
-				filecount: 0,
-				filesize: -1,
-				full: {
-					version: full_version,
-					tags: {},
-					favorites: 0
-				},
-				gid: 0,
-				posted: 0,
-				rating: -1,
-				tags: [],
-				thumb: "",
-				title: "",
-				title_jpn: "",
-				token: null,
-				torrentcount: -1,
-				uploader: "nhentai"
-			};
+			data = create_empty_gallery_info();
+			data.type = "nhentai";
+			data.uploader = "nhentai";
+			data.full = true;
+			data.tags = [];
+			data.tags_ns = {};
 
 			// Image/gid
 			if ((n = $("#cover>a", html)) !== null) {
@@ -1728,15 +1819,15 @@
 				}
 
 				if ((n = $("img", n)) !== null) {
-					data.thumb = n.getAttribute("src") || "";
-					if (!regex.protocol.test(data.thumb)) {
-						data.thumb = "http:" + data.thumb;
+					data.thumbnail = n.getAttribute("src") || null;
+					if (data.thumbnail !== null && !regex.protocol.test(data.thumbnail)) {
+						data.thumbnail = "http:" + data.thumbnail;
 					}
 				}
 			}
 
 			// Image count
-			data.filecount = $$("#thumbnail-container>.thumb-container", html).length;
+			data.file_count = $$("#thumbnail-container>.thumb-container", html).length;
 
 			// Titles
 			if ((n = $("h1", info)) !== null) {
@@ -1749,14 +1840,12 @@
 			// Tags
 			if ((nodes = $$(".field-name", info)).length > 0) {
 				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					tag_ns = (
+					tag_ns = nhentai_normalize_tag_namespace((
 						(n = nodes[i].firstChild) !== null &&
 						n.nodeType === Node.TEXT_NODE
-					) ? n.nodeValue.trim().replace(/:/, "").toLowerCase() : "";
+					) ? n.nodeValue.trim().replace(/:/, "").toLowerCase() : "");
 
 					tags = $$(".tag", nodes[i]);
-
-					tag_ns = nhentai_tag_namespaces[tag_ns] || tag_ns;
 
 					if (tag_ns === "category") {
 						if (
@@ -1764,18 +1853,18 @@
 							(n = tags[0].firstChild) !== null &&
 							n.nodeType === Node.TEXT_NODE
 						) {
-							data.category = Helper.title_case(n.nodeValue.trim());
+							data.category = nhentai_normalize_category(n.nodeValue.trim());
 						}
 						tags = [];
 					}
 
 					if (tags.length > 0) {
-						if (tag_ns in data.full.tags) {
-							tag_ns_list = data.full.tags[tag_ns];
+						if (tag_ns in data.tags_ns) {
+							tag_ns_list = data.tags_ns[tag_ns];
 						}
 						else {
 							tag_ns_list = [];
-							data.full.tags[tag_ns] = tag_ns_list;
+							data.tags_ns[tag_ns] = tag_ns_list;
 						}
 
 						for (j = 0, jj = tags.length; j < jj; ++j) {
@@ -1797,7 +1886,7 @@
 			if ((n = $("time[datetime]", info)) !== null) {
 				m = /^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)\.(\d{6})/i.exec(n.getAttribute("datetime") || "");
 				if (m !== null) {
-					data.posted = new Date(
+					data.upload_date = new Date(
 						parseInt(m[1], 10),
 						parseInt(m[2], 10) - 1,
 						parseInt(m[3], 10),
@@ -1805,7 +1894,7 @@
 						parseInt(m[5], 10),
 						parseInt(m[6], 10),
 						Math.floor(parseInt(m[7], 10) / 1000)
-					).getTime() / 1000;
+					).getTime();
 				}
 			}
 
@@ -1813,11 +1902,14 @@
 			if ((n = $(".buttons>.btn.btn-primary>span>.nobold", info)) !== null) {
 				m = /\d+/.exec(n.textContent);
 				if (m !== null) {
-					data.full.favorites = parseInt(m[0], 10);
+					data.favorites = parseInt(m[0], 10);
 				}
 			}
 
 			return data;
+		};
+		var hitomi_normalize_category = function (category) {
+			return Helper.title_case(category);
 		};
 		var hitomi_parse_info = function (html) {
 			var info = $(".content", html),
@@ -1833,30 +1925,13 @@
 			}
 
 			// Create data
-			tags = [];
-			tags_full = {};
-			data = {
-				category: "",
-				expunged: null,
-				filecount: 0,
-				filesize: -1,
-				full: {
-					version: full_version,
-					tags: tags_full,
-					favorites: -1,
-					thumb_external: ""
-				},
-				gid: 0,
-				posted: 0,
-				rating: -1,
-				tags: tags,
-				thumb: "",
-				title: "",
-				title_jpn: "",
-				token: null,
-				torrentcount: -1,
-				uploader: "hitomi.la"
-			};
+			data = create_empty_gallery_info();
+			data.type = "hitomi";
+			data.flags |= Flags.ThumbnailNoLeech;
+			data.uploader = "hitomi.la";
+			data.full = true;
+			data.tags = tags = [];
+			data.tags_ns = tags_full = {};
 
 			// Image/gid
 			if ((n = $(".cover>a", html)) !== null) {
@@ -1866,16 +1941,18 @@
 				}
 
 				if ((n = $("img", n)) !== null) {
-					t = n.getAttribute("src") || "";
-					if (!regex.protocol.test(t)) {
-						t = "https:" + t;
+					t = n.getAttribute("src") || null;
+					if (t !== null) {
+						if (!regex.protocol.test(t)) {
+							t = "https:" + t;
+						}
+						data.thumbnail = t; // no cross origin
 					}
-					data.full.thumb_external = t; // no cross origin
 				}
 			}
 
 			// Image count
-			data.filecount = $$(".thumbnail-list>li", html).length;
+			data.file_count = $$(".thumbnail-list>li", html).length;
 
 			// Title
 			if ((n = $("h1", info2)) !== null) {
@@ -1955,7 +2032,7 @@
 			if ((n = cellmap.type) !== undefined) {
 				t = n.textContent.trim();
 				if (t.length > 0 && t !== "N/A") {
-					data.category = Helper.title_case(t);
+					data.category = hitomi_normalize_category(t);
 				}
 			}
 
@@ -2001,7 +2078,7 @@
 			if ((n = $(".date", info)) !== null) {
 				m = /^(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)/i.exec(n.textContent.trim());
 				if (m !== null) {
-					data.posted = new Date(
+					data.upload_date = new Date(
 						parseInt(m[1], 10),
 						parseInt(m[2], 10) - 1,
 						parseInt(m[3], 10),
@@ -2009,7 +2086,7 @@
 						parseInt(m[5], 10),
 						parseInt(m[6], 10),
 						0
-					).getTime() / 1000;
+					).getTime();
 				}
 			}
 
@@ -2048,13 +2125,18 @@
 		var ehentai_get_full_info = function (id, token, site, cb) {
 			Request.get("ehentai_full",
 				[ site, id, token ],
-				function (err, full_data) {
+				function (err, full_html) {
 					if (err === null) {
 						var data = Database.get("ehentai", id);
 						if (data !== null) {
-							data.full = full_data;
-							Database.set("ehentai", data);
-							cb(null, data);
+							data = ehentai_parse_info(full_html, data);
+							if (data !== null) {
+								Database.set("ehentai", data);
+								cb(null, data);
+							}
+							else {
+								cb("Failed to update data", null);
+							}
 						}
 						else {
 							cb("Could not update data", null);
@@ -2100,18 +2182,100 @@
 			Request.trigger(request_types.hitomi);
 		};
 		var data_has_full = function (data) {
-			return (data.full && data.full.version >= full_version);
+			return data.full;
+		};
+		var get_thumbnail = function (data, callback) {
+			var thumbnail = data.thumbnail,
+				url, cache, gid;
+
+			if (thumbnail === null) {
+				callback.call(null, "No thumbnail", null);
+			}
+
+			// Use direct URL
+			if ((data.flags & API.Flags.ThumbnailNoLeech) === 0 && !conf["Disable Image Leeching"])  {
+				callback.call(null, null, thumbnail);
+				return;
+			}
+
+			// Cached
+			cache = saved_thumbnails[data.type];
+			if (cache === undefined) {
+				callback.call(null, "Malformed data", null);
+				return;
+			}
+
+			gid = data.gid;
+			url = cache[gid];
+			if (url !== undefined) {
+				callback.call(null, null, url);
+				return;
+			}
+
+			// Fetch
+			get_image(thumbnail, function (err, data, data_length, final_url) {
+				if (err === null) {
+					var m = /\.(png|gif)$/i.exec(final_url),
+						mime = "image/" + (m === null ? "jpeg" : m[1].toLowerCase()),
+						img_url = uint8_array_to_url(data.subarray(0, data_length), mime);
+
+					if (img_url !== null) {
+						cache[gid] = img_url;
+						callback.call(null, null, img_url);
+					}
+					else {
+						callback.call(null, "Failed to load image", null);
+					}
+				}
+				else {
+					callback.call(null, err, null);
+				}
+			});
+		};
+		var get_image = function (url, callback) {
+			// Note that the Uint8Array's length is longer than image_length
+			// callback(err, image_data, image_length);
+			HttpRequest({
+				method: "GET",
+				url: url,
+				overrideMimeType: "text/plain; charset=x-user-defined",
+				onload: function (xhr) {
+					if (xhr.status === 200) {
+						var text = xhr.responseText,
+							ta = new Uint8Array(text.length + 1),
+							i, ii;
+
+						for (i = 0, ii = text.length; i < ii; ++i) {
+							ta[i] = text.charCodeAt(i);
+						}
+
+						callback(null, ta, ii, xhr.finalUrl);
+					}
+					else {
+						callback(xhr.status, null, 0, null);
+					}
+				},
+				onerror: function () {
+					callback("connection error", null, 0, null);
+				},
+				onabort: function () {
+					callback("aborted", null, 0, null);
+				}
+			});
 		};
 
 		// Exports
 		return {
+			Flags: Flags,
 			ehentai_queue_gallery: ehentai_queue_gallery,
 			ehentai_queue_gallery_page: ehentai_queue_gallery_page,
 			ehentai_get_full_info: ehentai_get_full_info,
 			nhentai_queue_gallery: nhentai_queue_gallery,
 			hitomi_queue_gallery: hitomi_queue_gallery,
 			run_request_queue: run_request_queue,
-			data_has_full: data_has_full
+			data_has_full: data_has_full,
+			get_thumbnail: get_thumbnail,
+			get_image: get_image
 		};
 
 	})();
@@ -2218,7 +2382,7 @@
 			var now = Date.now();
 
 			if (ttl === 0) {
-				ttl = ((now - data.posted < 12 * ttl_hour) ? ttl_hour : 12 * ttl_hour); // Update more frequently for recent uploads
+				ttl = ((now - data.upload_date < 12 * ttl_hour) ? ttl_hour : 12 * ttl_hour); // Update more frequently for recent uploads
 			}
 
 			storage.setItem(prefix + type + "-" + key, JSON.stringify({
@@ -2774,40 +2938,11 @@
 
 			return results;
 		};
-		var get_image = function (url, callback) {
-			HttpRequest({
-				method: "GET",
-				url: url,
-				overrideMimeType: "text/plain; charset=x-user-defined",
-				onload: function (xhr) {
-					if (xhr.status === 200) {
-						var text = xhr.responseText,
-							ta = new Uint8Array(text.length + 1),
-							i, ii;
-
-						for (i = 0, ii = text.length; i < ii; ++i) {
-							ta[i] = text.charCodeAt(i);
-						}
-
-						callback(null, ta, ii);
-					}
-					else {
-						callback(xhr.status, null, 0);
-					}
-				},
-				onerror: function () {
-					callback("connection error", null, 0);
-				},
-				onabort: function () {
-					callback("aborted", null, 0);
-				}
-			});
-		};
 		var hash = function (a, md5) {
 			Debug.log("Fetching image " + a.href);
 			a.textContent = "Loading";
 
-			get_image(a.href, function (err, data) {
+			API.get_image(a.href, function (err, data) {
 				if (err !== null) {
 					a.textContent = "Error: hash/" + err;
 				}
@@ -2870,7 +3005,7 @@
 				// Load image and upload
 				a.textContent = "Loading";
 
-				get_image(this.href, function (err, image, image_size) {
+				API.get_image(this.href, function (err, image, image_size) {
 					if (err !== null) {
 						a.textContent = "Error: similar/" + err;
 					}
@@ -3317,7 +3452,8 @@
 			// Button
 			button = Helper.get_tag_button_from_link(link);
 			if (button !== null) {
-				if ((hl = Filter.check(link, data))[0] !== Filter.None) {
+				hl = Filter.check(link, data);
+				if (hl[0] !== Filter.None) {
 					c = (hl[0] === Filter.Good) ? conf['Good Tag Marker'] : conf['Bad Tag Marker'];
 					button.textContent = button.textContent.replace(/\]\s*$/, c + "]");
 					Filter.highlight_tag(button, link, hl);
@@ -3553,6 +3689,9 @@
 
 			Debug.log("Total posts=" + posts.length + "; time=" + Debug.timer("process"));
 		};
+		var get_link_events = function (node) {
+			return node.getAttribute("data-hl-link-events") || null;
+		};
 		var apply_link_events = function (node, check_children) {
 			var nodes = check_children ? $$("a.hl-link-events", node) : [ node ],
 				events, i, ii;
@@ -3694,6 +3833,7 @@
 		return {
 			preprocess_link: preprocess_link,
 			parse_posts: parse_posts,
+			get_link_events: get_link_events,
 			apply_link_events: apply_link_events,
 			change_link_events: change_link_events,
 			check_incomplete: check_incomplete,
@@ -4235,34 +4375,22 @@
 			if (update) save();
 		};
 		var ready = function () {
-			var site = d.URL,
-				doctype = d.doctype,
-				type, cl;
+			var domain = Helper.get_domain(window.location.href),
+				cl;
 
-			if (/archive\.moe/i.test(site)) {
-				type = "<!DOCTYPE " +
-					doctype.name +
-					(doctype.publicId ? " PUBLIC \"" + doctype.publicId + "\"" : "") +
-					(!doctype.publicId && doctype.systemId ? " SYSTEM" : "") +
-					(doctype.systemId ? " \"" + doctype.systemId + "\"" : "") +
-					">";
-
-				Module.mode = (/<!DOCTYPE html>/.test(type)) ? "foolz" : "fuuka";
-				Module.linkify = false;
-			}
-			else if (/8ch\.net/i.test(site)) {
-				Module.mode = "tinyboard";
-				Module.linkify = false;
-				if ($("form[name=postcontrols]") === null) return false;
-			}
-			else if (/boards\.38chan\.net/i.test(site)) {
-				Module.mode = "tinyboard";
-				Module.linkify = false;
-			}
-			else {
+			if (domain === "4chan.org") {
 				cl = d.documentElement.classList;
 				Module.mode_ext.fourchanx3 = cl.contains("fourchan-x");
 				Module.mode_ext.oneechan = cl.contains("oneechan");
+			}
+			else if (domain === "desustorage.org" || domain === "archive.moe") {
+				Module.mode = "foolz";
+				Module.linkify = false;
+			}
+			else { // assume tinyboard
+				Module.mode = "tinyboard";
+				Module.linkify = false;
+				if ($("form[name=postcontrols]") === null) return false;
 			}
 
 			return true;
@@ -4292,7 +4420,7 @@
 
 		// Exports
 		var Module = {
-			mode: "4chan", // foolz, fuuka, tinyboard
+			mode: "4chan", // foolz, tinyboard
 			mode_ext: {
 				fourchanx3: false,
 				oneechan: false
@@ -4592,6 +4720,9 @@
 				return Status.Good;
 			}
 		};
+		var init_filters = function () {
+			filters = parse(conf.Filters);
+		};
 
 		// Public
 		var parse = function (input) {
@@ -4646,9 +4777,7 @@
 			return filters;
 		};
 		var highlight = function (type, node, data, results, extras) {
-			if (filters === null) {
-				filters = parse(conf.Filters);
-			}
+			if (filters === null) init_filters();
 
 			var no_extras = true,
 				filters_temp = filters,
@@ -4783,7 +4912,7 @@
 			}
 		};
 		var check = function (titlenode, data, extras) {
-			if (filters === null) return [ Status.None, null ];
+			if (filters === null) init_filters();
 
 			var filters_temp = filters,
 				status, str, tags, result, i, info;
@@ -5235,9 +5364,9 @@
 			n1 = $.node("div", "hl-easylist-item" + theme);
 			n1.setAttribute("data-hl-index", index);
 			n1.setAttribute("data-hl-gid", data.gid);
-			n1.setAttribute("data-hl-token", data.token);
+			if (data.token !== null) n1.setAttribute("data-hl-token", data.token);
 			n1.setAttribute("data-hl-rating", data.rating);
-			n1.setAttribute("data-hl-date-uploaded", data.posted);
+			n1.setAttribute("data-hl-date-uploaded", data.upload_date);
 			n1.setAttribute("data-hl-category", data.category.toLowerCase());
 			n1.setAttribute("data-hl-domain", domain);
 
@@ -5252,11 +5381,23 @@
 
 			$.add(n5, n6 = $.node("div", "hl-easylist-item-image-outer" + theme));
 
-			if (data.thumb) {
+			if (data.thumbnail !== null) {
 				$.add(n6, n7 = $.node("img", "hl-easylist-item-image" + theme));
 				$.on(n7, "error", on_thumbnail_error);
-				n7.src = data.thumb;
 				n7.alt = "";
+
+				API.get_thumbnail(data, $.bind(function (err, url) {
+					if (err === null) {
+						this.src = url;
+					}
+					else {
+						var par = this.parentNode;
+						if (par !== null) {
+							par.style.width = "100%";
+							par.style.height = "100%";
+						}
+					}
+				}, n7));
 			}
 			else {
 				n6.style.width = "100%";
@@ -5277,7 +5418,7 @@
 			$.add(n5, n6 = $.link(url, "hl-easylist-item-title-link" + theme, data.title));
 			n6.setAttribute("data-hl-original", n6.textContent);
 
-			if (data.title_jpn) {
+			if (data.title_jpn !== null) {
 				$.add(n4, n5 = $.node("span", "hl-easylist-item-title-jp" + theme, data.title_jpn));
 				n5.setAttribute("data-hl-original", n5.textContent);
 			}
@@ -5287,7 +5428,7 @@
 			$.add(n5, n6 = $.link(CreateURL.to_uploader(data, domain), "hl-easylist-item-uploader" + theme, data.uploader));
 			n6.setAttribute("data-hl-original", n6.textContent);
 			$.add(n5, $.tnode(" on "));
-			$.add(n5, $.node("span", "hl-easylist-item-upload-date" + theme, UI.format_date(new Date(data.posted * 1000))));
+			$.add(n5, $.node("span", "hl-easylist-item-upload-date" + theme, UI.format_date(new Date(data.upload_date))));
 
 			$.add(n4, n5 = $.node("div", "hl-easylist-item-tags" + theme));
 
@@ -5321,11 +5462,11 @@
 			}
 
 			$.add(n5, n6 = $.node("div", "hl-easylist-item-info-item hl-easylist-item-info-item-files" + theme));
-			i = data.filecount;
+			i = data.file_count;
 			$.add(n6, $.node("span", "", i + " image" + (i === 1 ? "" : "s")));
-			if (data.filesize >= 0) {
+			if (data.total_size >= 0) {
 				$.add(n6, $.node_simple("br"));
-				i = (data.filesize / 1024 / 1024).toFixed(2).replace(/\.?0+$/, "");
+				i = (data.total_size / 1024 / 1024).toFixed(2).replace(/\.?0+$/, "");
 				$.add(n6, $.node("span", "hl-easylist-item-info-light", "(" + i + " MB)"));
 			}
 
@@ -5342,8 +5483,8 @@
 				namespace_style = "",
 				all_tags, namespace, tags, n2, n3, n4, i, ii;
 
-			if (API.data_has_full(data) && Object.keys(data.full.tags).length > 0) {
-				all_tags = data.full.tags;
+			if (API.data_has_full(data) && Object.keys(data.tags_ns).length > 0) {
+				all_tags = data.tags_ns;
 			}
 			else {
 				all_tags = { "": data.tags };
@@ -6467,11 +6608,6 @@
 					locations.push(nodes[i], Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets);
 				}
 			}
-			else if (Config.mode === "fuuka") {
-				if ((node = $("div")) !== null) {
-					locations.push(node, Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets);
-				}
-			}
 			else if (Config.mode === "tinyboard") {
 				nodes = $$(".boardlist");
 				for (i = 0, ii = nodes.length; i < ii; ++i) {
@@ -6595,6 +6731,38 @@
 			Linkifier.parse_posts(posts);
 		};
 
+		var fix_broken_external_linkification = function (node, event_links) {
+			// Somehow one of the links gets cloned, and then they all get wrapped inside another link
+			var next = node.nextSibling,
+				fix = [],
+				link, events, i, ii;
+
+			if (next !== null && next.tagName === "A" && next.classList.contains("hl-linkified")) {
+				$.remove(next);
+			}
+
+			for (i = 0, ii = event_links.length; i < ii; ++i) {
+				link = event_links[i];
+				events = Linkifier.get_link_events(link);
+				Linkifier.change_link_events(link, null);
+
+				if (link.classList.contains("hl-site-tag")) {
+					$.remove(link);
+				}
+				else if (link.classList.contains("hl-linkified")) {
+					fix.push(link, events);
+				}
+			}
+
+			$.unwrap(node);
+
+			for (i = 0, ii = fix.length; i < ii; i += 2) {
+				link = fix[i];
+				Linkifier.preprocess_link(link, conf["Automatic Processing"]);
+				Linkifier.apply_link_events(link, false);
+			}
+		};
+
 		var on_ready = function () {
 			Debug.timer("init");
 
@@ -6691,23 +6859,12 @@
 				// Detect 4chan X's linkification muck-ups
 				for (j = 0, jj = nodes.length; j < jj; ++j) {
 					node = nodes[j];
-					if (
-						node.tagName === "A" &&
-						node.classList.contains("linkified") &&
-						node.previousSibling &&
-						node.previousSibling.classList &&
-						node.previousSibling.classList.contains("hl-site-tag")
-					) {
-						node.className = "hl-link-events hl-linkified hl-linkified-gallery";
-						node.setAttribute("data-hl-linkified-status", "unprocessed");
-						Linkifier.change_link_events(node, "gallery_link");
-						$.remove(node.previousSibling);
-
-						Linkifier.preprocess_link(node, conf["Automatic Processing"]);
-
-						node = Post.get_post_container(node);
-						if (node !== null) {
-							post_list.push(node);
+					if (node.tagName === "A") {
+						if (node.classList.contains("linkify")) {
+							ns = $$("a.hl-link-events", node);
+							if (ns.length > 0) {
+								fix_broken_external_linkification(node, ns);
+							}
 						}
 					}
 				}
@@ -6787,7 +6944,7 @@
 		// Exports
 		var Module = {
 			homepage: "https://dnsev-h.github.io/h-links/",
-			version: [1,0,5],
+			version: [1,0,6],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,

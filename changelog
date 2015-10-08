@@ -1,5 +1,15 @@
 ﻿master
 
+1.0.6
+- dnsev-h
+  + Fixed a linkification conflict with 4chan-x involving quoted links
+  + Fixed a bug that could cause linkification to stop on galleries with no tags
+  + Fixed a bug involving cache data time-to-live being treated incorrectly
+  + Fixed a bug causing filters to not be applied to links to a specific page of a gallery
+  + Added hitomi.la thumbnail capability
+  + Added an option to remove referrer information on thumbnail requests
+  + Added desustorage.org to list of usable sites
+
 1.0.5
 - dnsev-h
   + Fixed a bug where the database would not properly store data

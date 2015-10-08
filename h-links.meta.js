@@ -2,14 +2,15 @@
 // @name        H-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.5
+// @version     1.0.6
 // @description Userscript for pretty linkification of hentai links on 4chan and friends
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
-// @include     http://boards.38chan.net/*
-// @include     https://archive.moe/*
 // @include     http://8ch.net/*
 // @include     https://8ch.net/*
+// @include     https://archive.moe/*
+// @include     https://desustorage.org/*
+// @include     http://boards.38chan.net/*
 // @homepage    https://dnsev-h.github.io/h-links/
 // @supportURL  https://github.com/dnsev-h/h-links/issues
 // @updateURL   https://raw.githubusercontent.com/dnsev-h/h-links/stable/h-links.meta.js
