@@ -1532,7 +1532,6 @@
 					response: function (text) {
 						var html = Helper.html_parse_safe(text, null);
 						if (html !== null) {
-							console.log(text);
 							return [ html ];
 						}
 						return null;
@@ -1837,7 +1836,7 @@
 
 					// Tags
 					tds = $$("div", tds[jj - 1]);
-					for (j = 0; j < jj; ++j) {
+					for (j = 0, jj = tds.length; j < jj; ++j) {
 						// Create tag
 						if ((n = $("a", tds[j])) !== null) {
 							// Add tag
