@@ -4950,7 +4950,8 @@
 			if (filters === null) init_filters();
 
 			var filters_temp = filters,
-				status, str, tags, result, i, info;
+				status = Status.None,
+				str, tags, result, i, info;
 
 			if (extras && extras.length > 0) {
 				filters_temp = filters_temp.concat(extras);
