@@ -1,5 +1,14 @@
 ﻿master
 
+1.0.7
+- dnsev-h
+  + Fixed a bug causing bad filters to not take priority in some circumstances
+  + Added a removed indicator on hover details for removed galleries
+  + Added fuuka as a site configuration
+  + Added a debug version
+  + Slight changes to stylings
+  + Source code repository cleanup
+
 1.0.6
 - dnsev-h
   + Fixed a linkification conflict with 4chan-x involving quoted links
