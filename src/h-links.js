@@ -416,6 +416,11 @@
 	})();
 	var Helper = (function () {
 
+		// Private
+		var re_full_domain = /^(?:[\w\-]+):\/*([\w\-]+(?:\.[\w\-]+)*)/i,
+			re_short_domain = /^(?:[\w\-]+):\/*(?:[\w-]+\.)*([\w-]+\.[\w]+)/i,
+			re_change_domain = /^([\w\-]+:\/*)([\w\-]+(?:\.[\w\-]+)*)([\w\W]*)$/i;
+
 		// Public
 		var regex_escape = function (text) {
 			return text.replace(/[\$\(\)\*\+\-\.\/\?\[\\\]\^\{\|\}]/g, "\\$&");
@@ -495,12 +500,16 @@
 			return null;
 		};
 		var get_full_domain = function (url) {
-			var m = /^https?:\/*([\w\-]+(?:\.[\w\-]+)*)/i.exec(url);
+			var m = re_full_domain.exec(url);
 			return (m === null) ? "" : m[1];
 		};
 		var get_domain = function (url) {
-			var m = /^(?:[\w\-]+):\/*(?:[\w-]+\.)*([\w-]+\.[\w]+)/i.exec(url);
+			var m = re_short_domain.exec(url);
 			return (m === null) ? "" : m[1].toLowerCase();
+		};
+		var change_url_domain = function (url, new_domain) {
+			var m = re_change_domain.exec(url);
+			return (m === null) ? url : m[1] + new_domain + m[3];
 		};
 		var title_case = function (text) {
 			return text.replace(/\b\w/g, function (m) {
@@ -588,6 +597,7 @@
 			get_url_info: get_url_info,
 			get_full_domain: get_full_domain,
 			get_domain: get_domain,
+			change_url_domain: change_url_domain,
 			title_case: title_case,
 			category: category,
 			get_id_from_node: get_id_from_node,
@@ -1247,33 +1257,9 @@
 			return content;
 		};
 		var create_actions = function (data, link) {
-			var fjord = regex.fjord.test(data.tags.join(',')),
-				domain, button, container, di, n;
+			var domain, container, di, n;
 
 			domain = Helper.get_domain(link.href);
-
-			if (conf['Rewrite Links'] === "smart") {
-				if (fjord) {
-					if (domain === domains.ehentai) {
-						domain = domains.exhentai;
-						link.href = link.href.replace(regex.site_gehentai, domains.exhentai);
-						if ((button = Helper.get_tag_button_from_link(link)) !== null) {
-							button.href = link.href;
-							button.textContent = button_text(domain);
-						}
-					}
-				}
-				else {
-					if (domain === domains.exhentai) {
-						domain = domains.ehentai;
-						link.href = link.href.replace(regex.site_exhentai, domains.gehentai);
-						if ((button = Helper.get_tag_button_from_link(link)) !== null) {
-							button.href = link.href;
-							button.textContent = button_text(domain);
-						}
-					}
-				}
-			}
 
 			di = domain_info[domain];
 
@@ -3547,14 +3533,31 @@
 			if (events !== null) trigger("format");
 		};
 		var format_link = function (link, data) {
-			var button, actions, hl, c;
+			var button = Helper.get_tag_button_from_link(link),
+				actions, domain, fjord, ex, hl, c;
+
+			// Smart links
+			if (conf["Rewrite Links"] === "smart") {
+				domain = Helper.get_domain(link.href);
+				ex = (domain === domains.exhentai);
+				if (ex || domain === domains.ehentai) {
+					fjord = regex.fjord.test(data.tags.join(","));
+					if (fjord !== ex) {
+						domain = fjord ? domains.exhentai : domains.ehentai;
+						link.href = Helper.change_url_domain(link.href, domain_info[domain].g_domain);
+						if (button !== null) {
+							button.href = link.href;
+							button.textContent = UI.button_text(domain);
+						}
+					}
+				}
+			}
 
 			// Link title
 			link.textContent = data.title;
 			link.setAttribute("data-hl-linkified-status", "formatted");
 
 			// Button
-			button = Helper.get_tag_button_from_link(link);
 			if (button !== null) {
 				hl = Filter.check(link, data);
 				if (hl[0] !== Filter.None) {
