@@ -1098,56 +1098,6 @@
 			}
 		};
 
-		var html_actions = function (data, domain) {
-			var gid = data.gid,
-				token = data.token,
-				theme = Theme.get(),
-				domain_type = domain_info[domain].type,
-				url, src;
-
-			src = '<div class="hl-actions' + theme + '" data-hl-id="' + domain_type + '_' + gid + '">';
-			src += '<div class="hl-actions-info">';
-			src += '<span>' + data.category + '</span>';
-			src += '<span class="hl-actions-sep">|</span>';
-			src += '<span>' + data.file_count + ' files</span>';
-			src += '<span class="hl-actions-sep">|</span>';
-			src += '<span class="hl-actions-label">View on:</span>';
-
-			if (domain_type === "ehentai") {
-				url = CreateURL.to_gallery(data, domains.ehentai);
-				src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_view_on_eh">e-hentai</a>';
-
-				url = CreateURL.to_gallery(data, domains.exhentai);
-				src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_view_on_ex">exhentai</a>';
-
-				src += '<span class="hl-actions-sep">|</span>';
-				src += '<span class="hl-actions-label">Uploader:</span>';
-
-				url = CreateURL.to_uploader(data, domain);
-				src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_uploader">' + data.uploader + '</a>';
-
-				src += '<span class="hl-actions-sep">|</span>';
-
-				url = domains.gehentai + "/stats.php?gid=" + gid + "&t=" + token;
-				src += '<a href="http://' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_stats">Stats</a>';
-			}
-			else if (domain_type === "nhentai") {
-				url = CreateURL.to_gallery(data, domain);
-				src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_view_on_nh">nhentai</a>';
-			}
-			else if (domain_type === "hitomi") {
-				url = CreateURL.to_gallery(data, domain);
-				src += '<a href="' + url + '" target="_blank" rel="noreferrer" class="hl-link-events hl-actions-link" data-hl-link-events="actions_view_on_nh">hitomi.la</a>';
-			}
-			src += '</div>';
-			src += '<div class="hl-actions-tag-block">';
-			src += '<strong class="hl-actions-tag-block-label">Tags:</strong><span class="hl-actions-tags hl-tags" data-hl-id="' + domain_type + '_' + gid + '"></span>';
-			src += '</div>';
-			src += '</div>';
-
-			return src;
-		};
-
 		var create_details = function (data, domain) {
 			var g_domain = domain_info[domain].g_domain,
 				category = Helper.category(data.category),
@@ -1250,19 +1200,49 @@
 			return content;
 		};
 		var create_actions = function (data, link) {
-			var domain, container, di, n;
+			var domain = Helper.get_domain(link.href),
+				theme = Theme.get(),
+				type = data.type,
+				gid = data.gid,
+				di = domain_info[domain],
+				container, n1, n2;
 
-			domain = Helper.get_domain(link.href);
+			container = $.node("div", "hl-actions" + theme);
+			container.setAttribute("data-hl-id", type + "_" + gid);
 
-			di = domain_info[domain];
+			$.add(container, n1 = $.node("div", "hl-actions-info"));
+			$.add(n1, $.node("span", "hl-actions-text", data.category));
+			$.add(n1, $.node("span", "hl-actions-sep", "|"));
+			$.add(n1, $.node("span", "hl-actions-text", data.file_count + " files"));
+			$.add(n1, $.node("span", "hl-actions-sep", "|"));
+			$.add(n1, $.node("span", "hl-actions-label", "View on:"));
 
-			container = $.frag(html_actions(data, domain)).firstChild;
+			if (type === "ehentai") {
+				$.add(n1, $.link(CreateURL.to_gallery(data, domains.ehentai), "hl-actions-link", "e-hentai"));
+				$.add(n1, $.link(CreateURL.to_gallery(data, domains.exhentai), "hl-actions-link", "exhentai"));
 
-			if ((n = $(".hl-actions-link-uploader", container)) !== null) {
-				Filter.highlight("uploader", n, data, Filter.None);
+				$.add(n1, $.node("span", "hl-actions-sep", "|"));
+				$.add(n1, $.node("span", "hl-actions-label", "Uploader:"));
+
+				$.add(n1, n2 = $.link(CreateURL.to_uploader(data, domain), "hl-actions-link", data.uploader));
+				Filter.highlight("uploader", n2, data, Filter.None);
+
+				$.add(n1, $.node("span", "hl-actions-sep", "|"));
+
+				$.add(n1, $.link("http://" + domains.gehentai + "/stats.php?gid=" + gid + "&t=" + data.token, "hl-actions-link", "Stats"));
+			}
+			else if (type === "nhentai") {
+				$.add(n1, $.link(CreateURL.to_gallery(data, domain), "hl-actions-link", "nhentai"));
+			}
+			else if (type === "hitomi") {
+				$.add(n1, $.link(CreateURL.to_gallery(data, domain), "hl-actions-link", "hitomi.la"));
 			}
 
-			$.add($(".hl-tags", container), create_tags_best(di.g_domain, data));
+			$.add(container, n1 = $.node("div", "hl-actions-tag-block"));
+			$.add(n1, $.node("strong", "hl-actions-tag-block-label", "Tags:"));
+			$.add(n1, n2 = $.node("span", "hl-actions-tags hl-tags"));
+			n2.setAttribute("data-hl-id", type + "_" + gid);
+			$.add(n2, create_tags_best(di !== undefined ? di.g_domain : domains.exhentai, data));
 
 			return container;
 		};
