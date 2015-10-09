@@ -1173,7 +1173,7 @@
 			if (data.rating >= 0) {
 				$.add(n1, n2 = $.node("div", "hl-details-side-box hl-details-side-box-rating" + theme));
 				$.add(n2, n3 = $.node("div", "hl-details-rating hl-stars-container"));
-				n3.innerHTML = html_stars(data.rating);
+				$.add(n3, html_stars(data.rating));
 				$.add(n2, $.node("div", "hl-details-rating-text", "(Avg. " + data.rating.toFixed(2) + ")"));
 			}
 
@@ -1418,22 +1418,19 @@
 
 		// Public
 		var html_stars = function (rating) {
-			var str = "",
+			var frag = d.createDocumentFragment(),
 				star, tmp, i;
 
 			rating = Math.round(rating * 2);
 
-			for (i = 0; i < 5; ++i) {
+			for (i = 0; i < 5; ) {
 				tmp = $.clamp(rating - (i * 2), 0, 2);
-				switch (tmp) {
-					case 1: star = "half"; break;
-					case 2: star = "full"; break;
-					default: star = "none"; break;
-				}
-				str += '<div class="hl-star hl-star-' + (i + 1) + ' hl-star-' + star + '"></div>';
+				star = (tmp === 2 ? "full" : (tmp === 1 ? "half" : "none"));
+				++i;
+				$.add(frag, $.node("div", "hl-star hl-star-" + i + " hl-star-" + star));
 			}
 
-			return str;
+			return frag;
 		};
 		var button = function (url, domain) {
 			var button = $.link(url, "hl-link-events hl-site-tag", button_text(domain));
@@ -5550,7 +5547,7 @@
 
 			$.add(n5, n6 = $.node("div", "hl-easylist-item-info-item hl-easylist-item-info-item-rating" + theme));
 			$.add(n6, n7 = $.node("div", "hl-stars-container"));
-			n7.innerHTML = UI.html_stars(data.rating);
+			$.add(n7, UI.html_stars(data.rating));
 			if (data.rating >= 0) {
 				$.add(n6, $.node("span", "hl-easylist-item-info-light", "(Avg: " + data.rating.toFixed(2) + ")"));
 			}
