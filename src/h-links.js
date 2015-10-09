@@ -1102,7 +1102,7 @@
 				domain_type = domain_info[domain].type,
 				url, src;
 
-			src = '<div class="hl-actions hl-actions-hidden' + theme + '" data-hl-id="' + domain_type + '_' + gid + '">';
+			src = '<div class="hl-actions' + theme + '" data-hl-id="' + domain_type + '_' + gid + '">';
 			src += '<div class="hl-actions-info">';
 			src += '<span>' + data.category + '</span>';
 			src += '<span class="hl-actions-sep">|</span>';
@@ -1283,7 +1283,6 @@
 				Filter.highlight("uploader", n, data, Filter.None);
 			}
 
-			if (conf['Show by Default']) container.classList.remove("hl-actions-hidden");
 			$.add($(".hl-tags", container), create_tags_best(di.g_domain, data));
 
 			return container;
@@ -1450,8 +1449,20 @@
 		};
 		var gallery_toggle_actions = function (event) {
 			if ($.is_left_mouse(event) && conf['Gallery Actions']) {
-				var actions = Helper.get_actions_from_link(this, true);
-				if (actions !== null) {
+				var actions = Helper.get_actions_from_link(this, true),
+					data, link, id;
+				if (actions === null) {
+					if (
+						(link = Helper.get_link_from_tag_button(this)) !== null &&
+						(id = Helper.get_id_from_node(link)) !== null &&
+						Database.valid_namespace(id[0]) &&
+						(data = Database.get(id[0], id[1])) !== null
+					) {
+						actions = UI.create_actions(data, link);
+						$.after(link, actions);
+					}
+				}
+				else {
 					actions.classList.toggle("hl-actions-hidden");
 				}
 				event.preventDefault();
@@ -3555,8 +3566,10 @@
 			}
 
 			// Actions
-			actions = UI.create_actions(data, link);
-			$.after(link, actions);
+			if (conf["Show by Default"]) {
+				actions = UI.create_actions(data, link);
+				$.after(link, actions);
+			}
 		};
 		var format_links_error = function (links, error) {
 			var text = " (" + error.trim().replace(/\.$/, "") + ")",
