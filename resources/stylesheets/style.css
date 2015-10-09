@@ -368,6 +368,8 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	color: #ff1f1f;
 }
 
+.hl-details-title-container {
+}
 .hl-details-title {
 	font-size: 1.5em !important;
 	font-weight: bold !important;
@@ -375,9 +377,13 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	text-decoration: none !important;
 }
 .hl-details-title-jp {
+	margin-top: 0.25em;
 	opacity: 0.5;
 	font-size: 1.1em;
-	text-shadow: 0.1em 0.1em 0.5em rgba(0,0,0,0.2) !important;
+	text-shadow: 0.1em 0.1em 0.5em rgba(0,0,0,0.2);
+}
+.hl-details-title-jp.hl-theme-dark {
+	text-shadow: 0.1em 0.1em 0.5em rgba(255,255,255,0.2);
 }
 
 .hl-details-rating {
@@ -399,7 +405,8 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 }
 
 .hl-details-upload-info {
-	font-size: 1em !important;
+	font-size: 1em;
+	margin: 1em 0;
 }
 .hl-details-uploader {
 	font-size: 1em !important;

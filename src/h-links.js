@@ -1095,9 +1095,6 @@
 			}
 		};
 
-		var html_details = function (data, data_alt) {
-			return '#DETAILS#';
-		};
 		var html_actions = function (data, domain) {
 			var gid = data.gid,
 				token = data.token,
@@ -1149,63 +1146,92 @@
 		};
 
 		var create_details = function (data, domain) {
-			var data_alt = {},
-				di = domain_info[domain],
-				g_domain = di.g_domain,
-				content, n, n2;
+			var g_domain = domain_info[domain].g_domain,
+				category = Helper.category(data.category),
+				theme = Theme.get(),
+				file_size = (data.total_size / 1024 / 1024).toFixed(2),
+				content, n1, n2, n3;
 
-			data_alt.jtitle = data.title_jpn !== null ? ('<br /><span class="hl-details-title-jp">' + data.title_jpn + '</span>') : "";
-			data_alt.size = Math.round((data.total_size / 1024 / 1024) * 100) / 100;
-			data_alt.datetext = format_date(new Date(data.upload_date));
-			data_alt.visible = data.visible ? 'Yes' : 'No';
-			data_alt.category_type = Helper.category(data.category).short;
+			// Body
+			content = $.node("div", "hl-details hl-hover-shadow post reply post_wrapper hl-fake-post" + theme);
+			content.setAttribute("data-hl-id", data.type + "_" + data.gid);
 
-			content = $.frag(html_details(data, data_alt)).firstChild;
-			Theme.apply(content);
-
-			if ((n = $(".hl-details-thumbnail", content)) !== null) {
-				API.get_thumbnail(data, $.bind(function (err, url) {
-					if (err === null) {
-						this.style.backgroundImage = "url('" + url + "')";
-					}
-				}, n));
-			}
-			if ((n = $(".hl-details-title", content)) !== null) {
-				Filter.highlight("title", n, data, Filter.None);
-			}
-			if ((n = $(".hl-details-uploader", content)) !== null) {
-				Filter.highlight("uploader", n, data, Filter.None);
-			}
-			if (data.total_size < 0 && (n = $(".hl-details-file-size", content)) !== null) {
-				$.remove(n);
-			}
-			if (data.torrent_count < 0 && (n = $(".hl-details-side-box-torrents", content)) !== null) {
-				$.remove(n);
-			}
-			if (data.rating < 0 && (n = $(".hl-details-side-box-rating", content)) !== null) {
-				$.remove(n);
-			}
-			if (data.removed === true && (n = $(".hl-details-side-box-visible", content)) !== null) {
-				if (
-					(n = n.firstChild) !== null &&
-					n.tagName === "DIV"
-				) {
-					n.innerHTML = "";
-					n2 = $.node("strong", "hl-details-side-box-error" + Theme.get(), "Removed");
-					n.appendChild(n2);
+			// Image
+			$.add(content, n1 = $.node("div", "hl-details-thumbnail" + theme));
+			API.get_thumbnail(data, $.bind(function (err, url) {
+				if (err === null) {
+					this.style.backgroundImage = "url('" + url + "')";
 				}
-			}
-			else if (data.visible === null && (n = $(".hl-details-side-box-visible", content)) !== null) {
-				$.remove(n);
+			}, n1));
+
+			// Sidebar
+			$.add(content, n1 = $.node("div", "hl-details-side-panel"));
+
+			$.add(n1, n2 = $.node("div", "hl-button hl-button-eh hl-button-" + category.short + theme));
+			$.add(n2, $.node("div", "hl-noise", category.name));
+
+			if (data.rating >= 0) {
+				$.add(n1, n2 = $.node("div", "hl-details-side-box hl-details-side-box-rating" + theme));
+				$.add(n2, n3 = $.node("div", "hl-details-rating hl-stars-container"));
+				n3.innerHTML = html_stars(data.rating);
+				$.add(n2, $.node("div", "hl-details-rating-text", "(Avg. " + data.rating.toFixed(2) + ")"));
 			}
 
-			$.add($(".hl-tags", content), create_tags_best(di.type, g_domain, data));
+			$.add(n1, n2 = $.node("div", "hl-details-side-box hl-details-side-box-rating" + theme));
+			$.add(n2, $.node("div", "hl-details-file-count", data.file_count + " image" + (data.file_count === 1 ? "" : "s")));
+			if (data.total_size >= 0) {
+				$.add(n2, $.node("div", "hl-details-file-size", "(" + file_size + " MB)"));
+			}
 
-			Popup.hovering(content);
+			if (data.torrent_count >= 0) {
+				$.add(n1, n2 = $.node("div", "hl-details-side-box hl-details-side-box-torrents" + theme));
+				$.add(n2, n3 = $.node("div", "hl-details-side-box-inner"));
+				$.add(n3, $.node("strong", "", "Torrents:"));
+				$.add(n3, $.node("span", "", " " + data.torrent_count));
+			}
+
+			if (data.removed === true) {
+				$.add(n1, n2 = $.node("div", "hl-details-side-box hl-details-side-box-visible" + theme));
+				$.add(n2, n3 = $.node("div", "hl-details-side-box-inner"));
+				$.add(n3, $.node("strong", "hl-details-side-box-error" + theme, "Removed"));
+			}
+			else if (data.visible !== null) {
+				$.add(n1, n2 = $.node("div", "hl-details-side-box hl-details-side-box-visible" + theme));
+				$.add(n2, n3 = $.node("div", "hl-details-side-box-inner"));
+				$.add(n3, $.node("strong", "", "Visible:"));
+				$.add(n3, $.node("span", "", data.visible ? " Yes" : " No"));
+			}
+
+			// Title
+			$.add(content, n1 = $.node("div", "hl-details-title-container" + theme));
+			$.add(n1, n2 = $.link("#", "hl-details-title" + theme, data.title));
+			Filter.highlight("title", n2, data, Filter.None);
+			if (data.title_jpn !== null) {
+				$.add(n1, n2 = $.node("div", "hl-details-title-jp" + theme, data.title_jpn));
+				Filter.highlight("title", n2, data, Filter.None);
+			}
+
+			// Upload info
+			$.add(content, n1 = $.node("div", "hl-details-upload-info" + theme));
+			$.add(n1, $.tnode("Uploaded by"));
+			$.add(n1, n2 = $.node("strong", "hl-details-uploader", data.uploader));
+			Filter.highlight("uploader", n2, data, Filter.None);
+			$.add(n1, $.tnode("on"));
+			$.add(n1, $.node("strong", "hl-details-upload-date", format_date(new Date(data.upload_date))));
+
+			// Tags
+			$.add(content, n1 = $.node("div", "hl-details-tag-block" + theme));
+			$.add(n1, $.node("strong", "hl-details-tag-block-label", "Tags:"));
+			$.add(n1, n2 = $.node("span", "hl-details-tags hl-tags"));
+			n2.setAttribute("data-hl-id", data.type + "_" + data.gid);
+			$.add(n2, create_tags_best(g_domain, data));
+
+			// End
+			$.add(content, $.node("div", "hl-details-clear"));
 
 			// Full info
-			if (conf['Extended Info'] && di.type === "ehentai" && !API.data_has_full(data)) {
-				API.ehentai_get_full_info(data.gid, data.token, g_domain, function (err) {
+			if (conf["Extended Info"] && data.type === "ehentai" && !API.data_has_full(data)) {
+				API.ehentai_get_full_info(data.gid, data.token, g_domain, function (err, data) {
 					if (err === null) {
 						update_full(data);
 					}
@@ -1217,8 +1243,7 @@
 
 			// Fonts
 			Main.insert_custom_fonts();
-
-			// Done
+			Popup.hovering(content);
 			return content;
 		};
 		var create_actions = function (data, link) {
@@ -1259,15 +1284,16 @@
 			}
 
 			if (conf['Show by Default']) container.classList.remove("hl-actions-hidden");
-			$.add($(".hl-tags", container), create_tags_best(di.type, di.g_domain, data));
+			$.add($(".hl-tags", container), create_tags_best(di.g_domain, data));
 
 			return container;
 		};
 		var pad = function (n, sep) {
 			return (n < 10 ? "0" : "") + n + sep;
 		};
-		var create_tags = function (domain, site, data) {
+		var create_tags = function (site, data) {
 			var tagfrag = d.createDocumentFragment(),
+				domain = data.type,
 				tags = data.tags,
 				theme = Theme.get(),
 				last = null,
@@ -1287,8 +1313,9 @@
 
 			return tagfrag;
 		};
-		var create_tags_full = function (domain, site, data) {
+		var create_tags_full = function (site, data) {
 			var tagfrag = d.createDocumentFragment(),
+				domain = data.type,
 				tags_ns = data.tags_ns,
 				theme = Theme.get(),
 				tag = null,
@@ -1332,13 +1359,13 @@
 
 			return tagfrag;
 		};
-		var create_tags_best = function (domain, site, data) {
+		var create_tags_best = function (site, data) {
 			if (API.data_has_full(data)) {
 				for (var k in data.tags_ns) {
-					return create_tags_full(domain, site, data);
+					return create_tags_full(site, data);
 				}
 			}
-			return create_tags(domain, site, data);
+			return create_tags(site, data);
 		};
 		var update_full = function (data) {
 			var tagfrag, nodes, link, site, tags, last, i, ii, j, jj, n, f;
@@ -1346,7 +1373,7 @@
 			if (data.removed === true) {
 				if (
 					(n = details_nodes[data.type + "_" + data.gid]) !== null &&
-					(link = $(".hl-details-side-box-visible>div", n)) !== null
+					(link = $(".hl-details-side-box-visible>.hl-details-side-box-inner", n)) !== null
 				) {
 					link.innerHTML = "";
 					n = $.node("strong", "hl-details-side-box-error" + Theme.get(), "Removed");
@@ -1359,7 +1386,7 @@
 
 			if (ii === 0 || Object.keys(data.tags_ns).length === 0) return;
 
-			tagfrag = create_tags_full("ehentai", domains.exhentai, data);
+			tagfrag = create_tags_full(domains.exhentai, data);
 
 			i = 0;
 			while (true) {
