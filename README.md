@@ -1,16 +1,24 @@
 # H-links
 
+H-links is a heavily modified fork of [ExLinks](https://github.com/Hupotronic/ExLinks) with many improvements and added features.
+It works on Firefox and Chrome to your browsing experience on 4chan and friends more pleasurable.
+
 ## Installing
 
-Go to the [proper homepage](https://dnsev-h.github.io/h-links/) and follow the instructions there.
+#### For full instructions and information, go to the [proper homepage](https://dnsev-h.github.io/h-links/).
 
-## Building
+To quickly install, here are the links to the different userscript versions:
 
-1. Install [Node.js](https://nodejs.org/) if you don't have it.
-2. Clone the repository.
-3. Run `npm install` in the repo directory to install the relevant modules.
-3. Build with `node build.js`
+* <b>[h-links.user.js](https://raw.githubusercontent.com/dnsev-h/h-links/stable/builds/h-links.user.js)</b> - the standard version of the userscript
+* <b>[h-links.debug.user.js](https://raw.githubusercontent.com/dnsev-h/h-links/stable/builds/h-links.debug.user.js)</b> - the debugging version of the userscript<br />
+  <i>If you install this version, keep in mind:
+  * It <b>will not</b> overwrite the standard version
+  * It <b>will not</b> automatically update</i>
 
 ## Developing
 
-* Run `node build.js dev` for continous builds when relevant script files are updated.
+* Install [Node.js](https://nodejs.org/)
+* Clone the repository
+* Run `npm install` in the repository directory to install the required modules
+* Run `node build.js` to build the userscript
+* Run `node build.js dev` for continous builds when relevant script files are updated
