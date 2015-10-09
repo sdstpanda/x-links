@@ -2,7 +2,7 @@
 // @name        H-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.6
+// @version     1.0.7
 // @description Userscript for pretty linkification of hentai links on 4chan and friends
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*

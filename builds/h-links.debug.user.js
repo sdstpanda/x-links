@@ -2,7 +2,7 @@
 // @name        H-links (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.6.0xDB
+// @version     1.0.7.0xDB
 // @description Userscript for pretty linkification of hentai links on 4chan and friends
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -7093,7 +7093,7 @@
 		// Exports
 		var Module = {
 			homepage: "https://dnsev-h.github.io/h-links/",
-			version: [1,0,6,0xDB],
+			version: [1,0,7,0xDB],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
