@@ -11,9 +11,9 @@ To quickly install, here are the links to the different userscript versions:
 
 * <b>[h-links.user.js](https://raw.githubusercontent.com/dnsev-h/h-links/stable/builds/h-links.user.js)</b> - the standard version of the userscript
 * <b>[h-links.debug.user.js](https://raw.githubusercontent.com/dnsev-h/h-links/stable/builds/h-links.debug.user.js)</b> - the debugging version of the userscript<br />
-  <i>If you install this version, keep in mind:
-  * It <b>will not</b> overwrite the standard version
-  * It <b>will not</b> automatically update</i>
+  <i>If you install this version, keep in mind:</i>
+  * <i>It <b>will not</b> overwrite the standard version</i>
+  * <i>It <b>will not</b> automatically update</i>
 
 ## Developing
 
