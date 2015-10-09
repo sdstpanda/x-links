@@ -3743,18 +3743,14 @@
 			}
 			else {
 				if (info.site === "ehentai") {
-					rewrite = conf['Rewrite Links'];
-					if (rewrite === domains.exhentai) {
-						if (info.domain !== rewrite) {
-							node.href = url.replace(regex.site_gehentai, domains.exhentai);
-							info.domain = rewrite;
-						}
-					}
-					else if (rewrite === domains.ehentai) {
-						if (info.domain !== rewrite) {
-							node.href = url.replace(regex.site_exhentai, domains.gehentai);
-							info.domain = rewrite;
-						}
+					rewrite = conf["Rewrite Links"];
+					if (
+						(rewrite === domains.exhentai || rewrite === domains.ehentai) &&
+						info.domain !== rewrite
+					) {
+						info.domain = rewrite;
+						url = Helper.change_url_domain(url, domain_info[rewrite].g_domain);
+						node.href = url;
 					}
 				}
 
