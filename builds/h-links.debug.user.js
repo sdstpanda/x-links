@@ -3,7 +3,7 @@
 // @namespace   dnsev-h
 // @author      dnsev-h
 // @version     1.0.7.0xDB
-// @description Userscript for pretty linkification of hentai links on 4chan and friends
+// @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
 // @include     http://8ch.net/*

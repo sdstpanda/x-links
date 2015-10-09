@@ -2,7 +2,7 @@
 	"name": "H-links",
 	"version": "1.0.7",
 	"author": "dnsev-h",
-	"description": "Userscript for pretty linkification of hentai links on 4chan and friends",
+	"description": "Making your browsing experience on 4chan and friends more pleasurable",
 	"dependencies": {
 		"html-minifier": "~0.6.9",
 		"uglify-js": "~2.4.15",
