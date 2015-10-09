@@ -1126,7 +1126,7 @@
 			if (data.rating >= 0) {
 				$.add(n1, n2 = $.node("div", "hl-details-side-box hl-details-side-box-rating" + theme));
 				$.add(n2, n3 = $.node("div", "hl-details-rating hl-stars-container"));
-				$.add(n3, html_stars(data.rating));
+				$.add(n3, create_rating_stars(data.rating));
 				$.add(n2, $.node("div", "hl-details-rating-text", "(Avg. " + data.rating.toFixed(2) + ")"));
 			}
 
@@ -1376,7 +1376,7 @@
 		};
 
 		// Public
-		var html_stars = function (rating) {
+		var create_rating_stars = function (rating) {
 			var frag = d.createDocumentFragment(),
 				star, tmp, i;
 
@@ -1435,7 +1435,7 @@
 				gallery_link: gallery_link_events,
 				gallery_toggle_actions: gallery_toggle_actions
 			},
-			html_stars: html_stars,
+			create_rating_stars: create_rating_stars,
 			button: button,
 			button_text: button_text,
 			format_date: format_date,
@@ -5535,7 +5535,7 @@
 
 			$.add(n5, n6 = $.node("div", "hl-easylist-item-info-item hl-easylist-item-info-item-rating" + theme));
 			$.add(n6, n7 = $.node("div", "hl-stars-container"));
-			$.add(n7, UI.html_stars(data.rating));
+			$.add(n7, UI.create_rating_stars(data.rating));
 			if (data.rating >= 0) {
 				$.add(n6, $.node("span", "hl-easylist-item-info-light", "(Avg: " + data.rating.toFixed(2) + ")"));
 			}
