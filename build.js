@@ -26,10 +26,33 @@
 	var pkg = require(PACKAGE_JSON);
 
 
+	var mimes = {
+		".png": "image/png",
+		".jpg": "image/jpeg",
+		".jpeg": "image/jpeg",
+		".css": "text/css",
+		"": "text/plain"
+	};
+
+
 	var html = function (path) {
 		var input = fs.readFileSync(path, "utf8");
 		input = html_minifier.minify(input, { removeComments: true, collapseWhitespace: true });
 		input = input.replace(/\#{([^}]*)}/g, "'+$1+'");
+		return input;
+	};
+
+
+	var resources = function (input) {
+		input = input.replace(/\#RESOURCE_BASE64\:([^\#]+)\#/g, function (m, name) {
+			var file = path.resolve(path.normalize(path.join(RESOURCES, name))),
+				data = fs.readFileSync(file).toString("base64"),
+				ext = path.extname(file).toLowerCase(),
+				mime = mimes[(Object.prototype.hasOwnProperty.call(mimes, ext)) ? ext : ""];
+
+			return "data:" + mime + ";base64," + data;
+		});
+
 		return input;
 	};
 
@@ -63,6 +86,7 @@
 		header += "// ==/UserScript==";
 
 		style = fs.readFileSync(RES_STYLESHEET, "utf8");
+		style = resources(style);
 		style = new CleanCSS({}).minify(style).styles;
 
 		source = fs.readFileSync(SCRIPT_SOURCE, "utf8");
