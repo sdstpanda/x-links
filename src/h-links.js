@@ -109,13 +109,6 @@
 			].join('\n'), '']
 		}
 	};
-	var regex = {
-		url: /(?:https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)\/[^<>\s\'\"]*/ig,
-		protocol: /^https?\:\/*/i,
-		fjord: /abortion|bestiality|incest|lolicon|shotacon|toddlercon/,
-		site_exhentai: /exhentai\.org/i,
-		site_gehentai: /g\.e\-hentai\.org/i
-	};
 	var d = document;
 	var conf = {};
 
@@ -1353,7 +1346,8 @@
 			return create_tags(site, data);
 		};
 		var update_full = function (data) {
-			var tagfrag, nodes, link, site, tags, last, i, ii, j, jj, n, f;
+			var domain = domains.exhentai,
+				g_domain, tagfrag, nodes, link, tags, last, i, ii, j, jj, n, f;
 
 			if (data.removed === true) {
 				if (
@@ -1371,7 +1365,7 @@
 
 			if (ii === 0 || Object.keys(data.tags_ns).length === 0) return;
 
-			tagfrag = create_tags_full(domains.exhentai, data);
+			tagfrag = create_tags_full(domain, data);
 
 			i = 0;
 			while (true) {
@@ -1381,13 +1375,13 @@
 
 				if (
 					(link = $("a[href]", n)) !== null &&
-					!regex.site_exhentai.test(link.getAttribute("href"))
+					Helper.get_domain(link.href) !== domain
 				) {
-					site = Helper.get_full_domain(link.href);
+					g_domain = Helper.get_full_domain(link.href);
 					f = last ? tagfrag : tagfrag.cloneNode(true);
 					tags = $$("a[href]", f);
 					for (j = 0, jj = tags.length; j < jj; ++j) {
-						tags[j].href = tags[j].href.replace(regex.site_exhentai, site);
+						tags[j].href = Helper.change_url_domain(tags[j].href, g_domain);
 					}
 				}
 				else if (!last) {
@@ -1473,6 +1467,7 @@
 
 		// Private
 		var temp_div = $.node_simple("div"),
+			re_protocol = /^https?\:/i,
 			saved_thumbnails = {
 				ehentai: {},
 				nhentai: {},
@@ -1910,7 +1905,7 @@
 
 				if ((n = $("img", n)) !== null) {
 					data.thumbnail = n.getAttribute("src") || null;
-					if (data.thumbnail !== null && !regex.protocol.test(data.thumbnail)) {
+					if (data.thumbnail !== null && !re_protocol.test(data.thumbnail)) {
 						data.thumbnail = "http:" + data.thumbnail;
 					}
 				}
@@ -2033,7 +2028,7 @@
 				if ((n = $("img", n)) !== null) {
 					t = n.getAttribute("src") || null;
 					if (t !== null) {
-						if (!regex.protocol.test(t)) {
+						if (!re_protocol.test(t)) {
 							t = "https:" + t;
 						}
 						data.thumbnail = t; // no cross origin
@@ -3132,7 +3127,11 @@
 	var Linkifier = (function () {
 
 		// Private
-		var incomplete = {
+		var re_url = /(?:https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)\/[^<>\s\'\"]*/ig,
+			re_url_class_ignore = /(?:\binlined?\b|\bhl-)/,
+			re_fjord = /abortion|bestiality|incest|lolicon|shotacon|toddlercon/,
+			re_protocol = /^https?\:/i,
+			incomplete = {
 				types: [ "ehentai", "nhentai", "hitomi" ],
 				ehentai: {
 					types: [ "page", "gallery" ],
@@ -3479,15 +3478,12 @@
 		})();
 
 		var linkify = function (container, results) {
-			var re_link = regex.url,
-				re_ignore = /(?:\binlined?\b|\bex(?:links)?-)/;
-
 			deep_dom_wrap(
 				container,
 				"a",
 				function (text, pos) {
-					re_link.lastIndex = pos;
-					var m = re_link.exec(text);
+					re_url.lastIndex = pos;
+					var m = re_url.exec(text);
 					if (m === null) return null;
 					return [ m.index , m.index + m[0].length, m ];
 				},
@@ -3499,7 +3495,7 @@
 						return deep_dom_wrap.EL_TYPE_NO_PARSE;
 					}
 					else if (node.tagName === "DIV") {
-						if (re_ignore.test(node.className)) {
+						if (re_url_class_ignore.test(node.className)) {
 							return deep_dom_wrap.EL_TYPE_NO_PARSE | deep_dom_wrap.EL_TYPE_LINE_BREAK;
 						}
 						return deep_dom_wrap.EL_TYPE_LINE_BREAK;
@@ -3508,7 +3504,7 @@
 				},
 				function (node, match) {
 					var url = match[2][0];
-					if (!regex.protocol.test(url)) url = "http://" + url.replace(/^\/+/, "");
+					if (!re_protocol.test(url)) url = "http://" + url.replace(/^\/+/, "");
 					node.href = url;
 					node.target = "_blank";
 					node.rel = "noreferrer";
@@ -3541,7 +3537,7 @@
 				domain = Helper.get_domain(link.href);
 				ex = (domain === domains.exhentai);
 				if (ex || domain === domains.ehentai) {
-					fjord = regex.fjord.test(data.tags.join(","));
+					fjord = re_fjord.test(data.tags.join(","));
 					if (fjord !== ex) {
 						domain = fjord ? domains.exhentai : domains.ehentai;
 						link.href = Helper.change_url_domain(link.href, domain_info[domain].g_domain);
@@ -3633,14 +3629,14 @@
 				!post.classList.contains("hl-post-linkified") &&
 				(post_body = Post.get_text_body(post)) !== null
 			) {
-				regex.url.lastIndex = 0;
-				if (!Config.linkify || regex.url.test(post_body.innerHTML)) {
+				re_url.lastIndex = 0;
+				if (!Config.linkify || re_url.test(post_body.innerHTML)) {
 					links = [];
 					post_links = Post.get_body_links(post_body);
 					for (i = 0, ii = post_links.length; i < ii; ++i) {
 						link = post_links[i];
-						regex.url.lastIndex = 0;
-						if (regex.url.test(link.href)) {
+						re_url.lastIndex = 0;
+						if (re_url.test(link.href)) {
 							link.classList.add("hl-link-events");
 							link.classList.add("hl-linkified");
 							link.classList.add("hl-linkified-gallery");
@@ -3738,7 +3734,7 @@
 				rewrite, button;
 
 			if (info === null) {
-				node.classList.remove('hl-linkified-gallery');
+				node.classList.remove("hl-linkified-gallery");
 				node.removeAttribute("data-hl-linkified-status");
 			}
 			else {
