@@ -20,39 +20,34 @@
 
 .hl-star {
 	display: inline-block;
-	height: 14px;
-	margin-left: -1px;
-	margin-right: -1px;
-	margin-bottom: -2px;
+	width: 1.2em;
+	height: 1.4em;
+	margin-left: -0.1em;
+	margin-right: -0.1em;
+	margin-bottom: -0.2em;
 	background-repeat: no-repeat;
 	background-size: cover;
+	background-position: -0.1em 0;
 	position: relative;
 }
 
 .hl-star-1 {
 	z-index: 4;
-	width: 13px;
-	background-position: 0px 0px;
+	width: 1.3em;
+	background-position: 0 0;
 }
 .hl-star-2 {
 	z-index: 3;
-	width: 12px;
-	background-position: -1px 0px;
 }
 .hl-star-3 {
 	z-index: 2;
-	width: 12px;
-	background-position: -1px 0px;
 }
 .hl-star-4 {
 	z-index: 1;
-	width: 12px;
-	background-position: -1px 0px;
 }
 .hl-star-5 {
 	z-index: 0;
-	width: 13px;
-	background-position: -1px 0px;
+	width: 1.3em;
 }
 
 /* Buttons */
@@ -191,13 +186,13 @@
 
 /* Noise */
 .hl-noise {
-	color: #FFFFFF !important;
+	color: #ffffff !important;
 	margin: 0;
-	padding: 2px 0;
-	margin-bottom: -4px;
-	border-radius: 4px;
+	padding: 0.125em 0;
+	margin-bottom: -0.25em;
+	border-radius: 0.25em;
 	position: relative;
-	top: -2px;
+	top: -0.125em;
 	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAMAAACd646MAAAAG1BMVEUAAAAfHx8/Pz9fX19/f3+fn5+/v7/f39////8NX9jPAAAACXRSTlMICAgICAgICAWHgaIXAAAErklEQVR42rWXOZIlNBBEn2rLd/8TYxBDANEsA78dGSpDqi0XGmDL04cKanRWhrWBvHqbUoemvHZscN5EVMV1KzTXzfMYtGVvkemNHVWiNitiC++ww3M5McNsFxaKkYcotEyUCKccLXvyXGFVfU/uYA2oWq/L9eapmsOmQd7BE7BcFEbWQp/jNE9jr6OjYYaAJ9K01LrCrCOc2Im2wVLsfjKHsHIttCn0DlYpU0tBSQMM9gRXpr8pLaRdGzUPpVefT1Dv7aFZ1wGL6OHPtRKg9BW1GCktCxq9ePZjhcsJCorYCOZgHdccomwrb1FL0fPQJ1lYuKfalqjeDVFMj+bUZ0d7BSHCPhnqeX0CKlqv11FlhbXAju0YmodWTo2otue1V84WPlT6PWtvRUGZS634CskGj4sogqJTDY1Bt8EM+VglKRWgR32nwhrIk/Gp/3sAAVen3hPvRpVwr5QD0eeqVgCNyvS6WrQC1JN+y7hA06qKLfC3wVWDrVZbvSDvjaTUKle0qBUZjWifntuN5TXI25oweKzOtEjZtmcclanhClMILtEmrT5ReKbUZzX6RxxBlTXdLZAdkRR2FbTPt17sU0kpLddnLH1IqaqoAMTcqZo6CgW/uytPtZVxIpYW0oNxH3gqZ0QQdyXeiOB6CyvaxQSgrDXkzlhvMePcySj71Oc4ilwVAoNiZb31dTzTI/vssNWxhzpvFHCRHQ0A4gOtOcLR7nNpQUV846ryYi3yVID1+U7sx/y4NSqzFqMVzUM+vt5fACVoFsyRZ+s2IIyISyaMjh5yyLqrIuZ8fY2LzKSe1698IojmNahUo891Vp3sQ1XfCMCbFUvrkBPvVhlD4Uoprw4dHFlltNSRs3wvnX6eF80inB6g57y2FR17T0QzDBifpe+y6rJImsiUcD9S+taxclb5axLwtnGkZwIct4K4pyCtJQ+PU1WjbBrDLD4V8R8FTW+ebzLq2A3GYWqRqDy0kQbPQ17jKefd8HUR+6BUP4Nq4KAOurFBzDzeOqL6+gkall6T97Nzj8/8epSOr4TVolhElXZGLi3oMjeqgjLPWhEkfRocTBqCzz4+q0vSCq+3geOpehTyeNvS0y2KmC7xVubpuz1XyZlVtH5CG7CKwvU5LiJNLTz0wfWUUsDqvhbRx4toKfokNMU2rlZ55nrP4TFleXOqqNDv9d19UPXxKTgvwozCG/WppSPrIRYAPXiCiWpjXe6cRtTu/8zUfNtISXScQdKWhuiIsocNZmdwoFQ5TN2VitkprVX7lsJzDlChARzENZy/mcc76duguKmZnfaMBw9Apwza2vGGiarj044exFsCAbUMNsB+ZcA+6oc/iR4iumKrv+NbvtOP/igH3yGB/rwzv1FkKHXVXhj1aEX0UJoFOeAAdME5xZLdoxHoVYiKNT5h3TOeqveGpihwRG12PKPIqH1cCjG8+OB1k4gQRnV2dVRRFKKA4strjYMqZQTK4tRRn08BBMT+d+aDD+iE14LKqRW+4Nr/ghNniexqONNKuyDiaXRTo4JiYIl22ZlDJ+/DxvsvHj9OBtW9d2alRrtAFTeiU5aD0UJEZIu2obEpQPlgYb7+2y84P1jASwAjowAAAABJRU5ErkJggg==");
 }
 
@@ -325,12 +320,20 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 
 .hl-details-thumbnail {
 	float: left;
-	margin-right: 8px;
+	margin-right: 0.625em;
 	width: 140px;
 	height: 200px;
+	background-color: rgba(0,0,0,0.03125);
 	background-repeat: no-repeat;
+	background-size: contain;
+	background-position: center center;
+}
+.hl-details-thumbnail.hl-details-thumbnail-full {
 	background-size: cover;
 	background-position: 25% 0%;
+}
+.hl-details-thumbnail.hl-theme-dark {
+	background-color: rgba(255,255,255,0.03125);
 }
 
 .hl-details-side-panel {
@@ -378,10 +381,10 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 }
 
 .hl-details-rating {
-	width: 64px;
-	height: 11px;
+	white-space: nowrap;
 	text-align: center;
 	display: inline-block;
+	vertical-align: middle;
 }
 .hl-details-rating-text {
 	opacity: 0.65;
@@ -396,15 +399,15 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 }
 
 .hl-details-upload-info {
-	font-size: 1.0em !important;
+	font-size: 1em !important;
 }
 .hl-details-uploader {
-	font-size: 1.0em !important;
-	margin: 0 5px;
+	font-size: 1em !important;
+	margin: 0 0.625em;
 }
 .hl-details-upload-date {
-	font-size: 1.0em !important;
-	margin: 0 5px;
+	font-size: 1em !important;
+	margin-left: 0.625em;
 }
 
 .hl-details-tag-block {
@@ -457,7 +460,7 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	display: inline-block;
 	border: 1px solid rgba(0,0,0,0.4);
 	border-radius: 0.25em;
-	padding: 0 2px;
+	padding: 0 0.25em;
 	line-height: normal;
 }
 .hl-tag-namespace-block.hl-tag-namespace-block-no-outline>.hl-tag-namespace {

@@ -1154,7 +1154,7 @@
 				g_domain = di.g_domain,
 				content, n, n2;
 
-			data_alt.jtitle = data.title_jpn !== null ? ('<br /><span class="hl-details-title-jp">' + data.title_jpn + '</span>') : '';
+			data_alt.jtitle = data.title_jpn !== null ? ('<br /><span class="hl-details-title-jp">' + data.title_jpn + '</span>') : "";
 			data_alt.size = Math.round((data.total_size / 1024 / 1024) * 100) / 100;
 			data_alt.datetext = format_date(new Date(data.upload_date));
 			data_alt.visible = data.visible ? 'Yes' : 'No';
