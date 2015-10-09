@@ -1244,6 +1244,14 @@
 			n2.setAttribute("data-hl-id", type + "_" + gid);
 			$.add(n2, create_tags_best(di !== undefined ? di.g_domain : domains.exhentai, data));
 
+			// Insert
+			n1 = link.nextSibling;
+			if (n1 !== null && n1.tagName === "BR") {
+				container.classList.add("hl-actions-hide-br");
+			}
+			$.after(link, container);
+
+			// Done
 			return container;
 		};
 		var pad = function (n, sep) {
@@ -1418,8 +1426,7 @@
 						Database.valid_namespace(id[0]) &&
 						(data = Database.get(id[0], id[1])) !== null
 					) {
-						actions = UI.create_actions(data, link);
-						$.after(link, actions);
+						UI.create_actions(data, link);
 					}
 				}
 				else {
@@ -3510,7 +3517,7 @@
 		};
 		var format_link = function (link, data) {
 			var button = Helper.get_tag_button_from_link(link),
-				actions, domain, fjord, ex, hl, c;
+				domain, fjord, ex, hl, c;
 
 			// Smart links
 			if (conf["Rewrite Links"] === "smart") {
@@ -3546,8 +3553,7 @@
 
 			// Actions
 			if (conf["Show by Default"]) {
-				actions = UI.create_actions(data, link);
-				$.after(link, actions);
+				UI.create_actions(data, link);
 			}
 		};
 		var format_links_error = function (links, error) {
