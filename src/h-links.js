@@ -4506,7 +4506,6 @@
 
 			if (typeof(temp.settings_version) === "number") {
 				// New settings
-				console.log("load from new");
 				for (k in options) {
 					config[k] = scope = {};
 					info = options[k];
@@ -4520,7 +4519,6 @@
 						t = entry[0]; // name
 						value = temp_scope[t];
 						if (value === undefined) {
-							console.log("update",k,t);
 							value = entry[1]; // default
 							update = true;
 						}
@@ -4530,7 +4528,6 @@
 			}
 			else {
 				// Load from old version
-				console.log("load from old");
 				update = true;
 				for (k in options) {
 					config[k] = scope = {};
