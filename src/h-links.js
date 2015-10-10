@@ -457,15 +457,6 @@
 				return;
 			}
 
-			// Find timing
-			var perf = window.performance,
-				now;
-
-			if (!perf || !(now = perf.now || perf.mozNow || perf.msNow || perf.oNow || perf.webkitNow)) {
-				perf = Date;
-				now = perf.now;
-			}
-
 			// Debug functions
 			timer_names = {};
 			log = function () {
@@ -474,7 +465,7 @@
 			};
 			Debug.log = log;
 			Debug.timer = function (name, dont_format) {
-				var t1 = now.call(perf),
+				var t1 = timing(),
 					t2;
 
 				t2 = timer_names[name];
