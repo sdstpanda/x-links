@@ -7065,8 +7065,8 @@
 			var t = Debug.timer_log("init.pre duration", timing.start);
 			Config.init();
 			Debug.init();
-			if (Module.version_change === 1) {
-				Debug.log("Clearing cache on update");
+			if (Module.version_change !== 0 && Module.version_change !== 2) {
+				Debug.log("Clearing cache on version change");
 				Cache.clear();
 			}
 			Cache.init();
