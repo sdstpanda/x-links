@@ -1,5 +1,10 @@
 ﻿master
 
+1.0.8
+- dnsev-h
+  + Improved load times on pages with lots of links
+  + Improved organization of settings and removed some options that are unlikely to be used
+
 1.0.7
 - dnsev-h
   + Fixed a bug causing bad filters to not take priority in some circumstances
