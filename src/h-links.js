@@ -19,6 +19,7 @@
 
 	// begin_debug
 
+	var d = document;
 	var browser = {
 		is_opera: /presto/i.test("" + navigator.userAgent),
 		is_firefox: /firefox/i.test("" + navigator.userAgent)
@@ -50,67 +51,157 @@
 		"hitomi.la": { tag: "Hi", g_domain: "hitomi.la", type: "hitomi" }
 	};
 	var options = {
-		general: {
-			'Automatic Processing':        ['checkbox', true,  'Get data and format links automatically.'],
-			'Show Changelog on Update':    ['checkbox', true,  'Show the changelog after an update.'],
-			'Use Extenral Resources':      ['checkbox', true,  'Enable the usage of web-fonts provided by Google servers.'],
-			'Gallery Details':             ['checkbox', true,  'Show gallery details for link on hover.'],
-			'ExSauce':                     ['checkbox', true,  'Add ExSauce reverse image search to posts. Disabled in Opera.'],
-			'Extended Info':               ['checkbox', true,  'Fetch additional gallery info, such as tag namespaces.'],
-			'Disable Image Leeching':      ['checkbox', false, 'Thumbnails should be fetched with no referrer information.'],
-			'Rewrite Links':               ['select', 'none', 'Rewrite all E*Hentai links to use a specific site.', [
-				[ "none", "Disabled" ], // [ value, label_text, description ]
-				[ "smart", "Smart", "All links lead to " + domains.gehentai + " unless they have fjording tags." ],
-				[ domains.ehentai, domains.gehentai ],
-				[ domains.exhentai, domains.exhentai ]
-			] ],
-			'Details Hover Position':      ['select', -0.25, 'Change the horizontal offset of the gallery details from the cursor.', [
-				[ -0.25, "Default" ], // [ value, label_text, description ]
-				[ 0.0, "ExLinks", "Use the original ExLinks style positioning" ]
-			], function (v) { return parseFloat(v) || 0.0; } ]
-		},
-		actions: {
-			'Gallery Actions':             ['checkbox', true,  'Generate gallery actions for links.'],
-			'Show by Default':             ['checkbox', false, 'Show gallery actions by default.'],
-			'Hide in Quotes':              ['checkbox', true,  'Hide any open gallery actions in inline quotes.']
-		},
-		sauce: {
-			'Inline Results':              ['checkbox', true,  'Shows the results inlined rather than opening the site.'],
-			'Hide Results in Quotes':      ['checkbox', true,  'Hide open inline results in inline quotes.'],
-			'Show Short Results':          ['checkbox', true,  'Show gallery names when hovering over the link after lookup.'],
-			'Search Expunged':             ['checkbox', false, 'Search expunged galleries as well.'],
-			'Custom Label Text':           ['textbox', '', 'Use a custom label instead of the site name (e-hentai/exhentai).'],
-			'Lookup Domain':               ['select', domains.exhentai, 'The site to use for the reverse image search.', [
-				[ domains.ehentai, domains.gehentai ], // [ value, label_text, description ]
-				[ domains.exhentai, domains.exhentai ]
-			] ]
-		},
-		debug: {
-			'Debug Mode':                  ['checkbox', false, 'Enable debugger and logging to browser console.'],
-			'Disable Local Storage Cache': ['checkbox', false, 'If set, Session Storage is used for caching instead.'],
-			'Disable Caching':             ['checkbox', false, 'Disable caching completely.'],
-			'Populate Database on Load':   ['checkbox', false, 'Load all cached galleries to database on page load.']
-		},
-		filter: {
-			'Full Highlighting':           ['checkbox', false, 'Highlight of all the text instead of just the matching portion.'],
-			'Good Tag Marker':             ['textbox', '!', 'The string to mark a good [Ex]/[EH] tag with.'],
-			'Bad Tag Marker':              ['textbox', '', 'The string to mark a bad [Ex]/[EH] tag with.'],
-			'Filters': ['textarea', [
-				'# Highlight all doujinshi and manga galleries with (C88) in the name:',
-				'# /\\(C88\\)/i;only:doujinshi,manga;link-color:red;color:#FF0000;title',
-				'# Highlight "english" and "translated" tags in non-western non-non-h galleries:',
-				'# /english|translated/i;not:western,non-h;color:#4080F0;link-color:#4080F0;tag',
-				'# Highlight galleries tagged with "touhou project":',
-				'# /touhou project/i;bg:rgba(255,128,64,0.5);link-bg:rgba(255,128,64,0.5);tag;title',
-				'# Highlight links for galleries uploaded by "ExUploader"',
-				'# /ExUploader/i;color:#FFFFFF;link-color:#FFFFFF;uploader',
-				'# Don\'t highlight anything uploaded by "CGrascal"',
-				'# /CGrascal/i;bad:yes;uploader'
-			].join('\n'), '']
-		}
+		general: [
+			// [ name, default, label, description, old_name, info? ]
+			[ "automatic_processing", true,
+				"Automatic link processing", "Get data and format links automatically",
+				"Automatic Processing"
+			],
+			[ "changelog_on_update", true,
+				"Show changelog on update", "Show the changelog after an update",
+				"Show Changelog on Update"
+			],
+			[ "external_resources", true,
+				"Allow external resources", "Enable the usage of web-fonts provided by Google servers",
+				"Use Extenral Resources"
+			],
+			[ "image_leeching_disabled", false,
+				"Hide referrer for thumbnails", "Thumbnails fetching should not send referrer information",
+				"Disable Image Leeching"
+			],
+			[ "rewrite_links", "none",
+				"Rewrite link URLs", "Rewrite all E*Hentai links to use a specific site",
+				"Rewrite Links",
+				{
+					type: "select",
+					options: [ // [ value, label_text, description? ]
+						[ "none", "Disabled" ],
+						[ "smart", "Smart", "All links lead to " + domains.gehentai + " unless they have fjording tags" ],
+						[ domains.ehentai, domains.gehentai ],
+						[ domains.exhentai, domains.exhentai ]
+					]
+				}
+			],
+		],
+		details: [
+			[ "enabled", true,
+				"Enabled", "Show details for gallery links on hover",
+				"Gallery Details"
+			],
+			[ "extended_info", true,
+				"Extended info", "Fetch complete gallery info for E*Hentai, including tag namespaces",
+				"Extended Info"
+			],
+			[ "hover_position", -0.25,
+				"Hovering position", "Change the horizontal offset of the gallery details from the cursor",
+				"Details Hover Position",
+				{
+					type: "select",
+					options: [ // [ value, label_text, description? ]
+						[ -0.25, "Default", "Offset slightly from the cursor" ],
+						[ 0.0, "ExLinks", "Use the original ExLinks style positioning" ]
+					],
+					set: function (v) { return parseFloat(v) || 0.0; }
+				}
+			],
+		],
+		actions: [
+			[ "enabled", true,
+				"Enabled", "Generate gallery actions for links",
+				"Gallery Actions"
+			],
+			[ "show_by_default", false,
+				"Show by default", "Show gallery actions by default",
+				"Show by Default"
+			],
+		],
+		sauce: [
+			[ "enabled", true,
+				"Enabled", "Add ExSauce reverse image search to posts containing images",
+				"ExSauce"
+			],
+			[ "expunged", false,
+				"Search expunged", "Search expunged galleries for source",
+				"Search Expunged"
+			],
+			[ "label", "",
+				"Custom label", "Use a custom label instead of the site name (e-hentai/exhentai)",
+				"Custom Label Text",
+				{ type: "textbox" }
+			],
+			[ "lookup_domain", domains.exhentai,
+				"Lookup domain", "The site to use for the reverse image search",
+				"Lookup Domain",
+				{
+					type: "select",
+					options: [ // [ value, label_text, description? ]
+						[ domains.ehentai, domains.gehentai ],
+						[ domains.exhentai, domains.exhentai ]
+					]
+				}
+			],
+		],
+		filter: [
+			[ "enabled", true,
+				"Enabled", "Enable filtering of galleries",
+				null
+			],
+			[ "full_highlighting", false,
+				"Full highlighting", "Highlight of all the text instead of just the matching portion",
+				"Full Highlighting"
+			],
+			[ "good_tag_marker", "!",
+				"Good tag marker", "Text to mark a good [Ex]/[EH] tag with",
+				"Good Tag Marker",
+				{ type: "textbox" },
+			],
+			[ "bad_tag_marker", "",
+				"Bad tag marker", "Text to mark a bad [Ex]/[EH] tag with",
+				"Bad Tag Marker",
+				{ type: "textbox" },
+			],
+			[ "filters",
+				( //{
+					"# Highlight all doujinshi and manga galleries with (C88) in the name:\n" +
+					"# /\\(C88\\)/i;only:doujinshi,manga;link-color:red;color:#FF0000;title\n" +
+					"# Highlight \"english\" and \"translated\" tags in non-western non-non-h galleries:\n" +
+					"# /english|translated/i;not:western,non-h;color:#4080F0;link-color:#4080F0;tag\n" +
+					"# Highlight galleries tagged with \"touhou project\":\n" +
+					"# /touhou project/i;bg:rgba(255,128,64,0.5);link-bg:rgba(255,128,64,0.5);tag;title\n" +
+					"# Highlight links for galleries uploaded by \"ExUploader\"\n" +
+					"# /ExUploader/i;color:#FFFFFF;link-color:#FFFFFF;uploader\n" +
+					"# Don\"t highlight anything uploaded by \"CGrascal\"\n" +
+					"# /CGrascal/i;bad:yes;uploader"
+				), //}
+				"Filters", "",
+				"Filters",
+				{ type: "textarea" },
+			],
+		],
+		debug: [
+			[ "enabled", false,
+				"Enabled", "Enable logging to the browser console",
+				"Debug Mode"
+			],
+			[ "cache_mode", "local",
+				"Caching mode", "Change how your browser caches link information",
+				function (config_old) {
+					if (config_old["Disable Caching"]) return "disable";
+					if (config_old["Disable Local Storage Cache"]) return "session";
+					return "local";
+				},
+				{
+					type: "select",
+					options: [ // [ value, label_text, description? ]
+						[ "local", "Local storage", "Data is cached per website" ],
+						[ "session", "Session storage", "Data is cached per browser tab" ],
+						[ "none", "Disabled", "Data is not cached" ],
+					]
+				}
+			],
+		],
 	};
-	var d = document;
-	var conf = {};
+	var config = { version: null, settings_version: 1 };
 
 	var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver || null;
 	var $$ = function (selector, root) {
@@ -360,7 +451,7 @@
 		var init = function () {
 			started = true;
 
-			if (!conf['Debug Mode']) {
+			if (!config.debug.enabled) {
 				timer_log = dummy_fn;
 				Module.timer_log = timer_log;
 				return;
@@ -1089,7 +1180,7 @@
 					is_low = (link_rect.top + link_rect.height / 2 >= win_height / 2), // (y >= win_height / 2)
 					offset = 20;
 
-				x += rect.width * (conf['Details Hover Position'] || 0);
+				x += rect.width * (config.details.hover_position || 0);
 				x = Math.max(1, Math.min(win_width - rect.width - 1, x));
 				y += is_low ? -(rect.height + offset) : offset;
 
@@ -1183,7 +1274,7 @@
 			$.add(content, $.node("div", "hl-details-clear"));
 
 			// Full info
-			if (conf["Extended Info"] && data.type === "ehentai" && !API.data_has_full(data)) {
+			if (config.details.extended_info && data.type === "ehentai" && !API.data_has_full(data)) {
 				API.ehentai_get_full_info(data.gid, data.token, g_domain, function (err, data) {
 					if (err === null) {
 						update_full(data);
@@ -1416,7 +1507,7 @@
 				pad(d.getUTCMinutes(), "");
 		};
 		var gallery_toggle_actions = function (event) {
-			if ($.is_left_mouse(event) && conf['Gallery Actions']) {
+			if ($.is_left_mouse(event) && config.actions.enabled) {
 				var actions = Helper.get_actions_from_link(this, true),
 					data, link, id;
 				if (actions === null) {
@@ -2265,7 +2356,7 @@
 			}
 
 			// Use direct URL
-			if ((data.flags & API.Flags.ThumbnailNoLeech) === 0 && !conf["Disable Image Leeching"])  {
+			if ((data.flags & API.Flags.ThumbnailNoLeech) === 0 && !config.general.image_leeching_disabled)  {
 				callback.call(null, null, thumbnail);
 				return;
 			}
@@ -2374,10 +2465,10 @@
 			var re_matcher = new RegExp("^" + Helper.regex_escape(prefix) + "((?:([en]hentai|hitomi)_)gallery|md5|sha1)-([^-]+)"),
 				removed = 0,
 				keys = [],
-				populate = conf['Populate Database on Load'],
+				populate = false,
 				key, data, m, i, ii;
 
-			if (conf['Disable Caching']) {
+			if (config.debug.cache_mode === "none") {
 				storage = (function () {
 					var data = {};
 
@@ -2412,7 +2503,7 @@
 					return fn;
 				})();
 			}
-			else if (conf['Disable Local Storage Cache']) {
+			else if (config.debug.cache_mode === "session") {
 				storage = window.sessionStorage;
 			}
 
@@ -2724,11 +2815,9 @@
 					hover = hover_nodes[sha1];
 
 					if (results.classList.toggle("hl-exsauce-results-hidden")) {
-						if (conf['Show Short Results']) {
-							if (hover === undefined) hover = ui_hover(sha1);
-							hover.classList.remove("hl-exsauce-hover-hidden");
-							ui_events.mousemove.call(this, event);
-						}
+						if (hover === undefined) hover = ui_hover(sha1);
+						hover.classList.remove("hl-exsauce-hover-hidden");
+						ui_events.mousemove.call(this, event);
 					}
 					else {
 						if (hover !== undefined) {
@@ -2738,55 +2827,49 @@
 				}
 			},
 			mouseover: function () {
-				if (conf['Show Short Results']) {
-					var sha1 = this.getAttribute("data-sha1"),
-						results = Helper.get_exresults_from_exsauce(this),
-						hover;
+				var sha1 = this.getAttribute("data-sha1"),
+					results = Helper.get_exresults_from_exsauce(this),
+					hover;
 
-					if (results === null || results.classList.contains("hl-exsauce-results-hidden")) {
-						hover = hover_nodes[sha1];
-						if (hover === undefined) hover = ui_hover(sha1);
-						hover.classList.remove("hl-exsauce-hover-hidden");
-					}
+				if (results === null || results.classList.contains("hl-exsauce-results-hidden")) {
+					hover = hover_nodes[sha1];
+					if (hover === undefined) hover = ui_hover(sha1);
+					hover.classList.remove("hl-exsauce-hover-hidden");
 				}
 			},
 			mouseout: function () {
-				if (conf['Show Short Results']) {
-					var sha1 = this.getAttribute("data-sha1"),
-						hover = hover_nodes[sha1];
+				var sha1 = this.getAttribute("data-sha1"),
+					hover = hover_nodes[sha1];
 
-					if (hover !== undefined) {
-						hover.classList.add("hl-exsauce-hover-hidden");
-					}
+				if (hover !== undefined) {
+					hover.classList.add("hl-exsauce-hover-hidden");
 				}
 			},
 			mousemove: function (event) {
-				if (conf['Show Short Results']) {
-					var hover = hover_nodes[this.getAttribute("data-sha1")];
+				var hover = hover_nodes[this.getAttribute("data-sha1")];
 
-					if (hover === undefined || hover.classList.contains("hl-exsauce-hover-hidden")) return;
+				if (hover === undefined || hover.classList.contains("hl-exsauce-hover-hidden")) return;
 
-					hover.style.left = "0";
-					hover.style.top = "0";
+				hover.style.left = "0";
+				hover.style.top = "0";
 
-					var w = window,
-						de = d.documentElement,
-						x = event.clientX,
-						y = event.clientY,
-						win_width = (de.clientWidth || w.innerWidth || 0),
-						win_height = (de.clientHeight || w.innerHeight || 0),
-						rect = hover.getBoundingClientRect();
+				var w = window,
+					de = d.documentElement,
+					x = event.clientX,
+					y = event.clientY,
+					win_width = (de.clientWidth || w.innerWidth || 0),
+					win_height = (de.clientHeight || w.innerHeight || 0),
+					rect = hover.getBoundingClientRect();
 
-					x -= rect.width / 2;
-					x = Math.max(1, Math.min(win_width - rect.width - 1, x));
-					y += 20;
-					if (y + rect.height >= win_height) {
-						y = event.clientY - (rect.height + 20);
-					}
-
-					hover.style.left = x + "px";
-					hover.style.top = y + "px";
+				x -= rect.width / 2;
+				x = Math.max(1, Math.min(win_width - rect.width - 1, x));
+				y += 20;
+				if (y + rect.height >= win_height) {
+					y = event.clientY - (rect.height + 20);
 				}
+
+				hover.style.left = x + "px";
+				hover.style.top = y + "px";
 			}
 		};
 
@@ -2826,31 +2909,29 @@
 			a.rel = "noreferrer";
 
 			if (count > 0) {
-				if (conf["Inline Results"] === true) {
-					if (
-						(n = Post.get_post_container(a)) !== null &&
-						(n = Post.get_text_body(n)) !== null
-					) {
-						results = $.node("div", "hl-exsauce-results" + theme);
-						results.setAttribute("data-hl-image-index", index);
-						$.add(results, $.node("strong", "hl-exsauce-results-title", "Reverse Image Search Results"));
-						$.add(results, $.node("span", "hl-exsauce-results-sep", "|" ));
-						$.add(results, $.node("span", "hl-exsauce-results-label", "View on:"));
-						$.add(results, $.link(a.href, "hl-exsauce-results-link", (conf["Lookup Domain"] === domains.exhentai) ? "exhentai" : "e-hentai"));
-						$.add(results, $.node_simple("br"));
+				if (
+					(n = Post.get_post_container(a)) !== null &&
+					(n = Post.get_text_body(n)) !== null
+				) {
+					results = $.node("div", "hl-exsauce-results" + theme);
+					results.setAttribute("data-hl-image-index", index);
+					$.add(results, $.node("strong", "hl-exsauce-results-title", "Reverse Image Search Results"));
+					$.add(results, $.node("span", "hl-exsauce-results-sep", "|" ));
+					$.add(results, $.node("span", "hl-exsauce-results-label", "View on:"));
+					$.add(results, $.link(a.href, "hl-exsauce-results-link", (config.sauce.lookup_domain === domains.exhentai) ? "exhentai" : "e-hentai"));
+					$.add(results, $.node_simple("br"));
 
-						for (i = 0, ii = result.length; i < ii; ++i) {
-							link = Linkifier.create_link(result[i][0]);
-							$.add(results, link);
-							Linkifier.preprocess_link(link, true);
-							Linkifier.apply_link_events(link);
-							if (i < ii - 1) $.add(results, $.node_simple("br"));
-						}
+					for (i = 0, ii = result.length; i < ii; ++i) {
+						link = Linkifier.create_link(result[i][0]);
+						$.add(results, link);
+						Linkifier.preprocess_link(link, true);
+						Linkifier.apply_link_events(link);
+						if (i < ii - 1) $.add(results, $.node_simple("br"));
+					}
 
-						$.before(n, results);
-						if (Linkifier.check_incomplete()) {
-							API.run_request_queue();
-						}
+					$.before(n, results);
+					if (Linkifier.check_incomplete()) {
+						API.run_request_queue();
 					}
 				}
 				Linkifier.change_link_events(a, "exsauce_toggle");
@@ -2870,7 +2951,7 @@
 
 						Debug.log("Lookup successful; formatting...");
 						Hash.set("sha1", sha1, results);
-						if (conf["Show Short Results"]) ui_hover(sha1);
+						ui_hover(sha1);
 						format(a, results);
 					}
 					else {
@@ -2897,7 +2978,7 @@
 
 			form_data.append("sfile", blob, a.getAttribute("data-hl-filename") || "image." + type);
 			form_data.append("fs_similar", "on");
-			if (conf["Search Expunged"]) {
+			if (config.sauce.expunged) {
 				form_data.append("fs_exp", "on");
 			}
 
@@ -2916,7 +2997,7 @@
 			similar_uploading = true;
 			HttpRequest({
 				method: "POST",
-				url: "http://ul." + conf["Lookup Domain"] + "/image_lookup.php",
+				url: "http://ul." + config.sauce.lookup_domain + "/image_lookup.php",
 				data: form_data,
 				onload: function (xhr) {
 					if (xhr.status === 200) {
@@ -2944,7 +3025,7 @@
 
 								Debug.log("Lookup successful (" + m[1] + "); formatting...");
 								Hash.set("sha1", sha1, results);
-								if (conf["Show Short Results"]) ui_hover(sha1);
+								ui_hover(sha1);
 								format(a, results);
 							}
 
@@ -2986,12 +3067,13 @@
 			});
 		};
 		var get_sha1_lookup_url = function (sha1) {
-			var url = "http://";
-			url += domain_info[conf["Lookup Domain"]].g_domain;
+			var url = "http://",
+				di = domain_info[config.sauce.lookup_domain];
+			url += (di === undefined ? "" : di.g_domain);
 			url += "/?f_doujinshi=1&f_manga=1&f_artistcg=1&f_gamecg=1&f_western=1&f_non-h=1&f_imageset=1&f_cosplay=1&f_asianporn=1&f_misc=1&f_search=Search+Keywords&f_apply=Apply+Filter&f_shash=";
 			url += sha1;
 			url += "&fs_similar=0";
-			if (conf['Search Expunged']) url += "&fs_exp=1";
+			if (config.sauce.expunged) url += "&fs_exp=1";
 			return url;
 		};
 		var get_results = function (response_text) {
@@ -3091,10 +3173,10 @@
 
 		// Public
 		var label = function () {
-			var label = conf["Custom Label Text"];
+			var label = config.sauce.label;
 
 			if (label.length === 0) {
-				label = (conf["Lookup Domain"] === domains.exhentai) ? "exhentai" : "e-hentai";
+				label = (config.sauce.lookup_domain === domains.exhentai) ? "exhentai" : "e-hentai";
 			}
 
 			return label;
@@ -3520,7 +3602,7 @@
 				domain, fjord, ex, hl, c;
 
 			// Smart links
-			if (conf["Rewrite Links"] === "smart") {
+			if (config.general.rewrite_links === "smart") {
 				domain = Helper.get_domain(link.href);
 				ex = (domain === domains.exhentai);
 				if (ex || domain === domains.ehentai) {
@@ -3544,7 +3626,7 @@
 			if (button !== null) {
 				hl = Filter.check(link, data);
 				if (hl[0] !== Filter.None) {
-					c = (hl[0] === Filter.Good) ? conf['Good Tag Marker'] : conf['Bad Tag Marker'];
+					c = (hl[0] === Filter.Good) ? config.filter.good_tag_marker : config.filter.bad_tag_marker;
 					button.textContent = button.textContent.replace(/\]\s*$/, c + "]");
 					Filter.highlight_tag(button, link, hl);
 				}
@@ -3552,7 +3634,7 @@
 			}
 
 			// Actions
-			if (conf["Show by Default"]) {
+			if (config.actions.show_by_default) {
 				UI.create_actions(data, link);
 			}
 		};
@@ -3590,24 +3672,22 @@
 			}
 		};
 		var parse_post = function (post) {
-			var auto_load_links = conf["Automatic Processing"],
+			var auto_load_links = config.general.automatic_processing,
 				post_body, post_links, links, nodes, link, i, ii;
 
 			// Exsauce
-			if (conf.ExSauce && !browser.is_opera) {
+			if (config.sauce.enabled && !browser.is_opera) {
 				setup_post_exsauce(post);
 			}
 
 			// Collapse info if it's an inline
-			if (conf['Hide in Quotes']) {
-				nodes = $$(".hl-exsauce-results", post);
-				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					nodes[i].classList.add("hl-exsauce-results-hidden");
-				}
-				nodes = $$(".hl-actions", post);
-				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					nodes[i].classList.add("hl-actions-hidden");
-				}
+			nodes = $$(".hl-exsauce-results", post);
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				nodes[i].classList.add("hl-exsauce-results-hidden");
+			}
+			nodes = $$(".hl-actions", post);
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				nodes[i].classList.add("hl-actions-hidden");
 			}
 
 			// Content
@@ -3725,7 +3805,7 @@
 			}
 			else {
 				if (info.site === "ehentai") {
-					rewrite = conf["Rewrite Links"];
+					rewrite = config.general.rewrite_links;
 					if (
 						(rewrite === domains.exhentai || rewrite === domains.ehentai) &&
 						info.domain !== rewrite
@@ -3929,7 +4009,7 @@
 	var Settings = (function () {
 
 		// Private
-		var conf_temp = null,
+		var config_temp = null,
 			export_url = null,
 			popup = null;
 
@@ -3954,108 +4034,104 @@
 			}
 		};
 		var gen = function (container, theme, option_type) {
-			var entry, table, row, cell, label, input,
-				args, values, name, desc, type, value, obj, key, i, ii, j, jj, n, v;
+			var config_scope = config_temp[option_type],
+				entry, table, row, cell, label, input, event,
+				args, values, id, name, desc, type, value, obj, label_text, ext, i, ii, j, jj, n, v;
 
-			args = Array.prototype.slice.call(arguments, 2);
-			args[0] = options[option_type];
+			// [ name, default, label, description, old_name, formatter, info? ]
+			args = options[option_type];
+			if (arguments.length > 3) args = Array.prototype.concat.call(args, Array.prototype.slice.call(arguments, 3));
+
 			for (i = 0, ii = args.length; i < ii; ++i) {
 				obj = args[i];
-				for (key in obj) {
-					name = "hl-settings-" + key;
-					desc = obj[key][2];
-					type = obj[key][0];
-					value = conf_temp[key];
+				name = obj[0];
+				label_text = obj[2];
+				desc = obj[3];
+				ext = (obj.length > 5 ? obj[5] : null);
+				if (ext === null || (type = ext.type) === undefined) type = "checkbox";
+				value = (name === null ? null : config_scope[name]);
+				id = "hl-settings-" + option_type + "-" + i;
+				event = "change";
 
-					$.add(container, entry = $.node("div", "hl-settings-entry" + theme));
-					$.add(entry, table = $.node("div", "hl-settings-entry-table"));
-					$.add(table, row = $.node("div", "hl-settings-entry-row"));
+				$.add(container, entry = $.node("div", "hl-settings-entry" + theme));
+				$.add(entry, table = $.node("div", "hl-settings-entry-table"));
+				$.add(table, row = $.node("div", "hl-settings-entry-row"));
 
-					$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
-					$.add(cell, label = $.node("label", "hl-settings-entry-label"));
-					label.htmlFor = name;
-					$.add(label, $.node("strong", "hl-settings-entry-label-name", key + ":"));
-					if (desc.length > 0) {
-						n = $.node("span", "hl-settings-entry-label-description");
-						n.innerHTML = " " + desc;
-						$.add(label, n);
-					}
-
-					if (type === "checkbox") {
-						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
-						$.add(cell, input = $.node("input", "hl-settings-entry-input" + theme));
-						input.type = "checkbox";
-						input.id = name;
-						input.checked = value;
-						$.on(input, "change", on_change);
-					}
-					else if (type === "select") {
-						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
-						$.add(cell, input = $.node("select", "hl-settings-entry-input" + theme));
-						$.on(input, "change", on_change);
-
-						values = obj[key][3];
-						for (j = 0, jj = values.length; j < jj; ++j) {
-							v = values[j];
-							$.add(input, n = $.node("option", "hl-settings-entry-input-option", v[1]));
-							n.value = v[0];
-							n.selected = (v[0] === value);
-							if (v.length > 2) n.title = v[2];
-						}
-					}
-					else if (type === "textbox") {
-						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
-						$.add(cell, input = $.node("input", "hl-settings-entry-input" + theme));
-						input.type = "text";
-						input.id = name;
-						input.value = value;
-						$.on(input, "change", on_change);
-					}
-					else if (type === "textarea") {
-						$.add(table, row = $.node("div", "hl-settings-entry-row"));
-						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
-						$.add(cell, input = $.node("textarea", "hl-settings-entry-input" + theme));
-						input.wrap = "off";
-						input.spellcheck = false;
-						input.id = name;
-						input.value = value;
-						$.on(input, "change", on_change);
-					}
-					else if (type === "button") {
-						$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
-						$.add(cell, input = $.node("button", "hl-settings-entry-input" + theme, (obj[key][3] || "")));
-						$.on(input, "click", obj[key][4] || on_change);
-					}
-					input.setAttribute("data-hl-setting-name", key);
-					input.setAttribute("data-hl-setting-type", option_type);
+				$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+				$.add(cell, label = $.node("label", "hl-settings-entry-label"));
+				label.htmlFor = id;
+				$.add(label, $.node("strong", "hl-settings-entry-label-name", label_text + ":"));
+				if (desc.length > 0) {
+					n = $.node("span", "hl-settings-entry-label-description");
+					n.innerHTML = " " + desc;
+					$.add(label, n);
 				}
+
+				if (type === "checkbox") {
+					$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+					$.add(cell, input = $.node("input", "hl-settings-entry-input" + theme));
+					input.type = "checkbox";
+					input.id = id;
+					input.checked = value;
+				}
+				else if (type === "select") {
+					$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+					$.add(cell, input = $.node("select", "hl-settings-entry-input" + theme));
+
+					values = ext.options;
+					for (j = 0, jj = values.length; j < jj; ++j) {
+						v = values[j];
+						$.add(input, n = $.node("option", "hl-settings-entry-input-option", v[1]));
+						n.value = v[0];
+						n.selected = (v[0] === value);
+						if (v.length > 2) n.title = v[2];
+					}
+				}
+				else if (type === "textbox") {
+					$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+					$.add(cell, input = $.node("input", "hl-settings-entry-input" + theme));
+					input.type = "text";
+					input.id = id;
+					input.value = value;
+				}
+				else if (type === "textarea") {
+					$.add(table, row = $.node("div", "hl-settings-entry-row"));
+					$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+					$.add(cell, input = $.node("textarea", "hl-settings-entry-input" + theme));
+					input.wrap = "off";
+					input.spellcheck = false;
+					input.id = id;
+					input.value = value;
+				}
+				else if (type === "button") {
+					$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
+					$.add(cell, input = $.node("button", "hl-settings-entry-input" + theme, ext.text || ""));
+					event = "click";
+				}
+
+				$.on(input, event, $.bind(on_change, input, type, option_type, name, ext));
 			}
 		};
 
-		var on_change = function () {
-			var node = this,
-				type = node.getAttribute("type"),
-				name = node.getAttribute("data-hl-setting-name"),
-				opt, v;
+		var on_change = function (option_type, scope, name, extra, event) {
+			var fn, v;
 
-			if (!(name in conf_temp)) return;
-
-			if (node.tagName === "SELECT") {
-				v = node.value;
-				if (
-					(opt = options[node.getAttribute("data-hl-setting-type")]) !== undefined &&
-					(opt = opt[name]) !== undefined &&
-					opt.length >= 5
-				) {
-					v = opt[4].call(this, v);
+			if (name !== null) {
+				if (option_type === "checkbox") {
+					v = this.checked;
 				}
-				conf_temp[name] = v;
+				else if (option_type === "select" || option_type === "textbox" || option_type === "textarea") {
+					v = this.value;
+				}
+
+				fn = (extra === null ? undefined : extra.set);
+				if (fn !== undefined) fn.call(null, v);
+
+				config_temp[scope][name] = v;
 			}
-			else if (type === "checkbox") {
-				conf_temp[name] = (node.checked ? true : false);
-			}
-			else if (type === "text" || node.tagName === "TEXTAREA") {
-				conf_temp[name] = node.value;
+
+			if (extra !== null && (fn = extra.on_change) !== undefined) {
+				fn.call(this, event);
 			}
 		};
 		var on_cache_clear_click = function (event) {
@@ -4085,8 +4161,8 @@
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 
-				conf = conf_temp;
-				conf_temp = null;
+				config = config_temp;
+				config_temp = null;
 
 				Config.save();
 				close();
@@ -4148,7 +4224,7 @@
 				n;
 
 			// Config
-			conf_temp = JSON.parse(JSON.stringify(conf));
+			config_temp = JSON.parse(JSON.stringify(config));
 
 			// Popup
 			popup = Popup.create("settings", [[{
@@ -4194,12 +4270,17 @@
 
 			// Settings
 			gen($(".hl-settings-group-general", popup), theme, "general");
+			gen($(".hl-settings-group-details", popup), theme, "details");
 			gen($(".hl-settings-group-actions", popup), theme, "actions");
 			gen($(".hl-settings-group-sauce", popup), theme, "sauce");
 			gen($(".hl-settings-group-filter", popup), theme, "filter");
-			gen($(".hl-settings-group-debug", popup), theme, "debug", {
-				"Clear Stored Data": [ "button", false, "Clear all stored data <em>except</em> for settings", "Clear", on_cache_clear_click ],
-			});
+			gen($(".hl-settings-group-debug", popup), theme, "debug",
+				[ null, null,
+					"Clear cache data", "Clear all cached gallery data",
+					null,
+					{ type: "button", text: "Clear", on_change: on_cache_clear_click },
+				]
+			);
 
 			// Events
 			$.on(popup, "click", on_cancel_click);
@@ -4356,7 +4437,7 @@
 			if (n !== null) n.focus();
 		};
 		var close = function () {
-			conf_temp = null;
+			config_temp = null;
 			if (popup !== null) {
 				Popup.close(popup);
 				popup = null;
@@ -4422,7 +4503,7 @@
 
 		var init = function () {
 			var update = false,
-				temp, value, i, k;
+				temp, temp_scope, info, scope, entry, value, i, ii, k, t;
 
 			if (
 				(temp = get_saved_settings()) === null ||
@@ -4432,17 +4513,52 @@
 				Main.version_change = 2;
 			}
 
-			for (i in options) {
-				for (k in options[i]) {
-					value = temp[k];
-					if (value === undefined) {
-						value = options[i][k][1];
-						update = true;
+			if (typeof(temp.settings_version) === "number") {
+				// New settings
+				console.log("load from new");
+				for (k in options) {
+					config[k] = scope = {};
+					info = options[k];
+					ii = info.length;
+
+					temp_scope = temp[k];
+					if (typeof(temp_scope) !== "object" || temp_scope === null) temp_scope = {};
+
+					for (i = 0; i < ii; ++i) {
+						entry = info[i];
+						t = entry[0]; // name
+						value = temp_scope[t];
+						if (value === undefined) {
+							console.log("update",k,t);
+							value = entry[1]; // default
+							update = true;
+						}
+						scope[t] = value;
 					}
-					conf[k] = value;
+				}
+			}
+			else {
+				// Load from old version
+				console.log("load from old");
+				update = true;
+				for (k in options) {
+					config[k] = scope = {};
+					info = options[k];
+					for (i = 0, ii = info.length; i < ii; ++i) {
+						entry = info[i];
+						t = entry[4]; // old_name
+						if (
+							t === null ||
+							(value = (typeof(t) === "string" ? temp[t] : t.call(null, temp))) === undefined
+						) {
+							value = entry[1]; // default
+						}
+						scope[entry[0]] = value;
+					}
 				}
 			}
 
+			// Version change
 			value = temp.version;
 			if (value === undefined) value = [];
 			i = Main.version_compare(Main.version, value);
@@ -4453,6 +4569,7 @@
 				}
 			}
 
+			// Save changes
 			if (update) save();
 		};
 		var ready = function () {
@@ -4477,15 +4594,9 @@
 			return true;
 		};
 		var save = function () {
-			var temp = {},
-				i, k;
-			for (i in options) {
-				for (k in options[i]) {
-					temp[k] = conf[k];
-				}
-			}
-			temp.version = Main.version;
-			storage.setItem(settings_key, JSON.stringify(temp));
+			config.version = Main.version;
+			storage.setItem(settings_key, JSON.stringify(config));
+			config.version = null;
 		};
 		var get_saved_settings = function () {
 			return Helper.json_parse_safe(storage.getItem(settings_key), null);
@@ -4637,7 +4748,7 @@
 			var segments = [ new Segment(0, text.length, []) ],
 				hit, m, s, i, ii, j, jj;
 
-			if (conf["Full Highlighting"]) { // fast mode
+			if (config.filter.full_highlighting) { // fast mode
 				for (i = 0, ii = matches.length; i < ii; ++i) {
 					segments[0].data.push(matches[i].data);
 				}
@@ -4802,7 +4913,7 @@
 			}
 		};
 		var init_filters = function () {
-			filters = parse(conf.Filters);
+			filters = config.filter.enabled ? parse(config.filter.filters) : [];
 		};
 
 		// Public
@@ -6334,7 +6445,7 @@
 			}
 		};
 		var on_change_save = function () {
-			conf["Show Changelog on Update"] = this.checked;
+			config.general.changelog_on_update = this.checked;
 			Config.save();
 		};
 
@@ -6369,7 +6480,7 @@
 					$.add(n1, $.node("span", "hl-settings-button-text hl-settings-button-checkbox-text", " Show on update"));
 					$.add(n1, $.node("span", "hl-settings-button-text hl-settings-button-checkbox-text", " Don't show on update"));
 					n2.type = "checkbox";
-					n2.checked = conf["Show Changelog on Update"];
+					n2.checked = config.general.changelog_on_update;
 					$.on(n2, "change", on_change_save);
 
 					$.add(container, n1 = $.link("#", "hl-settings-button" + theme));
@@ -6826,7 +6937,7 @@
 
 			for (i = 0, ii = fix.length; i < ii; i += 2) {
 				link = fix[i];
-				Linkifier.preprocess_link(link, conf["Automatic Processing"]);
+				Linkifier.preprocess_link(link, config.general.automatic_processing);
 				Linkifier.apply_link_events(link, false);
 			}
 		};
@@ -6862,7 +6973,7 @@
 
 			HeaderBar.ready();
 
-			if (Module.version_change === 1 && conf["Show Changelog on Update"]) {
+			if (Module.version_change === 1 && config.general.changelog_on_update) {
 				Changelog.open(" updated to ");
 			}
 
@@ -7000,7 +7111,7 @@
 			if (fonts_inserted) return;
 			fonts_inserted = true;
 
-			if (!conf['Use Extenral Resources']) return;
+			if (!config.general.external_resources) return;
 
 			var font = $.node_simple("link");
 			font.rel = "stylesheet";
