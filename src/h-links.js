@@ -186,7 +186,7 @@
 			[ "cache_mode", "local",
 				"Caching mode", "Change how your browser caches link information",
 				function (config_old) {
-					if (config_old["Disable Caching"]) return "disable";
+					if (config_old["Disable Caching"]) return "none";
 					if (config_old["Disable Local Storage Cache"]) return "session";
 					return "local";
 				},
