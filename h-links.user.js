@@ -2,7 +2,7 @@
 // @name        H-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.9
+// @version     1.0.9.1
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -4965,7 +4965,7 @@
 				++i;
 			}
 		};
-		var check_multiple = function (type, text, filters, data, category) {
+		var check_multiple = function (type, text, filters, category) {
 			var info = new MatchInfo(),
 				filter, match, i, ii;
 
@@ -4974,7 +4974,7 @@
 				if (filter.flags[type] !== true) continue;
 				filter.regex.lastIndex = 0;
 				while (true) {
-					match = check_single(text, filter, data, category);
+					match = check_single(text, filter, category);
 					if (match === false) break;
 
 					info.any = true;
@@ -4989,7 +4989,7 @@
 
 			return info;
 		};
-		var check_single = function (text, filter, data, category) {
+		var check_single = function (text, filter, category) {
 			// return false if no match
 			// return true if a match was found, but the filter has no flags
 			// return a new Match if a match was found and the filter has flags
@@ -5102,7 +5102,8 @@
 				no_extras &&
 				input_state !== Status.Bad &&
 				(cache_type = cache[type]) !== undefined &&
-				(c = cache_type[text]) !== undefined
+				(c = cache_type[category]) !== undefined &&
+				(c = c[text]) !== undefined
 			) {
 				if (c === null) {
 					return Status.None;
@@ -5123,7 +5124,7 @@
 			}
 
 			// Check filters
-			info = check_multiple(type, text, filters_temp, data, category);
+			info = check_multiple(type, text, filters_temp, category);
 			if (!info.any) {
 				if (cache_type !== undefined) {
 					if ((c = cache_type[category]) === undefined) {
@@ -5259,7 +5260,7 @@
 			if (filters_temp.length > 0) {
 				// Uploader
 				if ((str = data.uploader)) {
-					info = check_multiple("uploader", str, filters_temp, data, category);
+					info = check_multiple("uploader", str, filters_temp, category);
 					if (info.any) {
 						append_match_datas(info, result.uploader);
 						if (info.bad) {
@@ -5274,7 +5275,7 @@
 				// Tags
 				if ((tags = data.tags) && tags.length > 0) {
 					for (i = 0; i < tags.length; ++i) {
-						info = check_multiple("tags", tags[i], filters_temp, data, category);
+						info = check_multiple("tags", tags[i], filters_temp, category);
 						if (info.any) {
 							append_match_datas(info, result.tags);
 							if (info.bad) {
@@ -7250,7 +7251,7 @@
 		// Exports
 		var Module = {
 			homepage: "https://dnsev-h.github.io/h-links/",
-			version: [1,0,9],
+			version: [1,0,9,1],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
