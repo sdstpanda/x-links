@@ -401,7 +401,7 @@
 			}
 			else {
 				for (var i = 0, ii = new_entries.length; i < ii; i += max_push) {
-					Array.prototype.push.apply(target, new_entries.slice(i, i + max_push));
+					Array.prototype.push.apply(target, Array.prototype.slice.call(new_entries, i, i + max_push));
 				}
 			}
 		};
