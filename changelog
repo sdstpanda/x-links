@@ -1,5 +1,9 @@
 ﻿master
 
+1.0.9.1
+- dnsev-h
+  + Fixed a bug related to filter caching preventing the easy list from being opened
+
 1.0.9
 - dnsev-h
   + Fixed some potentially buggy code dealing with removed DOM nodes
