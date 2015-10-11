@@ -289,11 +289,14 @@
 		Module.before = function (root, elem) {
 			return root.parentNode.insertBefore(elem, root);
 		};
-		Module.before2 = function (root, node, before) {
-			return root.insertBefore(node, before);
-		};
 		Module.after = function (root, elem) {
 			return root.parentNode.insertBefore(elem, root.nextSibling);
+		};
+		Module.before2 = function (root, next, node) {
+			return root.insertBefore(node, next);
+		};
+		Module.after2 = function (root, prev, node) {
+			return root.insertBefore(node, prev.nextSibling);
 		};
 		Module.replace = function (root, elem) {
 			return root.parentNode.replaceChild(elem, root);
@@ -927,7 +930,7 @@
 
 				node.classList.add("btnr");
 				node.classList.add("parent");
-				$.before2(par, node, next);
+				$.before2(par, next, node);
 			},
 			"fuuka": function (file_info, node) {
 				var par = file_info.options,
@@ -948,11 +951,11 @@
 					n.nodeValue = n.nodeValue.replace(/\]\s*$/, "]") + t;
 				}
 				else {
-					$.before2(par, $.tnode(t), next);
+					$.before2(par, next, $.tnode(t));
 				}
 
-				$.before2(par, node, next);
-				$.before2(par, $.tnode("]"), next);
+				$.before2(par, next, node);
+				$.before2(par, next, $.tnode("]"));
 			},
 			"tinyboard": create_image_meta_link_default
 		};
@@ -1331,7 +1334,8 @@
 			if (n1 !== null && n1.tagName === "BR") {
 				container.classList.add("hl-actions-hide-br");
 			}
-			$.after(link, container);
+			n1 = link.parentNode;
+			if (n1 !== null) $.after2(n1, link, container);
 
 			// Done
 			return container;
@@ -2891,7 +2895,7 @@
 				theme = Theme.get(),
 				sha1 = a.getAttribute("data-sha1"),
 				index = a.getAttribute("data-hl-image-index") || "",
-				results, link, n, i, ii;
+				results, link, par, n, i, ii;
 
 			a.classList.add("hl-exsauce-link-valid");
 			a.textContent = "Found: " + count;
@@ -2902,7 +2906,8 @@
 			if (count > 0) {
 				if (
 					(n = Post.get_post_container(a)) !== null &&
-					(n = Post.get_text_body(n)) !== null
+					(n = Post.get_text_body(n)) !== null &&
+					(par = n.parentNode) !== null
 				) {
 					results = $.node("div", "hl-exsauce-results" + theme);
 					results.setAttribute("data-hl-image-index", index);
@@ -2920,7 +2925,7 @@
 						if (i < ii - 1) $.add(results, $.node_simple("br"));
 					}
 
-					$.before(n, results);
+					$.before2(par, n, results);
 					if (Linkifier.check_incomplete()) {
 						API.run_request_queue();
 					}
@@ -3863,11 +3868,12 @@
 			Flush: 0x2,
 		};
 		var preprocess_link = function (node, auto_load) {
-			var url = node.href,
-				info = Helper.get_url_info(url),
-				rewrite, button;
+			var url, info, rewrite, button, par;
 
-			if (info === null) {
+			if (
+				(par = node.parentNode) === null ||
+				(info = Helper.get_url_info((url = node.href))) === null
+			) {
 				node.classList.remove("hl-linkified-gallery");
 				node.removeAttribute("data-hl-linkified-status");
 			}
@@ -3894,7 +3900,7 @@
 				node.setAttribute("data-hl-id", info.site + "_" + info.gid);
 
 				button = UI.button(url, info.domain);
-				$.before(node, button);
+				$.before2(par, node, button);
 
 				if (auto_load) check_link(node, info);
 			}
@@ -6604,13 +6610,13 @@
 					n2.classList.add("a-icon");
 					n2.classList.add("shortcut");
 					n2.classList.add("fa");
-					$.before2(par, n2, next);
+					$.before2(par, next, n2);
 					n2.style.setProperty("background-image", "none", "important");
 				}
 				else {
 					n1 = $.node("span", "shortcut brackets-wrap");
 					$.add(n1, n2);
-					$.before2(par, n1, next);
+					$.before2(par, next, n1);
 				}
 
 				color = Theme.get_computed_style(n2).color;
@@ -6850,6 +6856,7 @@
 
 				// Create
 				if ((flags & Flags.Mobile) !== 0) {
+					par = node.parentNode;
 					container = first_mobile ? node.previousSibling : node.nextSibling;
 					if (container === null || !container.classList || !container.classList.contains("hl-nav-extras")) {
 						container = $.node("div", "mobile hl-nav-extras-mobile");
@@ -6859,11 +6866,11 @@
 					$.add(n1, $.link(url, "hl-nav-button-inner" + class_name, t));
 
 					if (first_mobile) {
-						$.before(node, container);
+						$.before2(par, node, container);
 						first_mobile = false;
 					}
 					else {
-						$.after(node, container);
+						$.after2(par, node, container);
 					}
 					node = container;
 				}
@@ -6892,7 +6899,7 @@
 				}
 
 				// Node
-				$.before2(par, n1, next);
+				$.before2(par, next, n1);
 
 				// Brackets
 				if ((flags & Flags.Brackets) !== 0) {
@@ -6901,7 +6908,7 @@
 						next.nodeValue = t + next.nodeValue.replace(/^\s*\[/, "[");
 					}
 					else {
-						$.after(n1, $.tnode(t));
+						$.after2(par, n1, $.tnode(t));
 					}
 
 					pre = n1.previousSibling;
@@ -6910,7 +6917,7 @@
 						pre.nodeValue = pre.nodeValue.replace(/\]\s*$/, "]") + t;
 					}
 					else {
-						$.before(n1, $.tnode(t));
+						$.before2(par, n1, $.tnode(t));
 					}
 				}
 			}
