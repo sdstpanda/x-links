@@ -4684,7 +4684,17 @@
 			Status = { None: 0, Bad: -1, Good: 1 },
 			cache = { tags: {} };
 
-		var Segment = function (start, end, data) {
+		var Filter = function (regex, flags, priority) {
+			this.regex = regex;
+			this.flags = flags;
+			this.priority = priority;
+		};
+		var Match = function (start, end, filter) {
+			this.start = start;
+			this.end = end;
+			this.filter = filter;
+		};
+		var MatchSegment = function (start, end, data) {
 			this.start = start;
 			this.end = end;
 			this.data = data;
@@ -4813,12 +4823,12 @@
 			return array;
 		};
 		var matches_to_segments = function (text, matches) {
-			var segments = [ new Segment(0, text.length, []) ],
+			var segments = [ new MatchSegment(0, text.length, []) ],
 				hit, m, s, i, ii, j, jj;
 
 			if (config.filter.full_highlighting) { // fast mode
 				for (i = 0, ii = matches.length; i < ii; ++i) {
-					segments[0].data.push(matches[i].data);
+					segments[0].data.push(matches[i].filter);
 				}
 			}
 			else {
@@ -4840,36 +4850,36 @@
 
 			return segments;
 		};
-		var update_segments = function (segments, pos, seg1, seg2) {
-			var data = seg2.data.slice(0),
+		var update_segments = function (segments, pos, match, segment) {
+			var data = segment.data.slice(0),
 				s1, s2;
 
-			seg2.data.push(seg1.data);
+			segment.data.push(match.filter);
 
-			if (seg1.start > seg2.start) {
-				if (seg1.end < seg2.end) {
+			if (match.start > segment.start) {
+				if (match.end < segment.end) {
 					// cut at both
-					s1 = new Segment(seg2.start, seg1.start, data);
-					s2 = new Segment(seg1.end, seg2.end, data.slice(0));
-					seg2.start = seg1.start;
-					seg2.end = seg1.end;
+					s1 = new MatchSegment(segment.start, match.start, data);
+					s2 = new MatchSegment(match.end, segment.end, data.slice(0));
+					segment.start = match.start;
+					segment.end = match.end;
 					segments.splice(pos, 0, s1);
 					pos += 2;
 					segments.splice(pos, 0, s2);
 				}
 				else {
 					// cut at start
-					s1 = new Segment(seg2.start, seg1.start, data);
-					seg2.start = seg1.start;
+					s1 = new MatchSegment(segment.start, match.start, data);
+					segment.start = match.start;
 					segments.splice(pos, 0, s1);
 					pos += 1;
 				}
 			}
 			else {
-				if (seg1.end < seg2.end) {
+				if (match.end < segment.end) {
 					// cut at end
-					s2 = new Segment(seg1.end, seg2.end, data);
-					seg2.end = seg1.end;
+					s2 = new MatchSegment(match.end, segment.end, data);
+					segment.end = match.end;
 					pos += 1;
 					segments.splice(pos, 0, s2);
 				}
@@ -4885,7 +4895,7 @@
 				style, i, ii, s;
 
 			for (i = 0, ii = styles.length; i < ii; ++i) {
-				style = styles[i];
+				style = styles[i].flags;
 				if ((s = style.color) !== undefined) color = s;
 				if ((s = style.background) !== undefined) background = s;
 				if ((s = style.underline) !== undefined) underline = s;
@@ -4906,7 +4916,7 @@
 		};
 		var append_match_datas = function (matchinfo, target) {
 			for (var i = 0, ii = matchinfo.matches.length; i < ii; ++i) {
-				target.push(matchinfo.matches[i].data);
+				target.push(matchinfo.matches[i].filter);
 			}
 		};
 		var remove_non_bad = function (list) {
@@ -4933,7 +4943,7 @@
 					info.any = true;
 					if (match !== true) {
 						info.matches.push(match);
-						if (match.data.bad) {
+						if (match.filter.flags.bad) {
 							info.bad = true;
 						}
 					}
@@ -4942,6 +4952,9 @@
 			return info;
 		};
 		var check_single = function (text, filter, data) {
+			// return false if no match
+			// return true if a match was found, but the filter has no flags
+			// return a new Match if a match was found and the filter has flags
 			var list, category, i, ii, m;
 
 			m = filter.regex.exec(text);
@@ -4950,7 +4963,7 @@
 			}
 
 			// Category filtering
-			category = data.category.toLowerCase();
+			category = Helper.category(data.category).short;
 			if ((list = filter.flags.only) !== undefined) {
 				for (i = 0, ii = list.length; i < ii; ++i) {
 					if (list[i] === category) {
@@ -4968,7 +4981,7 @@
 			}
 
 			// Text filter
-			return (m === null) ? false : new Segment(m.index, m.index + m[0].length, filter.flags);
+			return (m === null) ? false : new Match(m.index, m.index + m[0].length, filter);
 		};
 		var hl_return = function (bad, node) {
 			if (bad) {
@@ -5010,10 +5023,7 @@
 
 					if (regex !== null) {
 						flags = parse_flags((pos < line.length) ? line.substr(pos) : regex_default_flags);
-						filters.push({
-							regex: regex,
-							flags: flags
-						});
+						filters.push(new Filter(regex, flags, filters.length));
 					}
 				}
 				else if (line[0] !== "#") {
@@ -5027,10 +5037,7 @@
 					}
 					regex = new RegExp(Helper.regex_escape(regex), "ig");
 
-					filters.push({
-						regex: regex,
-						flags: flags
-					});
+					filters.push(new Filter(regex, flags, filters.length));
 				}
 			}
 
@@ -5090,7 +5097,7 @@
 			bad = (info.bad || input_state === Status.Bad);
 			if (bad) {
 				for (i = 0; i < info.matches.length; ) {
-					if (!info.matches[i].data.bad) {
+					if (!info.matches[i].filter.flags.bad) {
 						info.matches.splice(i, 1);
 						continue;
 					}
@@ -5147,7 +5154,7 @@
 			var get_style = function (styles) {
 				var i, s, style;
 				for (i = 0; i < styles.length; ++i) {
-					style = styles[i].link;
+					style = styles[i].flags.link;
 					if ((s = style.color) !== undefined) color = s;
 					if ((s = style.background) !== undefined) background = s;
 					if ((s = style.underline) !== undefined) underline = s;
