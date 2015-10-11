@@ -169,9 +169,9 @@
 					"# Highlight all doujinshi and manga galleries with (C88) in the name:\n" +
 					"# /\\(C88\\)/i;only:doujinshi,manga;link-color:red;color:#FF0000;title\n" +
 					"# Highlight releases translated by {5 a.m.}:\n" +
-					"# /\\{?5\\s*a[\\.,]?m[\\.,]?\\}?/i;title;bgs:#3BC620\n" +
+					"# /\\{?5\\s*a[\\.,]?m[\\.,]?\\}?/i;title;bgs:#3BC620;colors:#FDFA18;\n" +
 					"# Don't highlight anything uploaded by \"CGrascal\"\n" +
-					"# /CGrascal/i;bad:yes;uploader;title;color:red;"
+					"# /CGrascal/i;bad:yes;uploader;title;"
 				), //}
 				"Filters", "",
 				"Filters",
