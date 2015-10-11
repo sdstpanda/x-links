@@ -1,5 +1,16 @@
 ﻿master
 
+1.0.9
+- dnsev-h
+  + Fixed some potentially buggy code dealing with removed DOM nodes
+  + Fixed some potentially buggy code related to threads with 1000+ posts
+  + Fixed a filtering bug related to bad filters not taking priority
+  + Fixed a filtering bug causing tags to not highlight properly when using not: or only:
+  + Fixed filtering not applying to certain categories when using not: or only:
+  + Fixed and updated the styling on the filtering guide
+  + Added ordering priority to filters; filters later in the list have greater priority
+  + Improved load times on pages with lots of links and posts, again
+
 1.0.8
 - dnsev-h
   + Improved load times on pages with lots of links
