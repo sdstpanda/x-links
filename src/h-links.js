@@ -3191,6 +3191,12 @@
 			re_url_class_ignore = /(?:\binlined?\b|\bhl-)/,
 			re_fjord = /abortion|bestiality|incest|lolicon|shotacon|toddlercon/,
 			re_protocol = /^https?\:/i,
+			post_queue = {
+				posts: [],
+				timer: null,
+				group_size: 25,
+				delay: 50
+			},
 			incomplete = {
 				types: [ "ehentai", "nhentai", "hitomi" ],
 				ehentai: {
@@ -3783,8 +3789,79 @@
 				}
 			}
 		};
+		var parse_posts = function (posts) {
+			var check_files_before = (Config.mode === "tinyboard"),
+				post, i, ii;
+
+			Debug.timer("process");
+
+			for (i = 0, ii = posts.length; i < ii; ++i) {
+				post = posts[i];
+				parse_post(post);
+				apply_link_events(post, true);
+				if (check_files_before && post.classList.contains("op")) {
+					if ((post = Post.get_op_post_files_container_tinyboard(post)) !== null) {
+						apply_link_events(post, true);
+					}
+				}
+			}
+
+			Debug.log("Total posts=" + posts.length + "; time=" + Debug.timer("process"));
+
+			// Check incomplete, then run any API requests
+			if (check_incomplete()) {
+				API.run_request_queue();
+			}
+		};
+		var dequeue_posts = function () {
+			var posts = post_queue.posts.splice(0, post_queue.group_size);
+
+			if (posts.length === 0) {
+				// Done
+				post_queue.timer = null;
+			}
+			else {
+				// Run
+				parse_posts(posts);
+
+				// Timer for next
+				post_queue.timer = setTimeout(dequeue_posts, post_queue.delay);
+			}
+		};
 
 		// Public
+		var queue_posts = function (posts, flags) {
+			if ((flags & queue_posts.Flags.Flush) !== 0) {
+				// Flush
+				parse_posts(post_queue.posts);
+				post_queue.posts = [];
+
+				// Clear timer
+				if (post_queue.timer !== null) {
+					clearTimeout(post_queue.timer);
+					post_queue.timer = null;
+				}
+			}
+
+			if ((flags & queue_posts.Flags.UseDelay) === 0) {
+				// Immediate
+				parse_posts(posts);
+			}
+			else {
+				// Queue
+				$.push_many(post_queue.posts, posts);
+
+				// Run queue
+				if (post_queue.timer === null) {
+					dequeue_posts();
+				}
+			}
+		};
+		queue_posts.Flags = {
+			None: 0x0,
+			UseDelay: 0x1,
+			Flush: 0x2,
+		};
 		var preprocess_link = function (node, auto_load) {
 			var url = node.href,
 				info = Helper.get_url_info(url),
@@ -3821,25 +3898,6 @@
 
 				if (auto_load) check_link(node, info);
 			}
-		};
-		var parse_posts = function (posts) {
-			var check_files_before = (Config.mode === "tinyboard"),
-				post, i, ii;
-
-			Debug.timer("process");
-
-			for (i = 0, ii = posts.length; i < ii; ++i) {
-				post = posts[i];
-				parse_post(post);
-				apply_link_events(post, true);
-				if (check_files_before && post.classList.contains("op")) {
-					if ((post = Post.get_op_post_files_container_tinyboard(post)) !== null) {
-						apply_link_events(post, true);
-					}
-				}
-			}
-
-			Debug.log("Total posts=" + posts.length + "; time=" + Debug.timer("process"));
 		};
 		var get_link_events = function (node) {
 			return node.getAttribute("data-hl-link-events") || null;
@@ -3984,7 +4042,7 @@
 		// Exports
 		return {
 			preprocess_link: preprocess_link,
-			parse_posts: parse_posts,
+			queue_posts: queue_posts,
 			get_link_events: get_link_events,
 			apply_link_events: apply_link_events,
 			change_link_events: change_link_events,
@@ -6895,7 +6953,7 @@
 				}
 			}
 
-			Linkifier.parse_posts(posts);
+			Linkifier.queue_posts(posts, Linkifier.queue_posts.Flags.Flush | Linkifier.queue_posts.Flags.UseDelay);
 		};
 
 		var fix_broken_external_linkification = function (node, event_links) {
@@ -6947,9 +7005,7 @@
 
 			Debug.timer_log("init.ready duration", "init");
 
-			Linkifier.parse_posts(Post.get_all_posts(d));
-			Linkifier.check_incomplete();
-			API.run_request_queue();
+			Linkifier.queue_posts(Post.get_all_posts(d), Linkifier.queue_posts.Flags.UseDelay);
 
 			if (MutationObserver !== null) {
 				updater = new MutationObserver(on_body_observe);
@@ -7038,10 +7094,7 @@
 			}
 
 			if (post_list.length > 0) {
-				Linkifier.parse_posts(post_list);
-				if (Linkifier.check_incomplete()) {
-					API.run_request_queue();
-				}
+				Linkifier.queue_posts(post_list, Linkifier.queue_posts.Flags.None);
 			}
 			if (reload_all) {
 				reload_all_posts();
