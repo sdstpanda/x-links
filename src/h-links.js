@@ -5078,7 +5078,8 @@
 				no_extras &&
 				input_state !== Status.Bad &&
 				(cache_type = cache[type]) !== undefined &&
-				(c = cache_type[text]) !== undefined
+				(c = cache_type[category]) !== undefined &&
+				(c = c[text]) !== undefined
 			) {
 				if (c === null) {
 					return Status.None;
