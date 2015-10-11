@@ -4941,7 +4941,7 @@
 				++i;
 			}
 		};
-		var check_multiple = function (type, text, filters, data, category) {
+		var check_multiple = function (type, text, filters, category) {
 			var info = new MatchInfo(),
 				filter, match, i, ii;
 
@@ -4950,7 +4950,7 @@
 				if (filter.flags[type] !== true) continue;
 				filter.regex.lastIndex = 0;
 				while (true) {
-					match = check_single(text, filter, data, category);
+					match = check_single(text, filter, category);
 					if (match === false) break;
 
 					info.any = true;
@@ -4965,7 +4965,7 @@
 
 			return info;
 		};
-		var check_single = function (text, filter, data, category) {
+		var check_single = function (text, filter, category) {
 			// return false if no match
 			// return true if a match was found, but the filter has no flags
 			// return a new Match if a match was found and the filter has flags
@@ -5100,7 +5100,7 @@
 			}
 
 			// Check filters
-			info = check_multiple(type, text, filters_temp, data, category);
+			info = check_multiple(type, text, filters_temp, category);
 			if (!info.any) {
 				if (cache_type !== undefined) {
 					if ((c = cache_type[category]) === undefined) {
@@ -5236,7 +5236,7 @@
 			if (filters_temp.length > 0) {
 				// Uploader
 				if ((str = data.uploader)) {
-					info = check_multiple("uploader", str, filters_temp, data, category);
+					info = check_multiple("uploader", str, filters_temp, category);
 					if (info.any) {
 						append_match_datas(info, result.uploader);
 						if (info.bad) {
@@ -5251,7 +5251,7 @@
 				// Tags
 				if ((tags = data.tags) && tags.length > 0) {
 					for (i = 0; i < tags.length; ++i) {
-						info = check_multiple("tags", tags[i], filters_temp, data, category);
+						info = check_multiple("tags", tags[i], filters_temp, category);
 						if (info.any) {
 							append_match_datas(info, result.tags);
 							if (info.bad) {
