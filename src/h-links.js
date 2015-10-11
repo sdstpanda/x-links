@@ -4892,13 +4892,26 @@
 			var color = null,
 				background = null,
 				underline = null,
-				style, i, ii, s;
+				p1 = -1,
+				p2 = -1,
+				p3 = -1,
+				style, i, ii, s, p;
 
 			for (i = 0, ii = styles.length; i < ii; ++i) {
+				p = styles[i].priority;
 				style = styles[i].flags;
-				if ((s = style.color) !== undefined) color = s;
-				if ((s = style.background) !== undefined) background = s;
-				if ((s = style.underline) !== undefined) underline = s;
+				if ((s = style.color) !== undefined && p >= p1) {
+					color = s;
+					p1 = p;
+				}
+				if ((s = style.background) !== undefined && p >= p2) {
+					background = s;
+					p2 = p;
+				}
+				if ((s = style.underline) !== undefined && p >= p3) {
+					underline = s;
+					p3 = p;
+				}
 			}
 
 			apply_styling(node, color, background, underline);
@@ -5149,15 +5162,31 @@
 			}
 
 			// Get styles
-			var color = null, background = null, underline = null, n, n1, n2;
+			var color = null,
+				background = null,
+				underline = null,
+				p1 = -1,
+				p2 = -1,
+				p3 = -1,
+				n, n1, n2;
 
 			var get_style = function (styles) {
-				var i, s, style;
-				for (i = 0; i < styles.length; ++i) {
+				var style, i, ii, p, s;
+				for (i = 0, ii = styles.length; i < ii; ++i) {
+					p = styles[i].priority;
 					style = styles[i].flags.link;
-					if ((s = style.color) !== undefined) color = s;
-					if ((s = style.background) !== undefined) background = s;
-					if ((s = style.underline) !== undefined) underline = s;
+					if ((s = style.color) !== undefined && p >= p1) {
+						color = s;
+						p1 = p;
+					}
+					if ((s = style.background) !== undefined && p >= p2) {
+						background = s;
+						p2 = p;
+					}
+					if ((s = style.underline) !== undefined && p >= p3) {
+						underline = s;
+						p3 = p;
+					}
 				}
 			};
 
