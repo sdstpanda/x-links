@@ -162,12 +162,12 @@
 			],
 			[ "filters",
 				( //{
+					"# Highlight all doujinshi and manga galleries with (C88) in the name:\n" +
+					"# /\\(C88\\)/i;only:doujinshi,manga;link-color:red;color:#FF0000;title\n" +
 					"# Highlight \"english\" and \"translated\" tags in non-western non-non-h galleries:\n" +
 					"# /english|translated/i;not:western,non-h;colors:#4080F0;tag\n" +
 					"# Highlight galleries tagged with \"touhou project\":\n" +
 					"# /touhou project/i;underlines:rgba(255,128,64,1);tag;title\n" +
-					"# Highlight all doujinshi and manga galleries with (C88) in the name:\n" +
-					"# /\\(C88\\)/i;only:doujinshi,manga;link-color:red;color:#FF0000;title\n" +
 					"# Highlight releases translated by {5 a.m.}:\n" +
 					"# /\\{?5\\s*a[\\.,]?m[\\.,]?\\}?/i;title;bgs:#3BC620;colors:#FDFA18;\n" +
 					"# Don't highlight anything uploaded by \"CGrascal\"\n" +
@@ -4941,7 +4941,7 @@
 				++i;
 			}
 		};
-		var check_multiple = function (type, text, filters, data) {
+		var check_multiple = function (type, text, filters, data, category) {
 			var info = new MatchInfo(),
 				filter, match, i, ii;
 
@@ -4950,7 +4950,7 @@
 				if (filter.flags[type] !== true) continue;
 				filter.regex.lastIndex = 0;
 				while (true) {
-					match = check_single(text, filter, data);
+					match = check_single(text, filter, data, category);
 					if (match === false) break;
 
 					info.any = true;
@@ -4962,13 +4962,14 @@
 					}
 				}
 			}
+
 			return info;
 		};
-		var check_single = function (text, filter, data) {
+		var check_single = function (text, filter, data, category) {
 			// return false if no match
 			// return true if a match was found, but the filter has no flags
 			// return a new Match if a match was found and the filter has flags
-			var list, category, i, ii, m;
+			var list, i, ii, m;
 
 			m = filter.regex.exec(text);
 			if (filter.flags === null) {
@@ -4976,7 +4977,6 @@
 			}
 
 			// Category filtering
-			category = Helper.category(data.category).short;
 			if ((list = filter.flags.only) !== undefined) {
 				for (i = 0, ii = list.length; i < ii; ++i) {
 					if (list[i] === category) {
@@ -5061,6 +5061,7 @@
 
 			var no_extras = true,
 				filters_temp = filters,
+				category = Helper.category(data.category).short,
 				info, matches, text, frag, segment, cache_type, bad, c, i, t, n1, n2;
 
 			if (extras && extras.length > 0) {
@@ -5098,10 +5099,13 @@
 			}
 
 			// Check filters
-			info = check_multiple(type, text, filters_temp, data);
+			info = check_multiple(type, text, filters_temp, data, category);
 			if (!info.any) {
 				if (cache_type !== undefined) {
-					cache_type[text] = null;
+					if ((c = cache_type[category]) === undefined) {
+						cache_type[category] = c = {};
+					}
+					c[text] = null;
 				}
 				return Status.None;
 			}
@@ -5146,7 +5150,10 @@
 			node.innerHTML = "";
 			$.add(node, frag);
 			if (cache_type !== undefined) {
-				cache_type[text] = [ info, node ];
+				if ((c = cache_type[category]) === undefined) {
+					cache_type[category] = c = {};
+				}
+				c[text] = [ info, node ];
 			}
 			return hl_return(bad, node);
 		};
@@ -5211,6 +5218,7 @@
 
 			var filters_temp = filters,
 				status = Status.None,
+				category = Helper.category(data.category).short,
 				str, tags, result, i, info;
 
 			if (extras && extras.length > 0) {
@@ -5227,7 +5235,7 @@
 			if (filters_temp.length > 0) {
 				// Uploader
 				if ((str = data.uploader)) {
-					info = check_multiple("uploader", str, filters_temp, data);
+					info = check_multiple("uploader", str, filters_temp, data, category);
 					if (info.any) {
 						append_match_datas(info, result.uploader);
 						if (info.bad) {
@@ -5242,7 +5250,7 @@
 				// Tags
 				if ((tags = data.tags) && tags.length > 0) {
 					for (i = 0; i < tags.length; ++i) {
-						info = check_multiple("tags", tags[i], filters_temp, data);
+						info = check_multiple("tags", tags[i], filters_temp, data, category);
 						if (info.any) {
 							append_match_datas(info, result.tags);
 							if (info.bad) {
