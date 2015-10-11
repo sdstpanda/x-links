@@ -104,7 +104,7 @@
 		source = header + "\n" + source;
 
 		if (debug) {
-			source = debug_wrap.debug_wrap_code(source);
+			source = debug_wrap.debug_wrap_code(source, debug === "simple");
 		}
 
 		fs.writeFileSync(output, source, "utf8", function (err) {
