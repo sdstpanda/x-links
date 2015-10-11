@@ -887,16 +887,28 @@ label.hl-settings-entry-label {
 	display: none;
 }
 
-.hl-settings ul {
+.hl-settings-popup-content ul {
 	padding: 0;
+	margin: 1em 0;
+	list-style-type: disc !important;
 }
-.hl-settings ul>li {
-	margin: 0.75em 2em;
-	list-style: outside none disc;
+.hl-settings-popup-content ul>li {
+	margin: 0 0.5em 0 2em;
 }
-.hl-settings code {
-	color: #000;
-	background-color: #fff;
+.hl-settings-popup-content ul>li+li {
+	margin-top: 1em;
+}
+.hl-settings-popup-content ul>li.hl-settings-li-no-space {
+	margin-top: 0;
+}
+.hl-settings-popup-content code {
+	color: #000000;
+	background-color: #ffffff;
+	font-family: Courier, monospace !important;
+}
+.hl-settings-popup-content.hl-theme-dark code {
+	color: #ffffff;
+	background-color: #000000;
 	font-family: Courier, monospace !important;
 }
 

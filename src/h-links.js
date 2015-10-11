@@ -162,16 +162,16 @@
 			],
 			[ "filters",
 				( //{
+					"# Highlight \"english\" and \"translated\" tags in non-western non-non-h galleries:\n" +
+					"# /english|translated/i;not:western,non-h;colors:#4080F0;tag\n" +
+					"# Highlight galleries tagged with \"touhou project\":\n" +
+					"# /touhou project/i;underlines:rgba(255,128,64,1);tag;title\n" +
 					"# Highlight all doujinshi and manga galleries with (C88) in the name:\n" +
 					"# /\\(C88\\)/i;only:doujinshi,manga;link-color:red;color:#FF0000;title\n" +
-					"# Highlight \"english\" and \"translated\" tags in non-western non-non-h galleries:\n" +
-					"# /english|translated/i;not:western,non-h;color:#4080F0;link-color:#4080F0;tag\n" +
-					"# Highlight galleries tagged with \"touhou project\":\n" +
-					"# /touhou project/i;bg:rgba(255,128,64,0.5);link-bg:rgba(255,128,64,0.5);tag;title\n" +
-					"# Highlight links for galleries uploaded by \"ExUploader\"\n" +
-					"# /ExUploader/i;color:#FFFFFF;link-color:#FFFFFF;uploader\n" +
-					"# Don\"t highlight anything uploaded by \"CGrascal\"\n" +
-					"# /CGrascal/i;bad:yes;uploader"
+					"# Highlight releases translated by {5 a.m.}:\n" +
+					"# /\\{?5\\s*a[\\.,]?m[\\.,]?\\}?/i;title;bgs:#3BC620\n" +
+					"# Don't highlight anything uploaded by \"CGrascal\"\n" +
+					"# /CGrascal/i;bad:yes;uploader;title;color:red;"
 				), //}
 				"Filters", "",
 				"Filters",
@@ -4727,6 +4727,7 @@
 					title: true,
 					tags: true,
 					uploader: false,
+					link: {},
 				},
 				v;
 
@@ -4744,7 +4745,10 @@
 				norm.only = normalize_split(v);
 				any = true;
 			}
-			if ((v = flags.not) !== undefined && v.length > 0) {
+			if (
+				((v = flags.not) !== undefined || (v = flags.no) !== undefined) &&
+				v.length > 0
+			) {
 				norm.not = normalize_split(v);
 				any = true;
 			}
@@ -4752,6 +4756,26 @@
 				norm.bad = true;
 				any = true;
 			}
+
+			if ((v = flags.colors) !== undefined || (v = flags.cs) !== undefined) {
+				v = v.trim();
+				norm.color = v;
+				norm.link.color = v;
+				any = true;
+			}
+			if ((v = flags.backgrounds) !== undefined ||  (v = flags.bgs) !== undefined) {
+				v = v.trim();
+				norm.background = v;
+				norm.link.background = v;
+				any = true;
+			}
+			if ((v = flags.underlines) !== undefined || (v = flags.us) !== undefined) {
+				v = v.trim();
+				norm.underline = v;
+				norm.link.underline = v;
+				any = true;
+			}
+
 			if ((v = flags.color) !== undefined || (v = flags.c) !== undefined) {
 				norm.color = v.trim();
 				any = true;
@@ -4764,18 +4788,16 @@
 				norm.underline = v.trim();
 				any = true;
 			}
+
 			if ((v = flags["link-color"]) !== undefined || (v = flags["link-c"]) !== undefined || (v = flags.lc) !== undefined) {
-				norm.link = {};
 				norm.link.color = v.trim();
 				any = true;
 			}
 			if ((v = flags["link-background"]) !== undefined || (v = flags["link-bg"]) !== undefined || (v = flags.lbg) !== undefined) {
-				if (norm.link === undefined) norm.link = {};
 				norm.link.background = v.trim();
 				any = true;
 			}
 			if ((v = flags["link-underline"]) !== undefined || (v = flags["link-u"]) !== undefined || (v = flags.lu) !== undefined) {
-				if (norm.link === undefined) norm.link = {};
 				norm.link.underline = v.trim();
 				any = true;
 			}
@@ -5125,17 +5147,10 @@
 			var get_style = function (styles) {
 				var i, s, style;
 				for (i = 0; i < styles.length; ++i) {
-					if ((style = styles[i].link) !== undefined) {
-						if ((s = style.color)) {
-							color = s;
-						}
-						if ((s = style.background)) {
-							background = s;
-						}
-						if ((s = style.underline)) {
-							underline = s;
-						}
-					}
+					style = styles[i].link;
+					if ((s = style.color) !== undefined) color = s;
+					if ((s = style.background) !== undefined) background = s;
+					if ((s = style.underline) !== undefined) underline = s;
 				}
 			};
 
@@ -5210,7 +5225,9 @@
 			}
 
 			i = highlight("title", titlenode, data, status, result.title, extras);
-			if (status === Status.None) status = i;
+			if (status === Status.None || i === Status.Bad) {
+				status = i;
+			}
 
 			// Remove non-bad filters on result.tags and result.uploader
 			if (status === Status.Bad) {

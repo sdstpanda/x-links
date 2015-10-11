@@ -31,44 +31,52 @@
 	You can use these additional settings with each regular expression, separate them with semicolons:<br />
 	<ul>
 		<li>
-			Apply the filter to different scopes. By default, the scope is <code>title;tags;</code>.<br />
-			For example: <code>tags;</code> or <code>uploader;title;</code>.<br />
+			<strong>Apply the filter to different scopes:</strong><br />
+			<code>tags;</code>, <code>title;</code> or <code>uploader;</code>. By default the scope is <code>title;tags;</code><br />
 		</li>
 		<li>
-			Force a gallery to not be highlighted. If omitted, the gallery will be highlighted as normal.<br />
-			For example: <code>bad:yes;</code> or <code>bad:no;</code>.
+			<strong>Force a gallery to not be highlighted:</strong> <span style="opacity: 0.75;">If omitted, the gallery will be highlighted as normal</span><br />
+			<code>bad:no;</code>, <code>bad:yes;</code>, or just <code>bad;</code>
 		</li>
 		<li>
-			Only apply the filter if the category of the gallery matches one from a list.<br />
-			For example: <code>only:doujinshi,manga;</code>.
+			<strong>Only apply the filter to certain categories.</strong><br />
+			<code>only:doujinshi,manga;</code>.
 			<div style="font-size: 0.9em; margin-top: 0.1em; opacity: 0.75;">
 				Categories:
 				<span>artistcg, asianporn, cosplay, doujinshi, gamecg, imageset, manga, misc, <span style="white-space: nowrap;">non-h</span>, private, western</span>
 			</div>
 		</li>
 		<li>
-			Only apply the filter if the category of the gallery doesn&quot;t match <strong>any</strong> from a list.<br />
-			For example: <code>not:western,non-h;</code>.
+			<strong>Only apply the filter if it <em>is not</em> a certain category:</strong><br />
+			<code>not:western,non-h;</code>.
 		</li>
 		<li>
-			Apply a colored decoration to the matched text.<br />
-			For example: <code>color:red;</code>, <code>underline:#0080f0;</code>, or <code>background:rgba(0,255,0,0.5);</code>.
+			<strong>Apply a colored decoration to the matched text:</strong><br />
+			<code>color:red;</code>, <code>underline:#0080f0;</code>, or <code>background:rgba(0,255,0,0.5);</code>
 		</li>
 		<li>
-			Apply a colored decoration to the [Ex] or [EH] tag.<br />
-			For example: <code>link-color:blue;</code>, <code>link-underline:#bf48b5;</code>, or <code>link-background:rgba(220,200,20,0.5);</code>.
+			<strong>Apply a colored decoration to the [Ex] or [EH] tag:</strong><br />
+			<code>link-color:blue;</code>, <code>link-underline:#bf48b5;</code>, or <code>link-background:rgba(220,200,20,0.5);</code>.
+		</li>
+		<li>
+			<strong>Apply a colored decoration to <em>BOTH</em> the matched text and tag:</strong><br />
+			<code>colors:blue;</code>, <code>underlines:#bf48b5;</code>, or <code>backgrounds:rgba(220,200,20,0.5);</code>.
 		</li>
 	</ul>
-	Additionally, some settings have aliases. If multiple exist, only the main one will be used.<br />
+	Additionally, some settings have aliases. If multiple are used, only the main one will be used.<br />
 	<ul>
 		<li><code>tags: tag</code></li>
-		<li><code>only: category, cat</code></li>
+		<li class="hl-settings-li-no-space"><code>only: category, cat</code></li>
+		<li class="hl-settings-li-no-space"><code>not: no</code></li>
+		<li><code>colors: cs</code></li>
+		<li class="hl-settings-li-no-space"><code>underlines: us</code></li>
+		<li class="hl-settings-li-no-space"><code>backgrounds: bgs</code></li>
 		<li><code>color: c</code></li>
-		<li><code>underline: u</code></li>
-		<li><code>background: bg</code></li>
+		<li class="hl-settings-li-no-space"><code>underline: u</code></li>
+		<li class="hl-settings-li-no-space"><code>background: bg</code></li>
 		<li><code>link-color: link-c, lc</code></li>
-		<li><code>link-underline: link-u, lu</code></li>
-		<li><code>link-background: link-bg, lbg</code></li>
+		<li class="hl-settings-li-no-space"><code>link-underline: link-u, lu</code></li>
+		<li class="hl-settings-li-no-space"><code>link-background: link-bg, lbg</code></li>
 	</ul>
 	For easy <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value#Color_keywords" target="_blank" rel="noreferrer nofollow">HTML color</a> selection, you can use the following helper to select a color:<br /><br />
 	<div>
