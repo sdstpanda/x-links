@@ -4679,7 +4679,7 @@
 
 		// Private
 		var filters = null,
-			regex_default_flags = "color:#ee2200;link-color:#ee2200;",
+			regex_default_flags = "colors:#EE2200;",
 			good_values = [ "", "true", "yes" ],
 			Status = { None: 0, Bad: -1, Good: 1 },
 			cache = { tags: {} };
