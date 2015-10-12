@@ -5323,7 +5323,8 @@
 	var Theme = (function () {
 
 		// Private
-		var current = "light";
+		var current = "light",
+			current_get = " hl-theme";
 
 		var detect = function () {
 			var doc_el = d.documentElement,
@@ -5365,6 +5366,7 @@
 			if (new_theme !== null && new_theme !== current) {
 				if (change_nodes) update_nodes(new_theme);
 				current = new_theme;
+				current_get = (current === "light" ? " hl-theme" : " hl-theme hl-theme-dark");
 				return true;
 			}
 			return false;
@@ -5422,7 +5424,7 @@
 			}
 		};
 		var get = function () {
-			return (current === "light" ? " hl-theme" : " hl-theme hl-theme-dark");
+			return current_get;
 		};
 		var apply = function (node) {
 			if (current !== "light") {
