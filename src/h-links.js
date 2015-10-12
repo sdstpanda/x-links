@@ -1105,7 +1105,9 @@
 	var UI = (function () {
 
 		// Private
-		var details_nodes = {};
+		var details_nodes = {},
+			actions_nodes = {},
+			actions_nodes_index = 0;
 
 		var gallery_link_events = {
 			mouseover: function () {
@@ -1334,6 +1336,22 @@
 			// Done
 			return container;
 		};
+		var create_actions2 = function (data, link) {
+			var theme = Theme.get(),
+				container = $.node("div", "hl-actions2 hl-hover-shadow" + theme),
+				n1;
+
+			$.add(container, n1 = $.node("div", "hl-actions2-inner" + theme, "test text"));
+
+			var n2 = create_actions(data, link);
+			$.add(n1, n2);
+
+			Theme.bg(container);
+			Popup.hovering(container);
+
+			// Done
+			return container;
+		};
 		var pad = function (n, sep) {
 			return (n < 10 ? "0" : "") + n + sep;
 		};
@@ -1462,6 +1480,46 @@
 				if (last) break;
 			}
 		};
+		var position_actions = function (actions, tag, tag_bg, de_rect) {
+			// Position
+			var win_width = (d.documentElement.clientWidth || window.innerWidth || 0),
+				win_height = (d.documentElement.clientHeight || window.innerHeight || 0),
+				r1 = tag_bg.getBoundingClientRect(),
+				x = r1.left - de_rect.left,
+				y = r1.bottom - de_rect.top,
+				xpos = "right",
+				ypos = "below",
+				r2;
+
+			actions.style.maxWidth = "";
+			if (r1.left + r1.width / 2 > win_width / 2) {
+				// Left
+				actions.style.left = "0";
+				actions.style.maxWidth = (x + r1.width) + "px";
+				r2 = actions.getBoundingClientRect();
+				x -= (r2.width - r1.width);
+				xpos = "left";
+			}
+
+			actions.style.left = x + "px";
+			tag.setAttribute("data-hl-actions-hpos", xpos);
+			actions.setAttribute("data-hl-actions-hpos", xpos);
+
+			if (r1.top + r1.height / 2 > win_height / 2) {
+				// Above
+				r2 = actions.getBoundingClientRect();
+				y += 0.0625 - r2.height - r1.height;
+				ypos = "above";
+			}
+			else {
+				y -= 0.0625;
+			}
+
+			actions.style.top = y + "px";
+			tag.setAttribute("data-hl-actions-vpos", ypos);
+			actions.setAttribute("data-hl-actions-vpos", ypos);
+		};
+
 
 		// Public
 		var create_rating_stars = function (rating) {
@@ -1512,35 +1570,86 @@
 		};
 		var gallery_toggle_actions = function (event) {
 			if ($.is_left_mouse(event) && config.actions.enabled) {
-				var actions = Helper.get_actions_from_link(this, true),
-					closed = true,
-					cls, data, link, id, n;
+				event.preventDefault();
 
-				if (actions === null) {
-					if (
-						(link = Helper.get_link_from_tag_button(this)) !== null &&
-						(id = Helper.get_id_from_node(link)) !== null &&
-						Database.valid_namespace(id[0]) &&
-						(data = Database.get(id[0], id[1])) !== null
-					) {
-						UI.create_actions(data, link);
-						closed = false;
-						if ((n = $(".hl-site-tag-bg", this)) === null) {
-							$.before(this, this.firstChild, n = $.node("div", "hl-site-tag-bg hl-hover-shadow" + Theme.get()));
-							Theme.bg(n);
+				var index = this.getAttribute("hl-site-tag-index"),
+					actions, tag_bg, data, link, id;
+
+				if (!index) {
+					index = "" + actions_nodes_index;
+					++actions_nodes_index;
+					this.setAttribute("hl-site-tag-index", index);
+				}
+
+				if (this.classList.toggle("hl-site-tag-active")) {
+					// Create bg
+					tag_bg = $(".hl-site-tag-bg", this);
+					if (tag_bg === null) {
+						$.before(this, this.firstChild, tag_bg = $.node("div", "hl-site-tag-bg hl-hover-shadow" + Theme.get()));
+						Theme.bg(tag_bg);
+					}
+
+					// Show
+					actions = actions_nodes[index];
+					if (actions !== undefined) {
+						actions.classList.remove("hl-actions2-hidden");
+					}
+					else {
+						// Create
+						if (
+							(link = Helper.get_link_from_tag_button(this)) !== null &&
+							(id = Helper.get_id_from_node(link)) !== null &&
+							Database.valid_namespace(id[0]) &&
+							(data = Database.get(id[0], id[1])) !== null
+						) {
+							actions = create_actions2(data, link);
+							actions_nodes[index] = actions;
+						}
+						else {
+							return;
 						}
 					}
+
+					// Position
+					position_actions(actions, this, tag_bg, d.documentElement.getBoundingClientRect());
 				}
 				else {
-					closed = actions.classList.toggle("hl-actions-hidden");
+					// Hide
+					actions = actions_nodes[index];
+					if (actions !== undefined) {
+						actions.classList.add("hl-actions2-hidden");
+					}
 				}
+			}
+		};
 
-				cls = "hl-site-tag-active";
-				if (closed === this.classList.contains(cls)) {
-					this.classList.toggle(cls);
+		var cleanup_post = function (post) {
+			var nodes, n, i, ii;
+			nodes = $$(".hl-exsauce-results:not(.hl-exsauce-results-hidden)", post);
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				nodes[i].classList.add("hl-exsauce-results-hidden");
+			}
+			nodes = $$(".hl-actions:not(.hl-actions-hidden)", post);
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				nodes[i].classList.add("hl-actions-hidden");
+			}
+			nodes = $$(".hl-site-tag[hl-site-tag-index]", post);
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				n = nodes[i];
+				n.classList.remove("hl-site-tag-active");
+				n.removeAttribute("hl-site-tag-index");
+			}
+		};
+		var cleanup_post_removed = function (post) {
+			var nodes, index, n, i, ii;
+			nodes = $$(".hl-site-tag[hl-site-tag-index]", post);
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				index = nodes[i].getAttribute("hl-site-tag-index") || "";
+				n = actions_nodes[index];
+				if (n !== undefined) {
+					$.remove(n);
+					delete actions_nodes[index];
 				}
-
-				event.preventDefault();
 			}
 		};
 
@@ -1557,7 +1666,9 @@
 			mark_button_text: mark_button_text,
 			button_text: button_text,
 			format_date: format_date,
-			create_actions: create_actions
+			create_actions: create_actions,
+			cleanup_post: cleanup_post,
+			cleanup_post_removed: cleanup_post_removed
 		};
 
 	})();
@@ -3700,7 +3811,7 @@
 		};
 		var parse_post = function (post) {
 			var auto_load_links = config.general.automatic_processing,
-				post_body, post_links, links, nodes, link, i, ii;
+				post_body, post_links, links, link, i, ii;
 
 			// Exsauce
 			if (config.sauce.enabled && !browser.is_opera) {
@@ -3709,18 +3820,7 @@
 
 			if (post.classList.contains("hl-post-linkified")) {
 				// Collapse info if it's an inline
-				nodes = $$(".hl-exsauce-results:not(.hl-exsauce-results-hidden)", post);
-				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					nodes[i].classList.add("hl-exsauce-results-hidden");
-				}
-				nodes = $$(".hl-actions:not(.hl-actions-hidden)", post);
-				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					nodes[i].classList.add("hl-actions-hidden");
-				}
-				nodes = $$(".hl-site-tag.hl-site-tag-active", post);
-				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					nodes[i].classList.remove("hl-site-tag-active");
-				}
+				UI.cleanup_post(post);
 			}
 			else if ((post_body = Post.get_text_body(post)) !== null) {
 				// Content

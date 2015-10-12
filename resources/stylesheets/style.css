@@ -300,6 +300,52 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 .hl-actions-tags {
 }
 
+/* Actions v2 */
+.hl-actions2 {
+	padding: 0.25em;
+	border-radius: 0.25em;
+	position: absolute;
+	z-index: 5;
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+}
+.hl-actions2.hl-actions2-hidden {
+	display: none;
+}
+.hl-actions2:before {
+	content: "";
+	display: block;
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	right: 0;
+	border-radius: 0.25em;
+	background-color: rgba(0,0,0,0.05);
+}
+.hl-actions2.hl-theme-dark:before {
+	background-color: rgba(255,255,255,0.05);
+}
+.hl-actions2[data-hl-actions-vpos=above]:not([data-hl-actions-hpos=left]),
+.hl-actions2[data-hl-actions-vpos=above]:not([data-hl-actions-hpos=left]):before {
+	border-bottom-left-radius: 0;
+}
+.hl-actions2[data-hl-actions-vpos=below]:not([data-hl-actions-hpos=left]),
+.hl-actions2[data-hl-actions-vpos=below]:not([data-hl-actions-hpos=left]):before {
+	border-top-left-radius: 0;
+}
+.hl-actions2[data-hl-actions-vpos=above]:not([data-hl-actions-hpos=right]),
+.hl-actions2[data-hl-actions-vpos=above]:not([data-hl-actions-hpos=right]):before {
+	border-bottom-right-radius: 0;
+}
+.hl-actions2[data-hl-actions-vpos=below]:not([data-hl-actions-hpos=right]),
+.hl-actions2[data-hl-actions-vpos=below]:not([data-hl-actions-hpos=right]):before {
+	border-top-right-radius: 0;
+}
+.hl-actions2-inner {
+	position: relative;
+}
+
 /* Details */
 .hl-details.post.reply {
 	opacity: 0.93;
@@ -557,14 +603,19 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	border-radius: 0.25em;
 	pointer-events: none;
 }
+.hl-site-tag.hl-site-tag-active {
+	z-index: 1;
+}
 .hl-site-tag.hl-site-tag-active>.hl-site-tag-bg {
 	display: block;
 }
-.hl-site-tag-bg[data-hl-site-tag-pos=above] {
+.hl-site-tag[data-hl-actions-vpos=above]>.hl-site-tag-bg,
+.hl-site-tag[data-hl-actions-vpos=above]>.hl-site-tag-bg:after {
 	border-top-left-radius: 0;
 	border-top-right-radius: 0;
 }
-.hl-site-tag-bg[data-hl-site-tag-pos=below] {
+.hl-site-tag[data-hl-actions-vpos=below]>.hl-site-tag-bg,
+.hl-site-tag[data-hl-actions-vpos=below]>.hl-site-tag-bg:after {
 	border-bottom-left-radius: 0;
 	border-bottom-right-radius: 0;
 }
