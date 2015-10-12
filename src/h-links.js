@@ -1480,9 +1480,24 @@
 			return frag;
 		};
 		var button = function (url, domain) {
-			var button = $.link(url, "hl-link-events hl-site-tag", button_text(domain));
+			var button = $.link(url, "hl-link-events hl-site-tag" + Theme.get()),
+				text = $.node("span", "hl-site-tag-text", button_text(domain));
+			$.add(button, text);
 			button.setAttribute("data-hl-link-events", "gallery_fetch");
 			return button;
+		};
+		var button_get_inner = function (button) {
+			return ((button = button.firstChild) !== null && button.tagName === "SPAN") ? button : null;
+		};
+		var update_button_text = function (button, domain) {
+			if ((button = button_get_inner(button)) !== null) {
+				button.textContent = button_text(domain);
+			}
+		};
+		var mark_button_text = function (button, text) {
+			if ((button = button_get_inner(button)) !== null) {
+				button.textContent = button.textContent.replace(/\]\s*$/, text + "]");
+			}
 		};
 		var button_text = function (domain) {
 			var d = domain_info[domain];
@@ -1524,6 +1539,9 @@
 			},
 			create_rating_stars: create_rating_stars,
 			button: button,
+			button_get_inner: button_get_inner,
+			update_button_text: update_button_text,
+			mark_button_text: mark_button_text,
 			button_text: button_text,
 			format_date: format_date,
 			create_actions: create_actions
@@ -3608,7 +3626,7 @@
 						link.href = Helper.change_url_domain(link.href, domain_info[domain].g_domain);
 						if (button !== null) {
 							button.href = link.href;
-							button.textContent = UI.button_text(domain);
+							UI.update_button_text(button, domain);
 						}
 					}
 				}
@@ -3623,7 +3641,7 @@
 				hl = Filter.check(link, data);
 				if (hl[0] !== Filter.None) {
 					c = (hl[0] === Filter.Good) ? config.filter.good_tag_marker : config.filter.bad_tag_marker;
-					button.textContent = button.textContent.replace(/\]\s*$/, c + "]");
+					UI.mark_button_text(button, c);
 					Filter.highlight_tag(button, link, hl);
 				}
 				change_link_events(button, "gallery_toggle_actions");
@@ -4678,7 +4696,7 @@
 	var Filter = (function () {
 
 		// Private
-		var filters = null,
+		var active_filters = null,
 			regex_default_flags = "colors:#EE2200;",
 			good_values = [ "", "true", "yes" ],
 			Status = { None: 0, Bad: -1, Good: 1 },
@@ -5007,14 +5025,16 @@
 			}
 		};
 		var init_filters = function () {
-			filters = config.filter.enabled ? parse(config.filter.filters) : [];
+			active_filters = config.filter.enabled ? parse(config.filter.filters, 0) : [];
 		};
 
 		// Public
-		var parse = function (input) {
+		var parse = function (input, start_priority) {
 			var filters = [],
 				lines = (input || "").split("\n"),
 				i, pos, pos2, flags, line, regex;
+
+			if (start_priority === undefined) start_priority = (active_filters === null ? 0 : active_filters.length);
 
 			for (i = 0; i < lines.length; ++i) {
 				line = lines[i].trim();
@@ -5036,7 +5056,8 @@
 
 					if (regex !== null) {
 						flags = parse_flags((pos < line.length) ? line.substr(pos) : regex_default_flags);
-						filters.push(new Filter(regex, flags, filters.length));
+						filters.push(new Filter(regex, flags, start_priority));
+						++start_priority;
 					}
 				}
 				else if (line[0] !== "#") {
@@ -5050,25 +5071,26 @@
 					}
 					regex = new RegExp(Helper.regex_escape(regex), "ig");
 
-					filters.push(new Filter(regex, flags, filters.length));
+					filters.push(new Filter(regex, flags, start_priority));
+					++start_priority;
 				}
 			}
 
 			return filters;
 		};
 		var highlight = function (type, node, data, input_state, results, extras) {
-			if (filters === null) init_filters();
+			if (active_filters === null) init_filters();
 
 			var no_extras = true,
-				filters_temp = filters,
+				filters = active_filters,
 				category = Helper.category(data.category).short,
 				info, matches, text, frag, segment, cache_type, bad, c, i, t, n1, n2;
 
 			if (extras && extras.length > 0) {
-				filters_temp = filters_temp.concat(extras);
+				filters = filters.concat(extras);
 				no_extras = false;
 			}
-			if (filters_temp.length === 0) {
+			if (filters.length === 0) {
 				return Status.None;
 			}
 
@@ -5100,7 +5122,7 @@
 			}
 
 			// Check filters
-			info = check_multiple(type, text, filters_temp, category);
+			info = check_multiple(type, text, filters, category);
 			if (!info.any) {
 				if (cache_type !== undefined) {
 					if ((c = cache_type[category]) === undefined) {
@@ -5203,7 +5225,10 @@
 			get_style(filter_data[1].tags);
 
 			// Apply styles
-			if (color !== null || background !== null || underline !== null) {
+			if (
+				(color !== null || background !== null || underline !== null) &&
+				(node = UI.button_get_inner(node)) !== null
+			) {
 				n1 = $.node("span", "hl-filter-text");
 				n2 = $.node("span", "hl-filter-text-inner");
 				while ((n = node.firstChild) !== null) {
@@ -5215,15 +5240,15 @@
 			}
 		};
 		var check = function (titlenode, data, extras) {
-			if (filters === null) init_filters();
+			if (active_filters === null) init_filters();
 
-			var filters_temp = filters,
+			var filters = active_filters,
 				status = Status.None,
 				category = Helper.category(data.category).short,
 				str, tags, result, i, info;
 
 			if (extras && extras.length > 0) {
-				filters_temp = filters_temp.concat(extras);
+				filters = filters.concat(extras);
 			}
 
 			result = {
@@ -5233,10 +5258,10 @@
 			};
 
 			// Title
-			if (filters_temp.length > 0) {
+			if (filters.length > 0) {
 				// Uploader
 				if ((str = data.uploader)) {
-					info = check_multiple("uploader", str, filters_temp, category);
+					info = check_multiple("uploader", str, filters, category);
 					if (info.any) {
 						append_match_datas(info, result.uploader);
 						if (info.bad) {
@@ -5251,7 +5276,7 @@
 				// Tags
 				if ((tags = data.tags) && tags.length > 0) {
 					for (i = 0; i < tags.length; ++i) {
-						info = check_multiple("tags", tags[i], filters_temp, category);
+						info = check_multiple("tags", tags[i], filters, category);
 						if (info.any) {
 							append_match_datas(info, result.tags);
 							if (info.bad) {
@@ -6050,7 +6075,7 @@
 			}
 		};
 		var load_filters = function () {
-			custom_filters = Filter.parse(settings.custom_filters);
+			custom_filters = Filter.parse(settings.custom_filters, undefined);
 		};
 
 		var on_option_change = {
@@ -7021,12 +7046,17 @@
 
 		var fix_broken_external_linkification = function (node, event_links) {
 			// Somehow one of the links gets cloned, and then they all get wrapped inside another link
-			var next = node.nextSibling,
-				fix = [],
+			var fix = [],
+				n = node.nextSibling,
 				link, events, i, ii;
 
-			if (next !== null && next.tagName === "A" && next.classList.contains("hl-linkified")) {
-				$.remove(next);
+			if (n !== null && n.tagName === "A" && n.classList.contains("hl-linkified")) {
+				$.remove(n);
+			}
+
+			n = node.previousSibling;
+			if (n !== null && n.tagName === "A" && n.classList.contains("hl-site-tag")) {
+				$.remove(n);
 			}
 
 			for (i = 0, ii = event_links.length; i < ii; ++i) {
@@ -7147,8 +7177,7 @@
 					node = nodes[j];
 					if (node.tagName === "A") {
 						if (node.classList.contains("linkify")) {
-							ns = $$("a.hl-link-events", node);
-							if (ns.length > 0) {
+							if ((ns = $$("a.hl-link-events", node)).length > 0) {
 								fix_broken_external_linkification(node, ns);
 							}
 						}
