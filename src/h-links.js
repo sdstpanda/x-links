@@ -1487,7 +1487,7 @@
 			return button;
 		};
 		var button_get_inner = function (button) {
-			return ((button = button.firstChild) !== null && button.tagName === "SPAN") ? button : null;
+			return ((button = button.lastChild) !== null && button.tagName === "SPAN") ? button : null;
 		};
 		var update_button_text = function (button, domain) {
 			if ((button = button_get_inner(button)) !== null) {
@@ -1513,7 +1513,9 @@
 		var gallery_toggle_actions = function (event) {
 			if ($.is_left_mouse(event) && config.actions.enabled) {
 				var actions = Helper.get_actions_from_link(this, true),
-					data, link, id;
+					closed = true,
+					cls, data, link, id, n;
+
 				if (actions === null) {
 					if (
 						(link = Helper.get_link_from_tag_button(this)) !== null &&
@@ -1522,11 +1524,22 @@
 						(data = Database.get(id[0], id[1])) !== null
 					) {
 						UI.create_actions(data, link);
+						closed = false;
+						if ((n = $(".hl-site-tag-bg", this)) === null) {
+							$.before(this, this.firstChild, n = $.node("div", "hl-site-tag-bg hl-hover-shadow" + Theme.get()));
+							Theme.bg(n);
+						}
 					}
 				}
 				else {
-					actions.classList.toggle("hl-actions-hidden");
+					closed = actions.classList.toggle("hl-actions-hidden");
 				}
+
+				cls = "hl-site-tag-active";
+				if (closed === this.classList.contains(cls)) {
+					this.classList.toggle(cls);
+				}
+
 				event.preventDefault();
 			}
 		};
@@ -3694,21 +3707,23 @@
 				setup_post_exsauce(post);
 			}
 
-			// Collapse info if it's an inline
-			nodes = $$(".hl-exsauce-results", post);
-			for (i = 0, ii = nodes.length; i < ii; ++i) {
-				nodes[i].classList.add("hl-exsauce-results-hidden");
+			if (post.classList.contains("hl-post-linkified")) {
+				// Collapse info if it's an inline
+				nodes = $$(".hl-exsauce-results:not(.hl-exsauce-results-hidden)", post);
+				for (i = 0, ii = nodes.length; i < ii; ++i) {
+					nodes[i].classList.add("hl-exsauce-results-hidden");
+				}
+				nodes = $$(".hl-actions:not(.hl-actions-hidden)", post);
+				for (i = 0, ii = nodes.length; i < ii; ++i) {
+					nodes[i].classList.add("hl-actions-hidden");
+				}
+				nodes = $$(".hl-site-tag.hl-site-tag-active", post);
+				for (i = 0, ii = nodes.length; i < ii; ++i) {
+					nodes[i].classList.remove("hl-site-tag-active");
+				}
 			}
-			nodes = $$(".hl-actions", post);
-			for (i = 0, ii = nodes.length; i < ii; ++i) {
-				nodes[i].classList.add("hl-actions-hidden");
-			}
-
-			// Content
-			if (
-				!post.classList.contains("hl-post-linkified") &&
-				(post_body = Post.get_text_body(post)) !== null
-			) {
+			else if ((post_body = Post.get_text_body(post)) !== null) {
+				// Content
 				re_url.lastIndex = 0;
 				if (!Config.linkify || re_url.test(post_body.innerHTML)) {
 					links = [];
@@ -5324,8 +5339,14 @@
 
 		// Private
 		var current = "light",
-			current_get = " hl-theme";
+			current_get = " hl-theme",
+			post_bg = "transparent";
 
+		var to_hex2 = function (n) {
+			n = n.toString(16);
+			if (n.length < 2) n = "0" + n;
+			return n;
+		};
 		var detect = function () {
 			var doc_el = d.documentElement,
 				body = d.body,
@@ -5359,32 +5380,49 @@
 
 			if (color[3] === 0) return null;
 
-			return (color[0] + color[1] + color[2] < 384) ? "dark" : "light";
+			return [
+				(color[0] + color[1] + color[2] < 384) ? "dark" : "light",
+				"#" + to_hex2(colors[1][0]) + to_hex2(colors[1][1]) + to_hex2(colors[1][2])
+			];
 		};
 		var update = function (change_nodes) {
 			var new_theme = detect();
-			if (new_theme !== null && new_theme !== current) {
-				if (change_nodes) update_nodes(new_theme);
-				current = new_theme;
-				current_get = (current === "light" ? " hl-theme" : " hl-theme hl-theme-dark");
+			if (new_theme !== null) {
+				if (new_theme[0] !== current) {
+					if (change_nodes) update_nodes(new_theme);
+					current = new_theme[0];
+					current_get = (current === "light" ? " hl-theme" : " hl-theme hl-theme-dark");
+				}
+				if (new_theme[1] !== post_bg) {
+					post_bg = new_theme[1];
+					if (change_nodes) update_nodes_bg();
+				}
 				return true;
 			}
 			return false;
 		};
 		var update_nodes = function (new_theme) {
 			var nodes = $$("hl-theme"),
+				ii = nodes.length,
 				cls, i;
 			if (new_theme === "light") {
 				cls = "hl-theme-" + current;
-				for (i = 0; i < nodes.length; ++i) {
-					nodes.classList.remove(cls);
+				for (i = 0; i < ii; ++i) {
+					nodes[i].classList.remove(cls);
 				}
 			}
 			else {
 				cls = "hl-theme-" + new_theme;
-				for (i = 0; i < nodes.length; ++i) {
-					nodes.classList.add(cls);
+				for (i = 0; i < ii; ++i) {
+					nodes[i].classList.add(cls);
 				}
+			}
+		};
+		var update_nodes_bg = function () {
+			var nodes = $$("hl-theme-post-bg"),
+				i, ii;
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				nodes[i].style.backgroundColor = post_bg;
 			}
 		};
 
@@ -5425,6 +5463,10 @@
 		};
 		var get = function () {
 			return current_get;
+		};
+		var bg = function (node) {
+			node.classList.add("hl-theme-post-bg");
+			node.style.backgroundColor = post_bg;
 		};
 		var apply = function (node) {
 			if (current !== "light") {
@@ -5487,6 +5529,7 @@
 		return {
 			ready: ready,
 			get: get,
+			bg: bg,
 			apply: apply,
 			get_computed_style: get_computed_style,
 			parse_css_color: parse_css_color

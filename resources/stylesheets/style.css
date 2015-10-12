@@ -547,6 +547,41 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	text-decoration: none !important;
 	position: relative;
 }
+.hl-site-tag-bg {
+	display: none;
+	position: absolute;
+	left: -0.25em;
+	top: -0.25em;
+	bottom: -0.25em;
+	right: -0.25em;
+	border-radius: 0.25em;
+	pointer-events: none;
+}
+.hl-site-tag.hl-site-tag-active>.hl-site-tag-bg {
+	display: block;
+}
+.hl-site-tag-bg[data-hl-site-tag-pos=above] {
+	border-top-left-radius: 0;
+	border-top-right-radius: 0;
+}
+.hl-site-tag-bg[data-hl-site-tag-pos=below] {
+	border-bottom-left-radius: 0;
+	border-bottom-right-radius: 0;
+}
+.hl-site-tag-bg:after {
+	content: "";
+	display: block;
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	right: 0;
+	border-radius: 0.25em;
+	background-color: rgba(0,0,0,0.05);
+}
+.hl-site-tag-bg.hl-theme-dark:after {
+	background-color: rgba(255,255,255,0.05);
+}
 .hl-site-tag-text {
 	position: relative;
 }
