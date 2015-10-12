@@ -702,7 +702,7 @@
 		};
 
 		var post_selector = {
-			"4chan": ".postContainer:not(.hl-fake-post)",
+			"4chan": ".postContainer:not(.hl-fake-post),.post.inlined:not(.hl-fake-post),#quote-preview",
 			"foolz": "article:not(.backlink_container)",
 			"fuuka": ".content>div[id],.content>table",
 			"tinyboard": ".post:not(.hl-fake-post)"
@@ -723,6 +723,8 @@
 			"4chan": function (node) {
 				while ((node = node.parentNode) !== null) {
 					if (node.classList.contains("postContainer")) return node;
+					// 4chan-inline
+					if (node.classList.contains("post") && (node.classList.contains("inlined") || node.id === "quote-preview")) return node;
 				}
 				return null;
 			},
@@ -7251,6 +7253,7 @@
 			}
 			else {
 				$.on(d.body, "DOMNodeInserted", on_body_node_add);
+				$.on(d.body, "DOMNodeRemoved", on_body_node_remove);
 			}
 
 			HeaderBar.ready();
@@ -7266,6 +7269,17 @@
 			on_body_observe([{
 				target: node.parentNode,
 				addedNodes: [ node ],
+				removedNodes: [],
+				nextSibling: node.nextSibling,
+				previousSibling: node.previousSibling
+			}]);
+		};
+		var on_body_node_remove = function (event) {
+			var node = event.target;
+			on_body_observe([{
+				target: node.parentNode,
+				addedNodes: [],
+				removedNodes: [ node ],
 				nextSibling: node.nextSibling,
 				previousSibling: node.previousSibling
 			}]);
@@ -7273,26 +7287,28 @@
 		var on_body_observe = function (records) {
 			var post_list = [],
 				reload_all = false,
+				is_4chan = (Config.mode === "4chan"),
 				nodes, node, ns, e, i, ii, j, jj;
 
 			for (i = 0, ii = records.length; i < ii; ++i) {
 				e = records[i];
+				nodes = e.removedNodes;
+				if (nodes && nodes.length > 0) {
+					// Removed posts
+					check_removed_nodes(nodes);
+				}
+
 				nodes = e.addedNodes;
 				if (!nodes) continue;
 
-				// Look for posts
+				// Find posts
 				for (j = 0, jj = nodes.length; j < jj; ++j) {
 					node = nodes[j];
-					if (node.id === "toggleMsgBtn" && Config.mode === "4chan") {
-						// Reload every single post because 4chan's inline script messed it all up
-						// This seems to be some sort of timing issue where 4chan-inline replaces the body contents of EVERY SINGLE POST on ready()
-						reload_all = true;
-					}
-					else if (node.nodeType === Node.ELEMENT_NODE) {
+					if (node.nodeType === Node.ELEMENT_NODE) {
 						if (Post.is_post(node)) {
 							post_list.push(node);
 						}
-						else if (node.classList.contains("thread")) {
+						else if (is_post_group_container(node)) {
 							ns = Post.get_all_posts(node);
 							if (ns.length > 0) {
 								$.push_many(post_list, ns);
@@ -7301,29 +7317,43 @@
 					}
 				}
 
-				// 4chan X specific hacks.
-				if (Config.fourchanx3) {
-					// detect when source links are added.
-					if (
-						e.target.classList.contains("fileText") &&
-						e.previousSibling &&
-						e.previousSibling.classList &&
-						e.previousSibling.classList.contains("file-info")
-					) {
-						node = Post.get_post_container(e.target);
-						if (node !== null) {
-							post_list.push(node);
+				if (is_4chan) {
+					// 4chan-x conflicts
+					if (Config.mode_ext.fourchanx3) {
+						// Source links
+						if (
+							e.target.classList.contains("fileText") &&
+							e.previousSibling &&
+							e.previousSibling.classList &&
+							e.previousSibling.classList.contains("file-info")
+						) {
+							node = Post.get_post_container(e.target);
+							if (node !== null) {
+								post_list.push(node);
+							}
+						}
+
+						// 4chan-x linkification conflicts
+						for (j = 0, jj = nodes.length; j < jj; ++j) {
+							node = nodes[j];
+							if (
+								node.tagName === "A" &&
+								node.classList.contains("linkify") &&
+								(ns = $$("a.hl-link-events", node)).length > 0
+							) {
+								fix_broken_external_linkification(node, ns);
+							}
 						}
 					}
-				}
-
-				// Detect 4chan X's linkification muck-ups
-				for (j = 0, jj = nodes.length; j < jj; ++j) {
-					node = nodes[j];
-					if (node.tagName === "A") {
-						if (node.classList.contains("linkify")) {
-							if ((ns = $$("a.hl-link-events", node)).length > 0) {
-								fix_broken_external_linkification(node, ns);
+					else {
+						// 4chan-inline conflicts
+						if (!reload_all && e.target.classList.contains("navLinks")) {
+							for (j = 0, jj = nodes.length; j < jj; ++j) {
+								if (nodes[j].classList && nodes[j].classList.contains("thread-stats")) {
+									// Reload every single post because 4chan's inline script messed it all up
+									// This seems to be some sort of timing issue where 4chan-inline replaces the body contents of EVERY SINGLE POST on ready()
+									reload_all = true;
+								}
 							}
 						}
 					}
@@ -7336,6 +7366,26 @@
 			if (reload_all) {
 				reload_all_posts();
 			}
+		};
+		var check_removed_nodes = function (nodes) {
+			var node, ns, i, ii, j, jj;
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				node = nodes[i];
+				if (node.nodeType === Node.ELEMENT_NODE) {
+					if (Post.is_post(node)) {
+						UI.cleanup_post_removed(node);
+					}
+					else if (is_post_group_container(node)) {
+						ns = Post.get_all_posts(node);
+						for (j = 0, jj = ns.length; j < jj; ++j) {
+							UI.cleanup_post_removed(ns[j]);
+						}
+					}
+				}
+			}
+		};
+		var is_post_group_container = function (node) {
+			return node.id === "qp" || node.classList.contains("thread") || node.classList.contains("inline");
 		};
 
 		// Public
