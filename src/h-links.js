@@ -1265,26 +1265,26 @@
 			Popup.hovering(content);
 			return content;
 		};
-		var create_actions2 = function (data, link, index) {
+		var create_actions = function (data, link, index) {
 			var theme = Theme.get(),
 				domain = Helper.get_domain(link.href),
 				g_domain = domain_info[domain].g_domain,
 				gid = data.gid,
 				token = data.token,
 				type = data.type,
-				actions = $.node("div", "hl-actions2 hl-hover-shadow" + theme),
+				actions = $.node("div", "hl-actions hl-hover-shadow" + theme),
 				n1, n2, n3;
 
-			$.add(actions, n1 = $.node("div", "hl-actions2-inner" + theme));
-			$.add(n1, n2 = $.node("div", "hl-actions2-table" + theme));
+			$.add(actions, n1 = $.node("div", "hl-actions-inner" + theme));
+			$.add(n1, n2 = $.node("div", "hl-actions-table" + theme));
 
 			var gen_entry = function (container, label, url, text) {
 				var n1, n2, n3;
-				$.add(container, n1 = $.node("div", "hl-actions2-table-row" + theme));
-				$.add(n1, n2 = $.node("div", "hl-actions2-table-cell" + theme));
-				if (label !== null) $.add(n2, $.node("div", "hl-actions2-table-header", label));
-				$.add(n1, n2 = $.node("div", "hl-actions2-table-cell" + theme));
-				$.add(n2, n3 = $.link(url, "hl-actions2-option" + theme, text));
+				$.add(container, n1 = $.node("div", "hl-actions-table-row" + theme));
+				$.add(n1, n2 = $.node("div", "hl-actions-table-cell" + theme));
+				if (label !== null) $.add(n2, $.node("div", "hl-actions-table-header", label));
+				$.add(n1, n2 = $.node("div", "hl-actions-table-cell" + theme));
+				$.add(n2, n3 = $.link(url, "hl-actions-option" + theme, text));
 				$.on(n3, "click", $.bind(on_actions_link_click, n3, actions, index));
 				return n3;
 			};
@@ -1482,7 +1482,7 @@
 				ns[i].classList.remove("hl-site-tag-active");
 			}
 
-			actions.classList.add("hl-actions2-hidden");
+			actions.classList.add("hl-actions-hidden");
 			deactivate_actions(index);
 		};
 		var update_actions_position = function (actions, tag, tag_bg, de_rect, xpos, ypos) {
@@ -1680,7 +1680,7 @@
 					// Show
 					actions = actions_nodes[index];
 					if (actions !== undefined) {
-						actions.classList.remove("hl-actions2-hidden");
+						actions.classList.remove("hl-actions-hidden");
 						Popup.hovering(actions);
 						activate_actions(actions, index);
 					}
@@ -1692,7 +1692,7 @@
 							Database.valid_namespace(id[0]) &&
 							(data = Database.get(id[0], id[1])) !== null
 						) {
-							actions = create_actions2(data, link, index);
+							actions = create_actions(data, link, index);
 							actions_nodes[index] = actions;
 							activate_actions(actions, index);
 						}
