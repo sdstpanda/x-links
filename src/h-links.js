@@ -110,10 +110,6 @@
 				"Enabled", "Generate gallery actions for links",
 				"Gallery Actions"
 			],
-			[ "show_by_default", false,
-				"Show by default", "Show gallery actions by default",
-				"Show by Default"
-			],
 		],
 		sauce: [
 			[ "enabled", true,
@@ -1269,62 +1265,6 @@
 			Popup.hovering(content);
 			return content;
 		};
-		var create_actions = function (data, link) {
-			var domain = Helper.get_domain(link.href),
-				theme = Theme.get(),
-				type = data.type,
-				gid = data.gid,
-				di = domain_info[domain],
-				container, n1, n2;
-
-			container = $.node("div", "hl-actions" + theme);
-			container.setAttribute("data-hl-id", type + "_" + gid);
-
-			$.add(container, n1 = $.node("div", "hl-actions-info"));
-			$.add(n1, $.node("span", "hl-actions-text", data.category));
-			$.add(n1, $.node("span", "hl-actions-sep", "|"));
-			$.add(n1, $.node("span", "hl-actions-text", data.file_count + " files"));
-			$.add(n1, $.node("span", "hl-actions-sep", "|"));
-			$.add(n1, $.node("span", "hl-actions-label", "View on:"));
-
-			if (type === "ehentai") {
-				$.add(n1, $.link(CreateURL.to_gallery(data, domains.ehentai), "hl-actions-link", "e-hentai"));
-				$.add(n1, $.link(CreateURL.to_gallery(data, domains.exhentai), "hl-actions-link", "exhentai"));
-
-				$.add(n1, $.node("span", "hl-actions-sep", "|"));
-				$.add(n1, $.node("span", "hl-actions-label", "Uploader:"));
-
-				$.add(n1, n2 = $.link(CreateURL.to_uploader(data, domain), "hl-actions-link", data.uploader));
-				Filter.highlight("uploader", n2, data, Filter.None);
-
-				$.add(n1, $.node("span", "hl-actions-sep", "|"));
-
-				$.add(n1, $.link("http://" + domains.gehentai + "/stats.php?gid=" + gid + "&t=" + data.token, "hl-actions-link", "Stats"));
-			}
-			else if (type === "nhentai") {
-				$.add(n1, $.link(CreateURL.to_gallery(data, domain), "hl-actions-link", "nhentai"));
-			}
-			else if (type === "hitomi") {
-				$.add(n1, $.link(CreateURL.to_gallery(data, domain), "hl-actions-link", "hitomi.la"));
-			}
-
-			$.add(container, n1 = $.node("div", "hl-actions-tag-block"));
-			$.add(n1, $.node("strong", "hl-actions-tag-block-label", "Tags:"));
-			$.add(n1, n2 = $.node("span", "hl-actions-tags hl-tags"));
-			n2.setAttribute("data-hl-id", type + "_" + gid);
-			$.add(n2, create_tags_best(di !== undefined ? di.g_domain : domains.exhentai, data));
-
-			// Insert
-			n1 = link.nextSibling;
-			if (n1 !== null && n1.tagName === "BR") {
-				container.classList.add("hl-actions-hide-br");
-			}
-			n1 = link.parentNode;
-			if (n1 !== null) $.after(n1, link, container);
-
-			// Done
-			return container;
-		};
 		var create_actions2 = function (data, link, index) {
 			var theme = Theme.get(),
 				domain = Helper.get_domain(link.href),
@@ -1818,7 +1758,6 @@
 			mark_button_text: mark_button_text,
 			button_text: button_text,
 			format_date: format_date,
-			create_actions: create_actions,
 			cleanup_post: cleanup_post,
 			cleanup_post_removed: cleanup_post_removed
 		};
@@ -3920,11 +3859,6 @@
 					Filter.highlight_tag(button, link, hl);
 				}
 				change_link_events(button, "gallery_toggle_actions");
-			}
-
-			// Actions
-			if (config.actions.show_by_default) {
-				UI.create_actions(data, link);
 			}
 		};
 		var format_links_error = function (links, error) {
