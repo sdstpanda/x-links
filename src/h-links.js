@@ -1612,6 +1612,13 @@
 				}
 			}
 		};
+		var create_tag_bg = function () {
+			var tag_bg = $.node("div", "hl-site-tag-bg hl-hover-shadow" + Theme.get()),
+				inner = $.node("div", "hl-site-tag-bg-inner" + Theme.get());
+			Theme.bg(inner);
+			$.add(tag_bg, inner);
+			return tag_bg;
+		};
 
 		// Public
 		var create_rating_stars = function (rating) {
@@ -1676,8 +1683,7 @@
 					// Create bg
 					tag_bg = $(".hl-site-tag-bg", this);
 					if (tag_bg === null) {
-						$.before(this, this.firstChild, tag_bg = $.node("div", "hl-site-tag-bg hl-hover-shadow" + Theme.get()));
-						Theme.bg(tag_bg);
+						$.before(this, this.firstChild, tag_bg = create_tag_bg());
 					}
 
 					// Show
