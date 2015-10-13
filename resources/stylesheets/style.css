@@ -725,18 +725,18 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	box-sizing: border-box;
 	-moz-box-sizing: border-box;
 }
-div.hl-popup-content.post.reply.post_wrapper {
-	position: relative !important;
-	display: block !important;
-	padding: 1em !important;
-	margin: 0 !important;
-	width: 100% !important;
-	border: none !important;
-	box-sizing: border-box !important;
-	-moz-box-sizing: border-box !important;
-	position: relative !important;
-	border-radius: 0.5em !important;
-	overflow: visible !important;
+.hl-popup-content {
+	position: relative;
+	display: block;
+	padding: 1em;
+	margin: 0;
+	width: 100%;
+	border: none;
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	position: relative;
+	border-radius: 0.5em;
+	overflow: visible;
 }
 
 .hl-popup-table {
