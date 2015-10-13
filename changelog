@@ -1,5 +1,13 @@
 ﻿master
 
+1.0.10
+- dnsev-h
+  + Fixed some features not working when using the 4chan-inline extension
+  + Fixed links not being able to have titles if automatic processing is disabled
+  + Fixed a bug causing gallery details to sometimes flicker
+  + Made custom filters in the Easy List have greater priority than the standard filters
+  + Changed how gallery actions are displayed; they share less redundant information with gallery details now
+
 1.0.9.1
 - dnsev-h
   + Fixed a bug related to filter caching preventing the easy list from being opened
