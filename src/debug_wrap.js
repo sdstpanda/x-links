@@ -7,8 +7,11 @@
 
 	// begin_debug
 
+	var timing = function () { return 0; };
+
 	var wrap_setup_simple = function () {
 		var error_node = null;
+
 		var format_stack = function (stack) {
 			var output = "",
 				line, i, ii;
@@ -61,10 +64,47 @@
 	};
 
 	var wrap_setup = function () {
-		var error_node = null;
-		var function_names = [];
-		var total_counter = 0;
-		var function_counters = {};
+		var error_node = null,
+			function_names = [],
+			total_counter = 0,
+			function_counters = {},
+			timing_init = timing();
+
+		var set_timeout_0ms = (function () {
+			var callbacks = {},
+				origin = window.location.protocol + "//" + window.location.host;
+
+			var random_gen = function (count) {
+				var s = "",
+					i;
+
+				for (i = 0; i < count; ++i) s += ("" + Math.random()).replace(/\./, "");
+
+				return s;
+			};
+
+			window.addEventListener("message", function (event) {
+				if (event.origin === origin && event.data !== null && typeof(event.data) === "object") {
+					var key = event.data.set_timeout_0ms;
+					if (key in callbacks) {
+						callbacks[key].call(null);
+						delete callbacks[key];
+					}
+				}
+			}, false);
+
+			var fn = function (callback) {
+				var key = random_gen(4);
+				callbacks[key] = callback;
+				window.postMessage({ set_timeout_0ms: key }, origin);
+				return key;
+			};
+			fn.clear = function (key) {
+				delete callbacks[key];
+			};
+			return fn;
+		})();
+
 		var format_stack = function (stack) {
 			var output = "",
 				line, i, ii;
@@ -102,36 +142,29 @@
 			console.log("Exception:", exception);
 		};
 
-		Function.prototype._w = function (fn_index) {
-			var fn = this;
-			return function () {
-				++total_counter;
-				if (fn_index in function_counters) {
-					++function_counters[fn_index];
-				}
-				else {
-					function_counters[fn_index] = 1;
-				}
+		var increase_counter = function (fn_index) {
+			++total_counter;
+			if (fn_index in function_counters) {
+				++function_counters[fn_index];
+			}
+			else {
+				function_counters[fn_index] = 1;
 
-				try {
-					return fn.apply(this, arguments);
+				if (log_calls_timer === null) {
+					log_calls_timer = set_timeout_0ms(log_calls);
 				}
-				catch (e) {
-					log(e);
-					throw e;
-				}
-			};
+			}
 		};
 
-		// Performance checking loop
-		var check_interval_index = 0;
-		setInterval(function () {
-			++check_interval_index;
-			if (total_counter === 0) return;
+		var log_calls_timer = null;
+		var log_calls = function () {
+			log_calls_timer = null;
 
-			var keys = Object.keys(function_counters),
+			// Sort keys by name
+			var time_diff = timing() - timing_init,
+				keys = Object.keys(function_counters),
 				sortable = [],
-				i;
+				count, i;
 
 			for (i = 0; i < keys.length; ++i) {
 				sortable.push([ function_counters[keys[i]], parseInt(keys[i], 10) ]);
@@ -149,13 +182,35 @@
 				sortable[i] = function_names[sortable[i][1]] + ": " + sortable[i][0];
 			}
 
-			console.log("========================================");
-			console.log("Debug Function Call Counter:", "Init + " + check_interval_index + "s: " + total_counter + " calls");
-			console.log("Debug Function Call Counter:", sortable);
-			console.log("========================================");
+			count = total_counter;
 			total_counter = 0;
 			function_counters = {};
-		}, 1000);
+
+			if (time_diff >= 10000) {
+				time_diff = (time_diff / 1000).toFixed(1) + "s";
+			}
+			else {
+				time_diff = time_diff.toFixed(0) + "ms";
+			}
+
+			// Log
+			console.log("[Debug Function Call Counter] Init+" + time_diff + ": call_count=" + count + ";", sortable);
+		};
+
+		Function.prototype._w = function (fn_index) {
+			var fn = this;
+			return function () {
+				increase_counter(fn_index);
+
+				try {
+					return fn.apply(this, arguments);
+				}
+				catch (e) {
+					log(e);
+					throw e;
+				}
+			};
+		};
 	};
 
 	var stringify_function = function (fn, indent) {
@@ -235,9 +290,9 @@
 
 					// Position
 					if (!simple) {
-						function_name_pos = c.indexOf("var function_names = [];");
+						function_name_pos = c.indexOf("function_names = []");
 						if (function_name_pos >= 0) {
-							function_name_pos += output.length + before.length + ("var function_names = ").length;
+							function_name_pos += output.length + before.length + ("function_names = ").length;
 						}
 					}
 				}
