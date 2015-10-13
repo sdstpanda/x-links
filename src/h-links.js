@@ -1580,6 +1580,8 @@
 			}
 		};
 		var deactivate_actions = function (index) {
+			if (actions_nodes_active[index] === undefined) return;
+
 			delete actions_nodes_active[index];
 			if (--actions_nodes_active_count === 0) {
 				$.off(window, "resize", on_window_resize);
