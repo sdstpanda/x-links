@@ -2528,6 +2528,7 @@
 					}
 					else {
 						Database.set_error("ehentai", gid, err, data !== null);
+						Database.set_error2([ "ehentai", "gallery", gid, token ], err, data !== null);
 					}
 					if (last) {
 						Linkifier.check_incomplete("ehentai");
@@ -2536,11 +2537,18 @@
 			);
 		};
 		var ehentai_queue_gallery_page = function (gid, page_token, page) {
+			gid = parseInt(gid, 10);
 			Request.queue("ehentai_page",
-				[ parseInt(gid, 10), page_token, parseInt(page, 10) ],
-				function (err, data) {
+				[ gid, page_token, page ],
+				function (err, data, last) {
 					if (err === null) {
 						ehentai_queue_gallery(data.gid, data.token);
+					}
+					else {
+						Database.set_error2([ "ehentai", "page", gid, page_token, page ], err, data !== null);
+					}
+					if (last) {
+						Linkifier.check_incomplete("ehentai");
 					}
 				}
 			);
@@ -2581,6 +2589,7 @@
 					}
 					else {
 						Database.set_error("nhentai", gid, err, data !== null);
+						Database.set_error2([ "nhentai", "page", gid ], err, data !== null);
 					}
 				}
 			);
@@ -2595,6 +2604,7 @@
 					}
 					else {
 						Database.set_error("hitomi", gid, err, data !== null);
+						Database.set_error2([ "hitomi", "page", gid ], err, data !== null);
 					}
 				}
 			);
@@ -2861,7 +2871,8 @@
 				ehentai: {},
 				nhentai: {},
 				hitomi: {}
-			};
+			},
+			errors2 = {};
 
 		// Public
 		var valid_namespace = function (namespace) {
@@ -2897,6 +2908,30 @@
 			var v = errors[namespace][gid];
 			return v === undefined ? null : v;
 		};
+		var set_error2 = function (id_list, error) { // , cache
+			var v = errors2,
+				vn, i, ii, id;
+			for (i = 0, ii = id_list.length - 1; i < ii; ++i) {
+				id = id_list[i];
+				vn = v[id];
+				if (vn !== undefined) {
+					v = vn;
+				}
+				else {
+					v[id] = v = {};
+				}
+			}
+			v[id_list[i]] = error;
+		};
+		var get_error2 = function (id_list) { // , cache
+			var v = errors2,
+				i, ii;
+			for (i = 0, ii = id_list.length; i < ii; ++i) {
+				v = v[id_list[i]];
+				if (v === undefined) return null;
+			}
+			return v;
+		};
 
 		// Exports
 		return {
@@ -2905,7 +2940,9 @@
 			set: set,
 			set_nocache: set_nocache,
 			set_error: set_error,
-			get_error: get_error
+			get_error: get_error,
+			set_error2: set_error2,
+			get_error2: get_error2
 		};
 
 	})();
