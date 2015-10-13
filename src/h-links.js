@@ -3888,14 +3888,19 @@
 					post_links = Post.get_body_links(post_body);
 					for (i = 0, ii = post_links.length; i < ii; ++i) {
 						link = post_links[i];
-						re_url.lastIndex = 0;
-						if (re_url.test(link.href)) {
-							link.classList.add("hl-linkified");
-							link.classList.add("hl-linkified-gallery");
-							link.target = "_blank";
-							link.rel = "noreferrer";
-							link.setAttribute("data-hl-linkified-status", "unprocessed");
-							links.push(link);
+						if (link.classList.contains("hl-site-tag")) {
+							$.remove(link);
+						}
+						else {
+							re_url.lastIndex = 0;
+							if (re_url.test(link.href)) {
+								link.classList.add("hl-linkified");
+								link.classList.add("hl-linkified-gallery");
+								link.target = "_blank";
+								link.rel = "noreferrer";
+								link.setAttribute("data-hl-linkified-status", "unprocessed");
+								links.push(link);
+							}
 						}
 					}
 
