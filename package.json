@@ -36,6 +36,8 @@
 			"https://8ch.net/*",
 			"http://desustorage.org/*",
 			"https://desustorage.org/*",
+			"http://fgts.jp/*",
+			"https://fgts.jp/*",
 			"http://boards.38chan.net/*"
 		],
 		"gm_permissions": [

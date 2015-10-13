@@ -4945,7 +4945,7 @@
 				Module.is_4chan = true;
 				Module.is_4chan_x3 = d.documentElement.classList.contains("fourchan-x");
 			}
-			else if (domain === "desustorage.org" || domain === "archive.moe") {
+			else if (domain === "desustorage.org" || domain === "fgts.jp") {
 				if (d.doctype.publicId) {
 					Module.mode = "fuuka";
 					Module.is_fuuka = true;
