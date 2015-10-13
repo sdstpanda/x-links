@@ -373,6 +373,7 @@
 				while ((n = node.firstChild) !== null) {
 					par.insertBefore(n, next);
 				}
+				par.removeChild(node);
 			}
 		};
 
@@ -5824,7 +5825,7 @@
 			get_computed_style: get_computed_style,
 			parse_css_color: parse_css_color
 		};
-		
+
 		return Module;
 
 	})();
