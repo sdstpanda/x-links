@@ -338,24 +338,24 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 }
 
 /* Details */
-.hl-details.post.reply {
+.hl-details {
 	opacity: 0.93;
-	display: block !important;
-	font-size: inherit !important;
-	position: fixed !important;
-	z-index: 994 !important;
-	padding: 0.5em !important;
-	margin: 0 !important;
-	border-radius: 0.5em !important;
-	text-align: center !important;
-	width: 60% !important;
-	min-width: 600px !important;
-	box-sizing: border-box !important;
-	-moz-box-sizing: border-box !important;
-	overflow: visible !important;
+	display: block;
+	font-size: inherit;
+	position: fixed;
+	z-index: 994;
+	padding: 0.5em;
+	margin: 0;
+	border-radius: 0.5em;
+	text-align: center;
+	width: 60%;
+	min-width: 600px;
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	overflow: visible;
 }
-.hl-details.hl-details-hidden.post.reply {
-	display: none !important;
+.hl-details.hl-details-hidden {
+	display: none;
 }
 
 .hl-details-thumbnail {

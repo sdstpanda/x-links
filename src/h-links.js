@@ -1175,8 +1175,9 @@
 				content, n1, n2, n3;
 
 			// Body
-			content = $.node("div", "hl-details hl-hover-shadow post reply post_wrapper hl-fake-post" + theme);
+			content = $.node("div", "hl-details hl-hover-shadow" + theme);
 			content.setAttribute("data-hl-id", data.type + "_" + data.gid);
+			Theme.bg(content);
 
 			// Image
 			$.add(content, n1 = $.node("div", "hl-details-thumbnail" + theme));
