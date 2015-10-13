@@ -1775,7 +1775,7 @@
 				index = nodes[i].getAttribute("hl-actions-index") || "";
 				n = actions_nodes[index];
 				if (n !== undefined) {
-					$.remove(n);
+					if (n.parentNode !== null) $.remove(n);
 					delete actions_nodes[index];
 					deactivate_actions(index);
 				}
