@@ -3805,7 +3805,9 @@
 				Database.valid_namespace(info.site)
 			) {
 				check_link(link, info);
-				check_incomplete();
+				if (check_incomplete()) {
+					API.run_request_queue();
+				}
 			}
 		};
 		var check_link = function (link, info) {
