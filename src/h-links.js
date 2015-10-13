@@ -1098,8 +1098,13 @@
 			actions_close_timeout = null,
 			actions_close_on_click = true;
 
+		var gallery_link_events_data = {
+			link: null,
+			mouse_x: 0,
+			mouse_y: 0
+		};
 		var gallery_link_events = {
-			mouseover: function () {
+			mouseover: function (event) {
 				var full_id = Helper.get_id_from_node_full(this),
 					details = details_nodes[full_id],
 					domain, data, id;
@@ -1120,6 +1125,12 @@
 				}
 
 				details.classList.remove("hl-details-hidden");
+
+				gallery_link_events_data.link = this;
+				gallery_link_events_data.mouse_x = event.clientX;
+				gallery_link_events_data.mouse_y = event.clientY;
+
+				update_details_position(details, this, event.clientX, event.clientY);
 			},
 			mouseout: function () {
 				var full_id = Helper.get_id_from_node_full(this),
@@ -1142,29 +1153,18 @@
 				}
 
 				details.classList.add("hl-details-hidden");
+
+				gallery_link_events_data.link = null;
 			},
 			mousemove: function (event) {
 				var details = details_nodes[Helper.get_id_from_node_full(this)];
 
 				if (details === undefined) return;
 
-				var w = window,
-					de = d.documentElement,
-					x = event.clientX,
-					y = event.clientY,
-					win_width = (de.clientWidth || w.innerWidth || 0),
-					win_height = (de.clientHeight || w.innerHeight || 0),
-					rect = details.getBoundingClientRect(),
-					link_rect = this.getBoundingClientRect(),
-					is_low = (link_rect.top + link_rect.height / 2 >= win_height / 2), // (y >= win_height / 2)
-					offset = 20;
+				gallery_link_events_data.mouse_x = event.clientX;
+				gallery_link_events_data.mouse_y = event.clientY;
 
-				x += rect.width * (config.details.hover_position || 0);
-				x = Math.max(1, Math.min(win_width - rect.width - 1, x));
-				y += is_low ? -(rect.height + offset) : offset;
-
-				details.style.left = x + "px";
-				details.style.top = y + "px";
+				update_details_position(details, this, event.clientX, event.clientY);
 			}
 		};
 
@@ -1423,6 +1423,7 @@
 		};
 		var update_full = function (data) {
 			var domain = domains.exhentai,
+				full_id = data.type + "_" + data.gid,
 				g_domain, tagfrag, nodes, link, tags, last, i, ii, j, jj, n, f;
 
 			if (data.removed === true) {
@@ -1436,7 +1437,7 @@
 				}
 			}
 
-			nodes = $$(".hl-tags[data-hl-id='" + data.type + "_" + data.gid + "']");
+			nodes = $$(".hl-tags[data-hl-id='" + full_id + "']");
 			ii = nodes.length;
 
 			if (ii === 0 || Object.keys(data.tags_ns).length === 0) return;
@@ -1469,8 +1470,45 @@
 
 				if (last) break;
 			}
+
+			// Reposition any open details
+			if (
+				(n = details_nodes[full_id]) !== undefined &&
+				(link = gallery_link_events_data.link) !== null &&
+				Helper.get_id_from_node_full(link) === full_id
+			) {
+				update_details_position(n, link, gallery_link_events_data.mouse_x, gallery_link_events_data.mouse_y);
+			}
 		};
-		var position_actions = function (actions, tag, tag_bg, de_rect, xpos, ypos) {
+		var update_details_position = function (details, link, mouse_x, mouse_y) {
+			var w = window,
+				de = d.documentElement,
+				win_width = (de.clientWidth || w.innerWidth || 0),
+				win_height = (de.clientHeight || w.innerHeight || 0),
+				rect = details.getBoundingClientRect(),
+				link_rect = link.getBoundingClientRect(),
+				is_low = (link_rect.top + link_rect.height / 2 >= win_height / 2), // (mouse_y >= win_height / 2)
+				offset = 20;
+
+			mouse_x += rect.width * (config.details.hover_position || 0);
+			mouse_x = Math.max(1, Math.min(win_width - rect.width - 1, mouse_x));
+			mouse_y += is_low ? -(rect.height + offset) : offset;
+
+			details.style.left = mouse_x + "px";
+			details.style.top = mouse_y + "px";
+		};
+		var close_actions = function (actions, index) {
+			var ns = $$(".hl-site-tag.hl-site-tag-active[hl-site-tag-index='" + index + "']"),
+				i, ii;
+
+			for (i = 0, ii = ns.length; i < ii; ++i) {
+				ns[i].classList.remove("hl-site-tag-active");
+			}
+
+			actions.classList.add("hl-actions2-hidden");
+			deactivate_actions(index);
+		};
+		var update_actions_position = function (actions, tag, tag_bg, de_rect, xpos, ypos) {
 			// Position
 			var rect = tag_bg.getBoundingClientRect(),
 				below, right, x, y;
@@ -1524,17 +1562,6 @@
 			tag.setAttribute("data-hl-actions-vpos", ypos);
 			actions.setAttribute("data-hl-actions-vpos", ypos);
 		};
-		var close_actions = function (actions, index) {
-			var ns = $$(".hl-site-tag.hl-site-tag-active[hl-site-tag-index='" + index + "']"),
-				i, ii;
-
-			for (i = 0, ii = ns.length; i < ii; ++i) {
-				ns[i].classList.remove("hl-site-tag-active");
-			}
-
-			actions.classList.add("hl-actions2-hidden");
-			deactivate_actions(index);
-		};
 		var update_active_actions_position = function () {
 			var de_rect = d.documentElement.getBoundingClientRect(),
 				index, actions, tag, tag_bg, xpos, ypos;
@@ -1547,7 +1574,7 @@
 				) {
 					xpos = actions.getAttribute("data-hl-actions-hpos");
 					ypos = actions.getAttribute("data-hl-actions-vpos");
-					position_actions(actions, tag, tag_bg, de_rect, xpos, ypos);
+					update_actions_position(actions, tag, tag_bg, de_rect, xpos, ypos);
 				}
 			}
 		};
@@ -1687,7 +1714,7 @@
 					}
 
 					// Position
-					position_actions(actions, this, tag_bg, d.documentElement.getBoundingClientRect());
+					update_actions_position(actions, this, tag_bg, d.documentElement.getBoundingClientRect());
 				}
 				else {
 					// Hide
