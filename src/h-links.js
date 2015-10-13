@@ -4938,20 +4938,27 @@
 			if (update) save();
 		};
 		var ready = function () {
-			var domain = Helper.get_domain(window.location.href),
-				cl;
+			var domain = Helper.get_domain(window.location.href);
 
 			if (domain === "4chan.org") {
-				cl = d.documentElement.classList;
-				Module.mode_ext.fourchanx3 = cl.contains("fourchan-x");
-				Module.mode_ext.oneechan = cl.contains("oneechan");
+				Module.mode = "4chan";
+				Module.is_4chan = true;
+				Module.is_4chan_x3 = d.documentElement.classList.contains("fourchan-x");
 			}
 			else if (domain === "desustorage.org" || domain === "archive.moe") {
-				Module.mode = d.doctype.publicId ? "fuuka" : "foolz";
+				if (d.doctype.publicId) {
+					Module.mode = "fuuka";
+					Module.is_fuuka = true;
+				}
+				else {
+					Module.mode = "foolz";
+					Module.is_foolz = true;
+				}
 				Module.linkify = false;
 			}
 			else { // assume tinyboard
 				Module.mode = "tinyboard";
+				Module.is_tinyboard = true;
 				Module.linkify = false;
 				if ($("form[name=postcontrols]") === null) return false;
 			}
@@ -4978,10 +4985,11 @@
 		// Exports
 		var Module = {
 			mode: "4chan", // foolz, fuuka, tinyboard
-			mode_ext: {
-				fourchanx3: false,
-				oneechan: false
-			},
+			is_4chan: false,
+			is_4chan_x3: false,
+			is_foolz: false,
+			is_fuuka: false,
+			is_tinyboard: false,
 			linkify: true,
 			storage: storage,
 			init: init,
@@ -7445,7 +7453,7 @@
 
 				if (is_4chan) {
 					// 4chan-x conflicts
-					if (Config.mode_ext.fourchanx3) {
+					if (Config.is_4chan_x3) {
 						// Source links
 						if (
 							e.target.classList.contains("fileText") &&
