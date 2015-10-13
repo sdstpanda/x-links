@@ -582,8 +582,9 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	white-space: nowrap;
 	display: inline-block;
 	margin-right: 0.25em;
-	text-decoration: none !important;
 	position: relative;
+	text-decoration: none !important;
+	outline: none !important;
 }
 .hl-site-tag-bg,
 .hl-site-tag-bg-shadow {
