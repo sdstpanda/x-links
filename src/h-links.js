@@ -685,10 +685,10 @@
 		};
 
 		var post_selector = {
-			"4chan": ".postContainer:not(.hl-fake-post),.post.inlined:not(.hl-fake-post),#quote-preview",
+			"4chan": ".postContainer,.post.inlined,#quote-preview",
 			"foolz": "article:not(.backlink_container)",
 			"fuuka": ".content>div[id],.content>table",
-			"tinyboard": ".post:not(.hl-fake-post)"
+			"tinyboard": ".post"
 		};
 		var post_body_selector = {
 			"4chan": "blockquote",
@@ -5651,7 +5651,7 @@
 				return null;
 			}
 
-			n.className = "post reply post_wrapper hl-fake-post";
+			n.className = "post reply post_wrapper";
 			$.add(body, n);
 
 			color = parse_css_color(get_computed_style(doc_el).backgroundColor);
