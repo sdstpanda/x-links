@@ -631,22 +631,6 @@
 			}
 			return null;
 		};
-		var get_actions_from_link = function (node, is_tag) {
-			// Get
-			if (is_tag) {
-				node = get_link_from_tag_button(node);
-				if (node === null) return null;
-			}
-
-			if (
-				(node = node.nextSibling) !== null &&
-				(node.classList || ((node = node.nextSibling) !== null && node.classList)) &&
-				node.classList.contains("hl-actions")
-			) {
-				return node;
-			}
-			return null;
-		};
 		var get_exresults_from_exsauce = function (node) {
 			var container = Post.get_post_container(node);
 
@@ -677,7 +661,6 @@
 			get_info_from_node: get_info_from_node,
 			get_tag_button_from_link: get_tag_button_from_link,
 			get_link_from_tag_button: get_link_from_tag_button,
-			get_actions_from_link: get_actions_from_link,
 			get_exresults_from_exsauce: get_exresults_from_exsauce
 		};
 
