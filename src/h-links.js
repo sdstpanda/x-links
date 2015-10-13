@@ -1170,7 +1170,7 @@
 		var create_details = function (data, domain) {
 			var g_domain = domain_info[domain].g_domain,
 				category = Helper.category(data.category),
-				theme = Theme.get(),
+				theme = Theme.classes,
 				file_size = (data.total_size / 1024 / 1024).toFixed(2),
 				content, n1, n2, n3;
 
@@ -1270,7 +1270,7 @@
 			return content;
 		};
 		var create_actions = function (data, link, index) {
-			var theme = Theme.get(),
+			var theme = Theme.classes,
 				domain = Helper.get_domain(link.href),
 				g_domain = domain_info[domain].g_domain,
 				gid = data.gid,
@@ -1343,7 +1343,7 @@
 			var tagfrag = d.createDocumentFragment(),
 				domain = data.type,
 				tags = data.tags,
-				theme = Theme.get(),
+				theme = Theme.classes,
 				last = null,
 				tag, link, i, ii;
 
@@ -1365,7 +1365,7 @@
 			var tagfrag = d.createDocumentFragment(),
 				domain = data.type,
 				tags_ns = data.tags_ns,
-				theme = Theme.get(),
+				theme = Theme.classes,
 				tag = null,
 				namespace, namespace_style, tags, link, tf, i, ii;
 
@@ -1426,7 +1426,7 @@
 					(link = $(".hl-details-side-box-visible>.hl-details-side-box-inner", n)) !== null
 				) {
 					link.innerHTML = "";
-					n = $.node("strong", "hl-details-side-box-error" + Theme.get(), "Removed");
+					n = $.node("strong", "hl-details-side-box-error" + Theme.classes, "Removed");
 					link.appendChild(n);
 				}
 			}
@@ -1637,9 +1637,9 @@
 			}
 		};
 		var create_tag_bg = function (parent) {
-			var tag_bg = $.node("div", "hl-site-tag-bg" + Theme.get()),
-				outline = $.node("div", "hl-site-tag-bg-shadow hl-hover-shadow" + Theme.get()),
-				inner = $.node("div", "hl-site-tag-bg-inner" + Theme.get());
+			var tag_bg = $.node("div", "hl-site-tag-bg" + Theme.classes),
+				outline = $.node("div", "hl-site-tag-bg-shadow hl-hover-shadow" + Theme.classes),
+				inner = $.node("div", "hl-site-tag-bg-inner" + Theme.classes);
 
 			Theme.bg(inner);
 
@@ -1668,7 +1668,7 @@
 			return frag;
 		};
 		var button = function (url, domain) {
-			var button = $.link(url, "hl-site-tag" + Theme.get()),
+			var button = $.link(url, "hl-site-tag" + Theme.classes),
 				text = $.node("span", "hl-site-tag-text", button_text(domain));
 			$.add(button, text);
 			return button;
@@ -3137,7 +3137,7 @@
 			var result = Hash.get("sha1", sha1),
 				hover, i, ii;
 
-			hover = $.node("div", "hl-exsauce-hover hl-exsauce-hover-hidden hl-hover-shadow" + Theme.get());
+			hover = $.node("div", "hl-exsauce-hover hl-exsauce-hover-hidden hl-hover-shadow" + Theme.classes);
 			Theme.bg(hover);
 			hover.setAttribute("data-sha1", sha1);
 
@@ -3156,7 +3156,7 @@
 		};
 		var format = function (a, result) {
 			var count = result.length,
-				theme = Theme.get(),
+				theme = Theme.classes,
 				sha1 = a.getAttribute("data-sha1"),
 				index = a.getAttribute("data-hl-image-index") || "",
 				results, link, par, n, i, ii;
@@ -4588,7 +4588,7 @@
 			HeaderBar.insert_menu_link(n);
 		};
 		var open = function () {
-			var theme = Theme.get(),
+			var theme = Theme.classes,
 				n;
 
 			// Config
@@ -4663,7 +4663,7 @@
 			if (n !== null) $.scroll_focus(n);
 		};
 		var open_export = function () {
-			var theme = Theme.get(),
+			var theme = Theme.classes,
 				nodes = {
 					textarea: null
 				},
@@ -5633,7 +5633,6 @@
 
 		// Private
 		var current = "light",
-			current_get = " hl-theme",
 			post_bg = "transparent";
 
 		var to_hex2 = function (n) {
@@ -5685,7 +5684,7 @@
 				if (new_theme[0] !== current) {
 					if (change_nodes) update_nodes(new_theme);
 					current = new_theme[0];
-					current_get = (current === "light" ? " hl-theme" : " hl-theme hl-theme-dark");
+					Theme.classes = (current === "light" ? " hl-theme" : " hl-theme hl-theme-dark");
 				}
 				if (new_theme[1] !== post_bg) {
 					post_bg = new_theme[1];
@@ -5755,9 +5754,6 @@
 				new MutationObserver(on_head_mutate).observe(d.head, { childList: true });
 			}
 		};
-		var get = function () {
-			return current_get;
-		};
 		var bg = function (node) {
 			node.classList.add("hl-theme-post-bg");
 			node.style.backgroundColor = post_bg;
@@ -5820,14 +5816,16 @@
 		};
 
 		// Exports
-		return {
+		var Module =  {
+			classes: " hl-theme",
 			ready: ready,
-			get: get,
 			bg: bg,
 			apply: apply,
 			get_computed_style: get_computed_style,
 			parse_css_color: parse_css_color
 		};
+		
+		return Module;
 
 	})();
 	var EasyList = (function () {
@@ -5886,7 +5884,7 @@
 		};
 		var create = function () {
 			popup = Popup.create("easylist", function (container) {
-				var theme = Theme.get(),
+				var theme = Theme.classes,
 					n1, n2;
 
 				// Overlay
@@ -6485,7 +6483,7 @@
 						err === null &&
 						(tags_container = $(".hl-easylist-item-tags", node)) !== null
 					) {
-						n = create_full_tags(domain, data, Theme.get());
+						n = create_full_tags(domain, data, Theme.classes);
 						tags_container.textContent = "";
 						$.add(tags_container, n[0]);
 
@@ -6532,7 +6530,7 @@
 			queue_timer = null;
 
 			var entries = queue.splice(0, 20),
-				theme = Theme.get(),
+				theme = Theme.classes,
 				i, ii;
 
 			for (i = 0, ii = entries.length; i < ii; ++i) {
@@ -6675,7 +6673,7 @@
 
 		// Public
 		var create = function (class_ns, setup) {
-			var theme = Theme.get(),
+			var theme = Theme.classes,
 				container, list, obj, n1, n2, n3, n4, n5, n6, i, ii, j, jj, v;
 
 			n1 = $.node("div", "hl-popup-overlay hl-" + class_ns + "-popup-overlay" + theme);
@@ -6907,7 +6905,7 @@
 				var n = $(".hl-changelog-content", popup);
 				if (n !== null) {
 					n.innerHTML = "";
-					display(n, Theme.get());
+					display(n, Theme.classes);
 				}
 			}
 		};
@@ -6929,7 +6927,7 @@
 				acquire(on_changelog_get);
 			}
 
-			var theme = Theme.get();
+			var theme = Theme.classes;
 
 			popup = Popup.create("settings", [[{
 				small: true,
