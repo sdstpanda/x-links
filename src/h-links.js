@@ -1325,22 +1325,59 @@
 			// Done
 			return container;
 		};
-		var create_actions2 = function (data, link) {
+		var create_actions2 = function (data, link, index) {
 			var theme = Theme.get(),
-				container = $.node("div", "hl-actions2 hl-hover-shadow" + theme),
-				n1;
+				domain = Helper.get_domain(link.href),
+				g_domain = domain_info[domain].g_domain,
+				gid = data.gid,
+				token = data.token,
+				type = data.type,
+				actions = $.node("div", "hl-actions2 hl-hover-shadow" + theme),
+				n1, n2, n3;
 
-			$.add(container, n1 = $.node("div", "hl-actions2-inner" + theme, "test text"));
+			$.add(actions, n1 = $.node("div", "hl-actions2-inner" + theme));
+			$.add(n1, n2 = $.node("div", "hl-actions2-table" + theme));
 
-			var n2 = create_actions(data, link);
-			$.add(n1, n2);
+			var gen_entry = function (container, label, url, text) {
+				var n1, n2, n3;
+				$.add(container, n1 = $.node("div", "hl-actions2-table-row" + theme));
+				$.add(n1, n2 = $.node("div", "hl-actions2-table-cell" + theme));
+				if (label !== null) $.add(n2, $.node("div", "hl-actions2-table-header", label));
+				$.add(n1, n2 = $.node("div", "hl-actions2-table-cell" + theme));
+				$.add(n2, n3 = $.link(url, "hl-actions2-option" + theme, text));
+				$.on(n3, "click", $.bind(on_actions_link_click, n3, actions, index));
+				return n3;
+			};
 
-			$.on(container, "click", on_actions_click);
-			Theme.bg(container);
-			Popup.hovering(container);
+			if (type === "ehentai") {
+				gen_entry(n2, "View on:", CreateURL.to_gallery(data, domains.ehentai), "E-Hentai");
+				gen_entry(n2, null, CreateURL.to_gallery(data, domains.exhentai), "ExHentai");
+
+				n3 = gen_entry(n2, "Uploader:", CreateURL.to_uploader(data, domain), data.uploader);
+				Filter.highlight("uploader", n3, data, Filter.None);
+
+				gen_entry(n2, "Download:", "http://" + g_domain + "/gallerytorrents.php?gid=" + gid + "&t=" + token, "Torrent (" + data.torrent_count + ")");
+				gen_entry(n2, null, "http://" + g_domain + "/archiver.php?gid=" + gid + "&t=" + token + "&or=" + data.archiver_key, "Archiver");
+				n3 = gen_entry(n2, null, "http://" + g_domain + "/hathdler.php?gid=" + gid + "&t=" + token, "via H@H");
+				n3.removeAttribute("target");
+
+				gen_entry(n2, "Other", "http://" + g_domain + "/gallerypopups.php?gid=" + gid + "&t=" + token + "&act=addfav", "Favorite");
+				gen_entry(n2, null, "http://" + domains.gehentai + "/stats.php?gid=" + gid + "&t=" + token, "Stats");
+			}
+			else if (type === "nhentai") {
+				gen_entry(n2, "View on:", CreateURL.to_gallery(data, domain), "nhentai.net");
+			}
+			else if (type === "hitomi") {
+				gen_entry(n2, "View on:", CreateURL.to_gallery(data, domain), "hitomi.la");
+			}
+
+			// Prepare
+			$.on(actions, "click", on_actions_click);
+			Theme.bg(actions);
+			Popup.hovering(actions);
 
 			// Done
-			return container;
+			return actions;
 		};
 		var pad = function (n, sep) {
 			return (n < 10 ? "0" : "") + n + sep;
@@ -1498,7 +1535,7 @@
 			details.style.top = mouse_y + "px";
 		};
 		var close_actions = function (actions, index) {
-			var ns = $$(".hl-site-tag.hl-site-tag-active[hl-site-tag-index='" + index + "']"),
+			var ns = $$(".hl-site-tag.hl-site-tag-active[hl-actions-index='" + index + "']"),
 				i, ii;
 
 			for (i = 0, ii = ns.length; i < ii; ++i) {
@@ -1569,7 +1606,7 @@
 			for (index in actions_nodes_active) {
 				actions = actions_nodes_active[index];
 				if (
-					(tag = $(".hl-site-tag.hl-site-tag-active[hl-site-tag-index='" + index + "']")) !== null &&
+					(tag = $(".hl-site-tag.hl-site-tag-active[hl-actions-index='" + index + "']")) !== null &&
 					(tag_bg = $(".hl-site-tag-bg", tag)) !== null
 				) {
 					xpos = actions.getAttribute("data-hl-actions-hpos");
@@ -1603,11 +1640,13 @@
 			update_active_actions_position();
 		};
 		var on_document_click = function (event) {
-			if ($.is_left_mouse(event) && actions_close_timeout === null) {
+			if (actions_close_timeout === null) {
 				if (actions_close_on_click) {
-					// Close
-					for (var index in actions_nodes_active) {
-						close_actions(actions_nodes_active[index], index);
+					if ($.is_left_mouse(event)) {
+						// Close
+						for (var index in actions_nodes_active) {
+							close_actions(actions_nodes_active[index], index);
+						}
 					}
 				}
 				else {
@@ -1619,6 +1658,15 @@
 		var on_actions_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.stopPropagation();
+			}
+		};
+		var on_actions_link_click = function (actions, index, event) {
+			if ($.is_left_mouse(event)) {
+				event.stopPropagation();
+
+				if (actions_close_on_click) {
+					close_actions(actions, index);
+				}
 			}
 		};
 
@@ -1672,13 +1720,13 @@
 			if ($.is_left_mouse(event) && config.actions.enabled) {
 				event.preventDefault();
 
-				var index = this.getAttribute("hl-site-tag-index"),
+				var index = this.getAttribute("hl-actions-index"),
 					actions, tag_bg, data, link, id;
 
 				if (!index) {
 					index = "" + actions_nodes_index;
 					++actions_nodes_index;
-					this.setAttribute("hl-site-tag-index", index);
+					this.setAttribute("hl-actions-index", index);
 				}
 
 				if (this.classList.toggle("hl-site-tag-active")) {
@@ -1704,7 +1752,7 @@
 							Database.valid_namespace(id[0]) &&
 							(data = Database.get(id[0], id[1])) !== null
 						) {
-							actions = create_actions2(data, link);
+							actions = create_actions2(data, link, index);
 							actions_nodes[index] = actions;
 							activate_actions(actions, index);
 						}
@@ -1736,18 +1784,18 @@
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				nodes[i].classList.add("hl-actions-hidden");
 			}
-			nodes = $$(".hl-site-tag[hl-site-tag-index]", post);
+			nodes = $$(".hl-site-tag[hl-actions-index]", post);
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				n = nodes[i];
 				n.classList.remove("hl-site-tag-active");
-				n.removeAttribute("hl-site-tag-index");
+				n.removeAttribute("hl-actions-index");
 			}
 		};
 		var cleanup_post_removed = function (post) {
 			var nodes, index, n, i, ii;
-			nodes = $$(".hl-site-tag[hl-site-tag-index]", post);
+			nodes = $$(".hl-site-tag[hl-actions-index]", post);
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
-				index = nodes[i].getAttribute("hl-site-tag-index") || "";
+				index = nodes[i].getAttribute("hl-actions-index") || "";
 				n = actions_nodes[index];
 				if (n !== undefined) {
 					$.remove(n);
