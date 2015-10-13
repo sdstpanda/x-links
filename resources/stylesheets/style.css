@@ -297,7 +297,7 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 }
 .hl-actions-inner {
 	position: relative;
-	padding: 0.25em 0;
+	padding: 0.5em 0;
 }
 
 .hl-actions-table {
@@ -305,7 +305,6 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 }
 .hl-actions-table-row {
 	display: table-row;
-	cursor: pointer;
 }
 .hl-actions-table-cell {
 	display: table-cell;
@@ -317,14 +316,18 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	white-space: nowrap;
 	text-align: right;
 }
+.hl-actions-table-sep {
+	height: 0.25em;
+}
 
 .hl-actions-table-header {
 	font-weight: bold;
-	padding: 0.125em 0.25em;
-	color: inherit !important;
+	padding: 0 0.25em 0 1em;
+	line-height: 1.325em;
 }
 .hl-actions-option {
-	padding: 0.125em 1em 0.125em 0.25em;
+	padding: 0 1em 0 0.25em;
+	line-height: 1.325em;
 	display: block;
 }
 .hl-actions-option:hover {
@@ -561,7 +564,8 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 .hl-tag.hl-filter-good,
 .hl-site-tag.hl-filter-good,
 .hl-linkified-gallery.hl-filter-good,
-.hl-details-uploader.hl-filter-good {
+.hl-details-uploader.hl-filter-good,
+.hl-actions-uploader.hl-filter-good {
 	font-weight: bold;
 }
 

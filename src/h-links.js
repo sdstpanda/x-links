@@ -1291,20 +1291,33 @@
 				$.on(n3, "click", $.bind(on_actions_link_click, n3, actions, index));
 				return n3;
 			};
+			var gen_sep = function (container) {
+				var n1, n2;
+				$.add(container, n1 = $.node("div", "hl-actions-table-row" + theme));
+				$.add(n1, n2 = $.node("div", "hl-actions-table-cell" + theme));
+				$.add(n2, $.node("div", "hl-actions-table-sep"));
+			};
 
 			if (type === "ehentai") {
 				gen_entry(n2, "View on:", CreateURL.to_gallery(data, domains.ehentai), "E-Hentai");
 				gen_entry(n2, null, CreateURL.to_gallery(data, domains.exhentai), "ExHentai");
 
+				gen_sep(n2);
+
 				n3 = gen_entry(n2, "Uploader:", CreateURL.to_uploader(data, domain), data.uploader);
+				n3.classList.add("hl-actions-uploader");
 				Filter.highlight("uploader", n3, data, Filter.None);
+
+				gen_sep(n2);
 
 				gen_entry(n2, "Download:", "http://" + g_domain + "/gallerytorrents.php?gid=" + gid + "&t=" + token, "Torrent (" + data.torrent_count + ")");
 				gen_entry(n2, null, "http://" + g_domain + "/archiver.php?gid=" + gid + "&t=" + token + "&or=" + data.archiver_key, "Archiver");
 				n3 = gen_entry(n2, null, "http://" + g_domain + "/hathdler.php?gid=" + gid + "&t=" + token, "via H@H");
 				n3.removeAttribute("target");
 
-				gen_entry(n2, "Other", "http://" + g_domain + "/gallerypopups.php?gid=" + gid + "&t=" + token + "&act=addfav", "Favorite");
+				gen_sep(n2);
+
+				gen_entry(n2, "Other:", "http://" + g_domain + "/gallerypopups.php?gid=" + gid + "&t=" + token + "&act=addfav", "Favorite");
 				gen_entry(n2, null, "http://" + domains.gehentai + "/stats.php?gid=" + gid + "&t=" + token, "Stats");
 			}
 			else if (type === "nhentai") {
