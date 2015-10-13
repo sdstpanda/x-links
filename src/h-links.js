@@ -110,6 +110,10 @@
 				"Enabled", "Generate gallery actions for links",
 				"Gallery Actions"
 			],
+			[ "close_on_click", true,
+				"Close on click", "Close gallery actions after clicking anywhere",
+				null
+			],
 		],
 		sauce: [
 			[ "enabled", true,
@@ -1091,8 +1095,7 @@
 			actions_nodes_active = {},
 			actions_nodes_active_count = 0,
 			actions_nodes_index = 0,
-			actions_close_timeout = null,
-			actions_close_on_click = true;
+			actions_close_timeout = null;
 
 		var gallery_link_events_data = {
 			link: null,
@@ -1581,7 +1584,7 @@
 		};
 		var on_document_click = function (event) {
 			if (actions_close_timeout === null) {
-				if (actions_close_on_click) {
+				if (config.actions.close_on_click) {
 					if ($.is_left_mouse(event)) {
 						// Close
 						for (var index in actions_nodes_active) {
@@ -1604,7 +1607,7 @@
 			if ($.is_left_mouse(event)) {
 				event.stopPropagation();
 
-				if (actions_close_on_click) {
+				if (config.actions.close_on_click) {
 					close_actions(actions, index);
 				}
 			}
