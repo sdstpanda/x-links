@@ -3969,7 +3969,7 @@
 					sauce.setAttribute("data-hl-filename", file_info.name);
 					sauce.setAttribute("data-hl-image-index", index);
 					sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
-					if (/^\.jpe?g$/i.test(file_info.type) && Config.mode !== "tinyboard") {
+					if (/^\.jpe?g$/i.test(file_info.type) && !Config.is_tinyboard) {
 						if (browser.is_firefox) {
 							event = "exsauce_fetch_similarity";
 							sauce.title = "This will only work on colored images";
@@ -6753,7 +6753,7 @@
 		var hovering = function (node) {
 			if (hovering_container === null) {
 				hovering_container = $.node("div", "hl-hovering-elements");
-				if (Config.mode === "tinyboard") {
+				if (Config.is_tinyboard) {
 					// Fix some poor choices of selectors (div.post:last) that infinity uses
 					$.prepend(d.body, hovering_container);
 				}
@@ -7215,7 +7215,7 @@
 				first_mobile = true,
 				container, flags, nodes, node, par, pre, next, cl, i, ii, n1, t;
 
-			if (Config.mode === "4chan") {
+			if (Config.is_4chan) {
 				if (mode === "main") {
 					nodes = $$("#navtopright,#navbotright");
 					for (i = 0, ii = nodes.length; i < ii; ++i) {
@@ -7247,19 +7247,19 @@
 					}
 				}
 			}
-			else if (Config.mode === "foolz") {
+			else if (Config.is_foolz) {
 				nodes = $$(".letters");
 				for (i = 0, ii = nodes.length; i < ii; ++i) {
 					locations.push(nodes[i], Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets);
 				}
 			}
-			else if (Config.mode === "fuuka") {
+			else if (Config.is_fuuka) {
 				node = $("body>div:first-child");
 				if (node !== null) {
 					locations.push(node, Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets);
 				}
 			}
-			else if (Config.mode === "tinyboard") {
+			else if (Config.is_tinyboard) {
 				nodes = $$(".boardlist");
 				for (i = 0, ii = nodes.length; i < ii; ++i) {
 					locations.push(nodes[i], Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets | Flags.LowerCase);
@@ -7421,7 +7421,6 @@
 		var on_body_observe = function (records) {
 			var post_list = [],
 				reload_all = false,
-				is_4chan = (Config.mode === "4chan"),
 				nodes, node, ns, e, i, ii, j, jj;
 
 			for (i = 0, ii = records.length; i < ii; ++i) {
@@ -7451,7 +7450,7 @@
 					}
 				}
 
-				if (is_4chan) {
+				if (Config.is_4chan) {
 					// 4chan-x conflicts
 					if (Config.is_4chan_x3) {
 						// Source links
