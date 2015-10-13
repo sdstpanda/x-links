@@ -22,7 +22,7 @@
 		RES_ICON_X64 = RESOURCES + "/images/icon64.png";
 
 
-	var pkg = require(PACKAGE_JSON);
+	var pkg = null;
 
 
 	var mimes = {
@@ -31,6 +31,12 @@
 		".jpeg": "image/jpeg",
 		".css": "text/css",
 		"": "text/plain"
+	};
+
+
+	var read_json = function (path) {
+		var input = fs.readFileSync(path, "utf8");
+		return JSON.parse(input);
 	};
 
 
@@ -119,9 +125,10 @@
 	};
 
 
+	var full_debug = (process.argv[2] === "full" || process.argv[3] === "full");
 	var full_build = function () {
 		build(OUTPUT_MAIN, pkg.version, "", false, false);
-		build(OUTPUT_DEBUG, pkg.version + ".0xDB", " (debug)", true, true);
+		build(OUTPUT_DEBUG, pkg.version + ".0xDB", " (debug)", true, full_debug ? true : "simple");
 
 		process.stdout.write("Build successful!\n");
 
@@ -140,6 +147,7 @@
 	};
 	var full_build_safe = function () {
 		try {
+			pkg = read_json(PACKAGE_JSON);
 			full_build();
 		}
 		catch (e) {
@@ -153,7 +161,6 @@
 	if (process.argv[2] === "dev") {
 		var check = function (curr, prev) {
 			if (curr.mtime > prev.mtime) {
-				pkg = require(PACKAGE_JSON);
 				full_build_safe();
 			}
 		};
