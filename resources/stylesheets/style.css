@@ -254,52 +254,6 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	display: none !important;
 }
 
-/* Actions */
-.hl-actions {
-	display: table;
-	margin: 0.25em 0 0.5em;
-	vertical-align: middle;
-	padding: 0.25em;
-	border-radius: 0.25em;
-	background-color: rgba(0,0,0,0.05);
-}
-.hl-actions.hl-actions-hidden {
-	display: none;
-}
-.hl-actions.hl-theme-dark {
-	background-color: rgba(255,255,255,0.05);
-}
-.hl-actions.hl-actions-hide-br:not(.hl-actions-hidden)+br {
-	display: none;
-}
-
-.hl-actions-info {
-}
-
-.hl-actions-label {
-	font-weight: bold;
-}
-.hl-actions-sep {
-	display: inline-block;
-	margin: 0 0.5em;
-}
-.hl-actions-link {
-	text-decoration: none !important;
-	vertical-align: top;
-	margin: 0 0.375em;
-}
-.hl-actions-link+.hl-actions-link {
-	margin-left: 0;
-}
-
-.hl-actions-tag-block {
-}
-.hl-actions-tag-block-label {
-	margin-right: 0.125em;
-}
-.hl-actions-tags {
-}
-
 /* Actions v2 */
 .hl-actions2 {
 	border-radius: 0.25em;
