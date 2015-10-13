@@ -3934,18 +3934,22 @@
 			}
 		};
 		var check_link = function (link, info) {
-			var obj, lists, list;
+			var type = info.type,
+				obj, unchecked, list, gid;
 
 			if (
 				(obj = incomplete[info.site]) !== undefined &&
-				(lists = obj.unchecked[info.type]) !== undefined
+				(unchecked = obj.unchecked[type]) !== undefined
 			) {
-				list = lists[info.gid];
-				if (list !== undefined) {
+				gid = info.gid;
+				if ((list = unchecked[gid]) !== undefined) {
+					list[1].push(link);
+				}
+				else if ((list = obj.checked[type][gid]) !== undefined) {
 					list[1].push(link);
 				}
 				else {
-					lists[info.gid] = [ info, [ link ] ];
+					unchecked[gid] = [ info, [ link ] ];
 				}
 			}
 		};
