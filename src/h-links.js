@@ -1612,11 +1612,18 @@
 				}
 			}
 		};
-		var create_tag_bg = function () {
-			var tag_bg = $.node("div", "hl-site-tag-bg hl-hover-shadow" + Theme.get()),
+		var create_tag_bg = function (parent) {
+			var tag_bg = $.node("div", "hl-site-tag-bg" + Theme.get()),
+				outline = $.node("div", "hl-site-tag-bg-shadow hl-hover-shadow" + Theme.get()),
 				inner = $.node("div", "hl-site-tag-bg-inner" + Theme.get());
+
 			Theme.bg(inner);
+
 			$.add(tag_bg, inner);
+
+			$.before(parent, parent.firstChild, tag_bg);
+			$.before(parent, parent.firstChild, outline);
+
 			return tag_bg;
 		};
 
@@ -1682,9 +1689,7 @@
 				if (this.classList.toggle("hl-site-tag-active")) {
 					// Create bg
 					tag_bg = $(".hl-site-tag-bg", this);
-					if (tag_bg === null) {
-						$.before(this, this.firstChild, tag_bg = create_tag_bg());
-					}
+					if (tag_bg === null) tag_bg = create_tag_bg(this);
 
 					// Show
 					actions = actions_nodes[index];
