@@ -1540,10 +1540,9 @@
 			return frag;
 		};
 		var button = function (url, domain) {
-			var button = $.link(url, "hl-link-events hl-site-tag" + Theme.get()),
+			var button = $.link(url, "hl-site-tag" + Theme.get()),
 				text = $.node("span", "hl-site-tag-text", button_text(domain));
 			$.add(button, text);
-			button.setAttribute("data-hl-link-events", "gallery_fetch");
 			return button;
 		};
 		var button_get_inner = function (button) {
@@ -3059,7 +3058,6 @@
 						link = Linkifier.create_link(result[i][0]);
 						$.add(results, link);
 						Linkifier.preprocess_link(link, true);
-						Linkifier.apply_link_events(link);
 						if (i < ii - 1) $.add(results, $.node_simple("br"));
 					}
 
@@ -3834,13 +3832,11 @@
 						link = post_links[i];
 						re_url.lastIndex = 0;
 						if (re_url.test(link.href)) {
-							link.classList.add("hl-link-events");
 							link.classList.add("hl-linkified");
 							link.classList.add("hl-linkified-gallery");
 							link.target = "_blank";
 							link.rel = "noreferrer";
 							link.setAttribute("data-hl-linkified-status", "unprocessed");
-							change_link_events(link, "gallery_link");
 							links.push(link);
 						}
 					}
@@ -3858,7 +3854,7 @@
 		};
 		var setup_post_exsauce = function (post) {
 			var index = 0,
-				file_infos, file_info, sauce, i, ii;
+				event, file_infos, file_info, sauce, i, ii;
 
 			// File info
 			file_infos = Post.get_file_info(post);
@@ -3868,25 +3864,28 @@
 
 				// Create if not found
 				sauce = $(".hl-exsauce-link", file_info.options);
-				if (sauce === null && /^\.(png|gif|jpe?g)$/i.test(file_info.type)) {
-					sauce = $.link(file_info.url, "hl-link-events hl-exsauce-link", Sauce.label());
-					sauce.setAttribute("data-hl-link-events", "exsauce_fetch");
+				if (sauce !== null) $.remove(sauce);
+
+				if (/^\.(png|gif|jpe?g)$/i.test(file_info.type)) {
+					event = "exsauce_fetch";
+					sauce = $.link(file_info.url, "hl-exsauce-link", Sauce.label());
 					sauce.setAttribute("data-hl-filename", file_info.name);
 					sauce.setAttribute("data-hl-image-index", index);
 					sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
 					if (/^\.jpe?g$/i.test(file_info.type) && Config.mode !== "tinyboard") {
 						if (browser.is_firefox) {
-							sauce.setAttribute("data-hl-link-events", "exsauce_fetch_similarity");
+							event = "exsauce_fetch_similarity";
 							sauce.title = "This will only work on colored images";
 						}
 						else {
+							event = "exsauce_error";
+							sauce.title = "Reverse Image Search doesn't work for .jpg images because 4chan manipulates them on upload";
 							sauce.classList.add("hl-exsauce-link-disabled");
-							sauce.setAttribute("data-hl-link-events", "exsauce_error");
-							sauce.title = (
-								"Reverse Image Search doesn't work for .jpg images because 4chan manipulates them on upload"
-							);
 						}
 					}
+
+					change_link_events(sauce, event);
+
 					Post.create_image_meta_link(file_info, sauce);
 
 					++index;
@@ -3924,19 +3923,17 @@
 			}
 		};
 		var parse_posts = function (posts) {
-			var check_files_before = (Config.mode === "tinyboard"),
-				post, i, ii;
+			var post, i, ii;
 
 			Debug.timer("process");
 
 			for (i = 0, ii = posts.length; i < ii; ++i) {
 				post = posts[i];
-				parse_post(post);
-				apply_link_events(post, true);
-				if (check_files_before && post.classList.contains("op")) {
-					if ((post = Post.get_op_post_files_container_tinyboard(post)) !== null) {
-						apply_link_events(post, true);
-					}
+				if (post.classList.contains("hl-post-linkified")) {
+					apply_link_events(post, true);
+				}
+				else {
+					parse_post(post);
 				}
 			}
 
@@ -3960,6 +3957,19 @@
 
 				// Timer for next
 				post_queue.timer = setTimeout(dequeue_posts, post_queue.delay);
+			}
+		};
+		var get_link_events = function (node) {
+			return node.getAttribute("data-hl-link-events") || null;
+		};
+		var apply_link_events = function (node, check_children) {
+			var nodes = check_children ? $$("a.hl-link-events", node) : [ node ],
+				events, i, ii;
+
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				node = nodes[i];
+				events = node.getAttribute("data-hl-link-events");
+				set_link_events(node, events);
 			}
 		};
 
@@ -4019,39 +4029,26 @@
 					}
 				}
 
-				node.classList.add("hl-link-events");
 				node.classList.add("hl-linkified");
 				node.classList.add("hl-linkified-gallery");
-				node.setAttribute("data-hl-link-events", "gallery_link");
 				node.setAttribute("data-hl-linkified-status", "processed");
 
 				node.setAttribute("data-hl-info", JSON.stringify(info));
 				node.setAttribute("data-hl-id", info.site + "_" + info.gid);
 
 				button = UI.button(url, info.domain);
+
+				change_link_events(node, "gallery_link");
+				change_link_events(button, "gallery_fetch");
+
 				$.before(par, node, button);
 
 				if (auto_load) check_link(node, info);
 			}
 		};
-		var get_link_events = function (node) {
-			return node.getAttribute("data-hl-link-events") || null;
-		};
-		var apply_link_events = function (node, check_children) {
-			var nodes = check_children ? $$("a.hl-link-events", node) : [ node ],
-				events, i, ii;
-
-			for (i = 0, ii = nodes.length; i < ii; ++i) {
-				node = nodes[i];
-				events = node.getAttribute("data-hl-link-events");
-				set_link_events(node, events);
-			}
-		};
 		var change_link_events = function (node, new_events) {
 			var old_events = node.getAttribute("data-hl-link-events"),
 				events, k;
-
-			if (old_events === new_events) return;
 
 			events = link_events[old_events];
 			if (events) {
@@ -4067,9 +4064,11 @@
 			}
 
 			if (new_events === null) {
+				node.classList.remove("hl-link-events");
 				node.removeAttribute("data-hl-link-events");
 			}
 			else {
+				node.classList.add("hl-link-events");
 				node.setAttribute("data-hl-link-events", new_events);
 				set_link_events(node, new_events);
 			}
@@ -4174,17 +4173,73 @@
 			}
 		};
 
+		var relinkify_posts = function (posts) {
+			var post, links, i, ii, j, jj;
+
+			for (i = 0, ii = posts.length; i < ii; ++i) {
+				post = posts[i];
+				post.classList.remove("hl-post-linkified");
+
+				links = $$(".hl-site-tag", post);
+				for (j = 0, jj = links.length; j < jj; ++j) {
+					$.remove(links[j]);
+				}
+
+				links = $$(".hl-link-events", post);
+				for (j = 0, jj = links.length; j < jj; ++j) {
+					change_link_events(links[j], null);
+				}
+			}
+
+			queue_posts(posts, queue_posts.Flags.Flush | queue_posts.Flags.UseDelay);
+		};
+		var fix_broken_4chanx_linkification = function (node, event_links) {
+			// Somehow one of the links gets cloned, and then they all get wrapped inside another link
+			var fix = [],
+				n = node.nextSibling,
+				link, events, i, ii;
+
+			if (n !== null && n.tagName === "A" && n.classList.contains("hl-linkified")) {
+				$.remove(n);
+			}
+
+			n = node.previousSibling;
+			if (n !== null && n.tagName === "A" && n.classList.contains("hl-site-tag")) {
+				$.remove(n);
+			}
+
+			for (i = 0, ii = event_links.length; i < ii; ++i) {
+				link = event_links[i];
+				events = get_link_events(link);
+				change_link_events(link, null);
+
+				if (link.classList.contains("hl-site-tag")) {
+					$.remove(link);
+				}
+				else if (link.classList.contains("hl-linkified")) {
+					fix.push(link, events);
+				}
+			}
+
+			$.unwrap(node);
+
+			for (i = 0, ii = fix.length; i < ii; i += 2) {
+				link = fix[i];
+				preprocess_link(link, config.general.automatic_processing);
+			}
+		};
+
 		// Exports
 		return {
 			preprocess_link: preprocess_link,
 			queue_posts: queue_posts,
-			get_link_events: get_link_events,
-			apply_link_events: apply_link_events,
 			change_link_events: change_link_events,
 			check_incomplete: check_incomplete,
 			create_link: create_link,
 			get_links: get_links,
 			get_links_formatted: get_links_formatted,
+			relinkify_posts: relinkify_posts,
+			fix_broken_4chanx_linkification: fix_broken_4chanx_linkification,
 			on: on,
 			off: off
 		};
@@ -7167,65 +7222,7 @@
 			if (all_posts_reloaded) return;
 			all_posts_reloaded = true;
 
-			var posts = Post.get_all_posts(d),
-				post, post_body, post_links, link, i, ii, j, jj;
-
-			for (i = 0, ii = posts.length; i < ii; ++i) {
-				post = posts[i];
-				post.classList.remove("hl-post-linkified");
-				if ((post_body = Post.get_text_body(post)) !== null) {
-					post_links = Post.get_body_links(post_body);
-					for (j = 0, jj = post_links.length; j < jj; ++j) {
-						link = post_links[j];
-						if (link.classList.contains("hl-site-tag")) {
-							$.remove(link);
-						}
-						else if (link.classList.contains("hl-linkified")) {
-							link.classList.remove("hl-linkified");
-							Linkifier.change_link_events(link, null);
-						}
-					}
-				}
-			}
-
-			Linkifier.queue_posts(posts, Linkifier.queue_posts.Flags.Flush | Linkifier.queue_posts.Flags.UseDelay);
-		};
-
-		var fix_broken_external_linkification = function (node, event_links) {
-			// Somehow one of the links gets cloned, and then they all get wrapped inside another link
-			var fix = [],
-				n = node.nextSibling,
-				link, events, i, ii;
-
-			if (n !== null && n.tagName === "A" && n.classList.contains("hl-linkified")) {
-				$.remove(n);
-			}
-
-			n = node.previousSibling;
-			if (n !== null && n.tagName === "A" && n.classList.contains("hl-site-tag")) {
-				$.remove(n);
-			}
-
-			for (i = 0, ii = event_links.length; i < ii; ++i) {
-				link = event_links[i];
-				events = Linkifier.get_link_events(link);
-				Linkifier.change_link_events(link, null);
-
-				if (link.classList.contains("hl-site-tag")) {
-					$.remove(link);
-				}
-				else if (link.classList.contains("hl-linkified")) {
-					fix.push(link, events);
-				}
-			}
-
-			$.unwrap(node);
-
-			for (i = 0, ii = fix.length; i < ii; i += 2) {
-				link = fix[i];
-				Linkifier.preprocess_link(link, config.general.automatic_processing);
-				Linkifier.apply_link_events(link, false);
-			}
+			Linkifier.relinkify_posts(Post.get_all_posts(d));
 		};
 
 		var on_ready = function () {
@@ -7339,9 +7336,9 @@
 							if (
 								node.tagName === "A" &&
 								node.classList.contains("linkify") &&
-								(ns = $$("a.hl-link-events", node)).length > 0
+								(ns = $$(".hl-link-events", node)).length > 0
 							) {
-								fix_broken_external_linkification(node, ns);
+								Linkifier.fix_broken_4chanx_linkification(node, ns);
 							}
 						}
 					}
