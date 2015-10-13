@@ -1488,6 +1488,11 @@
 			actions.classList.add("hl-actions-hidden");
 			deactivate_actions(index);
 		};
+		var close_all_actions = function () {
+			for (var index in actions_nodes_active) {
+				close_actions(actions_nodes_active[index], index);
+			}
+		};
 		var update_actions_position = function (actions, tag, tag_bg, de_rect, xpos, ypos) {
 			// Position
 			var rect = tag_bg.getBoundingClientRect(),
@@ -1560,10 +1565,16 @@
 		};
 
 		var activate_actions = function (node, index) {
+			if (config.actions.close_on_click && actions_nodes_active_count !== 0) {
+				close_all_actions();
+			}
+
 			actions_nodes_active[index] = node;
+
+			if (actions_close_timeout !== null) clearTimeout(actions_close_timeout);
+			actions_close_timeout = setTimeout(function () { actions_close_timeout = null; }, 1);
+
 			if (++actions_nodes_active_count === 1) {
-				if (actions_close_timeout !== null) clearTimeout(actions_close_timeout);
-				actions_close_timeout = setTimeout(function () { actions_close_timeout = null; }, 1);
 				$.on(window, "resize", on_window_resize);
 				$.on(d.documentElement, "click", on_document_click);
 			}
@@ -1586,10 +1597,7 @@
 			if (actions_close_timeout === null) {
 				if (config.actions.close_on_click) {
 					if ($.is_left_mouse(event)) {
-						// Close
-						for (var index in actions_nodes_active) {
-							close_actions(actions_nodes_active[index], index);
-						}
+						close_all_actions();
 					}
 				}
 				else {
