@@ -1070,7 +1070,7 @@
 		try {
 			if (GM_xmlhttpRequest && typeof(GM_xmlhttpRequest) === "function") {
 				return function (data) {
-					Debug.log("HttpRequest:", data.method, data.url, data);
+					Debug.log("HttpRequest:", data.method, data.url, { data: data });
 					return GM_xmlhttpRequest(data);
 				};
 			}
@@ -1079,7 +1079,7 @@
 
 		// Fallback
 		return function (data) {
-			Debug.log("HttpRequest:", data.method, data.url, data);
+			Debug.log("HttpRequest:", data.method, data.url, { data: data });
 			var onerror = (data && data.onerror && typeof(data.onerror) === "function") ? data.onerror : null;
 			setTimeout(function () {
 				if (onerror !== null) {
@@ -1936,7 +1936,7 @@
 
 			var error_fn = function (q, names, callbacks, msg) {
 				return function (xhr) {
-					Debug.log("API.request[" + names.join(",") + "] error: " + msg + "; time=" + Debug.timer("apirequest_" + names.join("_")), xhr);
+					Debug.log("API.request[" + names.join(",") + "] error: " + msg + "; time=" + Debug.timer("apirequest_" + names.join("_")), { xhr: xhr });
 
 					var i = 0,
 						ii = callbacks.length - 1;
@@ -2018,7 +2018,6 @@
 
 
 				Debug.timer(timer_name);
-				Debug.log("API.Request[" + names.join(",") + "]", xhr_data);
 				HttpRequest(xhr_data);
 			};
 
