@@ -3136,9 +3136,8 @@
 			var result = Hash.get("sha1", sha1),
 				hover, i, ii;
 
-			hover = $.node("div",
-				"hl-exsauce-hover hl-exsauce-hover-hidden hl-hover-shadow post reply post_wrapper hl-fake-post" + Theme.get()
-			);
+			hover = $.node("div", "hl-exsauce-hover hl-exsauce-hover-hidden hl-hover-shadow" + Theme.get());
+			Theme.bg(hover);
 			hover.setAttribute("data-sha1", sha1);
 
 			if (result !== null && (ii = result.length) > 0) {

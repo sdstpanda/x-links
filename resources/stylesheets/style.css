@@ -238,20 +238,20 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	text-transform: lowercase;
 }
 
-.hl-exsauce-hover.post.reply {
+.hl-exsauce-hover {
 	opacity: 0.93;
-	display: block !important;
-	font-size: inherit !important;
-	position: fixed !important;
-	z-index: 993 !important;
-	padding: 0.5em !important;
-	margin: 0 !important;
-	border-radius: 0.25em !important;
-	width: auto !important;
-	overflow: visible !important;
+	display: block;
+	font-size: inherit;
+	position: fixed;
+	z-index: 993;
+	padding: 0.5em;
+	margin: 0;
+	border-radius: 0.25em;
+	width: auto;
+	overflow: visible;
 }
-.hl-exsauce-hover.hl-exsauce-hover-hidden.post.reply {
-	display: none !important;
+.hl-exsauce-hover.hl-exsauce-hover-hidden {
+	display: none;
 }
 
 /* Actions v2 */
