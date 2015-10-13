@@ -1109,7 +1109,11 @@
 		// Private
 		var details_nodes = {},
 			actions_nodes = {},
-			actions_nodes_index = 0;
+			actions_nodes_active = {},
+			actions_nodes_active_count = 0,
+			actions_nodes_index = 0,
+			actions_close_timeout = null,
+			actions_close_on_click = true;
 
 		var gallery_link_events = {
 			mouseover: function () {
@@ -1348,6 +1352,7 @@
 			var n2 = create_actions(data, link);
 			$.add(n1, n2);
 
+			$.on(container, "click", on_actions_click);
 			Theme.bg(container);
 			Popup.hovering(container);
 
@@ -1482,46 +1487,130 @@
 				if (last) break;
 			}
 		};
-		var position_actions = function (actions, tag, tag_bg, de_rect) {
+		var position_actions = function (actions, tag, tag_bg, de_rect, xpos, ypos) {
 			// Position
-			var win_width = (d.documentElement.clientWidth || window.innerWidth || 0),
-				win_height = (d.documentElement.clientHeight || window.innerHeight || 0),
-				r1 = tag_bg.getBoundingClientRect(),
-				x = r1.left - de_rect.left,
-				y = r1.bottom - de_rect.top,
-				xpos = "right",
-				ypos = "below",
-				r2;
+			var rect = tag_bg.getBoundingClientRect(),
+				below, right, x, y;
 
+			// Positioning
+			if (xpos === "right") {
+				right = true;
+			}
+			else if (xpos === "left") {
+				right = false;
+			}
+			else {
+				right = (rect.left + rect.width / 2 <= (d.documentElement.clientWidth || window.innerWidth || 0) / 2);
+				xpos = right ? "right" : "left";
+			}
+
+			if (ypos === "below") {
+				below = true;
+			}
+			else if (ypos === "above") {
+				below = false;
+			}
+			else {
+				below = (rect.top + rect.height / 2 <= (d.documentElement.clientHeight || window.innerHeight || 0) / 2);
+				ypos = below ? "below" : "above";
+			}
+
+			// Coordinates
 			actions.style.maxWidth = "";
-			if (r1.left + r1.width / 2 > win_width / 2) {
-				// Left
+			if (right) {
+				x = rect.left - de_rect.left;
+			}
+			else {
 				actions.style.left = "0";
-				actions.style.maxWidth = (x + r1.width) + "px";
-				r2 = actions.getBoundingClientRect();
-				x -= (r2.width - r1.width);
-				xpos = "left";
+				actions.style.maxWidth = rect.right + "px";
+				x = rect.right - actions.getBoundingClientRect().width - de_rect.left;
 			}
 
 			actions.style.left = x + "px";
 			tag.setAttribute("data-hl-actions-hpos", xpos);
 			actions.setAttribute("data-hl-actions-hpos", xpos);
 
-			if (r1.top + r1.height / 2 > win_height / 2) {
-				// Above
-				r2 = actions.getBoundingClientRect();
-				y += 0.0625 - r2.height - r1.height;
-				ypos = "above";
+			if (below) {
+				y = rect.bottom - de_rect.top - 0.0625;
 			}
 			else {
-				y -= 0.0625;
+				y = rect.top - actions.getBoundingClientRect().height - de_rect.top + 0.0625;
 			}
 
 			actions.style.top = y + "px";
 			tag.setAttribute("data-hl-actions-vpos", ypos);
 			actions.setAttribute("data-hl-actions-vpos", ypos);
 		};
+		var close_actions = function (actions, index) {
+			var ns = $$(".hl-site-tag.hl-site-tag-active[hl-site-tag-index='" + index + "']"),
+				i, ii;
 
+			for (i = 0, ii = ns.length; i < ii; ++i) {
+				ns[i].classList.remove("hl-site-tag-active");
+			}
+
+			actions.classList.add("hl-actions2-hidden");
+			deactivate_actions(index);
+		};
+		var update_active_actions_position = function () {
+			var de_rect = d.documentElement.getBoundingClientRect(),
+				index, actions, tag, tag_bg, xpos, ypos;
+
+			for (index in actions_nodes_active) {
+				actions = actions_nodes_active[index];
+				if (
+					(tag = $(".hl-site-tag.hl-site-tag-active[hl-site-tag-index='" + index + "']")) !== null &&
+					(tag_bg = $(".hl-site-tag-bg", tag)) !== null
+				) {
+					xpos = actions.getAttribute("data-hl-actions-hpos");
+					ypos = actions.getAttribute("data-hl-actions-vpos");
+					position_actions(actions, tag, tag_bg, de_rect, xpos, ypos);
+				}
+			}
+		};
+
+		var activate_actions = function (node, index) {
+			actions_nodes_active[index] = node;
+			if (++actions_nodes_active_count === 1) {
+				if (actions_close_timeout !== null) clearTimeout(actions_close_timeout);
+				actions_close_timeout = setTimeout(function () { actions_close_timeout = null; }, 1);
+				$.on(window, "resize", on_window_resize);
+				$.on(d.documentElement, "click", on_document_click);
+			}
+		};
+		var deactivate_actions = function (index) {
+			delete actions_nodes_active[index];
+			if (--actions_nodes_active_count === 0) {
+				$.off(window, "resize", on_window_resize);
+				$.off(d.documentElement, "click", on_document_click);
+				if (actions_close_timeout !== null) {
+					clearTimeout(actions_close_timeout);
+					actions_close_timeout = null;
+				}
+			}
+		};
+		var on_window_resize = function () {
+			update_active_actions_position();
+		};
+		var on_document_click = function (event) {
+			if ($.is_left_mouse(event) && actions_close_timeout === null) {
+				if (actions_close_on_click) {
+					// Close
+					for (var index in actions_nodes_active) {
+						close_actions(actions_nodes_active[index], index);
+					}
+				}
+				else {
+					// Re-position
+					setTimeout(update_active_actions_position, 1);
+				}
+			}
+		};
+		var on_actions_click = function (event) {
+			if ($.is_left_mouse(event)) {
+				event.stopPropagation();
+			}
+		};
 
 		// Public
 		var create_rating_stars = function (rating) {
@@ -1594,6 +1683,8 @@
 					actions = actions_nodes[index];
 					if (actions !== undefined) {
 						actions.classList.remove("hl-actions2-hidden");
+						Popup.hovering(actions);
+						activate_actions(actions, index);
 					}
 					else {
 						// Create
@@ -1605,6 +1696,7 @@
 						) {
 							actions = create_actions2(data, link);
 							actions_nodes[index] = actions;
+							activate_actions(actions, index);
 						}
 						else {
 							return;
@@ -1618,7 +1710,7 @@
 					// Hide
 					actions = actions_nodes[index];
 					if (actions !== undefined) {
-						actions.classList.add("hl-actions2-hidden");
+						close_actions(actions, index);
 					}
 				}
 			}
@@ -1650,6 +1742,7 @@
 				if (n !== undefined) {
 					$.remove(n);
 					delete actions_nodes[index];
+					deactivate_actions(index);
 				}
 			}
 		};
@@ -3876,11 +3969,7 @@
 				setup_post_exsauce(post);
 			}
 
-			if (post.classList.contains("hl-post-linkified")) {
-				// Collapse info if it's an inline
-				UI.cleanup_post(post);
-			}
-			else if ((post_body = Post.get_text_body(post)) !== null) {
+			if ((post_body = Post.get_text_body(post)) !== null) {
 				// Content
 				re_url.lastIndex = 0;
 				if (!Config.linkify || re_url.test(post_body.innerHTML)) {
@@ -3923,6 +4012,7 @@
 			for (i = 0, ii = posts.length; i < ii; ++i) {
 				post = posts[i];
 				if (post.classList.contains("hl-post-linkified")) {
+					UI.cleanup_post(post);
 					apply_link_events(post, true);
 				}
 				else {
