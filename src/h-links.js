@@ -1254,8 +1254,8 @@
 			$.add(content, $.node("div", "hl-details-clear"));
 
 			// Full info
-			if (config.details.extended_info && data.type === "ehentai" && !API.data_has_full(data)) {
-				API.ehentai_get_full_info(data.gid, data.token, g_domain, function (err, data) {
+			if (config.details.extended_info && data.type === "ehentai" && !data.full) {
+				API.get_ehentai_gallery_full(g_domain, data, function (err, data) {
 					if (err === null) {
 						update_full(data);
 					}
@@ -1409,7 +1409,7 @@
 			return tagfrag;
 		};
 		var create_tags_best = function (site, data) {
-			if (API.data_has_full(data)) {
+			if (data.full) {
 				for (var k in data.tags_ns) {
 					return create_tags_full(site, data);
 				}
@@ -1817,261 +1817,7 @@
 				characters: "character",
 				artists: "artist",
 				groups: "group"
-			},
-			request_types = {
-				ehentai: [ "ehentai_page", "ehentai_gallery" ],
-				nhentai: [ "nhentai_gallery" ],
-				hitomi: [ "hitomi_gallery" ]
 			};
-
-		var Request = (function () {
-
-			var Queue = {
-				ehentai_gallery: {
-					data: [],
-					callbacks: [],
-					limit: 25,
-					active: false,
-					delays: { okay: 200, fail: 5000 },
-					setup: function (entries) {
-						return {
-							method: "POST",
-							url: "http://" + domains.gehentai + "/api.php",
-							headers: { "Content-Type": "application/json" },
-							data: JSON.stringify({
-								method: "gdata",
-								gidlist: entries
-							})
-						};
-					},
-					response: function (text) {
-						var response = Helper.json_parse_safe(text);
-						return (response !== null && typeof(response) === "object") ? (response.gmetadata || null) : null;
-					}
-				},
-				ehentai_page: {
-					data: [],
-					callbacks: [],
-					limit: 25,
-					active: false,
-					delays: { okay: 200, fail: 5000 },
-					setup: function (entries) {
-						return {
-							method: "POST",
-							url: "http://" + domains.gehentai + "/api.php",
-							headers: { "Content-Type": "application/json" },
-							data: JSON.stringify({
-								method: "gtoken",
-								pagelist: entries
-							})
-						};
-					},
-					response: function (text) {
-						var response = Helper.json_parse_safe(text);
-						return (response !== null && typeof(response) === "object") ? (response.tokenlist || null) : null;
-					}
-				},
-				ehentai_full: {
-					data: [],
-					callbacks: [],
-					limit: 1,
-					active: false,
-					delays: { okay: 200, fail: 5000 },
-					setup: function (entries) {
-						var e = entries[0];
-						return {
-							method: "GET",
-							url: "http://" + e[0] + "/g/" + e[1] + "/" + e[2] + "/",
-						};
-					},
-					response: function (text) {
-						var html = Helper.html_parse_safe(text, null);
-						if (html !== null) {
-							return [ html ];
-						}
-						return null;
-					}
-				},
-				nhentai_gallery: {
-					data: [],
-					callbacks: [],
-					limit: 1,
-					active: false,
-					delays: { okay: 100, fail: 3000 },
-					setup: function (entries) {
-						return {
-							method: "GET",
-							url: "http://" + domains.nhentai + "/g/" + entries[0] + "/",
-						};
-					},
-					response: function (text) {
-						var html = Helper.html_parse_safe(text, null);
-						if (html !== null) {
-							return [ nhentai_parse_info(html) ];
-						}
-						return null;
-					}
-				},
-				hitomi_gallery: {
-					data: [],
-					callbacks: [],
-					limit: 1,
-					active: false,
-					delays: { okay: 100, fail: 3000 },
-					setup: function (entries) {
-						return {
-							method: "GET",
-							url: "https://" + domains.hitomi + "/galleries/" + entries[0] + ".html",
-						};
-					},
-					response: function (text) {
-						var html = Helper.html_parse_safe(text, null);
-						if (html !== null) {
-							return [ hitomi_parse_info(html) ];
-						}
-						return null;
-					}
-				}
-			};
-
-			var error_fn = function (q, names, callbacks, msg) {
-				return function (xhr) {
-					Debug.log("API.request[" + names.join(",") + "] error: " + msg + "; time=" + Debug.timer("apirequest_" + names.join("_")), { xhr: xhr });
-
-					var i = 0,
-						ii = callbacks.length - 1;
-
-					for (; i < ii; ++i) {
-						callbacks[i].call(null, msg, null, false);
-					}
-					callbacks[i].call(null, msg, null, true);
-
-					setTimeout(function () {
-						q.active = false;
-						trigger.call(null, names);
-					}, q.delays.fail);
-				};
-			};
-
-			var queue_add = function (name, data, callback) {
-				var q = Queue[name];
-				q.data.push(data);
-				q.callbacks.push(callback);
-			};
-			var queue_get = function (names) {
-				var entries, callbacks, q, d, i, ii;
-
-				for (i = 0, ii = names.length; i < ii; ++i) {
-					q = Queue[names[i]];
-					if (q.active) return null;
-					d = q.data;
-					if (d.length > 0) {
-						while (++i < ii) {
-							if (Queue[names[i]].active) return null;
-						}
-
-						entries = d.splice(0, q.limit);
-						callbacks = q.callbacks.splice(0, entries.length);
-						return [ q, names, callbacks, q.setup.call(null, entries) ];
-					}
-				}
-
-				return null;
-			};
-
-			var trigger = function (names) {
-				var q_data = queue_get.call(null, names);
-				if (q_data !== null) {
-					perform_request.apply(null, q_data);
-					return true;
-				}
-				return false;
-			};
-
-			var perform_request = function (q, names, callbacks, xhr_data) {
-				q.active = true;
-
-				var timer_name = "apirequest_" + names.join("_");
-
-				xhr_data.onerror = error_fn(q, names, callbacks, "Connection error");
-				xhr_data.onabort = error_fn(q, names, callbacks, "Connection aborted");
-				xhr_data.onload = function (xhr) {
-					Debug.log("API.Request[" + names.join(",") + "].response; time=" + Debug.timer(timer_name));
-
-					var err, response;
-					if (xhr.status === 200) {
-						response = q.response(xhr.responseText);
-						if (response !== null) {
-							call_callbacks.call(null, q, names, callbacks, response);
-							return;
-						}
-
-						err = "Invalid response";
-					}
-					else {
-						err = "Invalid status: " + xhr.status;
-					}
-
-					// Error
-					error_fn(q, names, callbacks, err).call(null, q, names, callbacks, xhr);
-				};
-
-
-				Debug.timer(timer_name);
-				HttpRequest(xhr_data);
-			};
-
-			var call_callbacks = function (q, names, callbacks, response) {
-				var i = 0,
-					ii = callbacks.length,
-					data, err;
-
-				if (response.length >= ii) {
-					--ii;
-					for (; i < ii; ++i) {
-						data = response[i];
-						callbacks[i].call(null, data.error || null, data, false);
-					}
-					data = response[i];
-					callbacks[i].call(null, data.error || null, data, true);
-				}
-				else {
-					ii = response.length || 0;
-					for (; i < ii; ++i) {
-						data = response[i];
-						callbacks[i].call(null, data.error || null, data, false);
-					}
-					err = "Data not found";
-					ii = callbacks.length - 1;
-					for (; i < ii; ++i) {
-						callbacks[i].call(null, err, null, false);
-					}
-					callbacks[i].call(null, err, null, true);
-				}
-
-				setTimeout(function () {
-					q.active = false;
-					trigger.call(null, names);
-				}, q.delays.okay);
-			};
-
-			return {
-				queue: queue_add,
-				get: function (name, data, callback) {
-					var q = Queue[name];
-					if (q.active) {
-						q.data.push(data);
-						q.callbacks.push(callback);
-						return false;
-					}
-
-					perform_request.call(null, q, [ name ], [ callback ], q.setup.call(null, [ data ]));
-					return true;
-				},
-				trigger: trigger
-			};
-
-		})();
 
 		var Flags = {
 			None: 0x0,
@@ -2128,6 +1874,10 @@
 			return value;
 		};
 		var ehentai_normalize_info = function (info) {
+			if (info.error !== undefined) {
+				return { error: info.error };
+			}
+
 			var data = create_empty_gallery_info(),
 				t;
 
@@ -2516,107 +2266,375 @@
 			return data;
 		};
 
-		// Public
-		var ehentai_queue_gallery = function (gid, token) {
-			gid = parseInt(gid, 10);
-			Request.queue("ehentai_gallery",
-				[ gid, token ],
-				function (err, data, last) {
-					if (err === null) {
-						data = ehentai_normalize_info(data);
-						Database.set("ehentai", data);
+
+
+		// API request base code
+		var RequestGroup = function () {
+			this.active = false;
+			this.timeout = null;
+			this.types = [];
+		};
+		var RequestType = function (count, delay_okay, delay_error, group, namespace, type) {
+			this.count = count;
+			this.delay_okay = delay_okay;
+			this.delay_error = delay_error;
+			this.queue = [];
+			this.unique = {};
+
+			this.group = group;
+			this.group.types.push(this);
+
+			this.namespace = namespace;
+			this.type = type;
+
+			this.get_data = null;
+			this.set_data = null;
+			this.setup_xhr = null;
+			this.parse_response = null;
+		};
+		var RequestData = function (id, data, callback) {
+			this.id = id;
+			this.data = data;
+			this.callbacks = [ callback ];
+		};
+
+		RequestGroup.prototype.run = function (use_delay) {
+			if (this.active) return;
+
+			var type, i, ii;
+			for (i = 0, ii = this.types.length; i < ii; ++i) {
+				type = this.types[i];
+				if (type.queue.length > 0) {
+					this.active = true;
+					if (use_delay && type.count > 1) {
+						setTimeout(function () { type.run(); }, 1); // jshint ignore:line
 					}
 					else {
-						Database.set_error("ehentai", gid, err, data !== null);
-						Database.set_error2([ "ehentai", "gallery", gid, token ], err, data !== null);
+						type.run();
 					}
-					if (last) {
-						Linkifier.check_incomplete("ehentai");
-					}
+					break;
 				}
-			);
+			}
 		};
-		var ehentai_queue_gallery_page = function (gid, page_token, page) {
-			gid = parseInt(gid, 10);
-			Request.queue("ehentai_page",
-				[ gid, page_token, page ],
-				function (err, data, last) {
-					if (err === null) {
-						ehentai_queue_gallery(data.gid, data.token);
-					}
-					else {
-						Database.set_error2([ "ehentai", "page", gid, page_token, page ], err, data !== null);
-					}
-					if (last) {
-						Linkifier.check_incomplete("ehentai");
-					}
+		RequestGroup.prototype.complete = function (delay) {
+			var self = this;
+			setTimeout(function () {
+				self.active = false;
+				self.run(false);
+			}, delay);
+		};
+
+		RequestType.prototype.add = function (unique_id, info, callback) {
+			// Check if data already exists
+			var data, err, u;
+
+			data = this.get_data.call(this, info);
+			if (data !== null) {
+				if (callback === undefined) return data;
+				callback.call(null, null, data);
+				return true;
+			}
+
+			if (callback === undefined) return null;
+
+			err = Database.get_error([ this.namespace, this.type, unique_id ]);
+			if (err !== null) {
+				callback.call(null, err, null);
+				return true;
+			}
+
+			// Add
+			u = this.unique[unique_id];
+			if (u === undefined) {
+				u = new RequestData(unique_id, info, callback);
+				this.unique[unique_id] = u;
+				this.queue.push(u);
+			}
+			else {
+				u.callbacks.push(callback);
+			}
+
+			// Run (if not already running)
+			this.group.run(true);
+			return false;
+		};
+		RequestType.prototype.run = function () {
+			var self = this,
+				entries = this.queue.splice(0, this.count),
+				xhr_data;
+
+			xhr_data = this.setup_xhr.call(this, entries);
+			xhr_data.onload = function (xhr) {
+				var response = self.parse_response.call(self, xhr.responseText, entries);
+
+				if (typeof(response) === "string") {
+					// Error
+					self.process_response_error(entries, response);
 				}
-			);
+				else {
+					// Valid
+					self.process_response(entries, response);
+				}
+
+				self.request_complete(entries, false);
+			};
+			xhr_data.onerror = function () {
+				self.process_response_error(entries, "Connection error");
+				self.request_complete(entries, true);
+			};
+			xhr_data.onabort = function () {
+				self.process_response_error(entries, "Connection aborted");
+				self.request_complete(entries, true);
+			};
+
+			HttpRequest(xhr_data);
 		};
-		var ehentai_get_full_info = function (id, token, site, cb) {
-			Request.get("ehentai_full",
-				[ site, id, token ],
-				function (err, full_html) {
-					if (err === null) {
-						var data = Database.get("ehentai", id);
-						if (data !== null) {
-							data = ehentai_parse_info(full_html, data);
-							if (data !== null) {
-								Database.set("ehentai", data);
-								cb(null, data);
-							}
-							else {
-								cb("Failed to update data", null);
-							}
+		RequestType.prototype.process_response_error = function (entries, error) {
+			var i, ii;
+			for (i = 0, ii = entries.length; i < ii; ++i) {
+				entries[i].run_callbacks(error, null, false, this);
+			}
+		};
+		RequestType.prototype.process_response = function (entries, datas) {
+			var i = 0,
+				ii = Math.min(datas.length, entries.length),
+				data, err;
+
+			for (; i < ii; ++i) {
+				data = datas[i];
+				if ((err = data.error) !== undefined) {
+					entries[i].run_callbacks(err, null, true, this);
+				}
+				else {
+					entries[i].run_callbacks(null, data, false, this);
+				}
+			}
+
+			ii = entries.length;
+			if (i < ii) {
+				err = "Data not found";
+				for (; i < ii; ++i) {
+					entries[i].run_callbacks(err, null, false, this);
+				}
+			}
+		};
+		RequestType.prototype.request_complete = function (entries, error) {
+			var i, ii;
+			for (i = 0, ii = entries.length; i < ii; ++i) {
+				delete this.unique[entries[i].id];
+			}
+
+			this.group.complete(error ? this.delay_error : this.delay_okay);
+		};
+
+		RequestData.prototype.run_callbacks = function (err, data, cache_error, request_type) {
+			// Cache
+			if (err === null) {
+				request_type.set_data.call(request_type, data);
+			}
+			else {
+				Database.set_error([ request_type.namespace, request_type.type, this.id ], err, cache_error);
+			}
+
+			// Callbacks
+			var i, ii;
+			for (i = 0, ii = this.callbacks.length; i < ii; ++i) {
+				this.callbacks[i].call(null, err, data);
+			}
+		};
+
+
+
+		// API request specializations
+		var group_ehentai = new RequestGroup(),
+			group_ehentai_full = new RequestGroup(),
+			group_nhentai = new RequestGroup(),
+			group_hitomi = new RequestGroup(),
+			rt_ehentai_gallery_page = new RequestType(25, 200, 5000, group_ehentai, "ehentai", "page"),
+			rt_ehentai_gallery = new RequestType(25, 200, 5000, group_ehentai, "ehentai", "gallery"),
+			rt_ehentai_gallery_full = new RequestType(1, 200, 5000, group_ehentai_full, "ehentai", "full"),
+			rt_nhentai_gallery = new RequestType(1, 200, 5000, group_nhentai, "nhentai", "gallery"),
+			rt_hitomi_gallery = new RequestType(1, 200, 5000, group_hitomi, "hitomi", "gallery");
+
+		rt_ehentai_gallery.get_data = function (info) {
+			var data = Database.get(this.namespace, info[0]);
+			return (data !== null && data.token === info[1]) ? data : null;
+		};
+		rt_ehentai_gallery.set_data = function (data) {
+			Database.set(data.type, data);
+		};
+		rt_ehentai_gallery.setup_xhr = function (entries) {
+			var gidlist = [],
+				i, ii;
+
+			for (i = 0, ii = entries.length; i < ii; ++i) {
+				gidlist.push(entries[i].data);
+			}
+
+			return {
+				method: "POST",
+				url: "http://" + domains.gehentai + "/api.php",
+				headers: { "Content-Type": "application/json" },
+				data: JSON.stringify({
+					method: "gdata",
+					gidlist: gidlist
+				})
+			};
+		};
+		rt_ehentai_gallery.parse_response = function (text) {
+			var response = Helper.json_parse_safe(text, null),
+				datas, i, ii;
+			if (response !== null) {
+				if (typeof(response) === "object") {
+					if (typeof(response.error) === "string") {
+						return response.error;
+					}
+					else if (Array.isArray(response.gmetadata)) {
+						response = response.gmetadata;
+						datas = [];
+						for (i = 0, ii = response.length; i < ii; ++i) {
+							datas.push(ehentai_normalize_info(response[i]));
 						}
-						else {
-							cb("Could not update data", null);
-						}
-					}
-					else {
-						cb(err, null);
+						return datas;
 					}
 				}
-			);
+				else if (typeof(response) === "string") {
+					return response;
+				}
+			}
+			return "Invalid response";
 		};
-		var nhentai_queue_gallery = function (gid) {
-			Request.queue("nhentai_gallery",
-				gid,
-				function (err, data) {
-					if (err === null) {
-						Database.set("nhentai", data);
-						Linkifier.check_incomplete("nhentai");
+
+		rt_ehentai_gallery_page.get_data = function (info) {
+			var data = Database.get(this.namespace, info[0]);
+			if (data !== null) {
+				return {
+					gid: data.gid,
+					token: data.token
+				};
+			}
+			return null;
+		};
+		rt_ehentai_gallery_page.set_data = function () {
+		};
+		rt_ehentai_gallery_page.setup_xhr = function (entries) {
+			var pagelist = [],
+				i, ii;
+
+			for (i = 0, ii = entries.length; i < ii; ++i) {
+				pagelist.push(entries[i].data);
+			}
+
+			return {
+				method: "POST",
+				url: "http://" + domains.gehentai + "/api.php",
+				headers: { "Content-Type": "application/json" },
+				data: JSON.stringify({
+					method: "gtoken",
+					pagelist: pagelist
+				})
+			};
+		};
+		rt_ehentai_gallery_page.parse_response = function (text) {
+			var response = Helper.json_parse_safe(text, null);
+			if (response !== null) {
+				if (typeof(response) === "object") {
+					if (typeof(response.error) === "string") {
+						return response.error;
 					}
-					else {
-						Database.set_error("nhentai", gid, err, data !== null);
-						Database.set_error2([ "nhentai", "page", gid ], err, data !== null);
+					else if (Array.isArray(response.tokenlist)) {
+						return response.tokenlist;
 					}
 				}
-			);
-		};
-		var hitomi_queue_gallery = function (gid) {
-			Request.queue("hitomi_gallery",
-				gid,
-				function (err, data) {
-					if (err === null) {
-						Database.set("hitomi", data);
-						Linkifier.check_incomplete("hitomi");
-					}
-					else {
-						Database.set_error("hitomi", gid, err, data !== null);
-						Database.set_error2([ "hitomi", "page", gid ], err, data !== null);
-					}
+				else if (typeof(response) === "string") {
+					return response;
 				}
-			);
+			}
+			return "Invalid response";
 		};
-		var run_request_queue = function () {
-			Request.trigger(request_types.ehentai);
-			Request.trigger(request_types.nhentai);
-			Request.trigger(request_types.hitomi);
+
+		rt_ehentai_gallery_full.get_data = function (info) {
+			var data = Database.get(this.namespace, info[0]);
+			return (data !== null && data.token === info[1] && data.full) ? data : null;
 		};
-		var data_has_full = function (data) {
-			return data.full;
+		rt_ehentai_gallery_full.set_data = function (data) {
+			Database.set(data.type, data);
 		};
+		rt_ehentai_gallery_full.setup_xhr = function (entries) {
+			var e = entries[0].data;
+			return {
+				method: "GET",
+				url: "http://" + e[0] + "/g/" + e[1].gid + "/" + e[1].token + "/",
+			};
+		};
+		rt_ehentai_gallery_full.parse_response = function (text, entries) {
+			var html = Helper.html_parse_safe(text, null);
+			if (html !== null) {
+				return [ ehentai_parse_info(html, entries[0].data[1]) ];
+			}
+			return "Invalid response";
+		};
+
+		rt_nhentai_gallery.get_data = function (info) {
+			return Database.get(this.namespace, info[0]);
+		};
+		rt_nhentai_gallery.set_data = function (data) {
+			Database.set(data.type, data);
+		};
+		rt_nhentai_gallery.setup_xhr = function (entries) {
+			return {
+				method: "GET",
+				url: "http://" + domains.nhentai + "/g/" + entries[0].data[0] + "/",
+			};
+		};
+		rt_nhentai_gallery.parse_response = function (text) {
+			var html = Helper.html_parse_safe(text, null);
+			if (html !== null) {
+				return [ nhentai_parse_info(html) ];
+			}
+			return "Invalid response";
+		};
+
+		rt_hitomi_gallery.get_data = function (info) {
+			return Database.get(this.namespace, info[0]);
+		};
+		rt_hitomi_gallery.set_data = function (data) {
+			Database.set(data.type, data);
+		};
+		rt_hitomi_gallery.setup_xhr = function (entries) {
+			return {
+				method: "GET",
+				url: "https://" + domains.hitomi + "/galleries/" + entries[0].data[0] + ".html",
+			};
+		};
+		rt_hitomi_gallery.parse_response = function (text) {
+			var html = Helper.html_parse_safe(text, null);
+			if (html !== null) {
+				return [ hitomi_parse_info(html) ];
+			}
+			return "Invalid response";
+		};
+
+
+
+		var get_ehentai_gallery = function (gid, token, callback) {
+			var info = [ gid, token ];
+			return rt_ehentai_gallery.add(info.join("_"), info, callback);
+		};
+		var get_ehentai_gallery_page = function (gid, page_token, page, callback) {
+			var info = [ gid, page_token, page ];
+			return rt_ehentai_gallery_page.add(info.join("_"), info, callback);
+		};
+		var get_ehentai_gallery_full = function (domain, data, callback) {
+			return rt_ehentai_gallery_full.add("" + data.gid, [ domain, data ], callback);
+		};
+		var get_nhentai_gallery = function (gid, callback) {
+			return rt_nhentai_gallery.add("" + gid, [ gid ], callback);
+		};
+		var get_hitomi_gallery = function (gid, callback) {
+			return rt_hitomi_gallery.add("" + gid, [ gid ], callback);
+		};
+
 		var get_thumbnail = function (data, callback) {
 			var thumbnail = data.thumbnail,
 				url, cache, gid;
@@ -2697,16 +2715,16 @@
 			});
 		};
 
+
 		// Exports
 		return {
 			Flags: Flags,
-			ehentai_queue_gallery: ehentai_queue_gallery,
-			ehentai_queue_gallery_page: ehentai_queue_gallery_page,
-			ehentai_get_full_info: ehentai_get_full_info,
-			nhentai_queue_gallery: nhentai_queue_gallery,
-			hitomi_queue_gallery: hitomi_queue_gallery,
-			run_request_queue: run_request_queue,
-			data_has_full: data_has_full,
+			get_ehentai_gallery: get_ehentai_gallery,
+			get_ehentai_gallery_page: get_ehentai_gallery_page,
+			get_ehentai_gallery_full: get_ehentai_gallery_full,
+			get_nhentai_gallery: get_nhentai_gallery,
+			get_hitomi_gallery: get_hitomi_gallery,
+
 			get_thumbnail: get_thumbnail,
 			get_image: get_image
 		};
@@ -2867,11 +2885,6 @@
 				nhentai: {},
 				hitomi: {}
 			},
-			errors = {
-				ehentai: {},
-				nhentai: {},
-				hitomi: {}
-			},
 			errors2 = {};
 
 		// Public
@@ -2901,14 +2914,7 @@
 		var set_nocache = function (namespace, data) {
 			saved_data[namespace][data.gid] = data;
 		};
-		var set_error = function (namespace, gid, error) { // , cache
-			errors[namespace][gid] = error;
-		};
-		var get_error = function (namespace, gid) {
-			var v = errors[namespace][gid];
-			return v === undefined ? null : v;
-		};
-		var set_error2 = function (id_list, error) { // , cache
+		var set_error = function (id_list, error) { // , cache
 			var v = errors2,
 				vn, i, ii, id;
 			for (i = 0, ii = id_list.length - 1; i < ii; ++i) {
@@ -2923,7 +2929,7 @@
 			}
 			v[id_list[i]] = error;
 		};
-		var get_error2 = function (id_list) { // , cache
+		var get_error = function (id_list) {
 			var v = errors2,
 				i, ii;
 			for (i = 0, ii = id_list.length; i < ii; ++i) {
@@ -2940,9 +2946,7 @@
 			set: set,
 			set_nocache: set_nocache,
 			set_error: set_error,
-			get_error: get_error,
-			set_error2: set_error2,
-			get_error2: get_error2
+			get_error: get_error
 		};
 
 	})();
@@ -3226,9 +3230,6 @@
 					}
 
 					$.before(par, n, results);
-					if (Linkifier.check_incomplete()) {
-						API.run_request_queue();
-					}
 				}
 				Linkifier.change_link_events(a, "exsauce_toggle");
 			}
@@ -3501,42 +3502,6 @@
 				timer: null,
 				group_size: 25,
 				delay: 50
-			},
-			incomplete = {
-				types: [ "ehentai", "nhentai", "hitomi" ],
-				ehentai: {
-					types: [ "page", "gallery" ],
-					unchecked: { page: {}, gallery: {} },
-					checked: { page: {}, gallery: {} },
-					missing: {
-						page: function (id, info) {
-							API.ehentai_queue_gallery_page(id, info.page_token, info.page);
-						},
-						gallery: function (id, info) {
-							API.ehentai_queue_gallery(id, info.token);
-						}
-					}
-				},
-				nhentai: {
-					types: [ "gallery" ],
-					unchecked: { gallery: {} },
-					checked: { gallery: {} },
-					missing: {
-						gallery: function (id) {
-							API.nhentai_queue_gallery(id);
-						}
-					}
-				},
-				hitomi: {
-					types: [ "gallery" ],
-					unchecked: { gallery: {} },
-					checked: { gallery: {} },
-					missing: {
-						gallery: function (id) {
-							API.hitomi_queue_gallery(id);
-						}
-					}
-				}
 			},
 			event_queue = {
 				format: []
@@ -3937,7 +3902,7 @@
 		};
 		var format_links_error = function (links, error) {
 			var text = " (" + error.trim().replace(/\.$/, "") + ")",
-				button, link, i, ii;
+				button, link, n, i, ii;
 
 			for (i = 0, ii = links.length; i < ii; ++i) {
 				link = links[i];
@@ -3949,7 +3914,13 @@
 
 				link.classList.add("hl-linkified-error");
 				link.setAttribute("data-hl-linkified-status", "formatted_error");
-				$.add(link, $.node("span", "hl-linkified-error-message", text));
+				n = $(".hl-linkified-error-message", link);
+				if (n === null) {
+					$.add(link, $.node("span", "hl-linkified-error-message", text));
+				}
+				else {
+					n.textContent = text;
+				}
 			}
 		};
 
@@ -3964,28 +3935,56 @@
 				Database.valid_namespace(info.site)
 			) {
 				check_link(link, info);
-				if (check_incomplete()) {
-					API.run_request_queue();
-				}
 			}
 		};
 		var check_link = function (link, info) {
-			var type = info.type,
-				obj, unchecked, list, gid;
+			var fn;
+			if (info.site === "ehentai") {
+				fn = function (err, data) {
+					if (err === null) {
+						format([ link ], data);
+					}
+					else {
+						format_links_error([ link ], err);
+					}
+				};
 
-			if (
-				(obj = incomplete[info.site]) !== undefined &&
-				(unchecked = obj.unchecked[type]) !== undefined
-			) {
-				gid = info.gid;
-				if ((list = unchecked[gid]) !== undefined) {
-					list[1].push(link);
+				if (info.type === "gallery") {
+					API.get_ehentai_gallery(info.gid, info.token, fn);
 				}
-				else if ((list = obj.checked[type][gid]) !== undefined) {
-					list[1].push(link);
+				else if (info.type === "page") {
+					API.get_ehentai_gallery_page(info.gid, info.page_token, info.page, function (err, data) {
+						if (err === null) {
+							API.get_ehentai_gallery(data.gid, data.token, fn);
+						}
+						else {
+							format_links_error([ link ], err);
+						}
+					});
 				}
-				else {
-					unchecked[gid] = [ info, [ link ] ];
+			}
+			else if (info.site === "nhentai") {
+				if (info.type === "gallery") {
+					API.get_nhentai_gallery(info.gid, function (err, data) {
+						if (err === null) {
+							format([ link ], data);
+						}
+						else {
+							format_links_error([ link ], err);
+						}
+					});
+				}
+			}
+			else if (info.site === "hitomi") {
+				if (info.type === "gallery") {
+					API.get_hitomi_gallery(info.gid, function (err, data) {
+						if (err === null) {
+							format([ link ], data);
+						}
+						else {
+							format_links_error([ link ], err);
+						}
+					});
 				}
 			}
 		};
@@ -4091,11 +4090,6 @@
 			}
 
 			Debug.log("Total posts=" + posts.length + "; time=" + Debug.timer("process"));
-
-			// Check incomplete, then run any API requests
-			if (check_incomplete()) {
-				API.run_request_queue();
-			}
 		};
 		var dequeue_posts = function () {
 			var posts = post_queue.posts.splice(0, post_queue.group_size);
@@ -4243,65 +4237,6 @@
 				set_link_events(node, new_events);
 			}
 		};
-		var check_incomplete = function (type) {
-			var api_request = false,
-				obj, list1, list2, entry, data, info, t1, t2, fn_missing, i, ii, j, jj, k, m;
-
-			i = 0;
-			t1 = incomplete.types;
-			if (type === undefined) {
-				ii = t1.length;
-				obj = incomplete[t1[i]];
-			}
-			else {
-				ii = 1;
-				obj = incomplete[type];
-			}
-
-			while (true) {
-				t2 = obj.types;
-				for (j = 0, jj = t2.length; j < jj; ++j) {
-					m = t2[j];
-					fn_missing = obj.missing[m];
-
-					list1 = obj.checked[m];
-					for (k in list1) {
-						entry = list1[k];
-						info = entry[0];
-						data = Database.get(info.site, k);
-						if (data !== null) {
-							format(entry[1], data);
-							delete list1[k];
-						}
-						else if ((data = Database.get_error(info.site, k)) !== null) {
-							format_links_error(entry[1], data);
-							delete list1[k];
-						}
-					}
-
-					list2 = obj.unchecked[m];
-					for (k in list2) {
-						entry = list2[k];
-						info = entry[0];
-						data = Database.get(info.site, k);
-						if (data !== null) {
-							format(entry[1], data);
-						}
-						else {
-							api_request = true;
-							fn_missing.call(null, k, info);
-							list1[k] = entry;
-						}
-						delete list2[k];
-					}
-				}
-
-				if (++i >= ii) break;
-				obj = incomplete[t1[i]];
-			}
-
-			return api_request;
-		};
 		var create_link = function (text) {
 			return $.link(text, "hl-linkified", text);
 		};
@@ -4404,7 +4339,6 @@
 			preprocess_link: preprocess_link,
 			queue_posts: queue_posts,
 			change_link_events: change_link_events,
-			check_incomplete: check_incomplete,
 			create_link: create_link,
 			get_links: get_links,
 			get_links_formatted: get_links_formatted,
@@ -6193,7 +6127,7 @@
 				namespace_style = "",
 				all_tags, namespace, tags, n2, n3, n4, i, ii;
 
-			if (API.data_has_full(data) && Object.keys(data.tags_ns).length > 0) {
+			if (data.full && Object.keys(data.tags_ns).length > 0) {
 				all_tags = data.tags_ns;
 			}
 			else {
@@ -6509,15 +6443,16 @@
 			$.off(this, "mouseover", on_gallery_mouseover);
 
 			var node = this,
-				gid, token, domain, g_domain;
+				gid, token, data, domain, g_domain;
 
 			if (
 				(gid = this.getAttribute("data-hl-gid")) &&
 				(token = this.getAttribute("data-hl-token")) &&
+				(data = API.get_ehentai_gallery(gid, token)) !== null &&
 				(domain = this.getAttribute("data-hl-domain")) &&
 				(g_domain = domain_info[domain].g_domain)
 			) {
-				API.ehentai_get_full_info(gid, token, g_domain, function (err, data) {
+				API.get_ehentai_gallery_full(g_domain, data, function (err, data) {
 					var tags_container, n;
 
 					if (
