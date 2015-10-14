@@ -1113,8 +1113,7 @@
 					id = Helper.get_id_from_node(this);
 					if (
 						id === null ||
-						!Database.valid_namespace(id[0]) ||
-						(data = Database.get(id[0], id[1])) === null ||
+						(data = API.get_gallery(id[0], id[1])) === null ||
 						!((domain = Helper.get_domain(this.href)) in domain_info)
 					) {
 						return;
@@ -1141,8 +1140,7 @@
 					id = Helper.get_id_from_node(this);
 					if (
 						id === null ||
-						!Database.valid_namespace(id[0]) ||
-						(data = Database.get(id[0], id[1])) === null ||
+						(data = API.get_gallery(id[0], id[1])) === null ||
 						!((domain = Helper.get_domain(this.href)) in domain_info)
 					) {
 						return;
@@ -1728,8 +1726,7 @@
 						if (
 							(link = Helper.get_link_from_tag_button(this)) !== null &&
 							(id = Helper.get_id_from_node(link)) !== null &&
-							Database.valid_namespace(id[0]) &&
-							(data = Database.get(id[0], id[1])) !== null
+							(data = API.get_gallery(id[0], id[1])) !== null
 						) {
 							actions = create_actions(data, link, index);
 							actions_nodes[index] = actions;
@@ -1803,6 +1800,70 @@
 
 	})();
 	var API = (function () {
+
+		var Database = (function () {
+
+			// Private
+			var saved_data = {
+					ehentai: {},
+					nhentai: {},
+					hitomi: {}
+				},
+				errors = {};
+
+			// Public
+			var get = function (namespace, uid) {
+				var db = saved_data[namespace],
+					data = db[uid];
+
+				if (data !== undefined) return data;
+
+				data = Cache.get(namespace + "_gallery", uid);
+				if (data !== null) {
+					db[data.gid] = data;
+					return data;
+				}
+
+				return null;
+			};
+			var set = function (namespace, data) {
+				saved_data[namespace][data.gid] = data;
+				Cache.set(namespace + "_gallery", data.gid, data, 0);
+			};
+			var set_error = function (id_list, error) { // , cache
+				var v = errors,
+					vn, i, ii, id;
+				for (i = 0, ii = id_list.length - 1; i < ii; ++i) {
+					id = id_list[i];
+					vn = v[id];
+					if (vn !== undefined) {
+						v = vn;
+					}
+					else {
+						v[id] = v = {};
+					}
+				}
+				v[id_list[i]] = error;
+			};
+			var get_error = function (id_list) {
+				var v = errors,
+					i, ii;
+				for (i = 0, ii = id_list.length; i < ii; ++i) {
+					v = v[id_list[i]];
+					if (v === undefined) return null;
+				}
+				return v;
+			};
+
+			// Exports
+			return {
+				get: get,
+				set: set,
+				set_error: set_error,
+				get_error: get_error
+			};
+
+		})();
 
 		// Private
 		var temp_div = $.node_simple("div"),
@@ -2635,6 +2696,13 @@
 			return rt_hitomi_gallery.add("" + gid, [ gid ], callback);
 		};
 
+		var get_gallery = function (site, gid) {
+			if (site === "ehentai" || site === "nhentai" || site === "hitomi") {
+				return Database.get(site, gid);
+			}
+			return null;
+		};
+
 		var get_thumbnail = function (data, callback) {
 			var thumbnail = data.thumbnail,
 				url, cache, gid;
@@ -2724,7 +2792,7 @@
 			get_ehentai_gallery_full: get_ehentai_gallery_full,
 			get_nhentai_gallery: get_nhentai_gallery,
 			get_hitomi_gallery: get_hitomi_gallery,
-
+			get_gallery: get_gallery,
 			get_thumbnail: get_thumbnail,
 			get_image: get_image
 		};
@@ -2753,7 +2821,6 @@
 			var re_matcher = new RegExp("^" + Helper.regex_escape(prefix) + "((?:([en]hentai|hitomi)_)gallery|md5|sha1)-([^-]+)"),
 				removed = 0,
 				keys = [],
-				populate = false,
 				key, data, m, i, ii;
 
 			if (config.debug.cache_mode === "none") {
@@ -2808,20 +2875,8 @@
 				if (data === null) {
 					++removed;
 				}
-				else if (populate) {
-					m = keys[i];
-					if (m[2] !== undefined) {
-						Database.set_nocache(m[2], data);
-					}
-					else { // if (key === "md5" || key === "sha1") {
-						Hash.set_nocache(m[1], m[2], data);
-					}
-				}
 			}
 
-			if (populate) {
-				Debug.log("Preloaded " + (ii / 2 - removed) + " entries from cache");
-			}
 			if (removed > 0) {
 				Debug.log("Purged " + removed + " old entries from cache");
 			}
@@ -2874,79 +2929,6 @@
 			get: get,
 			set: set,
 			clear: clear
-		};
-
-	})();
-	var Database = (function () {
-
-		// Private
-		var saved_data = {
-				ehentai: {},
-				nhentai: {},
-				hitomi: {}
-			},
-			errors2 = {};
-
-		// Public
-		var valid_namespace = function (namespace) {
-			return (saved_data[namespace] !== undefined);
-		};
-		var get = function (namespace, uid) { // , debug
-			// Use this if you want to break database gets randomly for debugging
-			// if (arguments[2] === true && Math.random() > 0.8) return false;
-			var db = saved_data[namespace],
-				data = db[uid];
-
-			if (data !== undefined) return data;
-
-			data = Cache.get(namespace + "_gallery", uid);
-			if (data !== null) {
-				db[data.gid] = data;
-				return data;
-			}
-
-			return null;
-		};
-		var set = function (namespace, data) {
-			saved_data[namespace][data.gid] = data;
-			Cache.set(namespace + "_gallery", data.gid, data, 0);
-		};
-		var set_nocache = function (namespace, data) {
-			saved_data[namespace][data.gid] = data;
-		};
-		var set_error = function (id_list, error) { // , cache
-			var v = errors2,
-				vn, i, ii, id;
-			for (i = 0, ii = id_list.length - 1; i < ii; ++i) {
-				id = id_list[i];
-				vn = v[id];
-				if (vn !== undefined) {
-					v = vn;
-				}
-				else {
-					v[id] = v = {};
-				}
-			}
-			v[id_list[i]] = error;
-		};
-		var get_error = function (id_list) {
-			var v = errors2,
-				i, ii;
-			for (i = 0, ii = id_list.length; i < ii; ++i) {
-				v = v[id_list[i]];
-				if (v === undefined) return null;
-			}
-			return v;
-		};
-
-		// Exports
-		return {
-			valid_namespace: valid_namespace,
-			get: get,
-			set: set,
-			set_nocache: set_nocache,
-			set_error: set_error,
-			get_error: get_error
 		};
 
 	})();
@@ -3931,8 +3913,7 @@
 
 			if (
 				(link = Helper.get_link_from_tag_button(this)) !== null &&
-				(info = Helper.get_info_from_node(link)) !== null &&
-				Database.valid_namespace(info.site)
+				(info = Helper.get_info_from_node(link)) !== null
 			) {
 				check_link(link, info);
 			}
@@ -6165,7 +6146,7 @@
 			return [ n1, namespace !== "" ];
 		};
 		var add_gallery = function (entry, theme) {
-			var data = Database.get(entry.namespace, entry.id),
+			var data = API.get_gallery(entry.namespace, entry.id),
 				n;
 
 			if (data !== null) {
@@ -6380,7 +6361,7 @@
 
 			for (i = 0, ii = current.length; i < ii; ++i) {
 				entry = current[i];
-				data = Database.get(entry.namespace, entry.id);
+				data = API.get_gallery(entry.namespace, entry.id);
 				if (data !== null) {
 					update_filters(current[i].node, data, false, false);
 				}
@@ -6483,7 +6464,7 @@
 			for (i = 0, ii = links.length; i < ii; ++i) {
 				link = links[i];
 				id = Helper.get_id_from_node(link);
-				if (id !== null && Database.valid_namespace(id[0])) {
+				if (id !== null) {
 					id_key = id[0] + "_" + id[1];
 					if (data_map[id_key] === undefined) {
 						d = {
