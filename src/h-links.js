@@ -1868,6 +1868,11 @@
 		// Private
 		var temp_div = $.node_simple("div"),
 			re_protocol = /^https?\:/i,
+			ttl_1_day = 24 * 60 * 60 * 1000,
+			ttl_1_year = 365 * 24 * 60 * 60 * 1000,
+			hashes_md5_to_sha1 = {},
+			hashes_url_to_sha1 = {},
+			lookup_results = {},
 			saved_thumbnails = {
 				ehentai: {},
 				nhentai: {},
@@ -2327,6 +2332,175 @@
 			return data;
 		};
 
+		var ehentai_parse_lookup_results = function (xhr, is_similarity_scan, hash) {
+			var url = xhr.finalUrl,
+				text = xhr.responseText,
+				err = null,
+				html, results, links, link, m, n, i, ii;
+
+			// Similarity scan checking
+			if (is_similarity_scan) {
+				m = /f_shash=(([0-9a-f]{40}|corrupt)(?:;(?:[0-9a-f]{40}|monotone))*)/.exec(url);
+				if (m !== null && m[2] !== "corrupt") {
+					hash = m[1];
+					if (/monotone/.test(hash)) {
+						err = "Similarity lookup does not work on monotone images";
+					}
+				}
+				else {
+					if (/please\s+wait\s+a\s+bit\s+longer\s+between\s+each\s+file\s+search/i.test(text)) {
+						err = "Wait longer between lookups";
+					}
+					else {
+						Debug.log("An error occured while reverse image searching", xhr);
+						err = "Unknown error";
+						html = Helper.html_parse_safe(text, null);
+						if (html !== null) {
+							n = $("#iw", html);
+							if (n !== null) err = n.textContent.trim();
+						}
+					}
+				}
+
+				if (err !== null) return { error: err };
+			}
+
+			// Get html
+			html = Helper.html_parse_safe(text, null);
+
+			// Process
+			results = [];
+			links = $$("div.it5 a,div.id2 a", html);
+			for (i = 0, ii = links.length; i < ii; ++i) {
+				link = links[i];
+				results.push({
+					url: link.href,
+					title: link.textContent
+				});
+			}
+
+			// Done
+			return {
+				url: url,
+				hash: hash,
+				results: results
+			};
+		};
+		var ehentai_create_lookup_url = function (sha1) {
+			var url = "http://",
+				di = domain_info[config.sauce.lookup_domain];
+			url += (di === undefined ? "" : di.g_domain);
+			url += "/?f_doujinshi=1&f_manga=1&f_artistcg=1&f_gamecg=1&f_western=1&f_non-h=1&f_imageset=1&f_cosplay=1&f_asianporn=1&f_misc=1&f_search=Search+Keywords&f_apply=Apply+Filter&f_shash=";
+			url += sha1;
+			url += "&fs_similar=0";
+			if (config.sauce.expunged) url += "&fs_exp=1";
+			return url;
+		};
+
+		var get_image = function (url, callback) {
+			// Note that the Uint8Array's length is longer than image_length
+			// callback(err, image_data, image_length);
+			HttpRequest({
+				method: "GET",
+				url: url,
+				overrideMimeType: "text/plain; charset=x-user-defined",
+				onload: function (xhr) {
+					if (xhr.status === 200) {
+						var text = xhr.responseText,
+							ta = new Uint8Array(text.length + 1),
+							i, ii;
+
+						for (i = 0, ii = text.length; i < ii; ++i) {
+							ta[i] = text.charCodeAt(i);
+						}
+
+						callback(null, ta, ii, xhr.finalUrl);
+					}
+					else {
+						callback(xhr.status, null, 0, null);
+					}
+				},
+				onerror: function () {
+					callback("connection error", null, 0, null);
+				},
+				onabort: function () {
+					callback("aborted", null, 0, null);
+				}
+			});
+		};
+		var get_sha1_hash = function (url, md5, callback) {
+			var sha1 = null;
+
+			if (md5 !== null) {
+				sha1 = hash_get_sha1_from_md5(md5);
+				if (sha1 === null) {
+					sha1 = hash_get_sha1_from_url(url);
+				}
+			}
+			else {
+				sha1 = hash_get_sha1_from_url(url);
+			}
+
+			if (callback === undefined) {
+				return sha1;
+			}
+
+			if (sha1 !== null) {
+				callback.call(null, null, sha1);
+			}
+			else {
+				get_image(url, function (err, data) {
+					if (err === null) {
+						var sha1 = SHA1.hash(data, data.length - 1);
+
+						if (md5 === null) {
+							hash_set_md5_to_sha1(md5, sha1);
+						}
+						else {
+							hash_set_url_to_sha1(url, sha1);
+						}
+
+						callback.call(null, null, sha1);
+					}
+					else {
+						callback.call(null, err, null);
+					}
+				});
+			}
+
+			return null;
+		};
+
+		var hash_get_sha1_from_md5 = function (md5) {
+			var value = hashes_md5_to_sha1[md5];
+			if (value !== undefined) return value;
+
+			value = Cache.get("md5", md5);
+			if (value !== null) {
+				hashes_md5_to_sha1[md5] = value;
+				return value;
+			}
+
+			return null;
+		};
+		var hash_get_sha1_from_url = function (url) {
+			var value = hashes_url_to_sha1[url];
+			if (value !== undefined) return value;
+
+			// TODO
+
+			return null;
+		};
+		var hash_set_md5_to_sha1 = function (md5, sha1) {
+			hashes_md5_to_sha1[md5] = sha1;
+			Cache.set("md5", md5, sha1, ttl_1_year);
+		};
+		var hash_set_url_to_sha1 = function (url, sha1) {
+			hashes_url_to_sha1[url] = sha1;
+			// TODO
+
+		};
+
 
 
 		// API request base code
@@ -2348,15 +2522,18 @@
 			this.namespace = namespace;
 			this.type = type;
 
+			this.delay_modify = null;
 			this.get_data = null;
 			this.set_data = null;
 			this.setup_xhr = null;
 			this.parse_response = null;
 		};
-		var RequestData = function (id, data, callback) {
+		var RequestData = function (id, data, callback, progress_callback) {
 			this.id = id;
 			this.data = data;
 			this.callbacks = [ callback ];
+			this.progress_callbacks = [];
+			if (progress_callback !== undefined) this.progress_callbacks.push(progress_callback);
 		};
 
 		RequestGroup.prototype.run = function (use_delay) {
@@ -2378,14 +2555,38 @@
 			}
 		};
 		RequestGroup.prototype.complete = function (delay) {
-			var self = this;
-			setTimeout(function () {
-				self.active = false;
-				self.run(false);
-			}, delay);
+			if (delay <= 0) {
+				this.active = false;
+				this.run(false);
+			}
+			else {
+				var self = this;
+				setTimeout(function () {
+					self.active = false;
+					self.run(false);
+				}, delay);
+			}
 		};
 
-		RequestType.prototype.add = function (unique_id, info, callback) {
+		RequestType.get_all_progress_callbacks = function (entries) {
+			var progress_callbacks = null,
+				cbs, i, ii;
+
+			for (i = 0, ii = entries.length; i < ii; ++i) {
+				cbs = entries[i].progress_callbacks;
+				if (cbs.length > 0) {
+					if (progress_callbacks === null) {
+						progress_callbacks = cbs.slice(0);
+					}
+					else {
+						$.push_many(progress_callbacks, cbs);
+					}
+				}
+			}
+
+			return progress_callbacks;
+		};
+		RequestType.prototype.add = function (unique_id, info, callback, progress_callback) {
 			// Check if data already exists
 			var data, err, u;
 
@@ -2407,12 +2608,13 @@
 			// Add
 			u = this.unique[unique_id];
 			if (u === undefined) {
-				u = new RequestData(unique_id, info, callback);
+				u = new RequestData(unique_id, info, callback, progress_callback);
 				this.unique[unique_id] = u;
 				this.queue.push(u);
 			}
 			else {
 				u.callbacks.push(callback);
+				if (progress_callback !== undefined) u.progress_callbacks.push(progress_callback);
 			}
 
 			// Run (if not already running)
@@ -2422,11 +2624,13 @@
 		RequestType.prototype.run = function () {
 			var self = this,
 				entries = this.queue.splice(0, this.count),
-				xhr_data;
+				progress_callbacks = RequestType.get_all_progress_callbacks(entries),
+				xhr_data, i, ii;
 
 			xhr_data = this.setup_xhr.call(this, entries);
+
 			xhr_data.onload = function (xhr) {
-				var response = self.parse_response.call(self, xhr.responseText, entries);
+				var response = self.parse_response.call(self, xhr, entries);
 
 				if (typeof(response) === "string") {
 					// Error
@@ -2447,6 +2651,40 @@
 				self.process_response_error(entries, "Connection aborted");
 				self.request_complete(entries, true);
 			};
+
+			if (progress_callbacks !== null) {
+				xhr_data.onprogress = function (xhr) {
+					for (var i = 0, ii = progress_callbacks.length; i < ii; ++i) {
+						progress_callbacks[i].call(null, "progress", xhr.lengthComputable, xhr.loaded, xhr.total);
+					}
+				};
+			}
+
+			if (xhr_data.data !== undefined) {
+				xhr_data.upload = {};
+				xhr_data.upload.onerror = function () {
+					self.process_response_error(entries, "Upload connection error");
+					self.request_complete(entries, true);
+				};
+				xhr_data.upload.onabort = function () {
+					self.process_response_error(entries, "Upload connection aborted");
+					self.request_complete(entries, true);
+				};
+				if (progress_callbacks !== null) {
+					xhr_data.upload.onprogress = xhr_data.onprogress;
+					xhr_data.upload.onload = function () {
+						for (var i = 0, ii = progress_callbacks.length; i < ii; ++i) {
+							progress_callbacks[i].call(null, "download");
+						}
+					};
+				}
+			}
+
+			if (progress_callbacks !== null) {
+				for (i = 0, ii = progress_callbacks.length; i < ii; ++i) {
+					progress_callbacks[i].call(null, "upload");
+				}
+			}
 
 			HttpRequest(xhr_data);
 		};
@@ -2480,12 +2718,14 @@
 			}
 		};
 		RequestType.prototype.request_complete = function (entries, error) {
-			var i, ii;
+			var delay = error ? this.delay_error : this.delay_okay,
+				i, ii;
 			for (i = 0, ii = entries.length; i < ii; ++i) {
 				delete this.unique[entries[i].id];
 			}
 
-			this.group.complete(error ? this.delay_error : this.delay_okay);
+			if (this.delay_modify !== null) delay = this.delay_modify.call(this, delay, entries);
+			this.group.complete(delay);
 		};
 
 		RequestData.prototype.run_callbacks = function (err, data, cache_error, request_type) {
@@ -2509,11 +2749,13 @@
 		// API request specializations
 		var group_ehentai = new RequestGroup(),
 			group_ehentai_full = new RequestGroup(),
+			group_lookup = new RequestGroup(),
 			group_nhentai = new RequestGroup(),
 			group_hitomi = new RequestGroup(),
 			rt_ehentai_gallery_page = new RequestType(25, 200, 5000, group_ehentai, "ehentai", "page"),
 			rt_ehentai_gallery = new RequestType(25, 200, 5000, group_ehentai, "ehentai", "gallery"),
 			rt_ehentai_gallery_full = new RequestType(1, 200, 5000, group_ehentai_full, "ehentai", "full"),
+			rt_ehentai_lookup = new RequestType(1, 3000, 5000, group_lookup, "ehentai", "lookup"),
 			rt_nhentai_gallery = new RequestType(1, 200, 5000, group_nhentai, "nhentai", "gallery"),
 			rt_hitomi_gallery = new RequestType(1, 200, 5000, group_hitomi, "hitomi", "gallery");
 
@@ -2542,8 +2784,8 @@
 				})
 			};
 		};
-		rt_ehentai_gallery.parse_response = function (text) {
-			var response = Helper.json_parse_safe(text, null),
+		rt_ehentai_gallery.parse_response = function (xhr) {
+			var response = Helper.json_parse_safe(xhr.responseText, null),
 				datas, i, ii;
 			if (response !== null) {
 				if (typeof(response) === "object") {
@@ -2596,8 +2838,8 @@
 				})
 			};
 		};
-		rt_ehentai_gallery_page.parse_response = function (text) {
-			var response = Helper.json_parse_safe(text, null);
+		rt_ehentai_gallery_page.parse_response = function (xhr) {
+			var response = Helper.json_parse_safe(xhr.responseText, null);
 			if (response !== null) {
 				if (typeof(response) === "object") {
 					if (typeof(response.error) === "string") {
@@ -2628,12 +2870,56 @@
 				url: "http://" + e[0] + "/g/" + e[1].gid + "/" + e[1].token + "/",
 			};
 		};
-		rt_ehentai_gallery_full.parse_response = function (text, entries) {
-			var html = Helper.html_parse_safe(text, null);
+		rt_ehentai_gallery_full.parse_response = function (xhr, entries) {
+			var html = Helper.html_parse_safe(xhr.responseText, null);
 			if (html !== null) {
 				return [ ehentai_parse_info(html, entries[0].data[1]) ];
 			}
 			return "Invalid response";
+		};
+
+		rt_ehentai_lookup.delay_modify = function (delay, entries) {
+			return (entries[0].data[0] ? delay : 0);
+		};
+		rt_ehentai_lookup.get_data = function (/*info*/) {
+			// TODO
+			return null;
+		};
+		rt_ehentai_lookup.set_data = function (/*data*/) {
+			// TODO
+		};
+		rt_ehentai_lookup.setup_xhr = function (entries) {
+			var e = entries[0].data;
+			if (e[0]) {
+				var blob = e[1],
+					form_data = new FormData(),
+					ext = (blob.type || "").split("/");
+
+				e[1] = null;
+
+				ext = "." + ext[ext.length - 1];
+
+				form_data.append("sfile", blob, "image" + ext);
+				form_data.append("fs_similar", "on");
+				if (config.sauce.expunged) {
+					form_data.append("fs_exp", "on");
+				}
+
+				return {
+					method: "POST",
+					url: "http://ul." + config.sauce.lookup_domain + "/image_lookup.php",
+					data: form_data
+				};
+			}
+			else {
+				return {
+					method: "GET",
+					url: ehentai_create_lookup_url(e[1])
+				};
+			}
+		};
+		rt_ehentai_lookup.parse_response = function (xhr, entries) {
+			return [ ehentai_parse_lookup_results(xhr, entries[0].data[0], entries[0].data[1]) ];
 		};
 
 		rt_nhentai_gallery.get_data = function (info) {
@@ -2648,8 +2934,8 @@
 				url: "http://" + domains.nhentai + "/g/" + entries[0].data[0] + "/",
 			};
 		};
-		rt_nhentai_gallery.parse_response = function (text) {
-			var html = Helper.html_parse_safe(text, null);
+		rt_nhentai_gallery.parse_response = function (xhr) {
+			var html = Helper.html_parse_safe(xhr.responseText, null);
 			if (html !== null) {
 				return [ nhentai_parse_info(html) ];
 			}
@@ -2668,8 +2954,8 @@
 				url: "https://" + domains.hitomi + "/galleries/" + entries[0].data[0] + ".html",
 			};
 		};
-		rt_hitomi_gallery.parse_response = function (text) {
-			var html = Helper.html_parse_safe(text, null);
+		rt_hitomi_gallery.parse_response = function (xhr) {
+			var html = Helper.html_parse_safe(xhr.responseText, null);
 			if (html !== null) {
 				return [ hitomi_parse_info(html) ];
 			}
@@ -2678,6 +2964,7 @@
 
 
 
+		// Public
 		var get_ehentai_gallery = function (gid, token, callback) {
 			var info = [ gid, token ];
 			return rt_ehentai_gallery.add(info.join("_"), info, callback);
@@ -2751,37 +3038,42 @@
 				}
 			});
 		};
-		var get_image = function (url, callback) {
-			// Note that the Uint8Array's length is longer than image_length
-			// callback(err, image_data, image_length);
-			HttpRequest({
-				method: "GET",
-				url: url,
-				overrideMimeType: "text/plain; charset=x-user-defined",
-				onload: function (xhr) {
-					if (xhr.status === 200) {
-						var text = xhr.responseText,
-							ta = new Uint8Array(text.length + 1),
-							i, ii;
 
-						for (i = 0, ii = text.length; i < ii; ++i) {
-							ta[i] = text.charCodeAt(i);
-						}
+		var lookup_on_ehentai = function (url, md5, use_similar, callback, progress_callback) {
+			if (use_similar) {
+				get_image(url, function (err, data, data_length, url) { // TODO : get_image should return a mime type, also take a progress
+					if (progress_callback !== undefined) {
+						progress_callback.call(null, "image");
+					}
 
-						callback(null, ta, ii, xhr.finalUrl);
+					if (err === null) {
+						var m = /\.(png|gif)(?:[\?#]|$)/.exec(url),
+							type = (m === null ? "jpeg" : m[1]),
+							blob = new Blob([ data.subarray(0, data_length) ], { type: "image/" + type });
+
+						rt_ehentai_lookup.add(url, [ true, blob ], callback, progress_callback);
 					}
 					else {
-						callback(xhr.status, null, 0, null);
+						callback.call(null, err, null);
 					}
-				},
-				onerror: function () {
-					callback("connection error", null, 0, null);
-				},
-				onabort: function () {
-					callback("aborted", null, 0, null);
-				}
-			});
+				});
+			}
+			else {
+				get_sha1_hash(url, md5, function (err, sha1) {
+					if (progress_callback !== undefined) {
+						progress_callback.call(null, "hash");
+					}
+
+					if (err === null) {
+						rt_ehentai_lookup.add(url, [ false, sha1 ], callback, progress_callback);
+					}
+					else {
+						callback.call(null, err, null);
+					}
+				});
+			}
 		};
+
 
 
 		// Exports
@@ -2794,7 +3086,7 @@
 			get_hitomi_gallery: get_hitomi_gallery,
 			get_gallery: get_gallery,
 			get_thumbnail: get_thumbnail,
-			get_image: get_image
+			lookup_on_ehentai: lookup_on_ehentai
 		};
 
 	})();
@@ -2932,50 +3224,6 @@
 		};
 
 	})();
-	var Hash = (function () {
-
-		// Private
-		var ttl_12_hours = 12 * 60 * 60 * 1000,
-			ttl_1_year = 365 * 24 * 60 * 60 * 1000;
-
-		var saved_data = {
-			md5: {},
-			sha1: {},
-		};
-
-		// Public
-		var get = function (type, key) {
-			var hash_data = saved_data[type],
-				value;
-
-			value = hash_data[key];
-			if (value) return value;
-
-			value = Cache.get(type, key);
-			if (value !== null) {
-				hash_data[key] = value;
-				return value;
-			}
-
-			return null;
-		};
-		var set = function (type, key, value) {
-			var ttl = (type === "md5") ? ttl_1_year : ttl_12_hours;
-			saved_data[type][key] = value;
-			Cache.set(type, key, value, ttl);
-		};
-		var set_nocache = function (type, key, value) {
-			saved_data[type][key] = value;
-		};
-
-		// Exports
-		return {
-			get: get,
-			set: set,
-			set_nocache: set_nocache
-		};
-
-	})();
 	var SHA1 = (function () {
 
 		// SHA-1 JS implementation originally created by Chris Verness; http://movable-type.co.uk/scripts/sha1.html
@@ -3078,58 +3326,48 @@
 	var Sauce = (function () {
 
 		// Private
-		var similar_uploading = false,
-			hover_nodes = {},
-			delays = {
-				similar_okay: 3000,
-				similar_error: 3000,
-				similar_retry: 5000,
-			};
+		var hover_nodes = {},
+			hover_nodes_id = 0;
 
 		var ui_events = {
 			click: function (event) {
 				event.preventDefault();
 
-				var sha1 = this.getAttribute("data-sha1"),
-					results = Helper.get_exresults_from_exsauce(this),
+				var results = Helper.get_exresults_from_exsauce(this),
 					hover;
 
 				if (results !== null) {
-					hover = hover_nodes[sha1];
+					hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id") || ""];
+					if (hover === undefined) return;
 
 					if (results.classList.toggle("hl-exsauce-results-hidden")) {
-						if (hover === undefined) hover = ui_hover(sha1);
 						hover.classList.remove("hl-exsauce-hover-hidden");
 						ui_events.mousemove.call(this, event);
 					}
 					else {
-						if (hover !== undefined) {
-							hover.classList.add("hl-exsauce-hover-hidden");
-						}
+						hover.classList.add("hl-exsauce-hover-hidden");
 					}
 				}
 			},
 			mouseover: function () {
-				var sha1 = this.getAttribute("data-sha1"),
-					results = Helper.get_exresults_from_exsauce(this),
+				var results = Helper.get_exresults_from_exsauce(this),
 					hover;
 
 				if (results === null || results.classList.contains("hl-exsauce-results-hidden")) {
-					hover = hover_nodes[sha1];
-					if (hover === undefined) hover = ui_hover(sha1);
+					hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id") || ""];
+					if (hover === undefined) return;
+
 					hover.classList.remove("hl-exsauce-hover-hidden");
 				}
 			},
 			mouseout: function () {
-				var sha1 = this.getAttribute("data-sha1"),
-					hover = hover_nodes[sha1];
-
+				var hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id") || ""];
 				if (hover !== undefined) {
 					hover.classList.add("hl-exsauce-hover-hidden");
 				}
 			},
 			mousemove: function (event) {
-				var hover = hover_nodes[this.getAttribute("data-sha1")];
+				var hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id") || ""];
 
 				if (hover === undefined || hover.classList.contains("hl-exsauce-hover-hidden")) return;
 
@@ -3156,37 +3394,33 @@
 			}
 		};
 
-		var ui_hover = function (sha1) {
-			var result = Hash.get("sha1", sha1),
+		var create_hover = function (id, data) {
+			var results = data.results,
 				hover, i, ii;
 
 			hover = $.node("div", "hl-exsauce-hover hl-exsauce-hover-hidden hl-hover-shadow" + Theme.classes);
 			Theme.bg(hover);
-			hover.setAttribute("data-sha1", sha1);
+			hover.setAttribute("data-hl-sauce-hover-id", id);
 
-			if (result !== null && (ii = result.length) > 0) {
-				i = 0;
-				while (true) {
-					$.add(hover, $.link(result[i][0], "hl-exsauce-hover-link", result[i][1]));
-					if (++i >= ii) break;
-					$.add(hover, $.node_simple("br"));
-				}
+			for (i = 0, ii = results.length; i < ii; ) {
+				$.add(hover, $.link(results[i].url, "hl-exsauce-hover-link", results[i].title));
+				if (++i < ii) $.add(hover, $.node_simple("br"));
 			}
+
 			Popup.hovering(hover);
-			hover_nodes[sha1] = hover;
+			hover_nodes[id] = hover;
 
 			return hover;
 		};
-		var format = function (a, result) {
-			var count = result.length,
+		var format = function (a, data) {
+			var count = data.results.length,
 				theme = Theme.classes,
-				sha1 = a.getAttribute("data-sha1"),
 				index = a.getAttribute("data-hl-image-index") || "",
 				results, link, par, n, i, ii;
 
 			a.classList.add("hl-exsauce-link-valid");
 			a.textContent = "Found: " + count;
-			a.href = get_sha1_lookup_url(sha1);
+			a.href = data.url;
 			a.target = "_blank";
 			a.rel = "noreferrer";
 
@@ -3201,11 +3435,11 @@
 					$.add(results, $.node("strong", "hl-exsauce-results-title", "Reverse Image Search Results"));
 					$.add(results, $.node("span", "hl-exsauce-results-sep", "|" ));
 					$.add(results, $.node("span", "hl-exsauce-results-label", "View on:"));
-					$.add(results, $.link(a.href, "hl-exsauce-results-link", (config.sauce.lookup_domain === domains.exhentai) ? "exhentai" : "e-hentai"));
+					$.add(results, $.link(a.href, "hl-exsauce-results-link", (config.sauce.lookup_domain === domains.exhentai) ? "ExHentai" : "E-Hentai"));
 					$.add(results, $.node_simple("br"));
 
-					for (i = 0, ii = result.length; i < ii; ++i) {
-						link = Linkifier.create_link(result[i][0]);
+					for (i = 0, ii = data.results.length; i < ii; ++i) {
+						link = Linkifier.create_link(data.results[i].url);
 						$.add(results, link);
 						Linkifier.preprocess_link(link, true);
 						if (i < ii - 1) $.add(results, $.node_simple("br"));
@@ -3213,241 +3447,59 @@
 
 					$.before(par, n, results);
 				}
+
+				a.setAttribute("data-hl-sauce-hover-id", hover_nodes_id);
+				create_hover(hover_nodes_id, data);
+				++hover_nodes_id;
+
 				Linkifier.change_link_events(a, "exsauce_toggle");
 			}
-
-			Debug.log("Formatting complete");
 		};
-		var lookup = function (a, sha1) {
-			a.textContent = "Checking";
 
-			HttpRequest({
-				method: "GET",
-				url: get_sha1_lookup_url(sha1),
-				onload: function (xhr) {
-					if (xhr.status === 200) {
-						var results = get_results(xhr.responseText);
+		var fetch_generic = function (link, use_similar, click_event) {
+			var url = link.href,
+				md5 = link.getAttribute("data-md5") || null,
+				progress;
 
-						Debug.log("Lookup successful; formatting...");
-						Hash.set("sha1", sha1, results);
-						ui_hover(sha1);
-						format(a, results);
+			if (use_similar) {
+				link.textContent = "Downloading";
+
+				progress = function (state) {
+					if (state === "image") {
+						link.textContent = "Waiting";
 					}
-					else {
-						a.textContent = "Error: lookup/" + xhr.status;
+					else if (state === "upload") {
+						link.textContent = "Uploading";
 					}
-				},
-				onerror: function () {
-					a.textContent = "Error: lookup/connection";
-				},
-				onabort: function () {
-					a.textContent = "Error: lookup/aborted";
-				}
-			});
-		};
-		var lookup_similar = function (a, image) {
-			var type = "jpeg",
-				m = /\.(png|gif)$/.exec(a.href || ""),
-				form_data = new FormData(),
-				blob, error_fn, reset_uploading;
-
-			if (m !== null) type = m[1];
-
-			blob = new Blob([ image ], { type: "image/" + type });
-
-			form_data.append("sfile", blob, a.getAttribute("data-hl-filename") || "image." + type);
-			form_data.append("fs_similar", "on");
-			if (config.sauce.expunged) {
-				form_data.append("fs_exp", "on");
-			}
-
-			reset_uploading = function () {
-				similar_uploading = false;
-			};
-			error_fn = function (msg) {
-				return function () {
-					setTimeout(reset_uploading, delays.similar_error);
-					a.textContent = "Error: " + msg;
+					else if (state === "download") {
+						link.textContent = "Checking";
+					}
 				};
-			};
+			}
+			else {
+				link.textContent = "Downloading";
 
-			a.textContent = "Uploading";
-
-			similar_uploading = true;
-			HttpRequest({
-				method: "POST",
-				url: "http://ul." + config.sauce.lookup_domain + "/image_lookup.php",
-				data: form_data,
-				onload: function (xhr) {
-					if (xhr.status === 200) {
-						var m = xhr.finalUrl.match(/f_shash=(([0-9a-f]{40}|corrupt)(?:;(?:[0-9a-f]{40}|monotone))*)/),
-							md5, sha1, results, err, n;
-
-						if (m && (sha1 = m[2]) !== "corrupt") {
-							results = get_results(xhr.responseText);
-
-							a.href = xhr.finalUrl;
-
-							if (/monotone/.test(m[1]) && results.length === 0) {
-								a.textContent = "Error: monotone";
-								a.setAttribute("title", "Similarity scan can only be performed on color images");
-							}
-							else {
-								md5 = a.getAttribute("data-md5");
-								if (md5) {
-									Hash.set("md5", md5, sha1);
-								}
-
-								a.removeAttribute("title");
-								a.setAttribute("data-hl-similar", m[1]);
-								a.setAttribute("data-sha1", sha1);
-
-								Debug.log("Lookup successful (" + m[1] + "); formatting...");
-								Hash.set("sha1", sha1, results);
-								ui_hover(sha1);
-								format(a, results);
-							}
-
-							setTimeout(reset_uploading, delays.similar_okay);
-						}
-						else {
-							if (/please\s+wait\s+a\s+bit\s+longer\s+between\s+each\s+file\s+search/i.test(xhr.responseText)) {
-								a.textContent = "Error: wait longer";
-								a.setAttribute("title", "Click again to retry");
-								$.on(a, "click", fetch_similar);
-								setTimeout(reset_uploading, delays.similar_retry);
-							}
-							else {
-								Debug.log("An error occured while reverse image searching", xhr);
-								err = "Unknown error";
-								m = Helper.html_parse_safe(xhr.responseText);
-								if (m !== null) {
-									n = $("#iw", m);
-									if (n !== null) err = n.textContent;
-								}
-								a.setAttribute("title", err);
-								error_fn("upload failed").call(null);
-							}
-						}
+				progress = function (state) {
+					if (state === "hash") {
+						link.textContent = "Waiting";
 					}
-					else {
-						error_fn("similar/" + xhr.status).call(null);
+					else if (state === "upload") {
+						link.textContent = "Checking";
 					}
-				},
-				onerror: error_fn("similar/check/connection"),
-				onabort: error_fn("similar/check/aborted"),
-				upload: {
-					onload: function () {
-						a.textContent = "Checking";
-					},
-					onerror: error_fn("similar/upload/connection"),
-					onabort: error_fn("similar/upload/aborted")
-				}
-			});
-		};
-		var get_sha1_lookup_url = function (sha1) {
-			var url = "http://",
-				di = domain_info[config.sauce.lookup_domain];
-			url += (di === undefined ? "" : di.g_domain);
-			url += "/?f_doujinshi=1&f_manga=1&f_artistcg=1&f_gamecg=1&f_western=1&f_non-h=1&f_imageset=1&f_cosplay=1&f_asianporn=1&f_misc=1&f_search=Search+Keywords&f_apply=Apply+Filter&f_shash=";
-			url += sha1;
-			url += "&fs_similar=0";
-			if (config.sauce.expunged) url += "&fs_exp=1";
-			return url;
-		};
-		var get_results = function (response_text) {
-			var results = [],
-				html = Helper.html_parse_safe(response_text, null),
-				links, link, i, ii;
-
-			if (html !== null) {
-				links = $$("div.it5 a,div.id2 a", html);
-
-				for (i = 0, ii = links.length; i < ii; ++i) {
-					link = links[i];
-					results.push([ link.href, link.textContent ]);
-				}
+				};
 			}
 
-			return results;
-		};
-		var hash = function (a, md5) {
-			Debug.log("Fetching image " + a.href);
-			a.textContent = "Loading";
+			$.off(link, "click", click_event);
 
-			API.get_image(a.href, function (err, data) {
-				if (err !== null) {
-					a.textContent = "Error: hash/" + err;
+			API.lookup_on_ehentai(url, md5, use_similar, function (err, data) {
+				if (err === null) {
+					format(link, data);
 				}
 				else {
-					var sha1 = SHA1.hash(data, data.length - 1);
-					a.textContent = "Hashing";
-					a.setAttribute("data-sha1", sha1);
-					Hash.set("md5", md5, sha1);
-					Debug.log("SHA-1 hash for image: " + sha1);
-					var res = check(a);
-					if (res !== true && res !== null) {
-						Debug.log('No cached result found; performing a lookup...');
-						lookup(a, res);
-					}
+					link.textContent = "Error: " + err;
+					$.on(link, "click", click_event);
 				}
-			});
-		};
-		var check = function (a) {
-			var sha1, results;
-
-			if (
-				(sha1 = a.getAttribute("data-sha1") || Hash.get("md5", a.getAttribute("data-md5") || "") || null) !== null &&
-				(results = Hash.get("sha1", sha1)) !== null
-			) {
-				Debug.log('Cached result found; formatting...');
-				a.setAttribute("data-sha1", sha1);
-				format(a, results);
-				return true;
-			}
-
-			return sha1;
-		};
-		var fetch = function (event) {
-			event.preventDefault();
-			$.off(this, "click", fetch);
-			var res = check(this);
-
-			if (res !== true) {
-				if (res === null) {
-					Debug.log('No SHA-1 hash found; fetching image...');
-					res = this.getAttribute("data-md5");
-					if (res) hash(this, res);
-				}
-				else { // res = sha1
-					Debug.log('No cached result found; performing a lookup...');
-					lookup(this, res);
-				}
-			}
-		};
-		var fetch_similar = function (event) {
-			event.preventDefault();
-			var res = check(this),
-				a = this;
-
-			if (res !== true) {
-				// Can search?
-				if (similar_uploading) return;
-				$.off(this, "click", fetch_similar);
-
-				// Load image and upload
-				a.textContent = "Loading";
-
-				API.get_image(this.href, function (err, image, image_size) {
-					if (err !== null) {
-						a.textContent = "Error: similar/" + err;
-					}
-					else {
-						image = image.subarray(0, image_size);
-						lookup_similar(a, image);
-					}
-				});
-			}
+			}, progress);
 		};
 
 		// Public
@@ -3455,10 +3507,20 @@
 			var label = config.sauce.label;
 
 			if (label.length === 0) {
-				label = (config.sauce.lookup_domain === domains.exhentai) ? "exhentai" : "e-hentai";
+				label = (config.sauce.lookup_domain === domains.exhentai) ? "ExHentai" : "E-Hentai";
 			}
 
 			return label;
+		};
+		var fetch = function (event) {
+			event.preventDefault();
+
+			fetch_generic(this, false, fetch);
+		};
+		var fetch_similar = function (event) {
+			event.preventDefault();
+
+			fetch_generic(this, true, fetch_similar);
 		};
 
 		// Exports
