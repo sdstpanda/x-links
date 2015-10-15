@@ -5236,7 +5236,7 @@
 				any = true;
 			}
 
-			return any ? norm : null;
+			return norm;
 		};
 		var normalize_split = function (text) {
 			var array = text.split(","),
@@ -5375,14 +5375,12 @@
 				filter.regex.lastIndex = 0;
 				while (true) {
 					match = check_single(text, filter, category);
-					if (match === false) break;
+					if (match === null) break;
 
 					info.any = true;
-					if (match !== true) {
-						info.matches.push(match);
-						if (match.filter.flags.bad) {
-							info.bad = true;
-						}
+					info.matches.push(match);
+					if (match.filter.flags.bad) {
+						info.bad = true;
 					}
 				}
 			}
@@ -5390,35 +5388,28 @@
 			return info;
 		};
 		var check_single = function (text, filter, category) {
-			// return false if no match
-			// return true if a match was found, but the filter has no flags
-			// return a new Match if a match was found and the filter has flags
+			// return null if no match
+			// return a new Match if a match was found
 			var list, i, ii, m;
-
-			m = filter.regex.exec(text);
-			if (filter.flags === null) {
-				return (m !== null);
-			}
 
 			// Category filtering
 			if ((list = filter.flags.only) !== undefined) {
 				for (i = 0, ii = list.length; i < ii; ++i) {
-					if (list[i] === category) {
-						break;
-					}
+					if (list[i] === category) break;
 				}
-				if (i >= ii) return false;
+				if (i >= ii) return null;
 			}
 			if ((list = filter.flags.not) !== undefined) {
 				for (i = 0, ii = list.length; i < ii; ++i) {
 					if (list[i] === category) {
-						return false;
+						return null;
 					}
 				}
 			}
 
 			// Text filter
-			return (m === null) ? false : new Match(m.index, m.index + m[0].length, filter);
+			m = filter.regex.exec(text);
+			return (m === null) ? null : new Match(m.index, m.index + m[0].length, filter);
 		};
 		var hl_return = function (bad, node) {
 			if (bad) {
@@ -5469,7 +5460,7 @@
 				else if (line[0] !== "#") {
 					if ((pos = line.indexOf(";")) > 0) {
 						regex = line.substr(0, pos);
-						flags = (pos < line.length) ? parse_flags(line.substr(pos)) : null;
+						flags = parse_flags((pos < line.length) ? line.substr(pos) : regex_default_flags);
 					}
 					else {
 						regex = line;
