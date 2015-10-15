@@ -5266,6 +5266,19 @@
 				any_color = true;
 			}
 
+			if (
+				(v = flags_obj["no-colors"]) !== undefined || (v = flags_obj["no-color"]) !== undefined ||
+				(v = flags_obj["nocolors"]) !== undefined || (v = flags_obj["nocolor"]) !== undefined
+			) {
+				color = null;
+				underline = null;
+				background = null;
+				link_color = null;
+				link_underline = null;
+				link_background = null;
+				any_color = true;
+			}
+
 			// Set colors
 			if (any_color) {
 				this.color = color;
