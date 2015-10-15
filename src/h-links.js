@@ -2181,7 +2181,7 @@
 		var ehentai_parse_info = function (html, data) {
 			// Tags
 			var updated_tag_count = 0,
-				tags, pattern, par, tds, namespace, ns, i, ii, j, jj, m, n;
+				tags, tags_array, pattern, par, tds, namespace, ns, i, ii, j, jj, m, n, t;
 
 			if (
 				(n = $("title", html)) !== null &&
@@ -2193,10 +2193,12 @@
 			}
 			else {
 				tags = {};
+				tags_array = [];
 				pattern = /(.+):/;
 
 				data.removed = false;
 				data.tags_ns = tags;
+				data.tags = tags_array;
 
 				par = $$("#taglist tr", html);
 				for (i = 0, ii = par.length; i < ii; ++i) {
@@ -2221,7 +2223,9 @@
 						// Create tag
 						if ((n = $("a", tds[j])) !== null) {
 							// Add tag
-							ns.push(n.textContent.trim());
+							t = n.textContent.trim();
+							ns.push(t);
+							tags_array.push(t);
 						}
 					}
 
