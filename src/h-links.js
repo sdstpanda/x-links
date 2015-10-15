@@ -5957,6 +5957,7 @@
 			queue = [],
 			current = [],
 			data_map = {},
+			current_visible_count = 0,
 			queue_timer = null,
 			custom_filters = [],
 			node_sort_order_keys = {
@@ -6083,7 +6084,7 @@
 
 			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
 
-			fn = function (checked, text) {
+			fn = function (checked, text, change_fn) {
 				var n1 = $.node("label", "hl-easylist-option-label"),
 					n2 = $.node("input", "hl-easylist-option-input");
 
@@ -6093,12 +6094,12 @@
 				$.add(n1, n2);
 				$.add(n1, $.node("span", "hl-easylist-option-button" + theme, text));
 
-				$.on(n2, "change", on_option_change.group_by_filters);
+				$.on(n2, "change", change_fn);
 
 				return n1;
 			};
-			$.add(n4, fn(settings.group_by_filters, "Filters"));
-			$.add(n4, fn(settings.group_by_category, "Category"));
+			$.add(n4, fn(settings.group_by_filters, "Filters", on_option_change.group_by_filters));
+			$.add(n4, fn(settings.group_by_category, "Category", on_option_change.group_by_category));
 
 
 			$.add(n2, n3 = $.node("div", "hl-easylist-option-row"));
@@ -6341,6 +6342,7 @@
 
 			if (data !== null) {
 				n = create_gallery_nodes(data, theme, current.length, entry.domain);
+				n.setAttribute("data-hl-easylist-item-parity", (current_visible_count % 2) === 0 ? "odd" : "even");
 
 				Main.insert_custom_fonts();
 
@@ -6348,14 +6350,15 @@
 
 				entry.node = n;
 				current.push(entry);
+				++current_visible_count;
 			}
 		};
 		var add_gallery_complete = function () {
-			set_empty(current.length === 0);
-
 			if (settings.group_by_category || settings.group_by_filters || settings.sort_by !== "thread" || settings.filter_visibility !== 0) {
 				update_ordering();
 			}
+
+			set_empty(current_visible_count === 0);
 		};
 		var set_empty = function (empty) {
 			if (empty_notification !== null) {
@@ -6397,16 +6400,18 @@
 			return cat_order;
 		};
 		var get_node_filter_group = function (node) {
-			var v1 = parseInt(node.getAttribute("data-hl-filter-matches-title"), 10) || 0,
-				v2 = parseInt(node.getAttribute("data-hl-filter-matches-title-bad"), 10) || 0,
-				v3 = parseInt(node.getAttribute("data-hl-filter-matches-uploader"), 10) || 0,
-				v4 = parseInt(node.getAttribute("data-hl-filter-matches-uploader-bad"), 10) || 0,
-				v5 = parseInt(node.getAttribute("data-hl-filter-matches-tags"), 10) || 0,
-				v6 = parseInt(node.getAttribute("data-hl-filter-matches-tags-bad"), 10) || 0;
-
-			v2 += v4 + v6;
-			if (v2 > 0) return -v2;
-			return v1 + v3 + v5;
+			var v = get_node_filters_bad(node);
+			return (v > 0) ? -v : get_node_filters_good(node);
+		};
+		var get_node_filters_good = function (node) {
+			return (parseInt(node.getAttribute("data-hl-filter-matches-title"), 10) || 0) +
+				(parseInt(node.getAttribute("data-hl-filter-matches-uploader"), 10) || 0) +
+				(parseInt(node.getAttribute("data-hl-filter-matches-tags"), 10) || 0);
+		};
+		var get_node_filters_bad = function (node) {
+			return (parseInt(node.getAttribute("data-hl-filter-matches-title-bad"), 10) || 0) +
+				(parseInt(node.getAttribute("data-hl-filter-matches-uploader-bad"), 10) || 0) +
+				(parseInt(node.getAttribute("data-hl-filter-matches-tags-bad"), 10) || 0);
 		};
 		var get_node_category_group = function (node, ordering) {
 			var k = node.getAttribute("data-hl-category") || "";
@@ -6428,6 +6433,8 @@
 		var update_ordering = function () {
 			var items = [],
 				mode = settings.sort_by,
+				visibility = settings.filter_visibility,
+				show = true,
 				ordering, base_array, item, attr, cat_order, n, n2, i, ii;
 
 			// Grouping
@@ -6435,9 +6442,9 @@
 				if (settings.group_by_category) {
 					cat_order = get_category_ordering();
 					base_array = function (node) {
-						return [ get_node_filter_group(node), get_node_category_group(node, cat_order) ];
+						return [ get_node_category_group(node, cat_order), get_node_filter_group(node) ];
 					};
-					ordering = [ -1, 1 ];
+					ordering = [ 1, -1 ];
 				}
 				else {
 					base_array = function (node) {
@@ -6457,6 +6464,7 @@
 				base_array = function () { return []; };
 				ordering = [];
 			}
+			console.log("update_ordering",settings,ordering);
 
 			// Iterate
 			attr = node_sort_order_keys[mode in node_sort_order_keys ? mode : "thread"];
@@ -6491,11 +6499,32 @@
 
 			// Re-insert
 			// Maybe eventually add labels
+			current_visible_count = 0;
 			for (i = 0, ii = items.length; i < ii; ++i) {
 				n = items[i].node;
+				n2 = $(".hl-easylist-item-image-index", n);
+
 				$.add(items_container, n);
-				if ((n2 = $(".hl-easylist-item-image-index", n)) !== null) {
-					n2.textContent = "#" + (i + 1);
+
+				if (visibility === 1) {
+					show = (get_node_filters_bad(n) === 0);
+				}
+				else if (visibility === 2) {
+					show = (get_node_filters_bad(n) === 0 && get_node_filters_good(n) > 0);
+				}
+
+				if (show) {
+					n.setAttribute("data-hl-easylist-item-parity", (current_visible_count % 2) === 0 ? "odd" : "even");
+					n.classList.remove("hl-easylist-item-hidden");
+					++current_visible_count;
+
+					if (n2 !== null) n2.textContent = "#" + current_visible_count;
+				}
+				else {
+					n.setAttribute("data-hl-easylist-item-parity", "hidden");
+					n.classList.add("hl-easylist-item-hidden");
+
+					if (n2 !== null) n2.textContent = "#";
 				}
 			}
 		};

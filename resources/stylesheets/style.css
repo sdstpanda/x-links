@@ -1171,16 +1171,19 @@ button.hl-settings-entry-input.hl-theme-dark:hover {
 	border: 1px solid rgba(255,255,255,0.25);
 }
 .hl-easylist-item {
-	background-color: rgba(0,0,0,0.0625);
-}
-.hl-easylist-item:nth-of-type(2n) {
 	background-color: rgba(0,0,0,0.03125);
 }
+.hl-easylist-item[data-hl-easylist-item-parity=even] {
+	background-color: rgba(0,0,0,0.0625);
+}
 .hl-easylist-item.hl-theme-dark {
+	background-color: rgba(255,255,255,0.03125);
+}
+.hl-easylist-item.hl-theme-dark[data-hl-easylist-item-parity=even] {
 	background-color: rgba(255,255,255,0.0625);
 }
-.hl-easylist-item.hl-theme-dark:nth-of-type(2n) {
-	background-color: rgba(255,255,255,0.03125);
+.hl-easylist-item.hl-easylist-item-hidden {
+	display: none;
 }
 
 .hl-easylist-item-table-container {
