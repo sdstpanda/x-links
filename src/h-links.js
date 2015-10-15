@@ -1801,14 +1801,187 @@
 	})();
 	var API = (function () {
 
+		// Caching
+		var cache_prefix = "#PREFIX#cache-",
+			cache_storage = window.localStorage,
+			cache_objects = {
+				md5_to_hash: {},
+				url_to_hash: {},
+				lookup: {},
+				errors: {}
+			},
+			ttl_1_hour = 60 * 60 * 1000,
+			ttl_1_day = 24 * ttl_1_hour,
+			ttl_1_year = 365 * ttl_1_day;
+
+		var cache_set = function (key, data, ttl) {
+			cache_storage.setItem(cache_prefix + key, JSON.stringify({
+				expires: Date.now() + ttl,
+				data: data
+			}));
+		};
+		var cache_get = function (key) {
+			var json = Helper.json_parse_safe(cache_storage.getItem(cache_prefix + key), null);
+
+			if (
+				json !== null &&
+				typeof(json) === "object" &&
+				Date.now() < json.expires &&
+				typeof(json.data) === "object"
+			) {
+				return json.data;
+			}
+
+			cache_storage.removeItem(key);
+			return null;
+		};
+		var cache_set_object = function (object_name) {
+			cache_storage.setItem(cache_prefix + object_name, JSON.stringify({
+				expires: null,
+				data: cache_objects[object_name]
+			}));
+		};
+		var cache_get_object = function (object_name) {
+			var json = Helper.json_parse_safe(cache_storage.getItem(cache_prefix + object_name), null),
+				obj, target;
+
+			if (
+				json !== null &&
+				typeof(json) === "object" &&
+				(obj = json.data) !== null &&
+				typeof(obj) === "object"
+			) {
+				target = cache_objects[object_name];
+				return cache_merge_objects(target, obj);
+			}
+
+			cache_storage.removeItem(object_name);
+			return false;
+		};
+		var cache_merge_objects = function (dest, obj) {
+			var now = Date.now(),
+				update = false,
+				entry, k;
+
+			for (k in obj) {
+				entry = obj[k];
+				if (now < entry.expires) {
+					dest[k] = entry;
+				}
+				else {
+					update = true;
+				}
+			}
+
+			return update;
+		};
+		var cache_cleanup = function () {
+			var storage = cache_storage,
+				re_matcher = new RegExp("^" + Helper.regex_escape(cache_prefix) + "(([en]hentai|hitomi)_gallery)-([^-]+)"),
+				removes = [],
+				time = Date.now(),
+				count = 0,
+				key, json, m, i, ii;
+
+			for (i = 0, ii = storage.length; i < ii; ++i) {
+				key = storage.key(i);
+				if ((m = re_matcher.exec(key)) !== null) {
+					json = Helper.json_parse_safe(storage.getItem(key), null);
+					if (json === null || typeof(json) !== "object" || !(time < json.expires)) { // jshint ignore:line
+						removes.push(key);
+					}
+				}
+			}
+
+			for (i = 0, ii = removes.length; i < ii; ++i) {
+				storage.removeItem(removes[i]);
+			}
+			count += ii;
+
+			return count;
+		};
+		var cache_clear = function () {
+			var storage_types = [ window.localStorage, window.sessionStorage ],
+				re_matcher = new RegExp("^" + Helper.regex_escape(cache_prefix)),
+				removes = [],
+				count = 0,
+				storage, key, m, i, ii, j, jj;
+
+			for (i = 0, ii = storage_types.length; i < ii; ++i) {
+				storage = storage_types[i];
+
+				for (j = 0, jj = storage.length; j < jj; ++j) {
+					key = storage.key(j);
+					if ((m = re_matcher.exec(key)) !== null) {
+						removes.push(key);
+					}
+				}
+
+				for (j = 0, jj = removes.length; j < jj; ++j) {
+					storage.removeItem(removes[j]);
+				}
+				count += jj;
+			}
+
+			return count;
+		};
+		var cache_init = function () {
+			// Cache mode
+			if (config.debug.cache_mode === "none") {
+				cache_storage = (function () {
+					var data = {};
+
+					var fn = {
+						length: 0,
+						key: function (index) {
+							return Object.keys(data)[index];
+						},
+						getItem: function (key) {
+							if (Object.prototype.hasOwnProperty.call(data, key)) {
+								return data[key];
+							}
+							return null;
+						},
+						setItem: function (key, value) {
+							if (!Object.prototype.hasOwnProperty.call(data, key)) {
+								++fn.length;
+							}
+							data[key] = value;
+						},
+						removeItem: function (key) {
+							if (Object.prototype.hasOwnProperty.call(data, key)) {
+								delete data[key];
+								--fn.length;
+							}
+						},
+						clear: function () {
+							data = {};
+							fn.length = 0;
+						}
+					};
+					return fn;
+				})();
+			}
+			else if (config.debug.cache_mode === "session") {
+				cache_storage = window.sessionStorage;
+			}
+
+			// Clean
+			cache_cleanup();
+
+			// Load
+			var k;
+			for (k in cache_objects) {
+				if (cache_get_object(k)) {
+					cache_set_object(k);
+				}
+			}
+		};
+
+
+
 		// Databasing
-		var ttl_1_day = 24 * 60 * 60 * 1000,
-			ttl_1_year = 365 * 24 * 60 * 60 * 1000,
-			hashes_md5_to_sha1 = {},
-			hashes_url_to_sha1 = {},
-			lookup_results = {},
-			saved_errors = {},
-			saved_gallery_data = {
+		var saved_gallery_data = {
 				ehentai: {},
 				nhentai: {},
 				hitomi: {}
@@ -1817,13 +1990,13 @@
 		var saved_gallery_namespace_exists = function (namespace) {
 			return (namespace in saved_gallery_data);
 		};
-		var get_saved_gallery = function (namespace, uid) {
+		var get_saved_gallery = function (namespace, gid) {
 			var db = saved_gallery_data[namespace],
-				data = db[uid];
+				data = db[gid];
 
 			if (data !== undefined) return data;
 
-			data = Cache.get(namespace + "_gallery", uid);
+			data = cache_get(namespace + "_gallery-" + gid);
 			if (data !== null) {
 				db[data.gid] = data;
 				return data;
@@ -1834,65 +2007,66 @@
 		var set_saved_gallery = function (data) {
 			var namespace = data.type;
 			saved_gallery_data[namespace][data.gid] = data;
-			Cache.set(namespace + "_gallery", data.gid, data, 0);
+			cache_set(namespace + "_gallery-" + data.gid, data, ttl_1_hour * (data.upload_date >= Date.now() - ttl_1_day ? 1 : 12));
 		};
-		var set_saved_error = function (id_list, error) { // , cache
-			var v = saved_errors,
-				vn, i, ii, id;
-			for (i = 0, ii = id_list.length - 1; i < ii; ++i) {
-				id = id_list[i];
-				vn = v[id];
-				if (vn !== undefined) {
-					v = vn;
-				}
-				else {
-					v[id] = v = {};
-				}
+		var set_saved_error = function (id_list, error, cache) {
+			var id = id_list.join("-");
+			cache_objects.errors[id] = {
+				expires: (cache ? Date.now() + ttl_1_hour * 12 : 0),
+				data: error
+			};
+
+			if (cache) {
+				cache_set_object("errors");
 			}
-			v[id_list[i]] = error;
 		};
 		var get_saved_error = function (id_list) {
-			var v = saved_errors,
-				i, ii;
-			for (i = 0, ii = id_list.length; i < ii; ++i) {
-				v = v[id_list[i]];
-				if (v === undefined) return null;
-			}
-			return v;
+			var id = id_list.join("-"),
+				value = cache_objects.errors[id];
+
+			return (value !== undefined) ? value.data : null;
 		};
-		
+
 		var hash_get_sha1_from_md5 = function (md5) {
-			var value = hashes_md5_to_sha1[md5];
-			if (value !== undefined) return value;
-
-			value = Cache.get("md5", md5);
-			if (value !== null) {
-				hashes_md5_to_sha1[md5] = value;
-				return value;
-			}
-
-			return null;
+			var value = cache_objects.md5_to_hash[md5];
+			return (value !== undefined) ? value.data : null;
 		};
 		var hash_get_sha1_from_url = function (url) {
-			var value = hashes_url_to_sha1[url];
-			if (value !== undefined) return value;
-
-			// TODO
-
-			return null;
+			var value = cache_objects.url_to_hash[url];
+			return (value !== undefined) ? value.data : null;
 		};
 		var hash_set_md5_to_sha1 = function (md5, sha1) {
-			hashes_md5_to_sha1[md5] = sha1;
-			Cache.set("md5", md5, sha1, ttl_1_year);
+			cache_objects.md5_to_hash[md5] = {
+				expires: Date.now() + ttl_1_year,
+				data: sha1
+			};
+
+			cache_set_object("md5_to_hash");
 		};
 		var hash_set_url_to_sha1 = function (url, sha1) {
-			hashes_url_to_sha1[url] = sha1;
-			// TODO
+			cache_objects.url_to_hash[url] = {
+				expires: Date.now() + ttl_1_day,
+				data: sha1
+			};
 
+			cache_set_object("url_to_hash");
 		};
 
-		
-		
+		var lookup_get_results = function (hash) {
+			var value = cache_objects.lookup[hash];
+			return (value !== undefined) ? value.data : null;
+		};
+		var lookup_set_results = function (data) {
+			cache_objects.lookup[data.hash] = {
+				expires: Date.now() + ttl_1_day,
+				data: data
+			};
+
+			cache_set_object("lookup");
+		};
+
+
+
 		// Private
 		var temp_div = $.node_simple("div"),
 			re_protocol = /^https?\:/i,
@@ -2369,15 +2543,15 @@
 			return data;
 		};
 
-		var ehentai_parse_lookup_results = function (xhr, is_similarity_scan, hash) {
-			var url = xhr.finalUrl,
+		var ehentai_parse_lookup_results = function (xhr, is_similarity_scan, hash, url, md5) {
+			var final_url = xhr.finalUrl,
 				text = xhr.responseText,
 				err = null,
 				html, results, links, link, m, n, i, ii;
 
 			// Similarity scan checking
 			if (is_similarity_scan) {
-				m = /f_shash=(([0-9a-f]{40}|corrupt)(?:;(?:[0-9a-f]{40}|monotone))*)/.exec(url);
+				m = /f_shash=(([0-9a-f]{40}|corrupt)(?:;(?:[0-9a-f]{40}|monotone))*)/.exec(final_url);
 				if (m !== null && m[2] !== "corrupt") {
 					hash = m[1];
 					if (/monotone/.test(hash)) {
@@ -2400,6 +2574,14 @@
 				}
 
 				if (err !== null) return { error: err };
+
+				// Save hash
+				if (md5 === null) {
+					hash_set_url_to_sha1(url, hash);
+				}
+				else {
+					hash_set_md5_to_sha1(md5, hash);
+				}
 			}
 
 			// Get html
@@ -2418,7 +2600,7 @@
 
 			// Done
 			return {
-				url: url,
+				url: final_url,
 				hash: hash,
 				results: results
 			};
@@ -2500,10 +2682,10 @@
 						var sha1 = SHA1.hash(data, data.length - 1);
 
 						if (md5 === null) {
-							hash_set_md5_to_sha1(md5, sha1);
+							hash_set_url_to_sha1(url, sha1);
 						}
 						else {
-							hash_set_url_to_sha1(url, sha1);
+							hash_set_md5_to_sha1(md5, sha1);
 						}
 
 						callback.call(null, null, sha1);
@@ -2516,7 +2698,6 @@
 
 			return null;
 		};
-
 
 
 
@@ -2898,21 +3079,20 @@
 		rt_ehentai_lookup.delay_modify = function (delay, entries) {
 			return (entries[0].data[0] ? delay : 0);
 		};
-		rt_ehentai_lookup.get_data = function (/*info*/) {
-			// TODO
-			return null;
+		rt_ehentai_lookup.get_data = function (info) {
+			return (info[1] === null ? null : lookup_get_results(info[1]));
 		};
-		rt_ehentai_lookup.set_data = function (/*data*/) {
-			// TODO
+		rt_ehentai_lookup.set_data = function (data) {
+			lookup_set_results(data);
 		};
 		rt_ehentai_lookup.setup_xhr = function (entries) {
 			var e = entries[0].data;
 			if (e[0]) {
-				var blob = e[1],
+				var blob = e[2],
 					form_data = new FormData(),
 					ext = (blob.type || "").split("/");
 
-				e[1] = null;
+				e[2] = null;
 
 				ext = "." + ext[ext.length - 1];
 
@@ -2936,7 +3116,8 @@
 			}
 		};
 		rt_ehentai_lookup.parse_response = function (xhr, entries) {
-			return [ ehentai_parse_lookup_results(xhr, entries[0].data[0], entries[0].data[1]) ];
+			var data = entries[0].data;
+			return [ ehentai_parse_lookup_results(xhr, data[0], data[1], data[3], data[4]) ];
 		};
 
 		rt_nhentai_gallery.get_data = function (info) {
@@ -3056,35 +3237,51 @@
 
 		var lookup_on_ehentai = function (url, md5, use_similar, callback, progress_callback) {
 			if (use_similar) {
-				get_image(url, function (err, data, data_length, mime_type, url) {
+				// Fast mode
+				var sha1, results;
+				if (
+					(sha1 = get_sha1_hash(url, md5)) !== null &&
+					(results = rt_ehentai_lookup.add(url, [ true, sha1, null, url, md5 ])) !== null
+				) {
+					// Already exists
+					callback.call(null, null, results);
+				}
+				else {
+					get_image(url, function (err, data, data_length, mime_type, url) {
+						if (progress_callback !== undefined) {
+							progress_callback.call(null, "image");
+						}
+
+						if (err === null) {
+							var blob = new Blob([ data.subarray(0, data_length) ], { type: mime_type });
+
+							rt_ehentai_lookup.add(url, [ true, sha1, blob, url, md5 ], callback, progress_callback);
+						}
+						else {
+							callback.call(null, err, null);
+						}
+					}, progress_callback);
+				}
+			}
+			else {
+				get_sha1_hash(url, md5, function (err, sha1) {
 					if (progress_callback !== undefined) {
 						progress_callback.call(null, "image");
 					}
 
 					if (err === null) {
-						var blob = new Blob([ data.subarray(0, data_length) ], { type: mime_type });
-
-						rt_ehentai_lookup.add(url, [ true, blob ], callback, progress_callback);
-					}
-					else {
-						callback.call(null, err, null);
-					}
-				}, progress_callback);
-			}
-			else {
-				get_sha1_hash(url, md5, function (err, sha1) {
-					if (progress_callback !== undefined) {
-						progress_callback.call(null, "hash");
-					}
-
-					if (err === null) {
-						rt_ehentai_lookup.add(url, [ false, sha1 ], callback, progress_callback);
+						rt_ehentai_lookup.add(url, [ false, sha1, null, url, md5 ], callback, progress_callback);
 					}
 					else {
 						callback.call(null, err, null);
 					}
 				});
 			}
+		};
+
+		var init = function () {
+			// Clean
+			cache_init();
 		};
 
 
@@ -3099,141 +3296,9 @@
 			get_hitomi_gallery: get_hitomi_gallery,
 			get_gallery: get_gallery,
 			get_thumbnail: get_thumbnail,
-			lookup_on_ehentai: lookup_on_ehentai
-		};
-
-	})();
-	var Cache = (function () {
-
-		// Private
-		var prefix = "#PREFIX#cache-",
-			storage = window.localStorage,
-			ttl_hour = 60 * 60 * 1000;
-
-		var get_key = function (storage, key) {
-			var json = Helper.json_parse_safe(storage.getItem(key));
-
-			if (json && typeof(json) === "object" && Date.now() < json.expires) {
-				return json.data;
-			}
-
-			storage.removeItem(key);
-			return null;
-		};
-
-		// Public
-		var init = function () {
-			var re_matcher = new RegExp("^" + Helper.regex_escape(prefix) + "((?:([en]hentai|hitomi)_)gallery|md5|sha1)-([^-]+)"),
-				removed = 0,
-				keys = [],
-				key, data, m, i, ii;
-
-			if (config.debug.cache_mode === "none") {
-				storage = (function () {
-					var data = {};
-
-					var fn = {
-						length: 0,
-						key: function (index) {
-							return Object.keys(data)[index];
-						},
-						getItem: function (key) {
-							if (Object.prototype.hasOwnProperty.call(data, key)) {
-								return data[key];
-							}
-							return null;
-						},
-						setItem: function (key, value) {
-							if (!Object.prototype.hasOwnProperty.call(data, key)) {
-								++fn.length;
-							}
-							data[key] = value;
-						},
-						removeItem: function (key) {
-							if (Object.prototype.hasOwnProperty.call(data, key)) {
-								delete data[key];
-								--fn.length;
-							}
-						},
-						clear: function () {
-							data = {};
-							fn.length = 0;
-						}
-					};
-					return fn;
-				})();
-			}
-			else if (config.debug.cache_mode === "session") {
-				storage = window.sessionStorage;
-			}
-
-			for (i = 0, ii = storage.length; i < ii; ++i) {
-				key = storage.key(i);
-				if ((m = re_matcher.exec(key)) !== null) {
-					keys.push(key, m);
-				}
-			}
-
-			for (i = 0, ii = keys.length; i < ii; ++i) {
-				data = get_key(storage, keys[i]);
-				++i;
-				if (data === null) {
-					++removed;
-				}
-			}
-
-			if (removed > 0) {
-				Debug.log("Purged " + removed + " old entries from cache");
-			}
-		};
-		var get = function (type, key) {
-			return get_key(storage, prefix + type + "-" + key);
-		};
-		var set = function (type, key, data, ttl) {
-			var now = Date.now();
-
-			if (ttl === 0) {
-				ttl = ((now - data.upload_date < 12 * ttl_hour) ? ttl_hour : 12 * ttl_hour); // Update more frequently for recent uploads
-			}
-
-			storage.setItem(prefix + type + "-" + key, JSON.stringify({
-				expires: now + ttl,
-				data: data
-			}));
-		};
-		var clear = function () {
-			var re_matcher = new RegExp("^" + Helper.regex_escape(prefix)),
-				storage_types = [ window.localStorage, window.sessionStorage ],
-				results = [],
-				remove, storage, key, i, ii, j, jj;
-
-			for (i = 0, ii = storage_types.length; i < ii; ++i) {
-				storage = storage_types[i];
-				remove = [];
-
-				for (j = 0, jj = storage.length; j < jj; ++j) {
-					key = storage.key(j);
-					if (re_matcher.test(key)) {
-						remove.push(key);
-					}
-				}
-
-				for (j = 0, jj = remove.length; j < jj; ++j) {
-					storage.removeItem(remove[j]);
-				}
-
-				results.push(jj);
-			}
-
-			return results;
-		};
-
-		// Exports
-		return {
-			init: init,
-			get: get,
-			set: set,
-			clear: clear
+			lookup_on_ehentai: lookup_on_ehentai,
+			cache_clear: cache_clear,
+			init: init
 		};
 
 	})();
@@ -3493,7 +3558,7 @@
 				link.textContent = "Downloading";
 
 				progress = function (state) {
-					if (state === "hash") {
+					if (state === "image") {
 						link.textContent = "Waiting";
 					}
 					else if (state === "upload") {
@@ -4537,8 +4602,8 @@
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 
-				var clears = Cache.clear();
-				Debug.log("Cleared cache; localStorage=" + clears[0] + "; sessionStorage=" + clears[1]);
+				var clears = API.cache_clear();
+				Debug.log("Cleared cache; entries_removed=" + clears);
 				this.textContent = "Cleared!";
 			}
 		};
@@ -7559,9 +7624,9 @@
 			Debug.init();
 			if (Module.version_change !== 0 && Module.version_change !== 2) {
 				Debug.log("Clearing cache on version change");
-				Cache.clear();
+				API.cache_clear();
 			}
-			Cache.init();
+			API.init();
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
 			$.ready(on_ready);
