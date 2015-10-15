@@ -3538,6 +3538,63 @@
 			}
 		};
 
+		var error_events = {
+			click: function (event) {
+				event.preventDefault();
+
+				var link = this,
+					events = this.getAttribute("data-hl-exsauce-events") || null;
+				Linkifier.change_link_events(link, null);
+
+				setTimeout(function () {
+					Linkifier.change_link_events(link, events);
+					link.click();
+				}, 1);
+			},
+			mouseover: ui_events.mouseover,
+			mouseout: ui_events.mouseout,
+			mousemove: ui_events.mousemove
+		};
+		var create_error = function (node, error, retry_event) {
+			var id = hover_nodes_id,
+				hover;
+
+			// Create hover
+			hover = $.node("div", "hl-exsauce-hover hl-exsauce-hover-hidden hl-hover-shadow" + Theme.classes);
+			Theme.bg(hover);
+			hover.setAttribute("data-hl-sauce-hover-id", id);
+
+			$.add(hover, $.node("span", "hl-exsauce-hover-link", error));
+
+			Popup.hovering(hover);
+			hover_nodes[id] = hover;
+
+			// Link
+			node.classList.add("hl-exsauce-link-error");
+			node.setAttribute("data-hl-sauce-hover-id", id);
+			node.textContent = "Error";
+			node.removeAttribute("title");
+			++hover_nodes_id;
+
+			// Events
+			Linkifier.change_link_events(node, "exsauce_error");
+		};
+		var remove_error = function (node) {
+			var events = Linkifier.get_link_events(node),
+				id = node.getAttribute("data-hl-sauce-hover-id"),
+				hover = hover_nodes[id];
+
+			Linkifier.change_link_events(node, null);
+			node.classList.remove("hl-exsauce-link-error");
+			node.setAttribute("data-hl-exsauce-events", events);
+			node.removeAttribute("data-hl-sauce-hover-id");
+
+			if (hover !== undefined) {
+				if (hover.parentNode !== null) $.remove(hover);
+				delete hover_nodes[id];
+			}
+		};
+
 		var fetch_generic = function (link, use_similar, click_event) {
 			var url = link.href,
 				md5 = link.getAttribute("data-md5") || null,
@@ -3571,15 +3628,14 @@
 				};
 			}
 
-			$.off(link, "click", click_event);
+			remove_error(link);
 
 			API.lookup_on_ehentai(url, md5, use_similar, function (err, data) {
 				if (err === null) {
 					format(link, data);
 				}
 				else {
-					link.textContent = "Error: " + err;
-					$.on(link, "click", click_event);
+					create_error(link, err, click_event);
 				}
 			}, progress);
 		};
@@ -3610,7 +3666,8 @@
 			events: {
 				fetch: fetch,
 				fetch_similar: fetch_similar,
-				ui: ui_events
+				ui: ui_events,
+				error: error_events
 			},
 			label: label
 		};
@@ -3640,10 +3697,7 @@
 			exsauce_fetch: Sauce.events.fetch,
 			exsauce_fetch_similarity: Sauce.events.fetch_similar,
 			exsauce_toggle: Sauce.events.ui,
-			exsauce_error: function (event) {
-				event.preventDefault();
-				return false;
-			},
+			exsauce_error: Sauce.events.error,
 			gallery_link: UI.events.gallery_link,
 			gallery_error: function (event) {
 				event.preventDefault();
@@ -4464,6 +4518,7 @@
 		return {
 			preprocess_link: preprocess_link,
 			queue_posts: queue_posts,
+			get_link_events: get_link_events,
 			change_link_events: change_link_events,
 			create_link: create_link,
 			get_links: get_links,
