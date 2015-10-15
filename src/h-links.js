@@ -5974,7 +5974,8 @@
 				group_by_category: false,
 				group_by_filters: false,
 				custom_filters: "# Custom filters follow the same rules as standard filters\n",
-				display_mode: 0 // 0 = full, 1 = compact, 2 = minimal
+				display_mode: 0, // 0 = full, 1 = compact, 2 = minimal
+				filter_visibility: 0 // 0 = show all, 1 = hide bad, 2 = only show matches
 			};
 
 		var settings_save = function () {
@@ -6125,6 +6126,33 @@
 			$.add(n4, fn(0, "Full"));
 			$.add(n4, fn(1, "Compact"));
 			$.add(n4, fn(2, "Minimal"));
+
+
+			$.add(n2, n3 = $.node("div", "hl-easylist-option-row"));
+			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
+			$.add(n4, $.node("span", "hl-easylist-option-title", "Filter visibility:"));
+
+			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
+
+			fn = function (value, text) {
+				var n1 = $.node("label", "hl-easylist-option-label"),
+					n2 = $.node("input", "hl-easylist-option-input");
+
+				n2.name = "hl-easylist-options-filter-visibility";
+				n2.type = "radio";
+				n2.checked = (settings.filter_visibility === value);
+				n2.value = "" + value;
+
+				$.add(n1, n2);
+				$.add(n1, $.node("span", "hl-easylist-option-button" + theme, text));
+
+				$.on(n2, "change", on_option_change.filter_visibility);
+
+				return n1;
+			};
+			$.add(n4, fn(0, "Show all"));
+			$.add(n4, fn(1, "Hide bad"));
+			$.add(n4, fn(2, "Only show matches"));
 
 
 			$.add(n2, n3 = $.node("div", "hl-easylist-option-row"));
@@ -6325,7 +6353,7 @@
 		var add_gallery_complete = function () {
 			set_empty(current.length === 0);
 
-			if (settings.group_by_category || settings.group_by_filters || settings.sort_by !== "thread") {
+			if (settings.group_by_category || settings.group_by_filters || settings.sort_by !== "thread" || settings.filter_visibility !== 0) {
 				update_ordering();
 			}
 		};
@@ -6553,6 +6581,11 @@
 				settings.display_mode = parseInt(this.value, 10) || 0;
 				settings_save();
 				update_display_mode(false);
+			},
+			filter_visibility: function () {
+				settings.filter_visibility = parseInt(this.value, 10) || 0;
+				settings_save();
+				update_ordering();
 			},
 			custom_filters: function () {
 				if (settings.custom_filters !== this.value) {
