@@ -3498,7 +3498,7 @@
 			var count = data.results.length,
 				theme = Theme.classes,
 				index = a.getAttribute("data-hl-image-index") || "",
-				results, link, par, n, i, ii;
+				results, link, par, url, n, i, ii;
 
 			a.classList.add("hl-exsauce-link-valid");
 			a.textContent = "Found: " + count;
@@ -3521,9 +3521,8 @@
 					$.add(results, $.node_simple("br"));
 
 					for (i = 0, ii = data.results.length; i < ii; ++i) {
-						link = Linkifier.create_link(data.results[i].url);
-						$.add(results, link);
-						Linkifier.preprocess_link(link, true);
+						url = data.results[i].url;
+						link = Linkifier.create_link(results, null, url, url, true);
 						if (i < ii - 1) $.add(results, $.node_simple("br"));
 					}
 
@@ -4107,6 +4106,46 @@
 				}
 			}
 		};
+		var preprocess_link = function (node, auto_load) {
+			var url, info, rewrite, button, par;
+
+			if (
+				(par = node.parentNode) === null ||
+				(info = Helper.get_url_info((url = node.href))) === null
+			) {
+				node.classList.remove("hl-linkified-gallery");
+				node.removeAttribute("data-hl-linkified-status");
+			}
+			else {
+				if (info.site === "ehentai") {
+					rewrite = config.general.rewrite_links;
+					if (
+						(rewrite === domains.exhentai || rewrite === domains.ehentai) &&
+						info.domain !== rewrite
+					) {
+						info.domain = rewrite;
+						url = Helper.change_url_domain(url, domain_info[rewrite].g_domain);
+						node.href = url;
+					}
+				}
+
+				node.classList.add("hl-linkified");
+				node.classList.add("hl-linkified-gallery");
+				node.setAttribute("data-hl-linkified-status", "processed");
+
+				node.setAttribute("data-hl-info", JSON.stringify(info));
+				node.setAttribute("data-hl-id", info.site + "_" + info.gid);
+
+				button = UI.button(url, info.domain);
+
+				change_link_events(node, "gallery_link");
+				change_link_events(button, "gallery_fetch");
+
+				$.before(par, node, button);
+
+				if (auto_load) load_link(node, info);
+			}
+		};
 		var load_link = function (link, info) {
 			var callback = function (err, data) {
 				if (err === null) {
@@ -4326,46 +4365,6 @@
 			UseDelay: 0x1,
 			Flush: 0x2,
 		};
-		var preprocess_link = function (node, auto_load) {
-			var url, info, rewrite, button, par;
-
-			if (
-				(par = node.parentNode) === null ||
-				(info = Helper.get_url_info((url = node.href))) === null
-			) {
-				node.classList.remove("hl-linkified-gallery");
-				node.removeAttribute("data-hl-linkified-status");
-			}
-			else {
-				if (info.site === "ehentai") {
-					rewrite = config.general.rewrite_links;
-					if (
-						(rewrite === domains.exhentai || rewrite === domains.ehentai) &&
-						info.domain !== rewrite
-					) {
-						info.domain = rewrite;
-						url = Helper.change_url_domain(url, domain_info[rewrite].g_domain);
-						node.href = url;
-					}
-				}
-
-				node.classList.add("hl-linkified");
-				node.classList.add("hl-linkified-gallery");
-				node.setAttribute("data-hl-linkified-status", "processed");
-
-				node.setAttribute("data-hl-info", JSON.stringify(info));
-				node.setAttribute("data-hl-id", info.site + "_" + info.gid);
-
-				button = UI.button(url, info.domain);
-
-				change_link_events(node, "gallery_link");
-				change_link_events(button, "gallery_fetch");
-
-				$.before(par, node, button);
-
-				if (auto_load) load_link(node, info);
-			}
-		};
 		var change_link_events = function (node, new_events) {
 			var old_events = node.getAttribute("data-hl-link-events"),
 				events, k;
@@ -4393,8 +4392,14 @@
 				set_link_events(node, new_events);
 			}
 		};
-		var create_link = function (text) {
-			return $.link(text, "hl-linkified", text);
+		var create_link = function (parent, next, url, text, auto_process) {
+			var link = $.link(url, "hl-linkified", text);
+
+			$.before(parent, next, link);
+
+			preprocess_link(link, auto_process);
+
+			return link;
 		};
 		var get_links = function (parent) {
 			return $$("a.hl-linkified-gallery[href]", parent);
@@ -4487,7 +4492,6 @@
 		// Exports
 		return {
 			load_link: load_link,
-			preprocess_link: preprocess_link,
 			queue_posts: queue_posts,
 			get_link_events: get_link_events,
 			change_link_events: change_link_events,
