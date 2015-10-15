@@ -1165,6 +1165,81 @@
 				update_details_position(details, this, event.clientX, event.clientY);
 			}
 		};
+		var gallery_toggle_actions = function (event) {
+			if ($.is_left_mouse(event) && config.actions.enabled) {
+				event.preventDefault();
+
+				var index = this.getAttribute("hl-actions-index"),
+					actions, tag_bg, data, link, id;
+
+				if (!index) {
+					index = "" + actions_nodes_index;
+					++actions_nodes_index;
+					this.setAttribute("hl-actions-index", index);
+				}
+
+				if (this.classList.toggle("hl-site-tag-active")) {
+					// Create bg
+					tag_bg = $(".hl-site-tag-bg", this);
+					if (tag_bg === null) tag_bg = create_tag_bg(this);
+
+					// Show
+					actions = actions_nodes[index];
+					if (actions !== undefined) {
+						actions.classList.remove("hl-actions-hidden");
+						Popup.hovering(actions);
+						activate_actions(actions, index);
+					}
+					else {
+						// Create
+						if (
+							(link = Helper.get_link_from_tag_button(this)) !== null &&
+							(id = Helper.get_id_from_node(link)) !== null &&
+							(data = API.get_gallery(id[0], id[1])) !== null
+						) {
+							actions = create_actions(data, link, index);
+							actions_nodes[index] = actions;
+							activate_actions(actions, index);
+						}
+						else {
+							return;
+						}
+					}
+
+					// Position
+					update_actions_position(actions, this, tag_bg, d.documentElement.getBoundingClientRect());
+				}
+				else {
+					// Hide
+					actions = actions_nodes[index];
+					if (actions !== undefined) {
+						close_actions(actions, index);
+					}
+				}
+			}
+		};
+		var gallery_fetch_event = function (event) {
+			if ($.is_left_mouse(event)) {
+				event.preventDefault();
+
+				var link, info;
+
+				Linkifier.change_link_events(this, null);
+
+				if (
+					(link = Helper.get_link_from_tag_button(this)) !== null &&
+					(info = Helper.get_info_from_node(link)) !== null
+				) {
+					Linkifier.load_link(link, info);
+				}
+			}
+		};
+		var gallery_error_event = function (event) {
+			if ($.is_left_mouse(event)) {
+				event.preventDefault();
+				return false;
+			}
+		};
 
 		var create_details = function (data, domain) {
 			var g_domain = domain_info[domain].g_domain,
@@ -1696,59 +1771,6 @@
 				pad(d.getUTCHours(), ":") +
 				pad(d.getUTCMinutes(), "");
 		};
-		var gallery_toggle_actions = function (event) {
-			if ($.is_left_mouse(event) && config.actions.enabled) {
-				event.preventDefault();
-
-				var index = this.getAttribute("hl-actions-index"),
-					actions, tag_bg, data, link, id;
-
-				if (!index) {
-					index = "" + actions_nodes_index;
-					++actions_nodes_index;
-					this.setAttribute("hl-actions-index", index);
-				}
-
-				if (this.classList.toggle("hl-site-tag-active")) {
-					// Create bg
-					tag_bg = $(".hl-site-tag-bg", this);
-					if (tag_bg === null) tag_bg = create_tag_bg(this);
-
-					// Show
-					actions = actions_nodes[index];
-					if (actions !== undefined) {
-						actions.classList.remove("hl-actions-hidden");
-						Popup.hovering(actions);
-						activate_actions(actions, index);
-					}
-					else {
-						// Create
-						if (
-							(link = Helper.get_link_from_tag_button(this)) !== null &&
-							(id = Helper.get_id_from_node(link)) !== null &&
-							(data = API.get_gallery(id[0], id[1])) !== null
-						) {
-							actions = create_actions(data, link, index);
-							actions_nodes[index] = actions;
-							activate_actions(actions, index);
-						}
-						else {
-							return;
-						}
-					}
-
-					// Position
-					update_actions_position(actions, this, tag_bg, d.documentElement.getBoundingClientRect());
-				}
-				else {
-					// Hide
-					actions = actions_nodes[index];
-					if (actions !== undefined) {
-						close_actions(actions, index);
-					}
-				}
-			}
-		};
 
 		var cleanup_post = function (post) {
 			var nodes, n, i, ii;
@@ -1785,7 +1807,9 @@
 		return {
 			events: {
 				gallery_link: gallery_link_events,
-				gallery_toggle_actions: gallery_toggle_actions
+				gallery_toggle_actions: gallery_toggle_actions,
+				gallery_fetch: gallery_fetch_event,
+				gallery_error: gallery_error_event
 			},
 			create_rating_stars: create_rating_stars,
 			button: button,
@@ -3695,14 +3719,9 @@
 			exsauce_toggle: Sauce.events.ui,
 			exsauce_error: Sauce.events.error,
 			gallery_link: UI.events.gallery_link,
-			gallery_error: function (event) {
-				event.preventDefault();
-				return false;
-			},
+			gallery_error: UI.events.gallery_error,
 			gallery_toggle_actions: UI.events.gallery_toggle_actions,
-			gallery_fetch: function (event) {
-				return on_tag_click_to_load.call(this, event);
-			}
+			gallery_fetch: UI.events.gallery_fetch
 		};
 
 		var deep_dom_wrap = (function () {
@@ -4090,22 +4109,6 @@
 			}
 		};
 
-		var on_tag_click_to_load = function (event) {
-			if ($.is_left_mouse(event)) {
-				event.preventDefault();
-
-				change_link_events(this, null);
-
-				var link, info;
-
-				if (
-					(link = Helper.get_link_from_tag_button(this)) !== null &&
-					(info = Helper.get_info_from_node(link)) !== null
-				) {
-					load_link(link, info);
-				}
-			}
-		};
 		var preprocess_link = function (node, auto_load) {
 			var url, info, rewrite, button, par;
 
