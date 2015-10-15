@@ -1801,78 +1801,101 @@
 	})();
 	var API = (function () {
 
-		var Database = (function () {
-
-			// Private
-			var saved_data = {
-					ehentai: {},
-					nhentai: {},
-					hitomi: {}
-				},
-				errors = {};
-
-			// Public
-			var get = function (namespace, uid) {
-				var db = saved_data[namespace],
-					data = db[uid];
-
-				if (data !== undefined) return data;
-
-				data = Cache.get(namespace + "_gallery", uid);
-				if (data !== null) {
-					db[data.gid] = data;
-					return data;
-				}
-
-				return null;
-			};
-			var set = function (namespace, data) {
-				saved_data[namespace][data.gid] = data;
-				Cache.set(namespace + "_gallery", data.gid, data, 0);
-			};
-			var set_error = function (id_list, error) { // , cache
-				var v = errors,
-					vn, i, ii, id;
-				for (i = 0, ii = id_list.length - 1; i < ii; ++i) {
-					id = id_list[i];
-					vn = v[id];
-					if (vn !== undefined) {
-						v = vn;
-					}
-					else {
-						v[id] = v = {};
-					}
-				}
-				v[id_list[i]] = error;
-			};
-			var get_error = function (id_list) {
-				var v = errors,
-					i, ii;
-				for (i = 0, ii = id_list.length; i < ii; ++i) {
-					v = v[id_list[i]];
-					if (v === undefined) return null;
-				}
-				return v;
-			};
-
-			// Exports
-			return {
-				get: get,
-				set: set,
-				set_error: set_error,
-				get_error: get_error
-			};
-
-		})();
-
-		// Private
-		var temp_div = $.node_simple("div"),
-			re_protocol = /^https?\:/i,
-			ttl_1_day = 24 * 60 * 60 * 1000,
+		// Databasing
+		var ttl_1_day = 24 * 60 * 60 * 1000,
 			ttl_1_year = 365 * 24 * 60 * 60 * 1000,
 			hashes_md5_to_sha1 = {},
 			hashes_url_to_sha1 = {},
 			lookup_results = {},
+			saved_errors = {},
+			saved_gallery_data = {
+				ehentai: {},
+				nhentai: {},
+				hitomi: {}
+			};
+
+		var saved_gallery_namespace_exists = function (namespace) {
+			return (namespace in saved_gallery_data);
+		};
+		var get_saved_gallery = function (namespace, uid) {
+			var db = saved_gallery_data[namespace],
+				data = db[uid];
+
+			if (data !== undefined) return data;
+
+			data = Cache.get(namespace + "_gallery", uid);
+			if (data !== null) {
+				db[data.gid] = data;
+				return data;
+			}
+
+			return null;
+		};
+		var set_saved_gallery = function (data) {
+			var namespace = data.type;
+			saved_gallery_data[namespace][data.gid] = data;
+			Cache.set(namespace + "_gallery", data.gid, data, 0);
+		};
+		var set_saved_error = function (id_list, error) { // , cache
+			var v = saved_errors,
+				vn, i, ii, id;
+			for (i = 0, ii = id_list.length - 1; i < ii; ++i) {
+				id = id_list[i];
+				vn = v[id];
+				if (vn !== undefined) {
+					v = vn;
+				}
+				else {
+					v[id] = v = {};
+				}
+			}
+			v[id_list[i]] = error;
+		};
+		var get_saved_error = function (id_list) {
+			var v = saved_errors,
+				i, ii;
+			for (i = 0, ii = id_list.length; i < ii; ++i) {
+				v = v[id_list[i]];
+				if (v === undefined) return null;
+			}
+			return v;
+		};
+		
+		var hash_get_sha1_from_md5 = function (md5) {
+			var value = hashes_md5_to_sha1[md5];
+			if (value !== undefined) return value;
+
+			value = Cache.get("md5", md5);
+			if (value !== null) {
+				hashes_md5_to_sha1[md5] = value;
+				return value;
+			}
+
+			return null;
+		};
+		var hash_get_sha1_from_url = function (url) {
+			var value = hashes_url_to_sha1[url];
+			if (value !== undefined) return value;
+
+			// TODO
+
+			return null;
+		};
+		var hash_set_md5_to_sha1 = function (md5, sha1) {
+			hashes_md5_to_sha1[md5] = sha1;
+			Cache.set("md5", md5, sha1, ttl_1_year);
+		};
+		var hash_set_url_to_sha1 = function (url, sha1) {
+			hashes_url_to_sha1[url] = sha1;
+			// TODO
+
+		};
+
+		
+		
+		// Private
+		var temp_div = $.node_simple("div"),
+			re_protocol = /^https?\:/i,
 			saved_thumbnails = {
 				ehentai: {},
 				nhentai: {},
@@ -2442,7 +2465,7 @@
 					callback("aborted", null, 0, null, null);
 				}
 			};
-			
+
 			if (progress_callback !== undefined) {
 				xhr_data.onprogress = function (xhr) {
 					progress_callback.call(null, "progress", xhr.lengthComputable, xhr.loaded, xhr.total);
@@ -2494,35 +2517,6 @@
 			return null;
 		};
 
-		var hash_get_sha1_from_md5 = function (md5) {
-			var value = hashes_md5_to_sha1[md5];
-			if (value !== undefined) return value;
-
-			value = Cache.get("md5", md5);
-			if (value !== null) {
-				hashes_md5_to_sha1[md5] = value;
-				return value;
-			}
-
-			return null;
-		};
-		var hash_get_sha1_from_url = function (url) {
-			var value = hashes_url_to_sha1[url];
-			if (value !== undefined) return value;
-
-			// TODO
-
-			return null;
-		};
-		var hash_set_md5_to_sha1 = function (md5, sha1) {
-			hashes_md5_to_sha1[md5] = sha1;
-			Cache.set("md5", md5, sha1, ttl_1_year);
-		};
-		var hash_set_url_to_sha1 = function (url, sha1) {
-			hashes_url_to_sha1[url] = sha1;
-			// TODO
-
-		};
 
 
 
@@ -2622,7 +2616,7 @@
 
 			if (callback === undefined) return null;
 
-			err = Database.get_error([ this.namespace, this.type, unique_id ]);
+			err = get_saved_error([ this.namespace, this.type, unique_id ]);
 			if (err !== null) {
 				callback.call(null, err, null);
 				return true;
@@ -2757,7 +2751,7 @@
 				request_type.set_data.call(request_type, data);
 			}
 			else {
-				Database.set_error([ request_type.namespace, request_type.type, this.id ], err, cache_error);
+				set_saved_error([ request_type.namespace, request_type.type, this.id ], err, cache_error);
 			}
 
 			// Callbacks
@@ -2783,11 +2777,11 @@
 			rt_hitomi_gallery = new RequestType(1, 200, 5000, group_hitomi, "hitomi", "gallery");
 
 		rt_ehentai_gallery.get_data = function (info) {
-			var data = Database.get(this.namespace, info[0]);
+			var data = get_saved_gallery(this.namespace, info[0]);
 			return (data !== null && data.token === info[1]) ? data : null;
 		};
 		rt_ehentai_gallery.set_data = function (data) {
-			Database.set(data.type, data);
+			set_saved_gallery(data);
 		};
 		rt_ehentai_gallery.setup_xhr = function (entries) {
 			var gidlist = [],
@@ -2832,7 +2826,7 @@
 		};
 
 		rt_ehentai_gallery_page.get_data = function (info) {
-			var data = Database.get(this.namespace, info[0]);
+			var data = get_saved_gallery(this.namespace, info[0]);
 			if (data !== null) {
 				return {
 					gid: data.gid,
@@ -2880,11 +2874,11 @@
 		};
 
 		rt_ehentai_gallery_full.get_data = function (info) {
-			var data = Database.get(this.namespace, info[0]);
+			var data = get_saved_gallery(this.namespace, info[0]);
 			return (data !== null && data.token === info[1] && data.full) ? data : null;
 		};
 		rt_ehentai_gallery_full.set_data = function (data) {
-			Database.set(data.type, data);
+			set_saved_gallery(data);
 		};
 		rt_ehentai_gallery_full.setup_xhr = function (entries) {
 			var e = entries[0].data;
@@ -2946,10 +2940,10 @@
 		};
 
 		rt_nhentai_gallery.get_data = function (info) {
-			return Database.get(this.namespace, info[0]);
+			return get_saved_gallery(this.namespace, info[0]);
 		};
 		rt_nhentai_gallery.set_data = function (data) {
-			Database.set(data.type, data);
+			set_saved_gallery(data);
 		};
 		rt_nhentai_gallery.setup_xhr = function (entries) {
 			return {
@@ -2966,10 +2960,10 @@
 		};
 
 		rt_hitomi_gallery.get_data = function (info) {
-			return Database.get(this.namespace, info[0]);
+			return get_saved_gallery(this.namespace, info[0]);
 		};
 		rt_hitomi_gallery.set_data = function (data) {
-			Database.set(data.type, data);
+			set_saved_gallery(data);
 		};
 		rt_hitomi_gallery.setup_xhr = function (entries) {
 			return {
@@ -3007,8 +3001,8 @@
 		};
 
 		var get_gallery = function (site, gid) {
-			if (site === "ehentai" || site === "nhentai" || site === "hitomi") {
-				return Database.get(site, gid);
+			if (saved_gallery_namespace_exists(site)) {
+				return get_saved_gallery(site, gid);
 			}
 			return null;
 		};
