@@ -6176,7 +6176,7 @@
 		};
 		var create_gallery_nodes = function (data, theme, index, domain) {
 			var url = CreateURL.to_gallery(data, domain),
-				n1, n2, n3, n4, n5, n6, n7, i;
+				n1, n2, n3, n4, n5, n6, n7, i, t;
 
 			n1 = $.node("div", "hl-easylist-item" + theme);
 			n1.setAttribute("data-hl-index", index);
@@ -6229,8 +6229,10 @@
 
 			$.add(n4, n5 = $.node("div", "hl-easylist-item-title" + theme));
 
-			$.add(n5, n6 = $.link(url, "hl-easylist-item-title-tag-link" + theme, UI.button_text(domain)));
-			n6.setAttribute("data-hl-original", n6.textContent);
+			t = UI.button_text(domain);
+			$.add(n5, n6 = $.link(url, "hl-easylist-item-title-tag-link" + theme));
+			$.add(n6, $.node("span", "hl-easylist-item-title-tag-link-text", t));
+			n6.setAttribute("data-hl-original", t);
 
 			$.add(n5, n6 = $.link(url, "hl-easylist-item-title-link" + theme, data.title));
 			n6.setAttribute("data-hl-original", n6.textContent);
@@ -6528,8 +6530,8 @@
 				}
 			}
 		};
-		var reset_filter_state = function (node) {
-			node.textContent = node.getAttribute("data-hl-original") || "";
+		var reset_filter_state = function (node, content_node) {
+			content_node.textContent = node.getAttribute("data-hl-original") || "";
 			node.classList.remove("hl-filter-good");
 			node.classList.remove("hl-filter-bad");
 		};
@@ -6548,7 +6550,7 @@
 				results = [];
 				for (j = 0, jj = nodes.length; j < jj; ++j) {
 					n = nodes[j];
-					if (!first) reset_filter_state(n);
+					if (!first) reset_filter_state(n, n);
 					Filter.highlight(mode, n, data, Filter.None, results, custom_filters);
 				}
 
@@ -6563,14 +6565,14 @@
 
 			if (!tags_only) {
 				link = $(".hl-easylist-item-title-link", node);
-				n = $(".hl-easylist-item-title-tag-link", node);
+				n = $(".hl-easylist-item-title-tag-link>span", node);
 
 				if (link !== null && n !== null) {
-					if (!first) reset_filter_state(n);
+					if (!first) reset_filter_state(n.parentNode, n);
 
 					link = link.cloneNode(true);
 					if ((hl = Filter.check(link, data, custom_filters))[0] !== Filter.None) {
-						Filter.highlight_tag(n, link, hl);
+						Filter.highlight_tag(n.parentNode, link, hl);
 					}
 				}
 			}
