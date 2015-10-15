@@ -5103,7 +5103,6 @@
 
 		// Private
 		var active_filters = null,
-			regex_default_flags = "colors:#EE2200;",
 			good_values = [ "", "true", "yes" ],
 			Status = { None: 0, Bad: -1, Good: 1 },
 			cache = { tags: {} };
@@ -5112,6 +5111,126 @@
 			this.regex = regex;
 			this.flags = flags;
 			this.priority = priority;
+		};
+		var FilterFlags = function () {
+			this.title = true;
+			this.tags = true;
+			this.uploader = false;
+			this.bad = false;
+
+			this.only = null;
+			this.not = null;
+
+			this.color = "#EE2200";
+			this.underline = null;
+			this.background = null;
+			this.link_color = this.color;
+			this.link_underline = null;
+			this.link_background = null;
+		};
+		FilterFlags.prototype.setup = function (flags_obj) {
+			var color = null,
+				underline = null,
+				background = null,
+				link_color = null,
+				link_underline = null,
+				link_background = null,
+				any_color = false,
+				v;
+
+			// Scope
+			if (
+				flags_obj.title !== undefined ||
+				flags_obj.tags !== undefined || flags_obj.tag !== undefined ||
+				flags_obj.uploader !== undefined
+			) {
+				this.title = ((v = flags_obj.title) === undefined ? false : good_values.indexOf(v.trim().toLowerCase()) >= 0);
+				this.tags = ((v = flags_obj.tags) === undefined && (v = flags_obj.tag) === undefined ? false : good_values.indexOf(v.trim().toLowerCase()) >= 0);
+				this.uploader = ((v = flags_obj.uploader) === undefined ? false : good_values.indexOf(v.trim().toLowerCase()) >= 0);
+			}
+
+			// Bad
+			if ((v = flags_obj.bad) !== undefined && good_values.indexOf(v.trim().toLowerCase()) >= 0) {
+				this.bad = true;
+				any_color = true;
+			}
+
+			// Category
+			if ((v = flags_obj.only) !== undefined || (v = flags_obj.category) !== undefined || (v = flags_obj.cat) !== undefined) {
+				this.only = this.split(v);
+			}
+			if ((v = flags_obj.not) !== undefined || (v = flags_obj.no) !== undefined) {
+				this.not = this.split(v);
+			}
+
+			// Colors
+			if ((v = flags_obj.colors) !== undefined || (v = flags_obj.cs) !== undefined) {
+				v = v.trim();
+				color = v;
+				link_color = v;
+				any_color = true;
+			}
+			if ((v = flags_obj.backgrounds) !== undefined ||  (v = flags_obj.bgs) !== undefined) {
+				v = v.trim();
+				background = v;
+				link_background = v;
+				any_color = true;
+			}
+			if ((v = flags_obj.underlines) !== undefined || (v = flags_obj.us) !== undefined) {
+				v = v.trim();
+				underline = v;
+				link_underline = v;
+				any_color = true;
+			}
+
+			if ((v = flags_obj.color) !== undefined || (v = flags_obj.c) !== undefined) {
+				color = v.trim();
+				any_color = true;
+			}
+			if ((v = flags_obj.background) !== undefined ||  (v = flags_obj.bg) !== undefined) {
+				background = v.trim();
+				any_color = true;
+			}
+			if ((v = flags_obj.underline) !== undefined || (v = flags_obj.u) !== undefined) {
+				underline = v.trim();
+				any_color = true;
+			}
+
+			if ((v = flags_obj["link-color"]) !== undefined || (v = flags_obj["link-c"]) !== undefined || (v = flags_obj.lc) !== undefined) {
+				link_color = v.trim();
+				any_color = true;
+			}
+			if ((v = flags_obj["link-background"]) !== undefined || (v = flags_obj["link-bg"]) !== undefined || (v = flags_obj.lbg) !== undefined) {
+				link_background = v.trim();
+				any_color = true;
+			}
+			if ((v = flags_obj["link-underline"]) !== undefined || (v = flags_obj["link-u"]) !== undefined || (v = flags_obj.lu) !== undefined) {
+				link_underline = v.trim();
+				any_color = true;
+			}
+
+			// Set colors
+			if (any_color) {
+				this.color = color;
+				this.underline = underline;
+				this.background = background;
+				this.link_color = link_color;
+				this.link_underline = link_underline;
+				this.link_background = link_background;
+			}
+		};
+		FilterFlags.prototype.split = function (text) {
+			var array, i, ii;
+
+			text = text.trim();
+			if (text.length === 0) return null;
+
+			array = text.toLowerCase().split(",");
+			for (i = 0, ii = array.length; i < ii; ++i) {
+				array[i] = array[i].trim();
+			}
+
+			return array;
 		};
 		var Match = function (start, end, filter) {
 			this.start = start;
@@ -5139,10 +5258,10 @@
 				return null;
 			}
 		};
-		var parse_flags = function (text) {
+		var create_flags = function (text) {
 			var flaglist = text.split(";"),
 				flags = {},
-				key, m, i;
+				key, m, i, f;
 
 			for (i = 0; i < flaglist.length; ++i) {
 				if (flaglist[i].length > 0) {
@@ -5153,98 +5272,9 @@
 				}
 			}
 
-			return normalize_flags(flags);
-		};
-		var normalize_flags = function (flags) {
-			var any = false,
-				norm = {
-					title: true,
-					tags: true,
-					uploader: false,
-					link: {},
-				},
-				v;
-
-			if (flags.title !== undefined || flags.tags !== undefined || flags.tag !== undefined || flags.uploader !== undefined) {
-				norm.title = ((v = flags.title) === undefined ? false : good_values.indexOf(v.trim().toLowerCase()) >= 0);
-				norm.tags = ((v = flags.tags) === undefined && (v = flags.tag) === undefined ? false : good_values.indexOf(v.trim().toLowerCase()) >= 0);
-				norm.uploader = ((v = flags.uploader) === undefined ? false : good_values.indexOf(v.trim().toLowerCase()) >= 0);
-				any = true;
-			}
-
-			if (
-				((v = flags.only) !== undefined || (v = flags.category) !== undefined || (v = flags.cat) !== undefined) &&
-				v.length > 0
-			) {
-				norm.only = normalize_split(v);
-				any = true;
-			}
-			if (
-				((v = flags.not) !== undefined || (v = flags.no) !== undefined) &&
-				v.length > 0
-			) {
-				norm.not = normalize_split(v);
-				any = true;
-			}
-			if ((v = flags.bad) !== undefined && (good_values.indexOf(v.trim().toLowerCase()) >= 0)) {
-				norm.bad = true;
-				any = true;
-			}
-
-			if ((v = flags.colors) !== undefined || (v = flags.cs) !== undefined) {
-				v = v.trim();
-				norm.color = v;
-				norm.link.color = v;
-				any = true;
-			}
-			if ((v = flags.backgrounds) !== undefined ||  (v = flags.bgs) !== undefined) {
-				v = v.trim();
-				norm.background = v;
-				norm.link.background = v;
-				any = true;
-			}
-			if ((v = flags.underlines) !== undefined || (v = flags.us) !== undefined) {
-				v = v.trim();
-				norm.underline = v;
-				norm.link.underline = v;
-				any = true;
-			}
-
-			if ((v = flags.color) !== undefined || (v = flags.c) !== undefined) {
-				norm.color = v.trim();
-				any = true;
-			}
-			if ((v = flags.background) !== undefined ||  (v = flags.bg) !== undefined) {
-				norm.background = v.trim();
-				any = true;
-			}
-			if ((v = flags.underline) !== undefined || (v = flags.u) !== undefined) {
-				norm.underline = v.trim();
-				any = true;
-			}
-
-			if ((v = flags["link-color"]) !== undefined || (v = flags["link-c"]) !== undefined || (v = flags.lc) !== undefined) {
-				norm.link.color = v.trim();
-				any = true;
-			}
-			if ((v = flags["link-background"]) !== undefined || (v = flags["link-bg"]) !== undefined || (v = flags.lbg) !== undefined) {
-				norm.link.background = v.trim();
-				any = true;
-			}
-			if ((v = flags["link-underline"]) !== undefined || (v = flags["link-u"]) !== undefined || (v = flags.lu) !== undefined) {
-				norm.link.underline = v.trim();
-				any = true;
-			}
-
-			return norm;
-		};
-		var normalize_split = function (text) {
-			var array = text.split(","),
-				i;
-			for (i = 0; i < array.length; ++i) {
-				array[i] = array[i].trim().toLowerCase();
-			}
-			return array;
+			f = new FilterFlags();
+			f.setup(flags);
+			return f;
 		};
 		var matches_to_segments = function (text, matches) {
 			var segments = [ new MatchSegment(0, text.length, []) ],
@@ -5324,15 +5354,15 @@
 			for (i = 0, ii = styles.length; i < ii; ++i) {
 				p = styles[i].priority;
 				style = styles[i].flags;
-				if ((s = style.color) !== undefined && p >= p1) {
+				if ((s = style.color) !== null && p >= p1) {
 					color = s;
 					p1 = p;
 				}
-				if ((s = style.background) !== undefined && p >= p2) {
+				if ((s = style.background) !== null && p >= p2) {
 					background = s;
 					p2 = p;
 				}
-				if ((s = style.underline) !== undefined && p >= p3) {
+				if ((s = style.underline) !== null && p >= p3) {
 					underline = s;
 					p3 = p;
 				}
@@ -5393,13 +5423,13 @@
 			var list, i, ii, m;
 
 			// Category filtering
-			if ((list = filter.flags.only) !== undefined) {
+			if ((list = filter.flags.only) !== null) {
 				for (i = 0, ii = list.length; i < ii; ++i) {
 					if (list[i] === category) break;
 				}
 				if (i >= ii) return null;
 			}
-			if ((list = filter.flags.not) !== undefined) {
+			if ((list = filter.flags.not) !== null) {
 				for (i = 0, ii = list.length; i < ii; ++i) {
 					if (list[i] === category) {
 						return null;
@@ -5452,7 +5482,7 @@
 					regex = create_regex(regex, flags);
 
 					if (regex !== null) {
-						flags = parse_flags((pos < line.length) ? line.substr(pos) : regex_default_flags);
+						flags = create_flags(line.substr(pos));
 						filters.push(new Filter(regex, flags, start_priority));
 						++start_priority;
 					}
@@ -5460,11 +5490,11 @@
 				else if (line[0] !== "#") {
 					if ((pos = line.indexOf(";")) > 0) {
 						regex = line.substr(0, pos);
-						flags = parse_flags((pos < line.length) ? line.substr(pos) : regex_default_flags);
+						flags = create_flags(line.substr(pos));
 					}
 					else {
 						regex = line;
-						flags = parse_flags(regex_default_flags);
+						flags = create_flags("");
 					}
 					regex = new RegExp(Helper.regex_escape(regex), "ig");
 
@@ -5601,16 +5631,16 @@
 				var style, i, ii, p, s;
 				for (i = 0, ii = styles.length; i < ii; ++i) {
 					p = styles[i].priority;
-					style = styles[i].flags.link;
-					if ((s = style.color) !== undefined && p >= p1) {
+					style = styles[i].flags;
+					if ((s = style.link_color) !== null && p >= p1) {
 						color = s;
 						p1 = p;
 					}
-					if ((s = style.background) !== undefined && p >= p2) {
+					if ((s = style.link_background) !== null && p >= p2) {
 						background = s;
 						p2 = p;
 					}
-					if ((s = style.underline) !== undefined && p >= p3) {
+					if ((s = style.link_underline) !== null && p >= p3) {
 						underline = s;
 						p3 = p;
 					}
