@@ -3555,7 +3555,7 @@
 			mouseout: ui_events.mouseout,
 			mousemove: ui_events.mousemove
 		};
-		var create_error = function (node, error, retry_event) {
+		var create_error = function (node, error) {
 			var id = hover_nodes_id,
 				hover;
 
@@ -3595,7 +3595,7 @@
 			}
 		};
 
-		var fetch_generic = function (link, use_similar, click_event) {
+		var fetch_generic = function (link, use_similar) {
 			var url = link.href,
 				md5 = link.getAttribute("data-md5") || null,
 				progress;
@@ -3635,7 +3635,7 @@
 					format(link, data);
 				}
 				else {
-					create_error(link, err, click_event);
+					create_error(link, err);
 				}
 			}, progress);
 		};
@@ -3653,12 +3653,12 @@
 		var fetch = function (event) {
 			event.preventDefault();
 
-			fetch_generic(this, false, fetch);
+			fetch_generic(this, false);
 		};
 		var fetch_similar = function (event) {
 			event.preventDefault();
 
-			fetch_generic(this, true, fetch_similar);
+			fetch_generic(this, true);
 		};
 
 		// Exports
@@ -3685,9 +3685,6 @@
 				timer: null,
 				group_size: 25,
 				delay: 50
-			},
-			event_queue = {
-				format: []
 			},
 			event_listeners = {
 				format: []
@@ -4029,23 +4026,11 @@
 				false
 			);
 		};
-		var format = function (links, data) {
-			var events = (event_listeners.format.length > 0) ? event_queue.format : null,
-				link, i, ii;
-
-			for (i = 0, ii = links.length; i < ii; ++i) {
-				link = links[i];
-
-				if (link.parentNode !== null) {
-					format_link(link, data);
-					if (events !== null) events.push(link);
-				}
-			}
-
-			if (events !== null) trigger("format");
-		};
 		var format_link = function (link, data) {
+			if (link.parentNode === null) return;
+
 			var button = Helper.get_tag_button_from_link(link),
+				listeners = event_listeners.format,
 				domain, fjord, ex, hl, c;
 
 			// Smart links
@@ -4079,91 +4064,82 @@
 				}
 				change_link_events(button, "gallery_toggle_actions");
 			}
+
+			// Event
+			if (listeners.length > 0) {
+				trigger(listeners, { link: link });
+			}
 		};
-		var format_links_error = function (links, error) {
+		var format_link_error = function (link, error) {
 			var text = " (" + error.trim().replace(/\.$/, "") + ")",
-				button, link, n, i, ii;
+				button = Helper.get_tag_button_from_link(link),
+				n;
 
-			for (i = 0, ii = links.length; i < ii; ++i) {
-				link = links[i];
-				button = Helper.get_tag_button_from_link(link);
-				if (button !== null) {
-					change_link_events(button, "gallery_error");
-					button.classList.add("hl-linkified-error");
-				}
+			if (button !== null) {
+				change_link_events(button, "gallery_error");
+				button.classList.add("hl-linkified-error");
+			}
 
-				link.classList.add("hl-linkified-error");
-				link.setAttribute("data-hl-linkified-status", "formatted_error");
-				n = $(".hl-linkified-error-message", link);
-				if (n === null) {
-					$.add(link, $.node("span", "hl-linkified-error-message", text));
-				}
-				else {
-					n.textContent = text;
-				}
+			link.classList.add("hl-linkified-error");
+			link.setAttribute("data-hl-linkified-status", "formatted_error");
+			n = $(".hl-linkified-error-message", link);
+			if (n === null) {
+				$.add(link, $.node("span", "hl-linkified-error-message", text));
+			}
+			else {
+				n.textContent = text;
 			}
 		};
 
 		var on_tag_click_to_load = function (event) {
-			event.preventDefault();
+			if ($.is_left_mouse(event)) {
+				event.preventDefault();
 
-			var link, info;
+				change_link_events(this, null);
 
-			if (
-				(link = Helper.get_link_from_tag_button(this)) !== null &&
-				(info = Helper.get_info_from_node(link)) !== null
-			) {
-				check_link(link, info);
+				var link, info;
+
+				if (
+					(link = Helper.get_link_from_tag_button(this)) !== null &&
+					(info = Helper.get_info_from_node(link)) !== null
+				) {
+					check_link(link, info);
+				}
 			}
 		};
 		var check_link = function (link, info) {
-			var fn;
-			if (info.site === "ehentai") {
-				fn = function (err, data) {
-					if (err === null) {
-						format([ link ], data);
-					}
-					else {
-						format_links_error([ link ], err);
-					}
-				};
+			var callback = function (err, data) {
+				if (err === null) {
+					format_link(link, data);
+				}
+				else {
+					format_link_error(link, err);
+				}
+			};
 
+			if (info.site === "ehentai") {
 				if (info.type === "gallery") {
-					API.get_ehentai_gallery(info.gid, info.token, fn);
+					API.get_ehentai_gallery(info.gid, info.token, callback);
 				}
 				else if (info.type === "page") {
 					API.get_ehentai_gallery_page(info.gid, info.page_token, info.page, function (err, data) {
 						if (err === null) {
-							API.get_ehentai_gallery(data.gid, data.token, fn);
+							API.get_ehentai_gallery(data.gid, data.token, callback);
 						}
 						else {
-							format_links_error([ link ], err);
+							format_link_error(link, err);
 						}
 					});
 				}
 			}
 			else if (info.site === "nhentai") {
 				if (info.type === "gallery") {
-					API.get_nhentai_gallery(info.gid, function (err, data) {
-						if (err === null) {
-							format([ link ], data);
-						}
-						else {
-							format_links_error([ link ], err);
-						}
-					});
+					API.get_nhentai_gallery(info.gid, callback);
 				}
 			}
 			else if (info.site === "hitomi") {
 				if (info.type === "gallery") {
-					API.get_hitomi_gallery(info.gid, function (err, data) {
-						if (err === null) {
-							format([ link ], data);
-						}
-						else {
-							format_links_error([ link ], err);
-						}
-					});
+					API.get_hitomi_gallery(info.gid, callback);
 				}
 			}
 		};
@@ -4445,16 +4421,10 @@
 			}
 			return false;
 		};
-		var trigger = function (event_name) {
-			var queue = event_queue[event_name],
-				listeners, i, ii;
-			if (queue && queue.length > 0) {
-				listeners = event_listeners[event_name];
-				for (i = 0, ii = listeners.length; i < ii; ++i) {
-					listeners[i].call(null, queue);
-				}
-
-				event_queue[event_name] = [];
+		var trigger = function (listeners, data) {
+			var i, ii;
+			for (i = 0, ii = listeners.length; i < ii; ++i) {
+				listeners[i].call(null, data);
 			}
 		};
 
@@ -6649,6 +6619,31 @@
 		var load_filters = function () {
 			custom_filters = Filter.parse(settings.custom_filters, undefined);
 		};
+		var add_links = function (links) {
+			var link, id, id_key, d, i, ii;
+
+			for (i = 0, ii = links.length; i < ii; ++i) {
+				link = links[i];
+				id = Helper.get_id_from_node(link);
+				if (id !== null) {
+					id_key = id[0] + "_" + id[1];
+					if (data_map[id_key] === undefined) {
+						d = {
+							domain: Helper.get_domain(link.href || "") || domains.exhentai,
+							namespace: id[0],
+							id: id[1],
+							node: null
+						};
+						queue.push(d);
+						data_map[id_key] = d;
+					}
+				}
+			}
+
+			if (queue.length > 0 && queue_timer === null) {
+				on_timer();
+			}
+		};
 
 		var on_option_change = {
 			sort_by: function () {
@@ -6742,30 +6737,8 @@
 			par.style.height = "100%";
 			this.style.visibility = "hidden";
 		};
-		var on_linkify = function (links) {
-			var link, id, id_key, d, i, ii;
-
-			for (i = 0, ii = links.length; i < ii; ++i) {
-				link = links[i];
-				id = Helper.get_id_from_node(link);
-				if (id !== null) {
-					id_key = id[0] + "_" + id[1];
-					if (data_map[id_key] === undefined) {
-						d = {
-							domain: Helper.get_domain(link.href || "") || domains.exhentai,
-							namespace: id[0],
-							id: id[1],
-							node: null
-						};
-						queue.push(d);
-						data_map[id_key] = d;
-					}
-				}
-			}
-
-			if (queue.length > 0 && queue_timer === null) {
-				on_timer();
-			}
+		var on_linkify = function (event) {
+			add_links([ event.link ]);
 		};
 		var on_timer = function () {
 			queue_timer = null;
@@ -6865,7 +6838,7 @@
 				create();
 			}
 
-			on_linkify(Linkifier.get_links_formatted());
+			add_links(Linkifier.get_links_formatted());
 			Linkifier.on("format", on_linkify);
 
 			Popup.open(popup);
