@@ -5185,108 +5185,141 @@
 			this.link_underline = null;
 			this.link_background = null;
 		};
+		FilterFlags.scope_fn = function (name) {
+			return function (value, state) {
+				if (!state.scope) {
+					state.scope = true;
+					this.tags = false;
+					this.title = false;
+					this.uploader = false;
+				}
+
+				this[name] = (good_values.indexOf(value.trim().toLowerCase()) >= 0);
+			};
+		};
+		FilterFlags.color_fn = function (fn) {
+			return function (value, state) {
+				if (!state.color) {
+					state.color = true;
+					this.color = null;
+					this.underline = null;
+					this.background = null;
+					this.link_color = null;
+					this.link_underline = null;
+					this.link_background = null;
+				}
+
+				fn.call(this, value.trim());
+			};
+		};
+		FilterFlags.names = {
+			"tags": FilterFlags.scope_fn("tags"),
+			"title": FilterFlags.scope_fn("title"),
+			"uploader": FilterFlags.scope_fn("uploader"),
+
+			"bad": function (value) {
+				this.bad = (good_values.indexOf(value.trim().toLowerCase()) >= 0);
+			},
+
+			"only": function (value) {
+				this.only = this.split(value);
+			},
+			"not": function (value) {
+				this.not = this.split(value);
+			},
+
+			"colors": FilterFlags.color_fn(function (value) {
+				this.color = value;
+				this.link_color = value;
+			}),
+			"underlines": FilterFlags.color_fn(function (value) {
+				this.underline = value;
+				this.link_underline = value;
+			}),
+			"backgrounds": FilterFlags.color_fn(function (value) {
+				this.background = value;
+				this.link_background = value;
+			}),
+
+			"color": FilterFlags.color_fn(function (value) {
+				this.color = value;
+			}),
+			"underline": FilterFlags.color_fn(function (value) {
+				this.underline = value;
+			}),
+			"background": FilterFlags.color_fn(function (value) {
+				this.background = value;
+			}),
+
+			"link-color": FilterFlags.color_fn(function (value) {
+				this.link_color = value;
+			}),
+			"link-underline": FilterFlags.color_fn(function (value) {
+				this.link_underline = value;
+			}),
+			"link-background": FilterFlags.color_fn(function (value) {
+				this.link_background = value;
+			}),
+
+			"no-colors": function (value, state) {
+				state.color = true;
+
+				value = null;
+				this.color = value;
+				this.underline = value;
+				this.background = value;
+				this.link_color = value;
+				this.link_underline = value;
+				this.link_background = value;
+			},
+
+			"tag": "tags",
+
+			"category": "only",
+			"cat": "only",
+			"no": "not",
+
+			"cs": "colors",
+			"us": "underlines",
+			"bgs": "backgrounds",
+
+			"c": "color",
+			"u": "underline",
+			"bg": "background",
+
+			"link_color": "link-color",
+			"link-c": "link-color",
+			"link_c": "link-color",
+			"lc": "link-color",
+			"link_underline": "link-underline",
+			"link-u": "link-underline",
+			"link_u": "link-underline",
+			"lu": "link-underline",
+			"link_background": "link-background",
+			"link-bg": "link-background",
+			"link_bg": "link-background",
+			"lbg": "link-background",
+
+			"no_colors": "no-colors",
+			"no-color": "no-colors",
+			"no_color": "no-colors",
+			"nocolors": "no-colors",
+			"nocolor": "no-colors",
+		};
 		FilterFlags.prototype.setup = function (flags_obj) {
-			var color = null,
-				underline = null,
-				background = null,
-				link_color = null,
-				link_underline = null,
-				link_background = null,
-				any_color = false,
-				v;
+			var state = {
+				scope: false,
+				color: false
+			}, k, fn;
 
-			// Scope
-			if (
-				flags_obj.title !== undefined ||
-				flags_obj.tags !== undefined || flags_obj.tag !== undefined ||
-				flags_obj.uploader !== undefined
-			) {
-				this.title = ((v = flags_obj.title) === undefined ? false : good_values.indexOf(v.trim().toLowerCase()) >= 0);
-				this.tags = ((v = flags_obj.tags) === undefined && (v = flags_obj.tag) === undefined ? false : good_values.indexOf(v.trim().toLowerCase()) >= 0);
-				this.uploader = ((v = flags_obj.uploader) === undefined ? false : good_values.indexOf(v.trim().toLowerCase()) >= 0);
-			}
-
-			// Bad
-			if ((v = flags_obj.bad) !== undefined && good_values.indexOf(v.trim().toLowerCase()) >= 0) {
-				this.bad = true;
-				any_color = true;
-			}
-
-			// Category
-			if ((v = flags_obj.only) !== undefined || (v = flags_obj.category) !== undefined || (v = flags_obj.cat) !== undefined) {
-				this.only = this.split(v);
-			}
-			if ((v = flags_obj.not) !== undefined || (v = flags_obj.no) !== undefined) {
-				this.not = this.split(v);
-			}
-
-			// Colors
-			if ((v = flags_obj.colors) !== undefined || (v = flags_obj.cs) !== undefined) {
-				v = v.trim();
-				color = v;
-				link_color = v;
-				any_color = true;
-			}
-			if ((v = flags_obj.backgrounds) !== undefined ||  (v = flags_obj.bgs) !== undefined) {
-				v = v.trim();
-				background = v;
-				link_background = v;
-				any_color = true;
-			}
-			if ((v = flags_obj.underlines) !== undefined || (v = flags_obj.us) !== undefined) {
-				v = v.trim();
-				underline = v;
-				link_underline = v;
-				any_color = true;
-			}
-
-			if ((v = flags_obj.color) !== undefined || (v = flags_obj.c) !== undefined) {
-				color = v.trim();
-				any_color = true;
-			}
-			if ((v = flags_obj.background) !== undefined ||  (v = flags_obj.bg) !== undefined) {
-				background = v.trim();
-				any_color = true;
-			}
-			if ((v = flags_obj.underline) !== undefined || (v = flags_obj.u) !== undefined) {
-				underline = v.trim();
-				any_color = true;
-			}
-
-			if ((v = flags_obj["link-color"]) !== undefined || (v = flags_obj["link-c"]) !== undefined || (v = flags_obj.lc) !== undefined) {
-				link_color = v.trim();
-				any_color = true;
-			}
-			if ((v = flags_obj["link-background"]) !== undefined || (v = flags_obj["link-bg"]) !== undefined || (v = flags_obj.lbg) !== undefined) {
-				link_background = v.trim();
-				any_color = true;
-			}
-			if ((v = flags_obj["link-underline"]) !== undefined || (v = flags_obj["link-u"]) !== undefined || (v = flags_obj.lu) !== undefined) {
-				link_underline = v.trim();
-				any_color = true;
-			}
-
-			if (
-				(v = flags_obj["no-colors"]) !== undefined || (v = flags_obj["no-color"]) !== undefined ||
-				(v = flags_obj["nocolors"]) !== undefined || (v = flags_obj["nocolor"]) !== undefined
-			) {
-				color = null;
-				underline = null;
-				background = null;
-				link_color = null;
-				link_underline = null;
-				link_background = null;
-				any_color = true;
-			}
-
-			// Set colors
-			if (any_color) {
-				this.color = color;
-				this.underline = underline;
-				this.background = background;
-				this.link_color = link_color;
-				this.link_underline = link_underline;
-				this.link_background = link_background;
+			for (k in flags_obj) {
+				fn = FilterFlags.names[k];
+				if (fn !== undefined) {
+					if (typeof(fn) === "string") {
+						fn = FilterFlags.names[fn];
+					}
+					fn.call(this, flags_obj[k], state);
+				}
 			}
 		};
 		FilterFlags.prototype.split = function (text) {
