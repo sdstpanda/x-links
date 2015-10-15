@@ -4118,7 +4118,6 @@
 			file_infos = Post.get_file_info(post);
 			for (i = 0, ii = file_infos.length; i < ii; ++i) {
 				file_info = file_infos[i];
-				if (file_info.md5 === null) continue;
 
 				// Create if not found
 				sauce = $(".hl-exsauce-link", file_info.options);
@@ -4129,7 +4128,9 @@
 					sauce = $.link(file_info.url, "hl-exsauce-link", Sauce.label());
 					sauce.setAttribute("data-hl-filename", file_info.name);
 					sauce.setAttribute("data-hl-image-index", index);
-					sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
+					if (file_info.md5 !== null) {
+						sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
+					}
 					if (/^\.jpe?g$/i.test(file_info.type) && !Config.is_tinyboard) {
 						if (browser.is_firefox) {
 							event = "exsauce_fetch_similarity";
