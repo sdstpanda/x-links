@@ -6585,6 +6585,8 @@
 					if (n2 !== null) n2.textContent = "#";
 				}
 			}
+
+			set_empty(current_visible_count === 0);
 		};
 		var reset_filter_state = function (node, content_node) {
 			content_node.textContent = node.getAttribute("data-hl-original") || "";
@@ -6642,6 +6644,11 @@
 				if (data !== null) {
 					update_filters(current[i].node, data, false, false);
 				}
+			}
+
+			// Update order
+			if (settings.group_by_filters || settings.filter_visibility !== 0) {
+				update_ordering();
 			}
 		};
 		var load_filters = function () {
@@ -6705,11 +6712,6 @@
 					settings_save();
 					load_filters();
 					update_all_filters();
-
-					// Update order
-					if (settings.group_by_filters) {
-						update_ordering();
-					}
 				}
 			},
 			custom_filters_input: function () {
