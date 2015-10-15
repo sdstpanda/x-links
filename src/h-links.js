@@ -1926,6 +1926,20 @@
 			catch (e) {}
 			return null;
 		};
+		var header_string_parse = function (header_str) {
+			var lines = header_str.split("\r\n"),
+				re_line = /^([^:]*):\s(.*)$/i,
+				headers = {},
+				i, m;
+
+			for (i = 0; i < lines.length; ++i) {
+				if ((m = re_line.exec(lines[i]))) {
+					headers[m[1].toLowerCase()] = m[2];
+				}
+			}
+
+			return headers;
+		};
 
 		var ehentai_simple_string = function (value, default_value) {
 			return (typeof(value) !== "string" || value.length === 0) ? default_value : value;
@@ -2397,10 +2411,10 @@
 			return url;
 		};
 
-		var get_image = function (url, callback) {
+		var get_image = function (url, callback, progress_callback) {
 			// Note that the Uint8Array's length is longer than image_length
 			// callback(err, image_data, image_length);
-			HttpRequest({
+			var xhr_data = {
 				method: "GET",
 				url: url,
 				overrideMimeType: "text/plain; charset=x-user-defined",
@@ -2408,25 +2422,34 @@
 					if (xhr.status === 200) {
 						var text = xhr.responseText,
 							ta = new Uint8Array(text.length + 1),
+							content_type = header_string_parse(xhr.responseHeaders)["content-type"] || "text/plain",
 							i, ii;
 
 						for (i = 0, ii = text.length; i < ii; ++i) {
 							ta[i] = text.charCodeAt(i);
 						}
 
-						callback(null, ta, ii, xhr.finalUrl);
+						callback(null, ta, ii, content_type, xhr.finalUrl);
 					}
 					else {
-						callback(xhr.status, null, 0, null);
+						callback(xhr.status, null, 0, null, null);
 					}
 				},
 				onerror: function () {
-					callback("connection error", null, 0, null);
+					callback("connection error", null, 0, null, null);
 				},
 				onabort: function () {
-					callback("aborted", null, 0, null);
+					callback("aborted", null, 0, null, null);
 				}
-			});
+			};
+			
+			if (progress_callback !== undefined) {
+				xhr_data.onprogress = function (xhr) {
+					progress_callback.call(null, "progress", xhr.lengthComputable, xhr.loaded, xhr.total);
+				};
+			}
+
+			HttpRequest(xhr_data);
 		};
 		var get_sha1_hash = function (url, md5, callback) {
 			var sha1 = null;
@@ -3019,11 +3042,9 @@
 			}
 
 			// Fetch
-			get_image(thumbnail, function (err, data, data_length, final_url) {
+			get_image(thumbnail, function (err, data, data_length, mime_type) {
 				if (err === null) {
-					var m = /\.(png|gif)$/i.exec(final_url),
-						mime = "image/" + (m === null ? "jpeg" : m[1].toLowerCase()),
-						img_url = uint8_array_to_url(data.subarray(0, data_length), mime);
+					var img_url = uint8_array_to_url(data.subarray(0, data_length), mime_type);
 
 					if (img_url !== null) {
 						cache[gid] = img_url;
@@ -3041,22 +3062,20 @@
 
 		var lookup_on_ehentai = function (url, md5, use_similar, callback, progress_callback) {
 			if (use_similar) {
-				get_image(url, function (err, data, data_length, url) { // TODO : get_image should return a mime type, also take a progress
+				get_image(url, function (err, data, data_length, mime_type, url) {
 					if (progress_callback !== undefined) {
 						progress_callback.call(null, "image");
 					}
 
 					if (err === null) {
-						var m = /\.(png|gif)(?:[\?#]|$)/.exec(url),
-							type = (m === null ? "jpeg" : m[1]),
-							blob = new Blob([ data.subarray(0, data_length) ], { type: "image/" + type });
+						var blob = new Blob([ data.subarray(0, data_length) ], { type: mime_type });
 
 						rt_ehentai_lookup.add(url, [ true, blob ], callback, progress_callback);
 					}
 					else {
 						callback.call(null, err, null);
 					}
-				});
+				}, progress_callback);
 			}
 			else {
 				get_sha1_hash(url, md5, function (err, sha1) {
