@@ -4103,11 +4103,11 @@
 					(link = Helper.get_link_from_tag_button(this)) !== null &&
 					(info = Helper.get_info_from_node(link)) !== null
 				) {
-					check_link(link, info);
+					load_link(link, info);
 				}
 			}
 		};
-		var check_link = function (link, info) {
+		var load_link = function (link, info) {
 			var callback = function (err, data) {
 				if (err === null) {
 					format_link(link, data);
@@ -4363,7 +4363,7 @@
 
 				$.before(par, node, button);
 
-				if (auto_load) check_link(node, info);
+				if (auto_load) load_link(node, info);
 			}
 		};
 		var change_link_events = function (node, new_events) {
@@ -4486,6 +4486,7 @@
 
 		// Exports
 		return {
+			load_link: load_link,
 			preprocess_link: preprocess_link,
 			queue_posts: queue_posts,
 			get_link_events: get_link_events,
