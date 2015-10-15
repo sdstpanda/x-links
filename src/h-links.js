@@ -1803,14 +1803,17 @@
 			}
 		};
 
-		// Exports
-		return {
-			events: {
+		var init = function () {
+			Linkifier.register_link_events({
 				gallery_link: gallery_link_events,
 				gallery_toggle_actions: gallery_toggle_actions,
 				gallery_fetch: gallery_fetch_event,
 				gallery_error: gallery_error_event
-			},
+			});
+		};
+
+		// Exports
+		return {
 			create_rating_stars: create_rating_stars,
 			button: button,
 			button_get_inner: button_get_inner,
@@ -1819,7 +1822,8 @@
 			button_text: button_text,
 			format_date: format_date,
 			cleanup_post: cleanup_post,
-			cleanup_post_removed: cleanup_post_removed
+			cleanup_post_removed: cleanup_post_removed,
+			init: init
 		};
 
 	})();
@@ -3684,15 +3688,19 @@
 			fetch_generic(this, true);
 		};
 
+		var init = function () {
+			Linkifier.register_link_events({
+				exsauce_fetch: fetch,
+				exsauce_fetch_similarity: fetch_similar,
+				exsauce_toggle: ui_events,
+				exsauce_error: error_events
+			});
+		};
+
 		// Exports
 		return {
-			events: {
-				fetch: fetch,
-				fetch_similar: fetch_similar,
-				ui: ui_events,
-				error: error_events
-			},
-			label: label
+			label: label,
+			init: init
 		};
 
 	})();
@@ -4337,16 +4345,7 @@
 		};
 
 		// Link events
-		var link_events = {
-			exsauce_fetch: Sauce.events.fetch,
-			exsauce_fetch_similarity: Sauce.events.fetch_similar,
-			exsauce_toggle: Sauce.events.ui,
-			exsauce_error: Sauce.events.error,
-			gallery_link: UI.events.gallery_link,
-			gallery_error: UI.events.gallery_error,
-			gallery_toggle_actions: UI.events.gallery_toggle_actions,
-			gallery_fetch: UI.events.gallery_fetch
-		};
+		var link_events = {};
 		var register_link_events = function (events) {
 			var count = 0,
 				k;
@@ -7773,6 +7772,8 @@
 				API.cache_clear();
 			}
 			API.init();
+			UI.init();
+			Sauce.init();
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
 			$.ready(on_ready);
