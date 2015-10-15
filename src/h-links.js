@@ -6466,7 +6466,6 @@
 				base_array = function () { return []; };
 				ordering = [];
 			}
-			console.log("update_ordering",settings,ordering);
 
 			// Iterate
 			attr = node_sort_order_keys[mode in node_sort_order_keys ? mode : "thread"];
