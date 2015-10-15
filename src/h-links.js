@@ -6497,7 +6497,7 @@
 
 				bad = 0;
 				for (j = 0, jj = results.length; j < jj; ++j) {
-					if (results[j].bad) ++bad;
+					if (results[j].flags.bad) ++bad;
 				}
 
 				node.setAttribute("data-hl-filter-matches-" + mode, results.length - bad);
