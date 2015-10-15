@@ -3702,28 +3702,9 @@
 		var re_url = /(?:https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)\/[^<>\s\'\"]*/ig,
 			re_url_class_ignore = /(?:\binlined?\b|\bhl-)/,
 			re_fjord = /abortion|bestiality|incest|lolicon|shotacon|toddlercon/,
-			re_protocol = /^https?\:/i,
-			post_queue = {
-				posts: [],
-				timer: null,
-				group_size: 25,
-				delay: 50
-			},
-			event_listeners = {
-				format: []
-			};
+			re_protocol = /^https?\:/i;
 
-		var link_events = {
-			exsauce_fetch: Sauce.events.fetch,
-			exsauce_fetch_similarity: Sauce.events.fetch_similar,
-			exsauce_toggle: Sauce.events.ui,
-			exsauce_error: Sauce.events.error,
-			gallery_link: UI.events.gallery_link,
-			gallery_error: UI.events.gallery_error,
-			gallery_toggle_actions: UI.events.gallery_toggle_actions,
-			gallery_fetch: UI.events.gallery_fetch
-		};
-
+		// Linkification
 		var deep_dom_wrap = (function () {
 
 			// Internal helper class
@@ -4044,71 +4025,17 @@
 				false
 			);
 		};
-		var format_link = function (link, data) {
-			if (link.parentNode === null) return;
 
-			var button = Helper.get_tag_button_from_link(link),
-				listeners = event_listeners.format,
-				domain, fjord, ex, hl, c;
+		// Link creation and processing
+		var create_link = function (parent, next, url, text, auto_process) {
+			var link = $.link(url, "hl-linkified", text);
 
-			// Smart links
-			if (config.general.rewrite_links === "smart") {
-				domain = Helper.get_domain(link.href);
-				ex = (domain === domains.exhentai);
-				if (ex || domain === domains.ehentai) {
-					fjord = re_fjord.test(data.tags.join(","));
-					if (fjord !== ex) {
-						domain = fjord ? domains.exhentai : domains.ehentai;
-						link.href = Helper.change_url_domain(link.href, domain_info[domain].g_domain);
-						if (button !== null) {
-							button.href = link.href;
-							UI.update_button_text(button, domain);
-						}
-					}
-				}
-			}
+			$.before(parent, next, link);
 
-			// Link title
-			link.textContent = data.title;
-			link.setAttribute("data-hl-linkified-status", "formatted");
+			preprocess_link(link, auto_process);
 
-			// Button
-			if (button !== null) {
-				hl = Filter.check(link, data);
-				if (hl[0] !== Filter.None) {
-					c = (hl[0] === Filter.Good) ? config.filter.good_tag_marker : config.filter.bad_tag_marker;
-					UI.mark_button_text(button, c);
-					Filter.highlight_tag(button, link, hl);
-				}
-				change_link_events(button, "gallery_toggle_actions");
-			}
-
-			// Event
-			if (listeners.length > 0) {
-				trigger(listeners, { link: link });
-			}
+			return link;
 		};
-		var format_link_error = function (link, error) {
-			var text = " (" + error.trim().replace(/\.$/, "") + ")",
-				button = Helper.get_tag_button_from_link(link),
-				n;
-
-			if (button !== null) {
-				change_link_events(button, "gallery_error");
-				button.classList.add("hl-linkified-error");
-			}
-
-			link.classList.add("hl-linkified-error");
-			link.setAttribute("data-hl-linkified-status", "formatted_error");
-			n = $(".hl-linkified-error-message", link);
-			if (n === null) {
-				$.add(link, $.node("span", "hl-linkified-error-message", text));
-			}
-			else {
-				n.textContent = text;
-			}
-		};
-
 		var preprocess_link = function (node, auto_load) {
 			var url, info, rewrite, button, par;
 
@@ -4183,6 +4110,125 @@
 				if (info.type === "gallery") {
 					API.get_hitomi_gallery(info.gid, callback);
 				}
+			}
+		};
+		var format_link = function (link, data) {
+			if (link.parentNode === null) return;
+
+			var button = Helper.get_tag_button_from_link(link),
+				listeners = event_listeners.format,
+				domain, fjord, ex, hl, c;
+
+			// Smart links
+			if (config.general.rewrite_links === "smart") {
+				domain = Helper.get_domain(link.href);
+				ex = (domain === domains.exhentai);
+				if (ex || domain === domains.ehentai) {
+					fjord = re_fjord.test(data.tags.join(","));
+					if (fjord !== ex) {
+						domain = fjord ? domains.exhentai : domains.ehentai;
+						link.href = Helper.change_url_domain(link.href, domain_info[domain].g_domain);
+						if (button !== null) {
+							button.href = link.href;
+							UI.update_button_text(button, domain);
+						}
+					}
+				}
+			}
+
+			// Link title
+			link.textContent = data.title;
+			link.setAttribute("data-hl-linkified-status", "formatted");
+
+			// Button
+			if (button !== null) {
+				hl = Filter.check(link, data);
+				if (hl[0] !== Filter.None) {
+					c = (hl[0] === Filter.Good) ? config.filter.good_tag_marker : config.filter.bad_tag_marker;
+					UI.mark_button_text(button, c);
+					Filter.highlight_tag(button, link, hl);
+				}
+				change_link_events(button, "gallery_toggle_actions");
+			}
+
+			// Event
+			if (listeners.length > 0) {
+				trigger(listeners, { link: link });
+			}
+		};
+		var format_link_error = function (link, error) {
+			var text = " (" + error.trim().replace(/\.$/, "") + ")",
+				button = Helper.get_tag_button_from_link(link),
+				n;
+
+			if (button !== null) {
+				change_link_events(button, "gallery_error");
+				button.classList.add("hl-linkified-error");
+			}
+
+			link.classList.add("hl-linkified-error");
+			link.setAttribute("data-hl-linkified-status", "formatted_error");
+			n = $(".hl-linkified-error-message", link);
+			if (n === null) {
+				$.add(link, $.node("span", "hl-linkified-error-message", text));
+			}
+			else {
+				n.textContent = text;
+			}
+		};
+
+		// Post queue
+		var post_queue = {
+			posts: [],
+			timer: null,
+			group_size: 25,
+			delay: 50
+		};
+		var queue_posts = function (posts, flags) {
+			if ((flags & queue_posts.Flags.Flush) !== 0) {
+				// Flush
+				parse_posts(post_queue.posts);
+				post_queue.posts = [];
+
+				// Clear timer
+				if (post_queue.timer !== null) {
+					clearTimeout(post_queue.timer);
+					post_queue.timer = null;
+				}
+			}
+
+			if ((flags & queue_posts.Flags.UseDelay) === 0) {
+				// Immediate
+				parse_posts(posts);
+			}
+			else {
+				// Queue
+				$.push_many(post_queue.posts, posts);
+
+				// Run queue
+				if (post_queue.timer === null) {
+					dequeue_posts();
+				}
+			}
+		};
+		queue_posts.Flags = {
+			None: 0x0,
+			UseDelay: 0x1,
+			Flush: 0x2,
+		};
+		var dequeue_posts = function () {
+			var posts = post_queue.posts.splice(0, post_queue.group_size);
+
+			if (posts.length === 0) {
+				// Done
+				post_queue.timer = null;
+			}
+			else {
+				// Run
+				parse_posts(posts);
+
+				// Timer for next
+				post_queue.timer = setTimeout(dequeue_posts, post_queue.delay);
 			}
 		};
 
@@ -4289,22 +4335,31 @@
 
 			Debug.log("Total posts=" + posts.length + "; time=" + Debug.timer("process"));
 		};
-		var dequeue_posts = function () {
-			var posts = post_queue.posts.splice(0, post_queue.group_size);
 
-			if (posts.length === 0) {
-				// Done
-				post_queue.timer = null;
-			}
-			else {
-				// Run
-				parse_posts(posts);
-
-				// Timer for next
-				post_queue.timer = setTimeout(dequeue_posts, post_queue.delay);
-			}
+		// Link events
+		var link_events = {
+			exsauce_fetch: Sauce.events.fetch,
+			exsauce_fetch_similarity: Sauce.events.fetch_similar,
+			exsauce_toggle: Sauce.events.ui,
+			exsauce_error: Sauce.events.error,
+			gallery_link: UI.events.gallery_link,
+			gallery_error: UI.events.gallery_error,
+			gallery_toggle_actions: UI.events.gallery_toggle_actions,
+			gallery_fetch: UI.events.gallery_fetch
 		};
+		var register_link_events = function (events) {
+			var count = 0,
+				k;
 
+			for (k in events) {
+				if (!Object.prototype.hasOwnProperty.call(link_events, k)) {
+					link_events[k] = events[k];
+					++count;
+				}
+			}
+
+			return count;
+		};
 		var get_link_events = function (node) {
 			return node.getAttribute("data-hl-link-events") || null;
 		};
@@ -4334,40 +4389,6 @@
 				set_link_events(node, events);
 			}
 		};
-
-		// Public
-		var queue_posts = function (posts, flags) {
-			if ((flags & queue_posts.Flags.Flush) !== 0) {
-				// Flush
-				parse_posts(post_queue.posts);
-				post_queue.posts = [];
-
-				// Clear timer
-				if (post_queue.timer !== null) {
-					clearTimeout(post_queue.timer);
-					post_queue.timer = null;
-				}
-			}
-
-			if ((flags & queue_posts.Flags.UseDelay) === 0) {
-				// Immediate
-				parse_posts(posts);
-			}
-			else {
-				// Queue
-				$.push_many(post_queue.posts, posts);
-
-				// Run queue
-				if (post_queue.timer === null) {
-					dequeue_posts();
-				}
-			}
-		};
-		queue_posts.Flags = {
-			None: 0x0,
-			UseDelay: 0x1,
-			Flush: 0x2,
-		};
 		var change_link_events = function (node, new_events) {
 			var old_events = node.getAttribute("data-hl-link-events"),
 				events, k;
@@ -4395,20 +4416,18 @@
 				set_link_events(node, new_events);
 			}
 		};
-		var create_link = function (parent, next, url, text, auto_process) {
-			var link = $.link(url, "hl-linkified", text);
 
-			$.before(parent, next, link);
-
-			preprocess_link(link, auto_process);
-
-			return link;
-		};
+		// Links
 		var get_links = function (parent) {
 			return $$("a.hl-linkified-gallery[href]", parent);
 		};
 		var get_links_formatted = function (parent) {
 			return $$("a.hl-linkified-gallery[data-hl-linkified-status=formatted]", parent);
+		};
+
+		// Events
+		var event_listeners = {
+			format: []
 		};
 		var on = function (event_name, callback) {
 			var listeners = event_listeners[event_name];
@@ -4436,6 +4455,7 @@
 			}
 		};
 
+		// Fixing
 		var relinkify_posts = function (posts) {
 			var post, links, i, ii, j, jj;
 
@@ -4494,11 +4514,12 @@
 
 		// Exports
 		return {
+			create_link: create_link,
 			load_link: load_link,
 			queue_posts: queue_posts,
 			get_link_events: get_link_events,
 			change_link_events: change_link_events,
-			create_link: create_link,
+			register_link_events: register_link_events,
 			get_links: get_links,
 			get_links_formatted: get_links_formatted,
 			relinkify_posts: relinkify_posts,
