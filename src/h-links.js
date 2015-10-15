@@ -5217,9 +5217,9 @@
 			"title": FilterFlags.scope_fn("title"),
 			"uploader": FilterFlags.scope_fn("uploader"),
 
-			"bad": function (value) {
-				this.bad = (good_values.indexOf(value.trim().toLowerCase()) >= 0);
-			},
+			"bad": FilterFlags.color_fn(function (value) {
+				this.bad = (good_values.indexOf(value.toLowerCase()) >= 0);
+			}),
 
 			"only": function (value) {
 				this.only = this.split(value);
