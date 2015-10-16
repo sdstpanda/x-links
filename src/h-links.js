@@ -3219,6 +3219,39 @@
 			}
 			return null;
 		};
+		var get_gallery_from_link_info = function (link_info, callback) {
+			if (link_info.site === "ehentai") {
+				if (link_info.type === "gallery") {
+					get_ehentai_gallery(link_info.gid, link_info.token, callback);
+					return true;
+				}
+				if (link_info.type === "page") {
+					get_ehentai_gallery_page(link_info.gid, link_info.page_token, link_info.page, function (err, data) {
+						if (err === null) {
+							get_ehentai_gallery(data.gid, data.token, callback);
+						}
+						else {
+							callback.call(null, err, null);
+						}
+					});
+					return true;
+				}
+			}
+			else if (link_info.site === "nhentai") {
+				if (link_info.type === "gallery") {
+					get_nhentai_gallery(link_info.gid, callback);
+					return true;
+				}
+			}
+			else if (link_info.site === "hitomi") {
+				if (link_info.type === "gallery") {
+					get_hitomi_gallery(link_info.gid, callback);
+					return true;
+				}
+			}
+
+			return false;
+		};
 
 		var get_thumbnail = function (data, callback) {
 			var thumbnail = data.thumbnail,
@@ -3327,6 +3360,7 @@
 			get_nhentai_gallery: get_nhentai_gallery,
 			get_hitomi_gallery: get_hitomi_gallery,
 			get_gallery: get_gallery,
+			get_gallery_from_link_info: get_gallery_from_link_info,
 			get_thumbnail: get_thumbnail,
 			lookup_on_ehentai: lookup_on_ehentai,
 			cache_clear: cache_clear,
@@ -4085,40 +4119,14 @@
 			}
 		};
 		var load_link = function (link, info) {
-			var callback = function (err, data) {
+			API.get_gallery_from_link_info(info, function (err, data) {
 				if (err === null) {
 					format_link(link, data);
 				}
 				else {
 					format_link_error(link, err);
 				}
-			};
-
-			if (info.site === "ehentai") {
-				if (info.type === "gallery") {
-					API.get_ehentai_gallery(info.gid, info.token, callback);
-				}
-				else if (info.type === "page") {
-					API.get_ehentai_gallery_page(info.gid, info.page_token, info.page, function (err, data) {
-						if (err === null) {
-							API.get_ehentai_gallery(data.gid, data.token, callback);
-						}
-						else {
-							format_link_error(link, err);
-						}
-					});
-				}
-			}
-			else if (info.site === "nhentai") {
-				if (info.type === "gallery") {
-					API.get_nhentai_gallery(info.gid, callback);
-				}
-			}
-			else if (info.site === "hitomi") {
-				if (info.type === "gallery") {
-					API.get_hitomi_gallery(info.gid, callback);
-				}
-			}
+			});
 		};
 		var format_link = function (link, data) {
 			if (link.parentNode === null) return;
