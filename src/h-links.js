@@ -4068,6 +4068,19 @@
 			);
 		};
 
+		var parse_text_for_urls = function (text) {
+			var urls = [],
+				m;
+
+			re_url.lastIndex = 0;
+
+			while ((m = re_url.exec(text)) !== null) {
+				urls.push(m[0]);
+			}
+
+			return urls;
+		};
+
 		// Link creation and processing
 		var create_link = function (parent, next, url, text, auto_process) {
 			var link = $.link(url, "hl-linkified", text);
@@ -4521,6 +4534,7 @@
 
 		// Exports
 		return {
+			parse_text_for_urls: parse_text_for_urls,
 			create_link: create_link,
 			load_link: load_link,
 			queue_posts: queue_posts,
@@ -6087,6 +6101,8 @@
 			queue_timer = null,
 			custom_filters = [],
 			custom_links = [],
+			custom_links_map = {},
+			custom_links_text = "",
 			node_sort_order_keys = {
 				thread: [ "data-hl-index", 1 ],
 				upload: [ "data-hl-date-uploaded", -1 ],
@@ -6310,7 +6326,7 @@
 			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
 
 			$.add(n4, n5 = $.node("textarea", "hl-easylist-option-textarea" + theme));
-			n5.value = "";
+			n5.value = custom_links_text;
 			n5.wrap = "off";
 			n5.spellcheck = false;
 			$.on(n5, "change", on_option_change.custom_links);
@@ -6485,13 +6501,14 @@
 
 			return [ n1, namespace !== "" ];
 		};
-		var add_gallery = function (content_index, entry) {
+		var add_gallery_update_timer = null;
+		var add_gallery = function (content_index, entry, index, force_reorder) {
 			var data = API.get_gallery(entry.namespace, entry.id),
 				entries, n;
 
 			if (data !== null) {
 				entries = contents[content_index].entries;
-				n = create_gallery_nodes(data, entries.length, entry.domain);
+				n = create_gallery_nodes(data, index, entry.domain);
 				n.setAttribute("data-hl-easylist-item-parity", (contents[content_index].visible % 2) === 0 ? "odd" : "even");
 
 				Main.insert_custom_fonts();
@@ -6501,15 +6518,24 @@
 				entry.node = n;
 				entries.push(entry);
 				++contents[content_index].visible;
-			}
-		};
-		var add_gallery_complete = function (content_index) {
-			if (content_index === content_current) {
-				if (settings.group_by_category || settings.group_by_filters || settings.sort_by !== "thread" || settings.filter_visibility !== 0) {
-					update_ordering();
-				}
 
-				set_empty(contents[content_index].visible === 0);
+				if (content_index === content_current) {
+					if (
+						force_reorder ||
+						settings.group_by_category ||
+						settings.group_by_filters ||
+						settings.sort_by !== "thread" ||
+						settings.filter_visibility !== 0
+					) {
+						if (add_gallery_update_timer !== null) clearTimeout(add_gallery_update_timer);
+						add_gallery_update_timer = setTimeout(function () {
+							update_ordering();
+						}, 1);
+					}
+					else {
+						set_empty(contents[content_index].visible === 0);
+					}
+				}
 			}
 		};
 		var set_empty = function (empty) {
@@ -6794,6 +6820,47 @@
 			}
 		};
 
+		var enable_custom_links = function (text) {
+			custom_links = [];
+			custom_links_map = {};
+			custom_links_text = text;
+			contents[1].entries = [];
+			contents[1].container.innerHTML = "";
+
+			if (text.length === 0) {
+				set_content_index(0);
+			}
+			else {
+				set_content_index(1);
+				parse_custom_urls(text);
+			}
+		};
+		var parse_custom_urls = function (text) {
+			var urls = Linkifier.parse_text_for_urls(text),
+				info, i, ii;
+
+			for (i = 0, ii = urls.length; i < ii; ++i) {
+				info = Helper.get_url_info(urls[i]);
+				if (info !== null) {
+					parse_custom_url_info(i, info);
+				}
+			}
+		};
+		var parse_custom_url_info = function (index, info) {
+			API.get_gallery_from_link_info(info, function (err, data) {
+				if (err === null) {
+					var key = data.type + "_" + data.gid,
+						entry;
+
+					if (custom_links_map[key] === undefined) {
+						entry = new Entry(info.domain, data.type, data.gid);
+						custom_links_map[key] = entry;
+						add_gallery(1, entry, index, true);
+					}
+				}
+			});
+		};
+
 		var on_option_change = {
 			sort_by: function () {
 				settings.sort_by = this.value;
@@ -6844,16 +6911,8 @@
 			custom_filters_input_delay_timer: null,
 			custom_links: function () {
 				var t = this.value.trim();
-
-				custom_links = [];
-				contents[1].entries = [];
-				contents[1].container.innerHTML = "";
-
-				if (t.length === 0) {
-					set_content_index(0);
-				}
-				else {
-					set_content_index(1);
+				if (t !== custom_links_text) {
+					enable_custom_links(t);
 				}
 			},
 			custom_links_input: function () {
@@ -6915,13 +6974,13 @@
 		var on_timer = function () {
 			queue_timer = null;
 
-			var entries = queue.splice(0, 20),
+			var new_entries = queue.splice(0, 20),
+				entries = contents[0].entries,
 				i, ii;
 
-			for (i = 0, ii = entries.length; i < ii; ++i) {
-				add_gallery(0, entries[i]);
+			for (i = 0, ii = new_entries.length; i < ii; ++i) {
+				add_gallery(0, new_entries[i], entries.length, true);
 			}
-			add_gallery_complete(0);
 
 			if (queue.length > 0) {
 				queue_timer = setTimeout(on_timer, 50);
