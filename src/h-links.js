@@ -3473,69 +3473,82 @@
 		var hover_nodes = {},
 			hover_nodes_id = 0;
 
-		var ui_events = {
-			click: function (event) {
-				event.preventDefault();
+		var on_sauce_click = function (event) {
+			event.preventDefault();
 
-				var results = Helper.get_exresults_from_exsauce(this),
-					hover;
+			var results = Helper.get_exresults_from_exsauce(this),
+				hover;
 
-				if (results !== null) {
-					hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id") || ""];
-					if (hover === undefined) return;
+			if (results !== null) {
+				hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id") || ""];
+				if (hover === undefined) return;
 
-					if (results.classList.toggle("hl-exsauce-results-hidden")) {
-						hover.classList.remove("hl-exsauce-hover-hidden");
-						ui_events.mousemove.call(this, event);
-					}
-					else {
-						hover.classList.add("hl-exsauce-hover-hidden");
-					}
-				}
-			},
-			mouseover: function () {
-				var results = Helper.get_exresults_from_exsauce(this),
-					hover;
-
-				if (results === null || results.classList.contains("hl-exsauce-results-hidden")) {
-					hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id") || ""];
-					if (hover === undefined) return;
-
+				if (results.classList.toggle("hl-exsauce-results-hidden")) {
 					hover.classList.remove("hl-exsauce-hover-hidden");
+					on_sauce_mousemove.call(this, event);
 				}
-			},
-			mouseout: function () {
-				var hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id") || ""];
-				if (hover !== undefined) {
+				else {
 					hover.classList.add("hl-exsauce-hover-hidden");
 				}
-			},
-			mousemove: function (event) {
-				var hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id") || ""];
-
-				if (hover === undefined || hover.classList.contains("hl-exsauce-hover-hidden")) return;
-
-				hover.style.left = "0";
-				hover.style.top = "0";
-
-				var w = window,
-					de = d.documentElement,
-					x = event.clientX,
-					y = event.clientY,
-					win_width = (de.clientWidth || w.innerWidth || 0),
-					win_height = (de.clientHeight || w.innerHeight || 0),
-					rect = hover.getBoundingClientRect();
-
-				x -= rect.width / 2;
-				x = Math.max(1, Math.min(win_width - rect.width - 1, x));
-				y += 20;
-				if (y + rect.height >= win_height) {
-					y = event.clientY - (rect.height + 20);
-				}
-
-				hover.style.left = x + "px";
-				hover.style.top = y + "px";
 			}
+		};
+		var on_sauce_click_error = function (event) {
+			event.preventDefault();
+
+			var link = this,
+				events = this.getAttribute("data-hl-exsauce-events") || null;
+
+			if (events === null) return;
+
+			Linkifier.change_link_events(link, null);
+
+			setTimeout(function () {
+				Linkifier.change_link_events(link, events);
+				link.click();
+			}, 1);
+		};
+		var on_sauce_mouseover = function () {
+			var results = Helper.get_exresults_from_exsauce(this),
+				hover;
+
+			if (results === null || results.classList.contains("hl-exsauce-results-hidden")) {
+				hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id") || ""];
+				if (hover === undefined) return;
+
+				hover.classList.remove("hl-exsauce-hover-hidden");
+			}
+		};
+		var on_sauce_mouseout = function () {
+			var hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id") || ""];
+			if (hover !== undefined) {
+				hover.classList.add("hl-exsauce-hover-hidden");
+			}
+		};
+		var on_sauce_mousemove = function (event) {
+			var hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id") || ""];
+
+			if (hover === undefined || hover.classList.contains("hl-exsauce-hover-hidden")) return;
+
+			hover.style.left = "0";
+			hover.style.top = "0";
+
+			var w = window,
+				de = d.documentElement,
+				x = event.clientX,
+				y = event.clientY,
+				win_width = (de.clientWidth || w.innerWidth || 0),
+				win_height = (de.clientHeight || w.innerHeight || 0),
+				rect = hover.getBoundingClientRect();
+
+			x -= rect.width / 2;
+			x = Math.max(1, Math.min(win_width - rect.width - 1, x));
+			y += 20;
+			if (y + rect.height >= win_height) {
+				y = event.clientY - (rect.height + 20);
+			}
+
+			hover.style.left = x + "px";
+			hover.style.top = y + "px";
 		};
 
 		var create_hover = function (id, data) {
@@ -3599,26 +3612,6 @@
 			}
 		};
 
-		var error_events = {
-			click: function (event) {
-				event.preventDefault();
-
-				var link = this,
-					events = this.getAttribute("data-hl-exsauce-events") || null;
-
-				if (events === null) return;
-
-				Linkifier.change_link_events(link, null);
-
-				setTimeout(function () {
-					Linkifier.change_link_events(link, events);
-					link.click();
-				}, 1);
-			},
-			mouseover: ui_events.mouseover,
-			mouseout: ui_events.mouseout,
-			mousemove: ui_events.mousemove
-		};
 		var create_error = function (node, error) {
 			var id = hover_nodes_id,
 				hover;
@@ -3703,8 +3696,46 @@
 				}
 			}, progress);
 		};
+		var fetch = function (event) {
+			event.preventDefault();
+			fetch_generic(this, false);
+		};
+		var fetch_similar = function (event) {
+			event.preventDefault();
+			fetch_generic(this, true);
+		};
 
 		// Public
+		var find_link = function (container) {
+			return $(".hl-exsauce-link", container);
+		};
+		var create_link = function (file_info, index) {
+			var event = "exsauce_fetch",
+				sauce, err;
+
+			sauce = $.link(file_info.url, "hl-exsauce-link", label());
+			sauce.setAttribute("data-hl-filename", file_info.name);
+			sauce.setAttribute("data-hl-image-index", index);
+			if (file_info.md5 !== null) {
+				sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
+			}
+			if (/^\.jpe?g$/i.test(file_info.type) && !Config.is_tinyboard) {
+				if (browser.is_firefox) {
+					event = "exsauce_fetch_similarity";
+					sauce.title = "This will only work on colored images";
+				}
+				else {
+					err = "Reverse Image Search doesn't work for .jpg images because 4chan manipulates them on upload";
+					event = "exsauce_error";
+					sauce.classList.add("hl-exsauce-link-disabled");
+					sauce.setAttribute("data-hl-exsauce-error", err);
+				}
+			}
+
+			Linkifier.change_link_events(sauce, event);
+
+			return sauce;
+		};
 		var label = function () {
 			var label = config.sauce.label;
 
@@ -3714,28 +3745,29 @@
 
 			return label;
 		};
-		var fetch = function (event) {
-			event.preventDefault();
-
-			fetch_generic(this, false);
-		};
-		var fetch_similar = function (event) {
-			event.preventDefault();
-
-			fetch_generic(this, true);
-		};
-
 		var init = function () {
 			Linkifier.register_link_events({
 				exsauce_fetch: fetch,
 				exsauce_fetch_similarity: fetch_similar,
-				exsauce_toggle: ui_events,
-				exsauce_error: error_events
+				exsauce_toggle: {
+					click: on_sauce_click,
+					mouseover: on_sauce_mouseover,
+					mouseout: on_sauce_mouseout,
+					mousemove: on_sauce_mousemove
+				},
+				exsauce_error: {
+					click: on_sauce_click_error,
+					mouseover: on_sauce_mouseover,
+					mouseout: on_sauce_mouseout,
+					mousemove: on_sauce_mousemove
+				},
 			});
 		};
 
 		// Exports
 		return {
+			find_link: find_link,
+			create_link: create_link,
 			label: label,
 			init: init
 		};
@@ -4266,7 +4298,7 @@
 
 		var setup_post_exsauce = function (post) {
 			var index = 0,
-				event, file_infos, file_info, sauce, i, ii;
+				file_infos, file_info, node, i, ii;
 
 			// File info
 			file_infos = Post.get_file_info(post);
@@ -4274,33 +4306,12 @@
 				file_info = file_infos[i];
 
 				// Create if not found
-				sauce = $(".hl-exsauce-link", file_info.options);
-				if (sauce !== null) $.remove(sauce);
+				node = Sauce.find_link(file_info.options);
+				if (node !== null) $.remove(node);
 
 				if (/^\.(png|gif|jpe?g)$/i.test(file_info.type)) {
-					event = "exsauce_fetch";
-					sauce = $.link(file_info.url, "hl-exsauce-link", Sauce.label());
-					sauce.setAttribute("data-hl-filename", file_info.name);
-					sauce.setAttribute("data-hl-image-index", index);
-					if (file_info.md5 !== null) {
-						sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
-					}
-					if (/^\.jpe?g$/i.test(file_info.type) && !Config.is_tinyboard) {
-						if (browser.is_firefox) {
-							event = "exsauce_fetch_similarity";
-							sauce.title = "This will only work on colored images";
-						}
-						else {
-							event = "exsauce_error";
-							sauce.title = "Reverse Image Search doesn't work for .jpg images because 4chan manipulates them on upload";
-							sauce.classList.add("hl-exsauce-link-disabled");
-						}
-					}
-
-					change_link_events(sauce, event);
-
-					Post.create_image_meta_link(file_info, sauce);
-
+					node = Sauce.create_link(file_info, index);
+					Post.create_image_meta_link(file_info, node);
 					++index;
 				}
 			}
