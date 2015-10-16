@@ -3605,6 +3605,9 @@
 
 				var link = this,
 					events = this.getAttribute("data-hl-exsauce-events") || null;
+
+				if (events === null) return;
+
 				Linkifier.change_link_events(link, null);
 
 				setTimeout(function () {
