@@ -2753,6 +2753,7 @@
 			this.type = type;
 
 			this.delay_modify = null;
+			this.error_mode = null;
 			this.get_data = null;
 			this.set_data = null;
 			this.setup_xhr = null;
@@ -2919,23 +2920,25 @@
 			HttpRequest(xhr_data);
 		};
 		RequestType.prototype.process_response_error = function (entries, error) {
-			var i, ii;
+			var err_mode, i, ii;
 			for (i = 0, ii = entries.length; i < ii; ++i) {
-				entries[i].run_callbacks(error, null, false, this);
+				err_mode = (this.error_mode !== null) ? this.error_mode.call(this, null, error) : RequestData.ErrorMode.NoCache;
+				entries[i].run_callbacks(error, null, err_mode, this);
 			}
 		};
 		RequestType.prototype.process_response = function (entries, datas) {
 			var i = 0,
 				ii = Math.min(datas.length, entries.length),
-				data, err;
+				data, err, err_mode;
 
 			for (; i < ii; ++i) {
 				data = datas[i];
 				if ((err = data.error) !== undefined) {
-					entries[i].run_callbacks(err, null, true, this);
+					err_mode = (this.error_mode !== null) ? this.error_mode.call(this, data, err) : RequestData.ErrorMode.Save;
+					entries[i].run_callbacks(err, null, err_mode, this);
 				}
 				else {
-					entries[i].run_callbacks(null, data, false, this);
+					entries[i].run_callbacks(null, data, RequestData.ErrorMode.None, this);
 				}
 			}
 
@@ -2943,7 +2946,8 @@
 			if (i < ii) {
 				err = "Data not found";
 				for (; i < ii; ++i) {
-					entries[i].run_callbacks(err, null, false, this);
+					err_mode = (this.error_mode !== null) ? this.error_mode.call(this, null, err) : RequestData.ErrorMode.NoCache;
+					entries[i].run_callbacks(err, null, err_mode, this);
 				}
 			}
 		};
@@ -2958,13 +2962,18 @@
 			this.group.complete(delay);
 		};
 
-		RequestData.prototype.run_callbacks = function (err, data, cache_error, request_type) {
+		RequestData.ErrorMode = {
+			None: 0,
+			NoCache: 1,
+			Save: 2
+		};
+		RequestData.prototype.run_callbacks = function (err, data, err_cache_mode, request_type) {
 			// Cache
 			if (err === null) {
 				request_type.set_data.call(request_type, data);
 			}
-			else {
-				set_saved_error([ request_type.namespace, request_type.type, this.id ], err, cache_error);
+			else if (err_cache_mode !== RequestData.ErrorMode.None) {
+				set_saved_error([ request_type.namespace, request_type.type, this.id ], err, (err_cache_mode === RequestData.ErrorMode.Save));
 			}
 
 			// Callbacks
@@ -3108,6 +3117,9 @@
 			return "Invalid response";
 		};
 
+		rt_ehentai_lookup.error_mode = function () {
+			return RequestData.ErrorMode.None;
+		};
 		rt_ehentai_lookup.delay_modify = function (delay, entries) {
 			return (entries[0].data[0] ? delay : 0);
 		};
