@@ -3509,11 +3509,16 @@
 		};
 		var on_sauce_mouseover = function () {
 			var results = Helper.get_exresults_from_exsauce(this),
-				hover;
+				hover, err;
 
 			if (results === null || results.classList.contains("hl-exsauce-results-hidden")) {
-				hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id") || ""];
-				if (hover === undefined) return;
+				hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id")];
+				if (hover === undefined) {
+					err = this.getAttribute("data-hl-exsauce-error");
+					if (!err) return;
+					this.removeAttribute("data-hl-exsauce-error");
+					hover = create_error(this, err);
+				}
 
 				hover.classList.remove("hl-exsauce-hover-hidden");
 			}
@@ -3580,6 +3585,7 @@
 			a.href = data.url;
 			a.target = "_blank";
 			a.rel = "noreferrer";
+			a.removeAttribute("title");
 
 			if (count > 0) {
 				if (
@@ -3625,22 +3631,32 @@
 			var id = hover_nodes_id,
 				hover;
 
+			// Update id
+			++hover_nodes_id;
+
 			// Create hover
 			hover = $.node("div", "hl-exsauce-hover hl-exsauce-hover-hidden hl-hover-shadow" + Theme.classes);
 			Theme.bg(hover);
-			hover.setAttribute("data-hl-sauce-hover-id", id);
-
 			$.add(hover, $.node("span", "hl-exsauce-hover-link", error));
+
+			// Ids
+			hover.setAttribute("data-hl-sauce-hover-id", id);
+			node.setAttribute("data-hl-sauce-hover-id", id);
 
 			Popup.hovering(hover);
 			hover_nodes[id] = hover;
 
+			// Done
+			return hover;
+		};
+		var set_error = function (node, error) {
+			// Create hover
+			create_error(node, error);
+
 			// Link
 			node.classList.add("hl-exsauce-link-error");
-			node.setAttribute("data-hl-sauce-hover-id", id);
 			node.textContent = "Error";
 			node.removeAttribute("title");
-			++hover_nodes_id;
 
 			// Events
 			Linkifier.change_link_events(node, "exsauce_error");
@@ -3701,7 +3717,7 @@
 					format(link, data);
 				}
 				else {
-					create_error(link, err);
+					set_error(link, err);
 				}
 			}, progress);
 		};
