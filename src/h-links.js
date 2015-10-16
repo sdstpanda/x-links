@@ -6070,12 +6070,20 @@
 		var settings_key = "#PREFIX#easylist-settings",
 			popup = null,
 			options_container = null,
-			items_container = null,
 			empty_notification = null,
+			content_container = null,
+			content_current = 0,
+			contents = [{
+				entries: [],
+				container: null,
+				visible: 0
+			}, {
+				entries: [],
+				container: null,
+				visible: 0
+			}],
 			queue = [],
-			current = [],
 			data_map = {},
-			current_visible_count = 0,
 			queue_timer = null,
 			custom_filters = [],
 			custom_links = [],
@@ -6155,8 +6163,11 @@
 				$.add(container, empty_notification);
 
 				// Items list
-				items_container = $.node("div", "hl-easylist-items" + theme);
-				$.add(container, items_container);
+				contents[0].container = $.node("div", "hl-easylist-items" + theme);
+				contents[1].container = $.node("div", "hl-easylist-items" + theme);
+				$.add(container, contents[content_current].container);
+
+				content_container = container;
 			});
 
 			$.on(popup, "click", on_overlay_click);
@@ -6310,8 +6321,9 @@
 
 			return n1;
 		};
-		var create_gallery_nodes = function (data, theme, index, domain) {
+		var create_gallery_nodes = function (data, index, domain) {
 			var url = CreateURL.to_gallery(data, domain),
+				theme = Theme.classes,
 				n1, n2, n3, n4, n5, n6, n7, i, t;
 
 			n1 = $.node("div", "hl-easylist-item" + theme);
@@ -6474,29 +6486,32 @@
 
 			return [ n1, namespace !== "" ];
 		};
-		var add_gallery = function (entry, theme) {
+		var add_gallery = function (content_index, entry) {
 			var data = API.get_gallery(entry.namespace, entry.id),
-				n;
+				entries, n;
 
 			if (data !== null) {
-				n = create_gallery_nodes(data, theme, current.length, entry.domain);
-				n.setAttribute("data-hl-easylist-item-parity", (current_visible_count % 2) === 0 ? "odd" : "even");
+				entries = contents[content_index].entries;
+				n = create_gallery_nodes(data, entries.length, entry.domain);
+				n.setAttribute("data-hl-easylist-item-parity", (contents[content_index].visible % 2) === 0 ? "odd" : "even");
 
 				Main.insert_custom_fonts();
 
-				$.add(items_container, n);
+				$.add(contents[content_index].container, n);
 
 				entry.node = n;
-				current.push(entry);
-				++current_visible_count;
+				entries.push(entry);
+				++contents[content_index].visible;
 			}
 		};
-		var add_gallery_complete = function () {
-			if (settings.group_by_category || settings.group_by_filters || settings.sort_by !== "thread" || settings.filter_visibility !== 0) {
-				update_ordering();
-			}
+		var add_gallery_complete = function (content_index) {
+			if (content_index === content_current) {
+				if (settings.group_by_category || settings.group_by_filters || settings.sort_by !== "thread" || settings.filter_visibility !== 0) {
+					update_ordering();
+				}
 
-			set_empty(current_visible_count === 0);
+				set_empty(contents[content_index].visible === 0);
+			}
 		};
 		var set_empty = function (empty) {
 			if (empty_notification !== null) {
@@ -6557,7 +6572,7 @@
 		};
 		var update_display_mode = function (first) {
 			var mode = display_mode_names[settings.display_mode] || "",
-				cl = items_container.classList,
+				cl = content_container.classList,
 				i, ii;
 
 			if (!first) {
@@ -6573,6 +6588,10 @@
 				mode = settings.sort_by,
 				visibility = settings.filter_visibility,
 				show = true,
+				content_index = content_current,
+				entries = contents[content_index].entries,
+				items_container = contents[content_index].container,
+				current_visible_count = 0,
 				ordering, base_array, item, attr, cat_order, n, n2, i, ii;
 
 			// Grouping
@@ -6607,8 +6626,8 @@
 			attr = node_sort_order_keys[mode in node_sort_order_keys ? mode : "thread"];
 			ordering.push(attr[1], 1);
 			attr = attr[0];
-			for (i = 0, ii = current.length; i < ii; ++i) {
-				n = current[i].node;
+			for (i = 0, ii = entries.length; i < ii; ++i) {
+				n = entries[i].node;
 				item = {
 					order: base_array(n),
 					node: n
@@ -6636,7 +6655,6 @@
 
 			// Re-insert
 			// Maybe eventually add labels
-			current_visible_count = 0;
 			for (i = 0, ii = items.length; i < ii; ++i) {
 				n = items[i].node;
 				n2 = $(".hl-easylist-item-image-index", n);
@@ -6665,6 +6683,7 @@
 				}
 			}
 
+			contents[content_index].visible = current_visible_count;
 			set_empty(current_visible_count === 0);
 		};
 		var reset_filter_state = function (node, content_node) {
@@ -6715,13 +6734,15 @@
 			}
 		};
 		var update_all_filters = function () {
-			var entry, data, i, ii;
+			var content_index = content_current,
+				entries = contents[content_index].entries,
+				entry, data, i, ii;
 
-			for (i = 0, ii = current.length; i < ii; ++i) {
-				entry = current[i];
+			for (i = 0, ii = entries.length; i < ii; ++i) {
+				entry = entries[i];
 				data = API.get_gallery(entry.namespace, entry.id);
 				if (data !== null) {
-					update_filters(current[i].node, data, false, false);
+					update_filters(entries[i].node, data, false, false);
 				}
 			}
 
@@ -6751,6 +6772,26 @@
 
 			if (queue.length > 0 && queue_timer === null) {
 				on_timer();
+			}
+		};
+
+		var set_content_index = function (content_index) {
+			if (content_index === content_current) return;
+
+			var node = contents[content_current].container,
+				par = node.parentNode,
+				next = node.nextSibling;
+
+			if (par !== null) {
+				content_current = content_index;
+
+				$.remove(node);
+
+				node = contents[content_current].container;
+				$.before(par, next, node);
+
+				update_all_filters();
+				update_ordering();
 			}
 		};
 
@@ -6848,13 +6889,12 @@
 			queue_timer = null;
 
 			var entries = queue.splice(0, 20),
-				theme = Theme.classes,
 				i, ii;
 
 			for (i = 0, ii = entries.length; i < ii; ++i) {
-				add_gallery(entries[i], theme);
+				add_gallery(0, entries[i]);
 			}
-			add_gallery_complete();
+			add_gallery_complete(0);
 
 			if (queue.length > 0) {
 				queue_timer = setTimeout(on_timer, 50);
