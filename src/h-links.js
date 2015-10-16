@@ -6310,12 +6310,11 @@
 			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
 
 			$.add(n4, n5 = $.node("textarea", "hl-easylist-option-textarea" + theme));
-		//	n5.value = settings.custom_filters;
+			n5.value = "";
 			n5.wrap = "off";
 			n5.spellcheck = false;
-		//	$.on(n5, "change", on_option_change.custom_filters);
-		//	$.on(n5, "input", on_option_change.custom_filters_input);
-
+			$.on(n5, "change", on_option_change.custom_links);
+			$.on(n5, "input", on_option_change.custom_links_input);
 
 			$.add(n1, $.node("div", "hl-easylist-title-line"));
 
@@ -6842,7 +6841,35 @@
 					1000
 				);
 			},
-			custom_filters_input_delay_timer: null
+			custom_filters_input_delay_timer: null,
+			custom_links: function () {
+				var t = this.value.trim();
+
+				custom_links = [];
+				contents[1].entries = [];
+				contents[1].container.innerHTML = "";
+
+				if (t.length === 0) {
+					set_content_index(0);
+				}
+				else {
+					set_content_index(1);
+				}
+			},
+			custom_links_input: function () {
+				var node = this;
+				if (on_option_change.custom_links_input_delay_timer !== null) {
+					clearTimeout(on_option_change.custom_links_input_delay_timer);
+				}
+				on_option_change.custom_links_input_delay_timer = setTimeout(
+					function () {
+						on_option_change.custom_links_input_delay_timer = null;
+						on_option_change.custom_links.call(node);
+					},
+					1000
+				);
+			},
+			custom_links_input_delay_timer: null
 		};
 		var on_gallery_mouseover = function () {
 			$.off(this, "mouseover", on_gallery_mouseover);
