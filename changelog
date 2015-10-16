@@ -1,5 +1,23 @@
 ﻿master
 
+1.1.0
+- dnsev-h
+  + Fixed a bug causing repeated links to sometimes not format properly
+  + Fixed a bug causing filters to throw errors
+  + Fixed a bug causing bad filters not to sort properly in the Easy List
+  + Fixed a bug causing the Easy List to not group by category
+  + Added an Easy List option for hiding entries based on filters
+  + Added an Easy List option for showing a custom list of links (from a pastebin, for example)
+  + Added http support for desustorage.org
+  + Added support for fgts.jp
+  + Complete restructuring for API / HTTP requests
+  + Errors are now cached, resulting in less API requests on pages with faulty links
+  + Reverse image similarity search lookup results are now cached better
+  + Duplicate requests for the same gallery should no longer occur
+  + Reverse image search now works on site configurations lacking image MD5 information
+  + Improved debug logging
+  + Various internal improvements
+
 1.0.10
 - dnsev-h
   + Fixed some features not working when using the 4chan-inline extension
