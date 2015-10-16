@@ -1474,6 +1474,16 @@ button.hl-settings-entry-input.hl-theme-dark:hover {
 	border-bottom: 1px solid rgba(0,0,0,0);
 	white-space: nowrap;
 }
+.hl-easylist-option-title-sub {
+	max-width: 100%;
+	margin-right: 1em;
+	opacity: 0.9;
+	white-space: normal;
+}
+.hl-easylist-option-title-sub-text {
+	font-size: 0.875em;
+	line-height: 1.1em;
+}
 .hl-easylist-option-label {
 	display: inline-block;
 }

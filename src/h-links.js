@@ -6051,6 +6051,13 @@
 	})();
 	var EasyList = (function () {
 
+		var Entry = function (domain, site, gid) {
+			this.domain = domain;
+			this.namespace = site;
+			this.id = gid;
+			this.node = null;
+		};
+
 		// Private
 		var settings_key = "#PREFIX#easylist-settings",
 			popup = null,
@@ -6063,6 +6070,7 @@
 			current_visible_count = 0,
 			queue_timer = null,
 			custom_filters = [],
+			custom_links = [],
 			node_sort_order_keys = {
 				thread: [ "data-hl-index", 1 ],
 				upload: [ "data-hl-date-uploaded", -1 ],
@@ -6271,6 +6279,23 @@
 			n5.spellcheck = false;
 			$.on(n5, "change", on_option_change.custom_filters);
 			$.on(n5, "input", on_option_change.custom_filters_input);
+
+
+			$.add(n2, n3 = $.node("div", "hl-easylist-option-row"));
+			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
+			$.add(n4, $.node("span", "hl-easylist-option-title", "Custom links:"));
+			$.add(n4, $.node_simple("br"));
+			$.add(n4, n5 = $.node("div", "hl-easylist-option-title-sub"));
+			$.add(n5, $.node("div", "hl-easylist-option-title-sub-text", "Display a list of links from an external source"));
+
+			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
+
+			$.add(n4, n5 = $.node("textarea", "hl-easylist-option-textarea" + theme));
+		//	n5.value = settings.custom_filters;
+			n5.wrap = "off";
+			n5.spellcheck = false;
+		//	$.on(n5, "change", on_option_change.custom_filters);
+		//	$.on(n5, "input", on_option_change.custom_filters_input);
 
 
 			$.add(n1, $.node("div", "hl-easylist-title-line"));
@@ -6701,7 +6726,7 @@
 			custom_filters = Filter.parse(settings.custom_filters, undefined);
 		};
 		var add_links = function (links) {
-			var link, id, id_key, d, i, ii;
+			var link, id, id_key, entry, i, ii;
 
 			for (i = 0, ii = links.length; i < ii; ++i) {
 				link = links[i];
@@ -6709,14 +6734,9 @@
 				if (id !== null) {
 					id_key = id[0] + "_" + id[1];
 					if (data_map[id_key] === undefined) {
-						d = {
-							domain: Helper.get_domain(link.href || "") || domains.exhentai,
-							namespace: id[0],
-							id: id[1],
-							node: null
-						};
-						queue.push(d);
-						data_map[id_key] = d;
+						entry = new Entry(Helper.get_domain(link.href || "") || domains.exhentai, id[0], id[1]);
+						queue.push(entry);
+						data_map[id_key] = entry;
 					}
 				}
 			}
