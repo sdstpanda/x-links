@@ -3611,6 +3611,15 @@
 				Linkifier.change_link_events(a, "exsauce_toggle");
 			}
 		};
+		var label = function () {
+			var label = config.sauce.label;
+
+			if (label.length === 0) {
+				label = (config.sauce.lookup_domain === domains.exhentai) ? "ExHentai" : "E-Hentai";
+			}
+
+			return label;
+		};
 
 		var create_error = function (node, error) {
 			var id = hover_nodes_id,
@@ -3736,15 +3745,6 @@
 
 			return sauce;
 		};
-		var label = function () {
-			var label = config.sauce.label;
-
-			if (label.length === 0) {
-				label = (config.sauce.lookup_domain === domains.exhentai) ? "ExHentai" : "E-Hentai";
-			}
-
-			return label;
-		};
 		var init = function () {
 			Linkifier.register_link_events({
 				exsauce_fetch: fetch,
@@ -3768,7 +3768,6 @@
 		return {
 			find_link: find_link,
 			create_link: create_link,
-			label: label,
 			init: init
 		};
 
