@@ -3578,7 +3578,7 @@
 			var count = data.results.length,
 				theme = Theme.classes,
 				index = a.getAttribute("data-hl-image-index") || "",
-				results, link, par, url, n, i, ii;
+				results, link, par, url, n1, n2, n, i, ii;
 
 			a.classList.add("hl-exsauce-link-valid");
 			a.textContent = "Found: " + count;
@@ -3595,16 +3595,30 @@
 				) {
 					results = $.node("div", "hl-exsauce-results" + theme);
 					results.setAttribute("data-hl-image-index", index);
-					$.add(results, $.node("strong", "hl-exsauce-results-title", "Reverse Image Search Results"));
-					$.add(results, $.node("span", "hl-exsauce-results-sep", "|" ));
-					$.add(results, $.node("span", "hl-exsauce-results-label", "View on:"));
-					$.add(results, $.link(a.href, "hl-exsauce-results-link", (config.sauce.lookup_domain === domains.exhentai) ? "ExHentai" : "E-Hentai"));
-					$.add(results, $.node_simple("br"));
+
+					$.add(results, n1 = $.node("div", "hl-exsauce-results-inner" + theme));
+
+					$.add(n1, n2 = $.node("div", "hl-exsauce-results-group" + theme));
+
+					$.add(n2, $.node("strong", "hl-exsauce-results-title", "Reverse Image Search Results"));
+					$.add(n2, $.node("span", "hl-exsauce-results-sep", "|"));
+					$.add(n2, $.node("span", "hl-exsauce-results-label", "View on:"));
+
+					if (config.sauce.lookup_domain === domains.exhentai) {
+						$.add(n2, $.link(data.url, "hl-exsauce-results-link", "ExHentai"));
+						$.add(n2, $.link(Helper.change_url_domain(data.url, domains.gehentai), "hl-exsauce-results-link", "E-Hentai"));
+					}
+					else {
+						$.add(n2,$.link(data.url, "hl-exsauce-results-link", "E-Hentai"));
+						$.add(n2, $.link(Helper.change_url_domain(data.url, domains.exhentai), "hl-exsauce-results-link", "ExHentai"));
+					}
+
+					$.add(n1, n2 = $.node("div", "hl-exsauce-results-group"));
 
 					for (i = 0, ii = data.results.length; i < ii; ++i) {
 						url = data.results[i].url;
-						link = Linkifier.create_link(results, null, url, url, true);
-						if (i < ii - 1) $.add(results, $.node_simple("br"));
+						link = Linkifier.create_link(n2, null, url, url, true);
+						if (i < ii - 1) $.add(n2, $.node_simple("br"));
 					}
 
 					$.before(par, n, results);

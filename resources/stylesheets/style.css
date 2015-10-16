@@ -212,30 +212,40 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 }
 
 .hl-exsauce-results {
+	display: block;
+	white-space: nowrap;
+}
+.hl-exsauce-results.hl-exsauce-results-hidden {
+	display: none;
+}
+.hl-exsauce-results-inner {
 	display: table;
-	max-width: 100%;
-	width: auto;
 	padding: 0.3em;
 	margin: 0.25em 0;
 	border-radius: 0.375em;
 	background-color: rgba(0,0,0,0.05);
 	padding: 0.5em;
+	white-space: normal;
 }
-.hl-exsauce-results.hl-exsauce-results-hidden {
-	display: none;
-}
-.hl-exsauce-results.hl-theme-dark {
+.hl-exsauce-results-inner.hl-theme-dark {
 	background-color: rgba(255,255,255,0.05);
 }
 .hl-exsauce-results-sep {
 	display: inline-block;
 	margin: 0 0.5em;
 }
+.hl-exsauce-results-label {
+	white-space: nowrap;
+}
 .hl-exsauce-results-link {
 	text-decoration: none !important;
 	vertical-align: top;
 	margin: 0 0.375em;
+	white-space: nowrap;
 	text-transform: lowercase;
+}
+.hl-exsauce-results-group+.hl-exsauce-results-group {
+	margin-top: 0.25em;
 }
 
 .hl-exsauce-hover {
