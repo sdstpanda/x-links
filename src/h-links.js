@@ -456,13 +456,15 @@
 			}
 
 			// Debug functions
+			Module.enabled = true;
+
 			timer_names = {};
 			log = function () {
 				var args = [ "#TITLE# " + Main.version.join(".") + ":" ].concat(Array.prototype.slice.call(arguments));
 				console.log.apply(console, args);
 			};
-			Debug.log = log;
-			Debug.timer = function (name, dont_format) {
+			Module.log = log;
+			Module.timer = function (name, dont_format) {
 				var t1 = timing(),
 					t2;
 
@@ -478,6 +480,7 @@
 
 		// Exports
 		var Module = {
+			enabled: false,
 			log: log,
 			timer: dummy_fn,
 			timer_log: timer_log,
@@ -1067,26 +1070,73 @@
 
 	})();
 	var HttpRequest = (function () {
+
+		var gm_exists = false,
+			debug_fn, request;
+
 		try {
 			if (GM_xmlhttpRequest && typeof(GM_xmlhttpRequest) === "function") {
-				return function (data) {
-					Debug.log("HttpRequest:", data.method, data.url, { data: data });
-					return GM_xmlhttpRequest(data);
-				};
+				gm_exists = true;
 			}
 		}
 		catch (e) {}
 
-		// Fallback
-		return function (data) {
-			Debug.log("HttpRequest:", data.method, data.url, { data: data });
-			var onerror = (data && data.onerror && typeof(data.onerror) === "function") ? data.onerror : null;
-			setTimeout(function () {
-				if (onerror !== null) {
-					onerror.call(null, {});
-				}
-			}, 10);
+		debug_fn = function (type, data, callback, start_time) {
+			return function (xhr) {
+				var t = timing();
+				Debug.log("HttpRequest." + type + ":", data.method, data.url, { data: data, response: xhr, time: (t - start_time).toFixed(2) + "ms" });
+				return callback.apply(this, arguments);
+			};
 		};
+
+		if (gm_exists) {
+			request = function (data) {
+				if (Debug.enabled) {
+					var upload = data.upload,
+						start = timing(),
+						fn;
+
+					Debug.log("HttpRequest:", data.method, data.url, { data: data });
+
+					if (typeof((fn = data.onload)) === "function") {
+						data.onload = debug_fn("load", data, fn, start);
+					}
+					if (typeof((fn = data.onerror)) === "function") {
+						data.onerror = debug_fn("error", data, fn, start);
+					}
+					if (typeof((fn = data.onabort)) === "function") {
+						data.onabort = debug_fn("abort", data, fn, start);
+					}
+
+					if (typeof(upload) === "object" && upload !== null) {
+						if (typeof((fn = upload.onerror)) === "function") {
+							upload.onerror = debug_fn("upload.error", data, fn, start);
+						}
+						if (typeof((fn = upload.onabort)) === "function") {
+							upload.onabort = debug_fn("upload.abort", data, fn, start);
+						}
+					}
+				}
+
+				return GM_xmlhttpRequest(data);
+			};
+		}
+		else {
+			// Fallback
+			request = function (data) {
+				Debug.log("HttpRequest.invalid:", data.method, data.url, { data: data });
+				var onerror = (data && data.onerror && typeof(data.onerror) === "function") ? data.onerror : null;
+				if (onerror !== null) {
+					setTimeout(function () {
+						onerror.call(null, {});
+					}, 1);
+				}
+			};
+		}
+
+		// Done
+		return request;
+
 	})();
 	var UI = (function () {
 
