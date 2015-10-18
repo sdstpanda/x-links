@@ -1083,8 +1083,18 @@
 
 		debug_fn = function (type, data, callback, start_time) {
 			return function (xhr) {
-				var t = timing();
-				Debug.log("HttpRequest." + type + ":", data.method, data.url, { data: data, response: xhr, time: (t - start_time).toFixed(2) + "ms" });
+				var t = timing(),
+					args = [
+						"HttpRequest:",
+						data.method,
+						data.url,
+						type,
+						{ data: data, response: xhr, time: (t - start_time).toFixed(2) + "ms" }
+					];
+
+				if (type === "load") args.splice(4, 0, xhr.status, xhr.statusText);
+
+				Debug.log.apply(Debug, args);
 				return callback.apply(this, arguments);
 			};
 		};
@@ -2716,17 +2726,17 @@
 							ta[i] = text.charCodeAt(i);
 						}
 
-						callback(null, ta, ii, content_type, xhr.finalUrl);
+						callback.call(null, null, ta, ii, content_type, xhr.finalUrl);
 					}
 					else {
-						callback(xhr.status, null, 0, null, null);
+						callback.call(null, "Response error " + xhr.status, null, 0, null, null);
 					}
 				},
 				onerror: function () {
-					callback("connection error", null, 0, null, null);
+					callback.call(null, "Connection error", null, 0, null, null);
 				},
 				onabort: function () {
-					callback("aborted", null, 0, null, null);
+					callback.call(null, "Connection aborted", null, 0, null, null);
 				}
 			};
 
@@ -2911,18 +2921,24 @@
 			xhr_data = this.setup_xhr.call(this, entries);
 
 			xhr_data.onload = function (xhr) {
-				var response = self.parse_response.call(self, xhr, entries);
+				if (xhr.status === 200) {
+					var response = self.parse_response.call(self, xhr, entries);
 
-				if (typeof(response) === "string") {
-					// Error
-					self.process_response_error(entries, response);
+					if (typeof(response) === "string") {
+						// Error
+						self.process_response_error(entries, response);
+					}
+					else {
+						// Valid
+						self.process_response(entries, response);
+					}
+
+					self.request_complete(entries, false);
 				}
 				else {
-					// Valid
-					self.process_response(entries, response);
+					self.process_response_error(entries, "Response error " + xhr.status);
+					self.request_complete(entries, true);
 				}
-
-				self.request_complete(entries, false);
 			};
 			xhr_data.onerror = function () {
 				self.process_response_error(entries, "Connection error");
@@ -7427,17 +7443,17 @@
 				url: Module.url,
 				onload: function (xhr) {
 					if (xhr.status === 200) {
-						callback(null, xhr.responseText);
+						callback.call(null, null, xhr.responseText);
 					}
 					else {
-						callback("Bad response status " + xhr.status, null);
+						callback.call(null, "Response error " + xhr.status, null);
 					}
 				},
 				onerror: function () {
-					callback("Connection error", null);
+					callback.call(null, "Connection error", null);
 				},
 				onabort: function () {
-					callback("Connection aborted", null);
+					callback.call(null, "Connection aborted", null);
 				}
 			});
 		};
