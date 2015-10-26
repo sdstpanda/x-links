@@ -3355,7 +3355,7 @@
 		}._w(243);
 		var get_ehentai_gallery_page = function (gid, page_token, page, callback) {
 			var info = [ gid, page_token, page ];
-			return rt_ehentai_gallery_page.add(info.join("_"), info, callback);
+			return rt_ehentai_gallery_page.add("" + gid, info, callback);
 		}._w(244);
 		var get_ehentai_gallery_full = function (domain, data, callback) {
 			return rt_ehentai_gallery_full.add("" + data.gid, [ domain, data ], callback);
