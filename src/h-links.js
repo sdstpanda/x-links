@@ -2294,71 +2294,6 @@
 
 			return data;
 		};
-		var ehentai_parse_info = function (html, data) {
-			// Tags
-			var updated_tag_count = 0,
-				tags, tags_array, pattern, par, tds, namespace, ns, i, ii, j, jj, m, n, t;
-
-			if (
-				(n = $("title", html)) !== null &&
-				/^\s*Gallery\s+Not\s+Available/i.test(n.textContent) &&
-				$("#continue", html) !== null
-			) {
-				data.removed = true;
-				data.tags_ns = {};
-			}
-			else {
-				tags = {};
-				tags_array = [];
-				pattern = /(.+):/;
-
-				data.removed = false;
-				data.tags_ns = tags;
-				data.tags = tags_array;
-
-				par = $$("#taglist tr", html);
-				for (i = 0, ii = par.length; i < ii; ++i) {
-					// Class
-					tds = $$("td", par[i]);
-					jj = tds.length;
-					if (jj === 0) continue;
-
-					// Namespace
-					namespace = ((m = pattern.exec(tds[0].textContent)) ? m[1].trim() : "");
-					if (!(namespace in tags)) {
-						ns = [];
-						tags[namespace] = ns;
-					}
-					else {
-						ns = tags[namespace];
-					}
-
-					// Tags
-					tds = $$("div", tds[jj - 1]);
-					for (j = 0, jj = tds.length; j < jj; ++j) {
-						// Create tag
-						if ((n = $("a", tds[j])) !== null) {
-							// Add tag
-							t = n.textContent.trim();
-							ns.push(t);
-							tags_array.push(t);
-						}
-					}
-
-					// Remove if empty
-					if (ns.length === 0) {
-						delete tags[namespace];
-					}
-					else {
-						++updated_tag_count;
-					}
-				}
-			}
-
-			// Done
-			data.full = true;
-			return data;
-		};
 		var nhentai_normalize_category = function (category) {
 			return Helper.title_case(category);
 		};
@@ -2847,7 +2782,7 @@
 			this.setup_xhr = null;
 			this.parse_response = null;
 			this.retry_fn = null;
-			this.retry_fn_data = null;
+			this.retry_data = null;
 		};
 		var RequestData = function (id, data, callback, progress_callback) {
 			this.id = id;
@@ -3067,6 +3002,8 @@
 				delete this.unique[entries[i].id];
 			}
 
+			this.retry_data = null;
+
 			if (this.delay_modify !== null) delay = this.delay_modify.call(this, delay, entries);
 			this.group.complete(delay);
 		};
@@ -3215,15 +3152,139 @@
 			var e = entries[0].data;
 			return {
 				method: "GET",
-				url: "http://" + e[0] + "/g/" + e[1].gid + "/" + e[1].token + "/",
+				url: "http://" + e[0] + "/g/" + e[1].gid + "/" + e[1].token + "/" + e[2],
 			};
 		};
 		rt_ehentai_gallery_full.parse_response = function (xhr, entries) {
-			var html = Helper.html_parse_safe(xhr.responseText, null);
+			var content_type = header_string_parse(xhr.responseHeaders)["content-type"],
+				e = entries[0].data,
+				data = e[1],
+				html;
+
+			if (!/^text\/html/i.test(content_type || "")) {
+				// Panda
+				if (this.retry_data === null && e[0] === domains.exhentai) {
+					// Retry
+					e[0] = domains.gehentai;
+					this.retry_data = { delay: this.delay_okay };
+					return null;
+				}
+				else {
+					return "Invalid response type " + content_type;
+				}
+			}
+
+			// Parse
+			html = Helper.html_parse_safe(xhr.responseText, null);
 			if (html !== null) {
-				return [ ehentai_parse_info(html, entries[0].data[1]) ];
+				if (ehentai_is_not_available(html)) {
+					if (this.retry_data === null && e[0] === domains.gehentai) {
+						// Retry
+						e[0] = domains.exhentai;
+						this.retry_data = { delay: this.delay_okay };
+						return null;
+					}
+					return [ ehentai_make_removed(data) ];
+				}
+				else if (ehentai_is_content_warning(html)) {
+					if (this.retry_data === null) {
+						// Retry
+						e[2] = "?nw=session"; // bypass the "Content Warning"
+						this.retry_data = { delay: this.delay_okay };
+						return null;
+					}
+					return [ ehentai_make_removed(data) ];
+				}
+				else {
+					return [ ehentai_parse_gallery_info(html, data) ];
+				}
 			}
 			return "Invalid response";
+		};
+		rt_ehentai_gallery_full.retry_fn = function (entries) {
+			var self = this;
+			setTimeout(function () {
+				self.run_entries(entries);
+			}, this.retry_data.delay);
+		};
+		var ehentai_is_not_available = function (html) {
+			var n;
+			return (
+				(n = $("title", html)) !== null &&
+				/^\s*Gallery\s+Not\s+Available/i.test(n.textContent) &&
+				$("#continue", html) !== null
+			);
+		};
+		var ehentai_is_content_warning = function (html) {
+			var n;
+			return (
+				(n = $("h1", html)) !== null &&
+				/^\s*Content\s+Warning/i.test(n.textContent)
+			);
+		};
+		var ehentai_parse_gallery_info = function (html, data) {
+			// Tags
+			var updated_tag_count = 0,
+				tags, tags_array, pattern, par, tds, namespace, ns, i, ii, j, jj, m, n, t;
+
+			tags = {};
+			tags_array = [];
+			pattern = /(.+):/;
+
+			data.removed = false;
+
+			par = $$("#taglist tr", html);
+			for (i = 0, ii = par.length; i < ii; ++i) {
+				// Class
+				tds = $$("td", par[i]);
+				jj = tds.length;
+				if (jj === 0) continue;
+
+				// Namespace
+				namespace = ((m = pattern.exec(tds[0].textContent)) ? m[1].trim() : "");
+				if (!(namespace in tags)) {
+					ns = [];
+					tags[namespace] = ns;
+				}
+				else {
+					ns = tags[namespace];
+				}
+
+				// Tags
+				tds = $$("div", tds[jj - 1]);
+				for (j = 0, jj = tds.length; j < jj; ++j) {
+					// Create tag
+					if ((n = $("a", tds[j])) !== null) {
+						// Add tag
+						t = n.textContent.trim();
+						ns.push(t);
+						tags_array.push(t);
+					}
+				}
+
+				// Remove if empty
+				if (ns.length === 0) {
+					delete tags[namespace];
+				}
+				else {
+					++updated_tag_count;
+				}
+			}
+
+			data.tags_ns = tags;
+			if (tags_array.length > 0) {
+				data.tags = tags_array;
+			}
+
+			// Done
+			data.full = true;
+			return data;
+		};
+		var ehentai_make_removed = function (data) {
+			data.removed = true;
+			data.tags_ns = {};
+			data.full = true;
+			return data;
 		};
 
 		rt_ehentai_lookup.error_mode = function () {
@@ -3325,7 +3386,7 @@
 			return rt_ehentai_gallery_page.add("" + gid, info, callback);
 		};
 		var get_ehentai_gallery_full = function (domain, data, callback) {
-			return rt_ehentai_gallery_full.add("" + data.gid, [ domain, data ], callback);
+			return rt_ehentai_gallery_full.add("" + data.gid, [ domain.toLowerCase(), data, "" ], callback);
 		};
 		var get_nhentai_gallery = function (gid, callback) {
 			return rt_nhentai_gallery.add("" + gid, [ gid ], callback);
