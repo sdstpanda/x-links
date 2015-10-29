@@ -424,6 +424,22 @@
 			}
 		};
 
+		var mouseenterleave_event_validate = function (parent) {
+			try {
+				for (; parent; parent = parent.parentNode) {
+					if (parent === this) return false;
+				}
+				return true;
+			}
+			catch (e) {}
+			return false;
+		};
+		Module.wrap_mouseenterleave_event = function (fn) {
+			return function (event) {
+				return mouseenterleave_event_validate.call(this, event.relatedTarget) ? fn.call(this, event) : undefined;
+			};
+		};
+
 		return Module;
 
 	})();
@@ -1192,7 +1208,7 @@
 			mouse_y: 0
 		};
 		var gallery_link_events = {
-			mouseover: function (event) {
+			mouseover: $.wrap_mouseenterleave_event(function (event) {
 				var full_id = Helper.get_id_from_node_full(this),
 					details = details_nodes[full_id],
 					domain, data, id;
@@ -1218,8 +1234,8 @@
 				gallery_link_events_data.mouse_y = event.clientY;
 
 				update_details_position(details, this, event.clientX, event.clientY);
-			},
-			mouseout: function () {
+			}),
+			mouseout: $.wrap_mouseenterleave_event(function () {
 				var full_id = Helper.get_id_from_node_full(this),
 					details = details_nodes[full_id],
 					domain, data, id;
@@ -1241,7 +1257,7 @@
 				details.classList.add("hl-details-hidden");
 
 				gallery_link_events_data.link = null;
-			},
+			}),
 			mousemove: function (event) {
 				var details = details_nodes[Helper.get_id_from_node_full(this)];
 
@@ -3385,6 +3401,11 @@
 			var info = [ gid, page_token, page ];
 			return rt_ehentai_gallery_page.add("" + gid, info, callback);
 		};
+		var get_ehentai_gallery_page_thumb = function (gid, page_token, page, callback) {
+			setTimeout(function () {
+				callback.call(null, "Not implemeneted", null);
+			}, 10);
+		};
 		var get_ehentai_gallery_full = function (domain, data, callback) {
 			return rt_ehentai_gallery_full.add("" + data.gid, [ domain.toLowerCase(), data, "" ], callback);
 		};
@@ -3539,6 +3560,7 @@
 			get_ehentai_gallery: get_ehentai_gallery,
 			get_ehentai_gallery_page: get_ehentai_gallery_page,
 			get_ehentai_gallery_full: get_ehentai_gallery_full,
+			get_ehentai_gallery_page_thumb: get_ehentai_gallery_page_thumb,
 			get_nhentai_gallery: get_nhentai_gallery,
 			get_hitomi_gallery: get_hitomi_gallery,
 			get_gallery: get_gallery,
@@ -3689,7 +3711,7 @@
 				link.click();
 			}, 1);
 		};
-		var on_sauce_mouseover = function () {
+		var on_sauce_mouseover = $.wrap_mouseenterleave_event(function () {
 			var results = Helper.get_exresults_from_exsauce(this),
 				hover, err;
 
@@ -3704,13 +3726,13 @@
 
 				hover.classList.remove("hl-exsauce-hover-hidden");
 			}
-		};
-		var on_sauce_mouseout = function () {
+		});
+		var on_sauce_mouseout = $.wrap_mouseenterleave_event(function () {
 			var hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id") || ""];
 			if (hover !== undefined) {
 				hover.classList.add("hl-exsauce-hover-hidden");
 			}
-		};
+		});
 		var on_sauce_mousemove = function (event) {
 			var hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id") || ""];
 
@@ -7178,7 +7200,7 @@
 			},
 			custom_links_input_delay_timer: null
 		};
-		var on_gallery_mouseover = function () {
+		var on_gallery_mouseover = $.wrap_mouseenterleave_event(function () {
 			$.off(this, "mouseover", on_gallery_mouseover);
 
 			var node = this,
@@ -7206,7 +7228,7 @@
 					}
 				});
 			}
-		};
+		});
 		var on_thumbnail_error = function () {
 			$.off(this, "error", on_thumbnail_error);
 
@@ -7762,7 +7784,7 @@
 				add_svg_icons(shortcut_icons);
 			}
 		};
-		var on_icon_mouseover = function () {
+		var on_icon_mouseover = $.wrap_mouseenterleave_event(function () {
 			var n = $("svg", this),
 				c;
 
@@ -7774,24 +7796,24 @@
 				}
 				n.style.fill = c;
 			}
-		};
-		var on_icon_mouseout = function () {
+		});
+		var on_icon_mouseout = $.wrap_mouseenterleave_event(function () {
 			var n = $("svg", this);
 			if (n !== null) {
 				n.style.fill = this.getAttribute("data-hl-color");
 			}
-		};
-		var on_menu_item_mouseover = function () {
+		});
+		var on_menu_item_mouseover = $.wrap_mouseenterleave_event(function () {
 			var entries = $$(".entry", this.parent),
 				i, ii;
 			for (i = 0, ii = entries.length; i < ii; ++i) {
 				entries[i].classList.remove("focused");
 			}
 			this.classList.add("focused");
-		};
-		var on_menu_item_mouseout = function () {
+		});
+		var on_menu_item_mouseout = $.wrap_mouseenterleave_event(function () {
 			this.classList.remove("focused");
-		};
+		});
 		var on_menu_item_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
