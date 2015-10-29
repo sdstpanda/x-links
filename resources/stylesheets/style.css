@@ -320,6 +320,7 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	display: table-cell;
 	height: 100%;
 	vertical-align: middle;
+	text-align: left;
 }
 .hl-actions-table-cell:first-of-type {
 	width: 0;

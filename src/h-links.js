@@ -692,19 +692,25 @@
 			"4chan": ".postContainer,.post.inlined,#quote-preview",
 			"foolz": "article:not(.backlink_container)",
 			"fuuka": ".content>div[id],.content>table",
-			"tinyboard": ".post"
+			"tinyboard": ".post",
+			"ipb": ".borderwrap",
+			"ipb_lofi": ".postwrapper"
 		};
 		var post_body_selector = {
 			"4chan": "blockquote",
 			"foolz": ".text",
 			"fuuka": "blockquote>p",
-			"tinyboard": ".body"
+			"tinyboard": ".body",
+			"ipb": ".postcolor",
+			"ipb_lofi": ".postcontent"
 		};
 		var body_links_selector = {
 			"4chan": "a:not(.quotelink)",
 			"foolz": "a:not(.backlink)",
 			"fuuka": "a:not(.backlink)",
-			"tinyboard": "a:not([onclick])"
+			"tinyboard": "a:not([onclick])",
+			"ipb": "a[target=_blank]",
+			"ipb_lofi": "a[target=_blank]"
 		};
 		var post_parent_find = {
 			"4chan": function (node) {
@@ -740,6 +746,18 @@
 					else if (node.classList.contains("thread")) {
 						return $(".post.op", node);
 					}
+				}
+				return null;
+			},
+			"ipb": function (node) {
+				while ((node = node.parentNode) !== null) {
+					if (node.classList.contains("borderwrap")) return node;
+				}
+				return null;
+			},
+			"ipb_lofi": function (node) {
+				while ((node = node.parentNode) !== null) {
+					if (node.classList.contains("postwrapper")) return node;
 				}
 				return null;
 			}
@@ -879,6 +897,12 @@
 				}
 
 				return results;
+			},
+			"ipb": function () {
+				return [];
+			},
+			"ipb_lofi": function () {
+				return [];
 			}
 		};
 		var belongs_to_default = function (node, post) {
@@ -894,7 +918,9 @@
 			},
 			"foolz": belongs_to_default,
 			"fuuka": belongs_to_default,
-			"tinyboard": belongs_to_default
+			"tinyboard": belongs_to_default,
+			"ipb": belongs_to_default,
+			"ipb_lofi": belongs_to_default
 		};
 		var create_image_meta_link_default = function (file_info, node) {
 			var par = file_info.options;
@@ -940,7 +966,9 @@
 				$.before(par, next, node);
 				$.before(par, next, $.tnode("]"));
 			},
-			"tinyboard": create_image_meta_link_default
+			"tinyboard": create_image_meta_link_default,
+			"ipb": create_image_meta_link_default,
+			"ipb_lofi": create_image_meta_link_default
 		};
 
 		// Exports
@@ -5253,6 +5281,18 @@
 				}
 				Module.linkify = false;
 			}
+			else if (domain === "e-hentai.org") {
+				if ($("#ipbwrapper") === null) {
+					Module.mode = "ipb";
+					Module.is_ipb = true;
+				}
+				else {
+					Module.mode = "ipb_lofi";
+					Module.is_ipb_lofi = true;
+				}
+				Module.linkify = false;
+				Module.dynamic = false;
+			}
 			else { // assume tinyboard
 				Module.mode = "tinyboard";
 				Module.is_tinyboard = true;
@@ -5281,13 +5321,16 @@
 
 		// Exports
 		var Module = {
-			mode: "4chan", // foolz, fuuka, tinyboard
+			mode: "4chan", // foolz, fuuka, tinyboard, ipb, ipb_lofi
 			is_4chan: false,
 			is_4chan_x3: false,
 			is_foolz: false,
 			is_fuuka: false,
 			is_tinyboard: false,
+			is_ipb: false,
+			is_ipb_lofi: false,
 			linkify: true,
+			dynamic: true,
 			storage: storage,
 			init: init,
 			ready: ready,
@@ -5997,7 +6040,7 @@
 
 		// Private
 		var current = "light",
-			post_bg = "transparent";
+			post_bg = "#ffffff";
 
 		var to_hex2 = function (n) {
 			n = n.toString(16);
@@ -6014,7 +6057,15 @@
 				return null;
 			}
 
-			n.className = "post reply post_wrapper";
+			if (Config.is_ipb) {
+				n.className = "post2";
+			}
+			else if (Config.is_ipb_lofi) {
+				n.className = "posttopbar";
+			}
+			else {
+				n.className = "post reply post_wrapper";
+			}
 			$.add(body, n);
 
 			color = parse_css_color(get_computed_style(doc_el).backgroundColor);
@@ -7770,24 +7821,24 @@
 			OuterSpace: 0x10,
 			Brackets: 0x20,
 			Mobile: 0x40,
-			LowerCase: 0x80,
+			LowerCase: 0x80
 		};
 
 		// Public
 		var insert_link = function (mode, text, url, class_name, on_click) {
 			var locations = [],
 				first_mobile = true,
-				container, flags, nodes, node, par, pre, next, cl, i, ii, n1, t;
+				container, flags, nodes, node, par, pre, next, sep, cl, i, ii, n1, t, t2, t_opt;
 
 			if (Config.is_4chan) {
 				if (mode === "main") {
 					nodes = $$("#navtopright,#navbotright");
 					for (i = 0, ii = nodes.length; i < ii; ++i) {
-						locations.push(nodes[i], Flags.OuterSpace | Flags.Brackets | Flags.Prepend);
+						locations.push(nodes[i], Flags.OuterSpace | Flags.Brackets | Flags.Prepend, null);
 					}
 					nodes = $$("#settingsWindowLinkMobile");
 					for (i = 0, ii = nodes.length; i < ii; ++i) {
-						locations.push(nodes[i], Flags.Before);
+						locations.push(nodes[i], Flags.Before, null);
 					}
 				}
 				else {
@@ -7800,13 +7851,11 @@
 						nodes = $$("#ctrl-top,.navLinks");
 						for (i = 0, ii = nodes.length; i < ii; ++i) {
 							node = nodes[i];
-							locations.push(node);
-							if (node.classList.contains("mobile")) {
-								locations.push(Flags.Mobile);
-							}
-							else {
-								locations.push(Flags.OuterSpace | Flags.Brackets);
-							}
+							locations.push(
+								node,
+								(node.classList.contains("mobile") ? Flags.Mobile : (Flags.OuterSpace | Flags.Brackets)),
+								null
+							);
 						}
 					}
 				}
@@ -7814,25 +7863,38 @@
 			else if (Config.is_foolz) {
 				nodes = $$(".letters");
 				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					locations.push(nodes[i], Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets);
+					locations.push(nodes[i], Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets, null);
 				}
 			}
 			else if (Config.is_fuuka) {
 				node = $("body>div:first-child");
 				if (node !== null) {
-					locations.push(node, Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets);
+					locations.push(node, Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets, null);
 				}
 			}
 			else if (Config.is_tinyboard) {
 				nodes = $$(".boardlist");
 				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					locations.push(nodes[i], Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets | Flags.LowerCase);
+					locations.push(nodes[i], Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets | Flags.LowerCase, null);
+				}
+			}
+			else if (Config.is_ipb) {
+				node = $("#livechat");
+				if (node !== null) {
+					locations.push(node, Flags.Prepend | Flags.OuterSpace, null);
+				}
+			}
+			else if (Config.is_ipb_lofi) {
+				node = $(".ipbnavsmall");
+				if (node !== null) {
+					locations.push(node, Flags.Prepend | Flags.OuterSpace, "-");
 				}
 			}
 
-			for (i = 0, ii = locations.length; i < ii; i += 2) {
+			for (i = 0, ii = locations.length; i < ii; i += 3) {
 				node = locations[i];
 				flags = locations[i + 1];
+				sep = locations[i + 2];
 
 				// Text
 				t = text;
@@ -7888,20 +7950,43 @@
 				// Brackets
 				if ((flags & Flags.Brackets) !== 0) {
 					t = ((flags & Flags.OuterSpace) !== 0) ? "] " : "]";
-					if (next !== null && next.nodeType === Node.TEXT_NODE) {
-						next.nodeValue = t + next.nodeValue.replace(/^\s*\[/, "[");
+					t2 = ((flags & Flags.OuterSpace) !== 0) ? " [" : "[";
+					t_opt = false;
+				}
+				else if ((flags & Flags.OuterSpace) !== 0) {
+					t = " ";
+					t2 = " ";
+					t_opt = true;
+				}
+				else {
+					t = null;
+				}
+				if (t !== null) {
+					if (next !== null) {
+						if (sep !== null) t = ((flags & Flags.OuterSpace) !== 0 ? " " : "") + sep + t;
+						if (next.nodeType === Node.TEXT_NODE) {
+							next.nodeValue = t + next.nodeValue.replace(/^\s*/, "");
+						}
+						else {
+							$.after(par, n1, $.tnode(t));
+						}
 					}
-					else {
+					else if (!t_opt) {
 						$.after(par, n1, $.tnode(t));
 					}
 
 					pre = n1.previousSibling;
-					t = ((flags & Flags.OuterSpace) !== 0) ? " [" : "[";
-					if (pre !== null && pre.nodeType === Node.TEXT_NODE) {
-						pre.nodeValue = pre.nodeValue.replace(/\]\s*$/, "]") + t;
+					if (pre !== null) {
+						if (sep !== null) t += sep + ((flags & Flags.OuterSpace) !== 0 ? " " : "");
+						if (pre.nodeType === Node.TEXT_NODE) {
+							pre.nodeValue = pre.nodeValue.replace(/\s*$/, "") + t2;
+						}
+						else {
+							$.before(par, n1, $.tnode(t2));
+						}
 					}
-					else {
-						$.before(par, n1, $.tnode(t));
+					else if (!t_opt) {
+						$.before(par, n1, $.tnode(t2));
 					}
 				}
 			}
@@ -7945,13 +8030,15 @@
 
 			Linkifier.queue_posts(Post.get_all_posts(d), Linkifier.queue_posts.Flags.UseDelay);
 
-			if (MutationObserver !== null) {
-				updater = new MutationObserver(on_body_observe);
-				updater.observe(d.body, { childList: true, subtree: true });
-			}
-			else {
-				$.on(d.body, "DOMNodeInserted", on_body_node_add);
-				$.on(d.body, "DOMNodeRemoved", on_body_node_remove);
+			if (Config.dynamic) {
+				if (MutationObserver !== null) {
+					updater = new MutationObserver(on_body_observe);
+					updater.observe(d.body, { childList: true, subtree: true });
+				}
+				else {
+					$.on(d.body, "DOMNodeInserted", on_body_node_add);
+					$.on(d.body, "DOMNodeRemoved", on_body_node_remove);
+				}
 			}
 
 			HeaderBar.ready();
