@@ -1,5 +1,9 @@
 ﻿master
 
+1.1.1
+- dnsev-h
+  + Added support for the e-hentai forums
+
 1.1.0.2
 - dnsev-h
   + Fixed a bug causing certain e*hentai page URLs to return errors

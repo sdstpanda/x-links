@@ -2,7 +2,7 @@
 // @name        H-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.1.0.1
+// @version     1.1.1
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -13,6 +13,8 @@
 // @include     http://fgts.jp/*
 // @include     https://fgts.jp/*
 // @include     http://boards.38chan.net/*
+// @include     http://forums.e-hentai.org/*
+// @include     https://forums.e-hentai.org/*
 // @homepage    https://dnsev-h.github.io/h-links/
 // @supportURL  https://github.com/dnsev-h/h-links/issues
 // @updateURL   https://raw.githubusercontent.com/dnsev-h/h-links/stable/builds/h-links.meta.js
