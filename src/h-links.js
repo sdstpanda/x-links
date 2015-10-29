@@ -2846,6 +2846,8 @@
 			this.set_data = null;
 			this.setup_xhr = null;
 			this.parse_response = null;
+			this.retry_fn = null;
+			this.retry_fn_data = null;
 		};
 		var RequestData = function (id, data, callback, progress_callback) {
 			this.id = id;
@@ -2941,8 +2943,11 @@
 			return false;
 		};
 		RequestType.prototype.run = function () {
+			var entries = this.queue.splice(0, this.count);
+			this.run_entries(entries);
+		};
+		RequestType.prototype.run_entries = function (entries) {
 			var self = this,
-				entries = this.queue.splice(0, this.count),
 				progress_callbacks = RequestType.get_all_progress_callbacks(entries),
 				xhr_data, i, ii;
 
@@ -2952,6 +2957,16 @@
 				if (xhr.status === 200) {
 					var response = self.parse_response.call(self, xhr, entries);
 
+					if (response === null) {
+						if (self.retry_fn !== null) {
+							response = self.retry_fn.call(self, entries);
+							if (typeof(response) !== "string") return; // Retrying
+						}
+						else {
+							// Error
+							response = "Null response";
+						}
+					}
 					if (typeof(response) === "string") {
 						// Error
 						self.process_response_error(entries, response);
