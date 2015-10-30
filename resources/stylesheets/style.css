@@ -388,6 +388,7 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 }
 .hl-details-page-thumbnail {
 	display: none;
+	visibility: hidden;
 	position: absolute;
 	left: 0;
 	top: 0;
@@ -407,6 +408,9 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	-moz-backface-visibility: hidden;
 	-webkit-backface-visibility: hidden;
 	overflow: hidden;
+	transition: transform 0.25s ease-out 0s, opacity 0.25s ease-out 0s;
+	-moz-transition: -moz-transform 0.25s ease-out 0s, opacity 0.25s ease-out 0s;
+	-webkit-transition: -webkit-transform 0.25s ease-out 0s, opacity 0.25s ease-out 0s;
 }
 .hl-details-page-thumbnail-size {
 	position: absolute;
@@ -436,8 +440,18 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	-moz-transform-style: preserve-3d;
 	-webkit-transform-style: preserve-3d;
 }
-.hl-details.hl-details-has-thumbnail.hl-details-has-thumbnail-visible>.hl-details-thumbnail>.hl-details-page-thumbnail {
+.hl-details.hl-details-has-thumbnail>.hl-details-thumbnail>.hl-details-page-thumbnail {
 	display: block;
+}
+.hl-details.hl-details-has-thumbnail.hl-details-has-thumbnail-visible>.hl-details-thumbnail>.hl-details-page-thumbnail {
+	visibility: visible;
+	opacity: 1;
+}
+.hl-details.hl-details-has-thumbnail:not(.hl-details-has-thumbnail-visible)>.hl-details-thumbnail>.hl-details-page-thumbnail {
+	transform: none;
+	-moz-transform: none;
+	-webkit-transform: none;
+	opacity: 0;
 }
 
 .hl-details-side-panel {
