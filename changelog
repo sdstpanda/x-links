@@ -1,5 +1,13 @@
 ﻿master
 
+1.1.2
+- dnsev-h
+  + Fixed a bug that could cause styles to not update properly
+  + Added ability to fall back to g.e-hentai.org when sad panda is encountered
+  + Added ability to check exhentai.org when g.e-hentai.org links fail
+  + Added ability to bypass content warnings on g.e-hentai.org
+  + Added page thumbnail display for links to a page of a gallery
+
 1.1.1
 - dnsev-h
   + Added support for the e-hentai forums
