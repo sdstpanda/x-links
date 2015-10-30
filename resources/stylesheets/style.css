@@ -388,13 +388,14 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 }
 .hl-details-page-thumbnail {
 	display: none;
+	position: absolute;
+	left: 0;
+	top: 0;
 	width: 100%;
 	height: 100%;
-	-box-shadow: 0 0 1em 0 red;
 	background-color: #ffffff;
-	background-repeat: no-repeat;
-	background-size: contain;
-	background-position: center center;
+	text-align: center;
+	white-space: nowrap;
 
 	transform-origin: 100% 50%;
 	-moz-transform-origin: 100% 50%;
@@ -405,6 +406,20 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	backface-visibility: hidden;
 	-moz-backface-visibility: hidden;
 	-webkit-backface-visibility: hidden;
+	overflow: hidden;
+}
+.hl-details-page-thumbnail-size {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	transform-origin: 50% 50%;
+}
+.hl-details-page-thumbnail-image {
+	width: 100%;
+	height: 100%;
+	background-repeat: no-repeat;
+	background-size: contain;
+	background-position: center center;
 }
 
 .hl-details.hl-details-has-thumbnail>.hl-details-thumbnail {
