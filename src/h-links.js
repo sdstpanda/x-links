@@ -2151,34 +2151,27 @@
 
 
 		// Databasing
-		var saved_gallery_data = {
-			ehentai: {},
-			nhentai: {},
-			hitomi: {}
-		};
+		var saved_gallery_data = {};
 		var saved_gallery_thumbnails = {};
 
-		var saved_gallery_namespace_exists = function (namespace) {
-			return (namespace in saved_gallery_data);
-		};
 		var get_saved_gallery = function (namespace, gid) {
-			var db = saved_gallery_data[namespace],
-				data = db[gid];
+			var id_full = namespace + "-" + gid,
+				data = saved_gallery_data[gid];
 
 			if (data !== undefined) return data;
 
 			data = cache_get(namespace + "_gallery-" + gid);
 			if (data !== null) {
-				db[data.gid] = data;
+				saved_gallery_data[id_full] = data;
 				return data;
 			}
 
 			return null;
 		};
 		var set_saved_gallery = function (data) {
-			var namespace = data.type;
-			saved_gallery_data[namespace][data.gid] = data;
-			cache_set(namespace + "_gallery-" + data.gid, data, ttl_1_hour * (data.upload_date >= Date.now() - ttl_1_day ? 1 : 12));
+			var id_full = data.type + "-" + data.gid;
+			saved_gallery_data[id_full] = data;
+			cache_set(data.type + "_gallery-" + data.gid, data, ttl_1_hour * (data.upload_date >= Date.now() - ttl_1_day ? 1 : 12));
 		};
 		var set_saved_error = function (id_list, error, cache) {
 			var id = id_list.join("-");
@@ -2199,13 +2192,14 @@
 		};
 		var get_saved_gallery_thumbnail = function (namespace, gid, page) {
 			var id = gid + "-" + page,
-				data = saved_gallery_thumbnails[id];
+				id_full = namespace + "-" + id,
+				data = saved_gallery_thumbnails[id_full];
 
 			if (data !== undefined) return data;
 
 			data = cache_get(namespace + "_gallery_thumb-" + id);
 			if (data !== null) {
-				saved_gallery_thumbnails[id] = data;
+				saved_gallery_thumbnails[id_full] = data;
 				return data;
 			}
 
@@ -2213,7 +2207,7 @@
 		};
 		var set_saved_gallery_thumbnail = function (namespace, gid, page, data) {
 			var id = gid + "-" + page;
-			saved_gallery_data[namespace][id] = data;
+			saved_gallery_thumbnails[namespace + "-" + id] = data;
 			cache_set(namespace + "_gallery_thumb-" + id, data, ttl_1_hour * 6);
 		};
 
@@ -3595,10 +3589,7 @@
 		};
 
 		var get_gallery = function (site, gid) {
-			if (saved_gallery_namespace_exists(site)) {
-				return get_saved_gallery(site, gid);
-			}
-			return null;
+			return get_saved_gallery(site, gid);
 		};
 		var get_gallery_from_link_info = function (link_info, callback) {
 			if (link_info.site === "ehentai") {
