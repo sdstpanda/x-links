@@ -6377,7 +6377,7 @@
 			return false;
 		};
 		var update_nodes = function (new_theme) {
-			var nodes = $$("hl-theme"),
+			var nodes = $$(".hl-theme"),
 				ii = nodes.length,
 				cls, i;
 			if (new_theme === "light") {
@@ -6394,7 +6394,7 @@
 			}
 		};
 		var update_nodes_bg = function () {
-			var nodes = $$("hl-theme-post-bg"),
+			var nodes = $$(".hl-theme-post-bg"),
 				i, ii;
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				nodes[i].style.backgroundColor = post_bg;
