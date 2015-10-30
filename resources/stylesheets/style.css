@@ -386,6 +386,44 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 .hl-details-thumbnail.hl-theme-dark {
 	background-color: rgba(255,255,255,0.03125);
 }
+.hl-details-page-thumbnail {
+	display: none;
+	width: 100%;
+	height: 100%;
+	-box-shadow: 0 0 1em 0 red;
+	background-color: #ffffff;
+	background-repeat: no-repeat;
+	background-size: contain;
+	background-position: center center;
+
+	transform-origin: 100% 50%;
+	-moz-transform-origin: 100% 50%;
+	-webkit-transform-origin: 100% 50%;
+	transform: rotateY(35deg) translate(1em,0);
+	-moz-transform: rotateY(35deg) translate(1em,0);
+	-webkit-transform: rotateY(35deg) translate(1em,0);
+	backface-visibility: hidden;
+	-moz-backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+}
+
+.hl-details.hl-details-has-thumbnail>.hl-details-thumbnail {
+	margin-right: 1em;
+}
+.hl-details.hl-details-has-thumbnail.hl-details-has-thumbnail-visible>.hl-details-thumbnail {
+	perspective: 500px;
+	-moz-perspective: 500px;
+	-webkit-perspective: 500px;
+	perspective-origin: 100% 50%;
+	-moz-perspective-origin: 100% 50%;
+	-webkit-perspective-origin: 100% 50%;
+	transform-style: preserve-3d;
+	-moz-transform-style: preserve-3d;
+	-webkit-transform-style: preserve-3d;
+}
+.hl-details.hl-details-has-thumbnail.hl-details-has-thumbnail-visible>.hl-details-thumbnail>.hl-details-page-thumbnail {
+	display: block;
+}
 
 .hl-details-side-panel {
 	float: right;
