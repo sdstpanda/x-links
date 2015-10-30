@@ -1245,10 +1245,11 @@
 					details.classList.add("hl-details-has-thumbnail");
 					API.get_ehentai_gallery_page_thumb(info.domain, data.gid, data.token, info.page_token, info.page, function (err, thumb_data) {
 						if (node === gallery_link_events_data.link && err === null) {
-							var n1, n2;
+							var n0, n1, n2;
 							if (
-								(n1 = $(".hl-details-page-thumbnail-size", details)) !== null &&
-								(n2 = $(".hl-details-page-thumbnail-image", details)) !== null
+								(n0 = $(".hl-details-page-thumbnail", details)) !== null &&
+								(n1 = $(".hl-details-page-thumbnail-size", n0)) !== null &&
+								(n2 = $(".hl-details-page-thumbnail-image", n1)) !== null
 							) {
 								n2.style.backgroundImage = "url('" + thumb_data.url + "')";
 
@@ -1280,9 +1281,7 @@
 
 								// Animate
 								if (thumb_state === 1) {
-									if ((n1 = $(".hl-details-page-thumbnail", details)) !== null) {
-										Theme.get_computed_style(n1).getPropertyValue("transform");
-									}
+									Theme.get_computed_style(n0).getPropertyValue("transform");
 								}
 								details.classList.add("hl-details-has-thumbnail-visible");
 							}
