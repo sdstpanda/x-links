@@ -3318,7 +3318,7 @@
 		};
 		rt_ehentai_gallery_full.parse_response = function (xhr, entries) {
 			var e = entries[0].data;
-			return ehentai_response_process_generic.call(this, xhr, e, function (err, html) {
+			return ehentai_response_process_generic.call(this, xhr, e, this.delay_okay, function (err, html) {
 				return [ err === null ? ehentai_parse_gallery_info(html, e.data) : ehentai_make_removed(e.data) ];
 			});
 		};
@@ -3331,7 +3331,7 @@
 				this.run_entries(entries);
 			}
 		};
-		var ehentai_response_process_generic = function (xhr, e, callback) {
+		var ehentai_response_process_generic = function (xhr, e, retry_delay, callback) {
 			var content_type = header_string_parse(xhr.responseHeaders)["content-type"],
 				html;
 
@@ -3340,7 +3340,7 @@
 				if (this.retry_data === null && e.domain === domains.exhentai) {
 					// Retry
 					e.domain = domains.gehentai;
-					this.retry_data = { delay: this.delay_okay, count: 1};
+					this.retry_data = { delay: retry_delay, count: 1};
 					return null;
 				}
 				else {
@@ -3357,7 +3357,7 @@
 				if (this.retry_data === null && e.domain === domains.gehentai) {
 					// Retry
 					e.domain = domains.exhentai;
-					this.retry_data = { delay: this.delay_okay, count: 1 };
+					this.retry_data = { delay: retry_delay, count: 1 };
 					return null;
 				}
 				return callback.call(this, "Not available", null);
@@ -3366,7 +3366,7 @@
 				if (this.retry_data === null) {
 					// Retry
 					e.search = "?nw=session"; // bypass the "Content Warning"
-					this.retry_data = { delay: this.delay_okay, count: 1 };
+					this.retry_data = { delay: retry_delay, count: 1 };
 					return null;
 				}
 				return callback.call(this, "Content warning", null);
@@ -3382,8 +3382,9 @@
 		};
 		rt_ehentai_gallery_page_thumb.setup_xhr = rt_ehentai_gallery_full.setup_xhr;
 		rt_ehentai_gallery_page_thumb.parse_response = function (xhr, entries) {
-			var e = entries[0].data;
-			return ehentai_response_process_generic.call(this, xhr, e, function (err, html) {
+			var e = entries[0].data,
+				retry_delay = 0; // this.delay_okay
+			return ehentai_response_process_generic.call(this, xhr, e, retry_delay, function (err, html) {
 				if (err !== null) return err;
 
 				var n1 = $(".gtb>.gpc", html),
@@ -3455,7 +3456,7 @@
 							if (this.retry_data === null || this.retry_data.count <= 1) {
 								// Next
 								e.search = "?p=" + Math.floor((e.page) / (end - (start - 1)));
-								this.retry_data = { delay: this.delay_okay, count: 2 };
+								this.retry_data = { delay: retry_delay, count: 2 };
 								return null;
 							}
 						}
