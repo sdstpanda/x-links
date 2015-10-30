@@ -1,5 +1,10 @@
 ﻿master
 
+1.1.2.1
+- dnsev-h
+  + Added an animation to the gallery page thumbnail to make it appear more smoothly the first time
+  + Lowered the delay used to fetch thumbnails
+
 1.1.2
 - dnsev-h
   + Fixed a bug that could cause styles to not update properly
