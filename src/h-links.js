@@ -1244,47 +1244,51 @@
 					thumb_state = 0;
 					details.classList.add("hl-details-has-thumbnail");
 					API.get_ehentai_gallery_page_thumb(info.domain, data.gid, data.token, info.page_token, info.page, function (err, thumb_data) {
-						if (node === gallery_link_events_data.link && err === null) {
-							var n0, n1, n2;
-							if (
-								(n0 = $(".hl-details-page-thumbnail", details)) !== null &&
-								(n1 = $(".hl-details-page-thumbnail-size", n0)) !== null &&
-								(n2 = $(".hl-details-page-thumbnail-image", n1)) !== null
-							) {
-								n2.style.backgroundImage = "url('" + thumb_data.url + "')";
+						if (err === null) {
+							API.get_thumbnail(thumb_data.url, thumb_data.flags, function (err, thumb_url) {
+								if (err === null && node === gallery_link_events_data.link) {
+									var n0, n1, n2;
+									if (
+										(n0 = $(".hl-details-page-thumbnail", details)) !== null &&
+										(n1 = $(".hl-details-page-thumbnail-size", n0)) !== null &&
+										(n2 = $(".hl-details-page-thumbnail-image", n1)) !== null
+									) {
+										n2.style.backgroundImage = "url('" + thumb_url + "')";
 
-								if (thumb_data.width > 0 && thumb_data.height > 0) {
-									// Small thumbnail
-									var max_width = 140,
-										max_height = 200,
-										max_ratio = max_height / max_width,
-										scale = (thumb_data.height / thumb_data.width > max_ratio) ? max_height / thumb_data.height : max_width / thumb_data.width;
+										if (thumb_data.width > 0 && thumb_data.height > 0) {
+											// Small thumbnail
+											var max_width = 140,
+												max_height = 200,
+												max_ratio = max_height / max_width,
+												scale = (thumb_data.height / thumb_data.width > max_ratio) ? max_height / thumb_data.height : max_width / thumb_data.width;
 
-									n1.style.transform = "translate(-50%,-50%) scale(" + scale + ")";
-									n1.style.left = "50%";
-									n1.style.top = "50%";
-									n1.style.width = thumb_data.width + "px";
-									n1.style.height = thumb_data.height + "px";
-									n2.style.backgroundSize = "auto";
-									n2.style.backgroundPosition = (-thumb_data.left) + "px " + (-thumb_data.top) + "px";
-								}
-								else {
-									// Large thumbnail
-									n1.style.transform = "";
-									n1.style.left = "";
-									n1.style.top = "";
-									n1.style.width = "";
-									n1.style.height = "";
-									n2.style.backgroundSize = "";
-									n2.style.backgroundPosition = "";
-								}
+											n1.style.transform = "translate(-50%,-50%) scale(" + scale + ")";
+											n1.style.left = "50%";
+											n1.style.top = "50%";
+											n1.style.width = thumb_data.width + "px";
+											n1.style.height = thumb_data.height + "px";
+											n2.style.backgroundSize = "auto";
+											n2.style.backgroundPosition = (-thumb_data.left) + "px " + (-thumb_data.top) + "px";
+										}
+										else {
+											// Large thumbnail
+											n1.style.transform = "";
+											n1.style.left = "";
+											n1.style.top = "";
+											n1.style.width = "";
+											n1.style.height = "";
+											n2.style.backgroundSize = "";
+											n2.style.backgroundPosition = "";
+										}
 
-								// Animate
-								if (thumb_state === 1) {
-									Theme.get_computed_style(n0).getPropertyValue("transform");
+										// Animate
+										if (thumb_state === 1) {
+											Theme.get_computed_style(n0).getPropertyValue("transform");
+										}
+										details.classList.add("hl-details-has-thumbnail-visible");
+									}
 								}
-								details.classList.add("hl-details-has-thumbnail-visible");
-							}
+							});
 						}
 					});
 					if (thumb_state === 0) ++thumb_state;
@@ -1404,7 +1408,7 @@
 			$.add(n1, n2 = $.node("div", "hl-details-page-thumbnail hl-hover-shadow" + theme));
 			$.add(n2, n3 = $.node("div", "hl-details-page-thumbnail-size" + theme));
 			$.add(n3, $.node("div", "hl-details-page-thumbnail-image" + theme));
-			API.get_thumbnail(data, $.bind(function (err, url) {
+			API.get_thumbnail(data.thumbnail, data.flags, $.bind(function (err, url) {
 				if (err === null) {
 					this.style.backgroundImage = "url('" + url + "')";
 				}
@@ -2262,11 +2266,6 @@
 		// Private
 		var temp_div = $.node_simple("div"),
 			re_protocol = /^https?\:/i,
-			saved_thumbnails = {
-				ehentai: {},
-				nhentai: {},
-				hitomi: {}
-			},
 			nhentai_tag_namespaces = {
 				parodies: "parody",
 				characters: "character",
@@ -3427,7 +3426,8 @@
 													left: parseInt(m[0][2], 10),
 													top: 0,
 													width: parseInt(m[1][1], 10),
-													height: parseInt(m[2][1], 10)
+													height: parseInt(m[2][1], 10),
+													flags: Flags.None
 												} ];
 											}
 										}
@@ -3443,7 +3443,8 @@
 												left: 0,
 												top: 0,
 												width: -1,
-												height: -1
+												height: -1,
+												flags: Flags.None
 											} ];
 										}
 									}
@@ -3634,41 +3635,34 @@
 			return false;
 		};
 
-		var get_thumbnail = function (data, callback) {
-			var thumbnail = data.thumbnail,
-				url, cache, gid;
+		var saved_thumbnails = {};
+		var get_thumbnail = function (thumbnail_url, flags, callback) {
+			var url;
 
-			if (thumbnail === null) {
+			if (thumbnail_url === null) {
 				callback.call(null, "No thumbnail", null);
 			}
 
 			// Use direct URL
-			if ((data.flags & API.Flags.ThumbnailNoLeech) === 0 && !config.general.image_leeching_disabled)  {
-				callback.call(null, null, thumbnail);
+			if ((flags & Flags.ThumbnailNoLeech) === 0 && !config.general.image_leeching_disabled)  {
+				callback.call(null, null, thumbnail_url);
 				return;
 			}
 
 			// Cached
-			cache = saved_thumbnails[data.type];
-			if (cache === undefined) {
-				callback.call(null, "Malformed data", null);
-				return;
-			}
-
-			gid = data.gid;
-			url = cache[gid];
+			url = saved_thumbnails[thumbnail_url];
 			if (url !== undefined) {
 				callback.call(null, null, url);
 				return;
 			}
 
 			// Fetch
-			get_image(thumbnail, function (err, data, data_length, mime_type) {
+			get_image(thumbnail_url, function (err, data, data_length, mime_type) {
 				if (err === null) {
 					var img_url = uint8_array_to_url(data.subarray(0, data_length), mime_type);
 
 					if (img_url !== null) {
-						cache[gid] = img_url;
+						saved_thumbnails[thumbnail_url] = img_url;
 						callback.call(null, null, img_url);
 					}
 					else {
@@ -6814,7 +6808,7 @@
 				$.on(n7, "error", on_thumbnail_error);
 				n7.alt = "";
 
-				API.get_thumbnail(data, $.bind(function (err, url) {
+				API.get_thumbnail(data.thumbnail, data.flags, $.bind(function (err, url) {
 					if (err === null) {
 						this.src = url;
 					}
