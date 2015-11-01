@@ -2354,7 +2354,6 @@
 
 		// Private
 		var temp_div = $.node_simple("div"),
-			re_protocol = /^https?\:/i,
 			nhentai_tag_namespaces = {
 				parodies: "parody",
 				characters: "character",
