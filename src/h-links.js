@@ -535,7 +535,7 @@
 		};
 		var get_url_info = function (url) {
 			var match = /^(https?):\/*((?:[\w-]+\.)*)([\w-]+\.[\w]+)((?:[\/\?\#][\w\W]*)?)/.exec(url),
-				domain, remaining, m;
+				domain, remaining, m, data;
 
 			if (match === null) return null;
 
@@ -567,25 +567,29 @@
 				}
 			}
 			else if (domain === domains.nhentai) {
-				m = /^\/g\/(\d+)/.exec(remaining);
+				m = /^\/g\/(\d+)(?:\/(\d+))/.exec(remaining);
 				if (m !== null) {
-					return {
+					data = {
 						site: "nhentai",
 						type: "gallery",
 						gid: parseInt(m[1], 10),
 						domain: domain
 					};
+					if (m[2] !== undefined) data.page = parseInt(m[2], 10);
+					return data;
 				}
 			}
 			else if (domain === domains.hitomi) {
-				m = /^\/(?:galleries|reader|smalltn)\/(\d+)/.exec(remaining);
+				m = /^\/(galleries|reader|smalltn)\/(\d+)(?:\.html#(\d+))?/.exec(remaining);
 				if (m !== null) {
-					return {
+					data = {
 						site: "hitomi",
 						type: "gallery",
-						gid: parseInt(m[1], 10),
+						gid: parseInt(m[2], 10),
 						domain: domain
 					};
+					if (m[1] === "reader" && m[3] !== undefined) data.page = parseInt(m[3], 10);
+					return data;
 				}
 			}
 
@@ -4184,7 +4188,8 @@
 		var re_url = /(?:https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)\/[^<>\s\'\"]*/ig,
 			re_url_class_ignore = /(?:\binlined?\b|\bhl-)/,
 			re_fjord = /abortion|bestiality|incest|lolicon|shotacon|toddlercon/,
-			re_protocol = /^https?\:/i;
+			re_protocol = /^https?\:/i,
+			re_deferrer = /^(?:https?:)?\/\/sys\.4chan\.org\/derefer\?url=([\w\W]*)$/i;
 
 		// Linkification
 		var deep_dom_wrap = (function () {
@@ -4656,7 +4661,9 @@
 		var queue_posts = function (posts, flags) {
 			if ((flags & queue_posts.Flags.Flush) !== 0) {
 				// Flush
-				parse_posts(post_queue.posts);
+				if ((flags & queue_posts.Flags.FlushNoParse) === 0) {
+					parse_posts(post_queue.posts);
+				}
 				post_queue.posts = [];
 
 				// Clear timer
@@ -4684,6 +4691,7 @@
 			None: 0x0,
 			UseDelay: 0x1,
 			Flush: 0x2,
+			FlushNoParse: 0x4
 		};
 		var dequeue_posts = function () {
 			var posts = post_queue.posts.splice(0, post_queue.group_size);
@@ -4723,7 +4731,7 @@
 		};
 		var parse_post = function (post) {
 			var auto_load_links = config.general.automatic_processing,
-				post_body, post_links, links, link, i, ii;
+				post_body, post_links, links, link, url, i, ii;
 
 			// Exsauce
 			if (config.sauce.enabled && !browser.is_opera) {
@@ -4733,9 +4741,12 @@
 			if ((post_body = Post.get_text_body(post)) !== null) {
 				// Content
 				re_url.lastIndex = 0;
-				if (!Config.linkify || re_url.test(post_body.innerHTML)) {
+				if (
+					!Config.linkify ||
+					(post_links = Post.get_body_links(post_body)).length > 0 ||
+					re_url.test(post_body.innerHTML)
+				) {
 					links = [];
-					post_links = Post.get_body_links(post_body);
 					for (i = 0, ii = post_links.length; i < ii; ++i) {
 						link = post_links[i];
 						if (link.classList.contains("hl-site-tag")) {
@@ -4743,11 +4754,16 @@
 						}
 						else {
 							re_url.lastIndex = 0;
-							if (re_url.test(link.href)) {
+							url = link.href;
+							if (link.classList.contains("linkified") && re_deferrer.test(url)) {
+								url = link.textContent.trim();
+							}
+							if (re_url.test(url)) {
 								link.classList.add("hl-linkified");
 								link.classList.add("hl-linkified-gallery");
 								link.target = "_blank";
 								link.rel = "noreferrer";
+								link.href = url;
 								link.setAttribute("data-hl-linkified-status", "unprocessed");
 								links.push(link);
 							}
@@ -4896,11 +4912,14 @@
 
 		// Fixing
 		var relinkify_posts = function (posts) {
-			var post, links, i, ii, j, jj;
+			var cls = "hl-post-linkified",
+				post, links, i, ii, j, jj;
 
 			for (i = 0, ii = posts.length; i < ii; ++i) {
 				post = posts[i];
-				post.classList.remove("hl-post-linkified");
+				if (!post.classList.contains(cls)) continue;
+
+				post.classList.remove(cls);
 
 				links = $$(".hl-site-tag", post);
 				for (j = 0, jj = links.length; j < jj; ++j) {
@@ -4913,7 +4932,7 @@
 				}
 			}
 
-			queue_posts(posts, queue_posts.Flags.Flush | queue_posts.Flags.UseDelay);
+			queue_posts(posts, queue_posts.Flags.Flush | queue_posts.Flags.FlushNoParse | queue_posts.Flags.UseDelay);
 		};
 		var fix_broken_4chanx_linkification = function (node, event_links) {
 			// Somehow one of the links gets cloned, and then they all get wrapped inside another link
