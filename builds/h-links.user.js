@@ -2,7 +2,7 @@
 // @name        H-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.1.2.1
+// @version     1.1.3
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -563,7 +563,7 @@
 		};
 		var get_url_info = function (url) {
 			var match = /^(https?):\/*((?:[\w-]+\.)*)([\w-]+\.[\w]+)((?:[\/\?\#][\w\W]*)?)/.exec(url),
-				domain, remaining, m;
+				domain, remaining, m, data;
 
 			if (match === null) return null;
 
@@ -595,25 +595,29 @@
 				}
 			}
 			else if (domain === domains.nhentai) {
-				m = /^\/g\/(\d+)/.exec(remaining);
+				m = /^\/g\/(\d+)(?:\/(\d+))?/.exec(remaining);
 				if (m !== null) {
-					return {
+					data = {
 						site: "nhentai",
 						type: "gallery",
 						gid: parseInt(m[1], 10),
 						domain: domain
 					};
+					if (m[2] !== undefined) data.page = parseInt(m[2], 10);
+					return data;
 				}
 			}
 			else if (domain === domains.hitomi) {
-				m = /^\/(?:galleries|reader|smalltn)\/(\d+)/.exec(remaining);
+				m = /^\/(galleries|reader|smalltn)\/(\d+)(?:\.html#(\d+))?/.exec(remaining);
 				if (m !== null) {
-					return {
+					data = {
 						site: "hitomi",
 						type: "gallery",
-						gid: parseInt(m[1], 10),
+						gid: parseInt(m[2], 10),
 						domain: domain
 					};
+					if (m[1] === "reader" && m[3] !== undefined) data.page = parseInt(m[3], 10);
+					return data;
 				}
 			}
 
@@ -1240,7 +1244,7 @@
 				var full_id = Helper.get_id_from_node_full(this),
 					details = details_nodes[full_id],
 					node = this,
-					info, data, domain, thumb_state;
+					info, data, domain, thumb_state, thumb_cb;
 
 				if (
 					(info = Helper.get_info_from_node(this)) === null ||
@@ -1268,53 +1272,68 @@
 
 				update_details_position(details, this, event.clientX, event.clientY);
 
-				if (info.site === "ehentai" && info.type === "page" && info.page > 1) {
+				if (info.page !== undefined && info.page > 1) {
+					// Thumbnail processing
 					thumb_state = 0;
-					details.classList.add("hl-details-has-thumbnail");
-					API.get_ehentai_gallery_page_thumb(info.domain, data.gid, data.token, info.page_token, info.page, function (err, thumb_data) {
-						if (node === gallery_link_events_data.link && err === null) {
-							var n0, n1, n2;
-							if (
-								(n0 = $(".hl-details-page-thumbnail", details)) !== null &&
-								(n1 = $(".hl-details-page-thumbnail-size", n0)) !== null &&
-								(n2 = $(".hl-details-page-thumbnail-image", n1)) !== null
-							) {
-								n2.style.backgroundImage = "url('" + thumb_data.url + "')";
+					thumb_cb = function (err, thumb_data) {
+						if (err === null) {
+							API.get_thumbnail(thumb_data.url, thumb_data.flags, function (err, thumb_url) {
+								if (err === null && node === gallery_link_events_data.link) {
+									var n0, n1, n2;
+									if (
+										(n0 = $(".hl-details-page-thumbnail", details)) !== null &&
+										(n1 = $(".hl-details-page-thumbnail-size", n0)) !== null &&
+										(n2 = $(".hl-details-page-thumbnail-image", n1)) !== null
+									) {
+										n2.style.backgroundImage = "url('" + thumb_url + "')";
 
-								if (thumb_data.width > 0 && thumb_data.height > 0) {
-									// Small thumbnail
-									var max_width = 140,
-										max_height = 200,
-										max_ratio = max_height / max_width,
-										scale = (thumb_data.height / thumb_data.width > max_ratio) ? max_height / thumb_data.height : max_width / thumb_data.width;
+										if (thumb_data.width > 0 && thumb_data.height > 0) {
+											// Small thumbnail
+											var max_width = 140,
+												max_height = 200,
+												max_ratio = max_height / max_width,
+												scale = (thumb_data.height / thumb_data.width > max_ratio) ? max_height / thumb_data.height : max_width / thumb_data.width;
 
-									n1.style.transform = "translate(-50%,-50%) scale(" + scale + ")";
-									n1.style.left = "50%";
-									n1.style.top = "50%";
-									n1.style.width = thumb_data.width + "px";
-									n1.style.height = thumb_data.height + "px";
-									n2.style.backgroundSize = "auto";
-									n2.style.backgroundPosition = (-thumb_data.left) + "px " + (-thumb_data.top) + "px";
-								}
-								else {
-									// Large thumbnail
-									n1.style.transform = "";
-									n1.style.left = "";
-									n1.style.top = "";
-									n1.style.width = "";
-									n1.style.height = "";
-									n2.style.backgroundSize = "";
-									n2.style.backgroundPosition = "";
-								}
+											n1.style.transform = "translate(-50%,-50%) scale(" + scale + ")";
+											n1.style.left = "50%";
+											n1.style.top = "50%";
+											n1.style.width = thumb_data.width + "px";
+											n1.style.height = thumb_data.height + "px";
+											n2.style.backgroundSize = "auto";
+											n2.style.backgroundPosition = (-thumb_data.left) + "px " + (-thumb_data.top) + "px";
+										}
+										else {
+											// Large thumbnail
+											n1.style.transform = "";
+											n1.style.left = "";
+											n1.style.top = "";
+											n1.style.width = "";
+											n1.style.height = "";
+											n2.style.backgroundSize = "";
+											n2.style.backgroundPosition = "";
+										}
 
-								// Animate
-								if (thumb_state === 1) {
-									Theme.get_computed_style(n0).getPropertyValue("transform");
+										// Animate
+										if (thumb_state === 1) {
+											Theme.get_computed_style(n0).getPropertyValue("transform");
+										}
+										details.classList.add("hl-details-has-thumbnail-visible");
+									}
 								}
-								details.classList.add("hl-details-has-thumbnail-visible");
-							}
+							});
 						}
-					});
+					};
+
+					details.classList.add("hl-details-has-thumbnail");
+					if (info.site === "ehentai") {
+						API.get_ehentai_gallery_page_thumb(info.domain, data.gid, data.token, info.page_token, info.page, thumb_cb);
+					}
+					else if (info.site === "nhentai") {
+						API.get_nhentai_gallery_page_thumb(data.gid, info.page, thumb_cb);
+					}
+					else if (info.site === "hitomi") {
+						API.get_hitomi_gallery_page_thumb(data.gid, info.page, thumb_cb);
+					}
 					if (thumb_state === 0) ++thumb_state;
 				}
 			}),
@@ -1432,7 +1451,7 @@
 			$.add(n1, n2 = $.node("div", "hl-details-page-thumbnail hl-hover-shadow" + theme));
 			$.add(n2, n3 = $.node("div", "hl-details-page-thumbnail-size" + theme));
 			$.add(n3, $.node("div", "hl-details-page-thumbnail-image" + theme));
-			API.get_thumbnail(data, $.bind(function (err, url) {
+			API.get_thumbnail(data.thumbnail, data.flags, $.bind(function (err, url) {
 				if (err === null) {
 					this.style.backgroundImage = "url('" + url + "')";
 				}
@@ -2290,11 +2309,6 @@
 		// Private
 		var temp_div = $.node_simple("div"),
 			re_protocol = /^https?\:/i,
-			saved_thumbnails = {
-				ehentai: {},
-				nhentai: {},
-				hitomi: {}
-			},
 			nhentai_tag_namespaces = {
 				parodies: "parody",
 				characters: "character",
@@ -3230,7 +3244,9 @@
 			rt_ehentai_gallery_page_thumb = new RequestType(1, 200, 5000, group_ehentai_full, "ehentai", "page_thumb"),
 			rt_ehentai_lookup = new RequestType(1, 3000, 5000, group_lookup, "ehentai", "lookup"),
 			rt_nhentai_gallery = new RequestType(1, 200, 5000, group_nhentai, "nhentai", "gallery"),
-			rt_hitomi_gallery = new RequestType(1, 200, 5000, group_hitomi, "hitomi", "gallery");
+			rt_nhentai_gallery_page_thumb = new RequestType(1, 200, 5000, group_nhentai, "nhentai", "page_thumb"),
+			rt_hitomi_gallery = new RequestType(1, 200, 5000, group_hitomi, "hitomi", "gallery"),
+			rt_hitomi_gallery_page_thumb = new RequestType(1, 200, 5000, group_hitomi, "hitomi", "page_thumb");
 
 		rt_ehentai_gallery.get_data = function (info) {
 			var data = get_saved_gallery(this.namespace, info[0]);
@@ -3455,7 +3471,8 @@
 													left: parseInt(m[0][2], 10),
 													top: 0,
 													width: parseInt(m[1][1], 10),
-													height: parseInt(m[2][1], 10)
+													height: parseInt(m[2][1], 10),
+													flags: Flags.None
 												} ];
 											}
 										}
@@ -3471,7 +3488,8 @@
 												left: 0,
 												top: 0,
 												width: -1,
-												height: -1
+												height: -1,
+												flags: Flags.None
 											} ];
 										}
 									}
@@ -3562,6 +3580,46 @@
 			return "Invalid response";
 		};
 
+		rt_nhentai_gallery_page_thumb.get_data = function (info) {
+			return get_saved_gallery_thumbnail("nhentai", info.gid, info.page);
+		};
+		rt_nhentai_gallery_page_thumb.set_data = function (data, info) {
+			set_saved_gallery_thumbnail("nhentai", info.gid, info.page, data);
+		};
+		rt_nhentai_gallery_page_thumb.setup_xhr = function (entries) {
+			var e = entries[0].data;
+			return {
+				method: "GET",
+				url: "http://" + domains.nhentai + "/g/" + e.gid + "/" + e.page + "/"
+			};
+		};
+		rt_nhentai_gallery_page_thumb.parse_response = function (xhr) {
+			var html = Helper.html_parse_safe(xhr.responseText, null),
+				n1, url;
+
+			if (html === null) {
+				return "Invalid response";
+			}
+
+			n1 = $("#image-container img[src]", html);
+			if (n1 !== null) {
+				url = n1.getAttribute("src") || "";
+				url = url.replace(/\/\/i\./i, "//t.");
+				url = url.replace(/\.\w+$/, "t$&");
+				if (/^\/\//.test(url)) url = "http:" + url;
+				return [ {
+					url: url,
+					left: 0,
+					top: 0,
+					width: -1,
+					height: -1,
+					flags: Flags.None
+				} ];
+			}
+
+			return "Thumbnail not found";
+		};
+
 		rt_hitomi_gallery.get_data = function (info) {
 			return get_saved_gallery(this.namespace, info[0]);
 		};
@@ -3580,6 +3638,47 @@
 				return [ hitomi_parse_info(html) ];
 			}
 			return "Invalid response";
+		};
+
+		rt_hitomi_gallery_page_thumb.get_data = function (info) {
+			return get_saved_gallery_thumbnail("hitomi", info.gid, info.page);
+		};
+		rt_hitomi_gallery_page_thumb.set_data = function (data, info) {
+			set_saved_gallery_thumbnail("hitomi", info.gid, info.page, data);
+		};
+		rt_hitomi_gallery_page_thumb.setup_xhr = function (entries) {
+			return {
+				method: "GET",
+				url: "http://" + domains.hitomi + "/reader/" + entries[0].data.gid + ".html"
+			};
+		};
+		rt_hitomi_gallery_page_thumb.parse_response = function (xhr, entries) {
+			var html = Helper.html_parse_safe(xhr.responseText, null),
+				n1, url;
+
+			if (html === null) {
+				return "Invalid response";
+			}
+
+			n1 = $$(".img-url", html);
+			n1 = n1[entries[0].data.page - 1];
+			if (n1 !== undefined) {
+				url = n1.textContent;
+				url = url.replace(/\/\/g\./i, "//tn.");
+				url = url.replace(/galleries/i, "smalltn");
+				url += ".jpg";
+				if (/^\/\//.test(url)) url = "http:" + url;
+				return [ {
+					url: url,
+					left: 0,
+					top: 0,
+					width: -1,
+					height: -1,
+					flags: Flags.ThumbnailNoLeech
+				} ];
+			}
+
+			return "Thumbnail not found";
 		};
 
 
@@ -3621,8 +3720,20 @@
 		var get_nhentai_gallery = function (gid, callback) {
 			return rt_nhentai_gallery.add("" + gid, [ gid ], callback);
 		};
+		var get_nhentai_gallery_page_thumb = function (gid, page, callback) {
+			rt_nhentai_gallery_page_thumb.add(gid + "-" + page, {
+				gid: gid,
+				page: page
+			}, callback);
+		};
 		var get_hitomi_gallery = function (gid, callback) {
 			return rt_hitomi_gallery.add("" + gid, [ gid ], callback);
+		};
+		var get_hitomi_gallery_page_thumb = function (gid, page, callback) {
+			rt_hitomi_gallery_page_thumb.add(gid + "-" + page, {
+				gid: gid,
+				page: page
+			}, callback);
 		};
 
 		var get_gallery = function (site, gid) {
@@ -3662,41 +3773,34 @@
 			return false;
 		};
 
-		var get_thumbnail = function (data, callback) {
-			var thumbnail = data.thumbnail,
-				url, cache, gid;
+		var saved_thumbnails = {};
+		var get_thumbnail = function (thumbnail_url, flags, callback) {
+			var url;
 
-			if (thumbnail === null) {
+			if (thumbnail_url === null) {
 				callback.call(null, "No thumbnail", null);
 			}
 
 			// Use direct URL
-			if ((data.flags & API.Flags.ThumbnailNoLeech) === 0 && !config.general.image_leeching_disabled)  {
-				callback.call(null, null, thumbnail);
+			if ((flags & Flags.ThumbnailNoLeech) === 0 && !config.general.image_leeching_disabled)  {
+				callback.call(null, null, thumbnail_url);
 				return;
 			}
 
 			// Cached
-			cache = saved_thumbnails[data.type];
-			if (cache === undefined) {
-				callback.call(null, "Malformed data", null);
-				return;
-			}
-
-			gid = data.gid;
-			url = cache[gid];
+			url = saved_thumbnails[thumbnail_url];
 			if (url !== undefined) {
 				callback.call(null, null, url);
 				return;
 			}
 
 			// Fetch
-			get_image(thumbnail, function (err, data, data_length, mime_type) {
+			get_image(thumbnail_url, function (err, data, data_length, mime_type) {
 				if (err === null) {
 					var img_url = uint8_array_to_url(data.subarray(0, data_length), mime_type);
 
 					if (img_url !== null) {
-						cache[gid] = img_url;
+						saved_thumbnails[thumbnail_url] = img_url;
 						callback.call(null, null, img_url);
 					}
 					else {
@@ -3768,7 +3872,9 @@
 			get_ehentai_gallery_full: get_ehentai_gallery_full,
 			get_ehentai_gallery_page_thumb: get_ehentai_gallery_page_thumb,
 			get_nhentai_gallery: get_nhentai_gallery,
+			get_nhentai_gallery_page_thumb: get_nhentai_gallery_page_thumb,
 			get_hitomi_gallery: get_hitomi_gallery,
+			get_hitomi_gallery_page_thumb: get_hitomi_gallery_page_thumb,
 			get_gallery: get_gallery,
 			get_gallery_from_link_info: get_gallery_from_link_info,
 			get_thumbnail: get_thumbnail,
@@ -4218,7 +4324,8 @@
 		var re_url = /(?:https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)\/[^<>\s\'\"]*/ig,
 			re_url_class_ignore = /(?:\binlined?\b|\bhl-)/,
 			re_fjord = /abortion|bestiality|incest|lolicon|shotacon|toddlercon/,
-			re_protocol = /^https?\:/i;
+			re_protocol = /^https?\:/i,
+			re_deferrer = /^(?:https?:)?\/\/sys\.4chan\.org\/derefer\?url=([\w\W]*)$/i;
 
 		// Linkification
 		var deep_dom_wrap = (function () {
@@ -4690,7 +4797,9 @@
 		var queue_posts = function (posts, flags) {
 			if ((flags & queue_posts.Flags.Flush) !== 0) {
 				// Flush
-				parse_posts(post_queue.posts);
+				if ((flags & queue_posts.Flags.FlushNoParse) === 0) {
+					parse_posts(post_queue.posts);
+				}
 				post_queue.posts = [];
 
 				// Clear timer
@@ -4718,6 +4827,7 @@
 			None: 0x0,
 			UseDelay: 0x1,
 			Flush: 0x2,
+			FlushNoParse: 0x4
 		};
 		var dequeue_posts = function () {
 			var posts = post_queue.posts.splice(0, post_queue.group_size);
@@ -4757,7 +4867,7 @@
 		};
 		var parse_post = function (post) {
 			var auto_load_links = config.general.automatic_processing,
-				post_body, post_links, links, link, i, ii;
+				post_body, post_links, links, link, url, i, ii;
 
 			// Exsauce
 			if (config.sauce.enabled && !browser.is_opera) {
@@ -4767,9 +4877,12 @@
 			if ((post_body = Post.get_text_body(post)) !== null) {
 				// Content
 				re_url.lastIndex = 0;
-				if (!Config.linkify || re_url.test(post_body.innerHTML)) {
+				if (
+					!Config.linkify ||
+					(post_links = Post.get_body_links(post_body)).length > 0 ||
+					re_url.test(post_body.innerHTML)
+				) {
 					links = [];
-					post_links = Post.get_body_links(post_body);
 					for (i = 0, ii = post_links.length; i < ii; ++i) {
 						link = post_links[i];
 						if (link.classList.contains("hl-site-tag")) {
@@ -4777,11 +4890,16 @@
 						}
 						else {
 							re_url.lastIndex = 0;
-							if (re_url.test(link.href)) {
+							url = link.href;
+							if (link.classList.contains("linkified") && re_deferrer.test(url)) {
+								url = link.textContent.trim();
+							}
+							if (re_url.test(url)) {
 								link.classList.add("hl-linkified");
 								link.classList.add("hl-linkified-gallery");
 								link.target = "_blank";
 								link.rel = "noreferrer";
+								link.href = url;
 								link.setAttribute("data-hl-linkified-status", "unprocessed");
 								links.push(link);
 							}
@@ -4930,11 +5048,14 @@
 
 		// Fixing
 		var relinkify_posts = function (posts) {
-			var post, links, i, ii, j, jj;
+			var cls = "hl-post-linkified",
+				post, links, i, ii, j, jj;
 
 			for (i = 0, ii = posts.length; i < ii; ++i) {
 				post = posts[i];
-				post.classList.remove("hl-post-linkified");
+				if (!post.classList.contains(cls)) continue;
+
+				post.classList.remove(cls);
 
 				links = $$(".hl-site-tag", post);
 				for (j = 0, jj = links.length; j < jj; ++j) {
@@ -4947,7 +5068,7 @@
 				}
 			}
 
-			queue_posts(posts, queue_posts.Flags.Flush | queue_posts.Flags.UseDelay);
+			queue_posts(posts, queue_posts.Flags.Flush | queue_posts.Flags.FlushNoParse | queue_posts.Flags.UseDelay);
 		};
 		var fix_broken_4chanx_linkification = function (node, event_links) {
 			// Somehow one of the links gets cloned, and then they all get wrapped inside another link
@@ -6842,7 +6963,7 @@
 				$.on(n7, "error", on_thumbnail_error);
 				n7.alt = "";
 
-				API.get_thumbnail(data, $.bind(function (err, url) {
+				API.get_thumbnail(data.thumbnail, data.flags, $.bind(function (err, url) {
 					if (err === null) {
 						this.src = url;
 					}
@@ -8540,7 +8661,7 @@
 		// Exports
 		var Module = {
 			homepage: "https://dnsev-h.github.io/h-links/",
-			version: [1,1,2,1],
+			version: [1,1,3],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,

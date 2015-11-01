@@ -2,7 +2,7 @@
 // @name        H-links (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.1.2.1.0xDB
+// @version     1.1.3.0xDB
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -613,7 +613,7 @@
 		}._w(46);
 		var get_url_info = function (url) {
 			var match = /^(https?):\/*((?:[\w-]+\.)*)([\w-]+\.[\w]+)((?:[\/\?\#][\w\W]*)?)/.exec(url),
-				domain, remaining, m;
+				domain, remaining, m, data;
 
 			if (match === null) return null;
 
@@ -645,25 +645,29 @@
 				}
 			}
 			else if (domain === domains.nhentai) {
-				m = /^\/g\/(\d+)/.exec(remaining);
+				m = /^\/g\/(\d+)(?:\/(\d+))?/.exec(remaining);
 				if (m !== null) {
-					return {
+					data = {
 						site: "nhentai",
 						type: "gallery",
 						gid: parseInt(m[1], 10),
 						domain: domain
 					};
+					if (m[2] !== undefined) data.page = parseInt(m[2], 10);
+					return data;
 				}
 			}
 			else if (domain === domains.hitomi) {
-				m = /^\/(?:galleries|reader|smalltn)\/(\d+)/.exec(remaining);
+				m = /^\/(galleries|reader|smalltn)\/(\d+)(?:\.html#(\d+))?/.exec(remaining);
 				if (m !== null) {
-					return {
+					data = {
 						site: "hitomi",
 						type: "gallery",
-						gid: parseInt(m[1], 10),
+						gid: parseInt(m[2], 10),
 						domain: domain
 					};
+					if (m[1] === "reader" && m[3] !== undefined) data.page = parseInt(m[3], 10);
+					return data;
 				}
 			}
 
@@ -1290,7 +1294,7 @@
 				var full_id = Helper.get_id_from_node_full(this),
 					details = details_nodes[full_id],
 					node = this,
-					info, data, domain, thumb_state;
+					info, data, domain, thumb_state, thumb_cb;
 
 				if (
 					(info = Helper.get_info_from_node(this)) === null ||
@@ -1318,53 +1322,68 @@
 
 				update_details_position(details, this, event.clientX, event.clientY);
 
-				if (info.site === "ehentai" && info.type === "page" && info.page > 1) {
+				if (info.page !== undefined && info.page > 1) {
+					// Thumbnail processing
 					thumb_state = 0;
-					details.classList.add("hl-details-has-thumbnail");
-					API.get_ehentai_gallery_page_thumb(info.domain, data.gid, data.token, info.page_token, info.page, function (err, thumb_data) {
-						if (node === gallery_link_events_data.link && err === null) {
-							var n0, n1, n2;
-							if (
-								(n0 = $(".hl-details-page-thumbnail", details)) !== null &&
-								(n1 = $(".hl-details-page-thumbnail-size", n0)) !== null &&
-								(n2 = $(".hl-details-page-thumbnail-image", n1)) !== null
-							) {
-								n2.style.backgroundImage = "url('" + thumb_data.url + "')";
+					thumb_cb = function (err, thumb_data) {
+						if (err === null) {
+							API.get_thumbnail(thumb_data.url, thumb_data.flags, function (err, thumb_url) {
+								if (err === null && node === gallery_link_events_data.link) {
+									var n0, n1, n2;
+									if (
+										(n0 = $(".hl-details-page-thumbnail", details)) !== null &&
+										(n1 = $(".hl-details-page-thumbnail-size", n0)) !== null &&
+										(n2 = $(".hl-details-page-thumbnail-image", n1)) !== null
+									) {
+										n2.style.backgroundImage = "url('" + thumb_url + "')";
 
-								if (thumb_data.width > 0 && thumb_data.height > 0) {
-									// Small thumbnail
-									var max_width = 140,
-										max_height = 200,
-										max_ratio = max_height / max_width,
-										scale = (thumb_data.height / thumb_data.width > max_ratio) ? max_height / thumb_data.height : max_width / thumb_data.width;
+										if (thumb_data.width > 0 && thumb_data.height > 0) {
+											// Small thumbnail
+											var max_width = 140,
+												max_height = 200,
+												max_ratio = max_height / max_width,
+												scale = (thumb_data.height / thumb_data.width > max_ratio) ? max_height / thumb_data.height : max_width / thumb_data.width;
 
-									n1.style.transform = "translate(-50%,-50%) scale(" + scale + ")";
-									n1.style.left = "50%";
-									n1.style.top = "50%";
-									n1.style.width = thumb_data.width + "px";
-									n1.style.height = thumb_data.height + "px";
-									n2.style.backgroundSize = "auto";
-									n2.style.backgroundPosition = (-thumb_data.left) + "px " + (-thumb_data.top) + "px";
-								}
-								else {
-									// Large thumbnail
-									n1.style.transform = "";
-									n1.style.left = "";
-									n1.style.top = "";
-									n1.style.width = "";
-									n1.style.height = "";
-									n2.style.backgroundSize = "";
-									n2.style.backgroundPosition = "";
-								}
+											n1.style.transform = "translate(-50%,-50%) scale(" + scale + ")";
+											n1.style.left = "50%";
+											n1.style.top = "50%";
+											n1.style.width = thumb_data.width + "px";
+											n1.style.height = thumb_data.height + "px";
+											n2.style.backgroundSize = "auto";
+											n2.style.backgroundPosition = (-thumb_data.left) + "px " + (-thumb_data.top) + "px";
+										}
+										else {
+											// Large thumbnail
+											n1.style.transform = "";
+											n1.style.left = "";
+											n1.style.top = "";
+											n1.style.width = "";
+											n1.style.height = "";
+											n2.style.backgroundSize = "";
+											n2.style.backgroundPosition = "";
+										}
 
-								// Animate
-								if (thumb_state === 1) {
-									Theme.get_computed_style(n0).getPropertyValue("transform");
+										// Animate
+										if (thumb_state === 1) {
+											Theme.get_computed_style(n0).getPropertyValue("transform");
+										}
+										details.classList.add("hl-details-has-thumbnail-visible");
+									}
 								}
-								details.classList.add("hl-details-has-thumbnail-visible");
-							}
+							}._w(118));
 						}
-					}._w(117));
+					}._w(117);
+
+					details.classList.add("hl-details-has-thumbnail");
+					if (info.site === "ehentai") {
+						API.get_ehentai_gallery_page_thumb(info.domain, data.gid, data.token, info.page_token, info.page, thumb_cb);
+					}
+					else if (info.site === "nhentai") {
+						API.get_nhentai_gallery_page_thumb(data.gid, info.page, thumb_cb);
+					}
+					else if (info.site === "hitomi") {
+						API.get_hitomi_gallery_page_thumb(data.gid, info.page, thumb_cb);
+					}
 					if (thumb_state === 0) ++thumb_state;
 				}
 			}._w(116)),
@@ -1377,7 +1396,7 @@
 				details.classList.add("hl-details-hidden");
 
 				gallery_link_events_data.link = null;
-			}._w(118)),
+			}._w(119)),
 			mousemove: function (event) {
 				var details = details_nodes[Helper.get_id_from_node_full(this)];
 
@@ -1387,7 +1406,7 @@
 				gallery_link_events_data.mouse_y = event.clientY;
 
 				update_details_position(details, this, event.clientX, event.clientY);
-			}._w(119)
+			}._w(120)
 		};
 		var gallery_toggle_actions = function (event) {
 			if ($.is_left_mouse(event) && config.actions.enabled) {
@@ -1441,7 +1460,7 @@
 					}
 				}
 			}
-		}._w(120);
+		}._w(121);
 		var gallery_fetch_event = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
@@ -1457,13 +1476,13 @@
 					Linkifier.load_link(link, info);
 				}
 			}
-		}._w(121);
+		}._w(122);
 		var gallery_error_event = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				return false;
 			}
-		}._w(122);
+		}._w(123);
 
 		var create_details = function (data, domain) {
 			var g_domain = domain_info[domain].g_domain,
@@ -1482,11 +1501,11 @@
 			$.add(n1, n2 = $.node("div", "hl-details-page-thumbnail hl-hover-shadow" + theme));
 			$.add(n2, n3 = $.node("div", "hl-details-page-thumbnail-size" + theme));
 			$.add(n3, $.node("div", "hl-details-page-thumbnail-image" + theme));
-			API.get_thumbnail(data, $.bind(function (err, url) {
+			API.get_thumbnail(data.thumbnail, data.flags, $.bind(function (err, url) {
 				if (err === null) {
 					this.style.backgroundImage = "url('" + url + "')";
 				}
-			}._w(124), n1));
+			}._w(125), n1));
 
 
 			// Sidebar
@@ -1563,14 +1582,14 @@
 					else {
 						Debug.log("Error requesting full information: " + err);
 					}
-				}._w(125));
+				}._w(126));
 			}
 
 			// Fonts
 			Main.insert_custom_fonts();
 			Popup.hovering(content);
 			return content;
-		}._w(123);
+		}._w(124);
 		var create_actions = function (data, link, index) {
 			var theme = Theme.classes,
 				domain = Helper.get_domain(link.href),
@@ -1593,13 +1612,13 @@
 				$.add(n2, n3 = $.link(url, "hl-actions-option" + theme, text));
 				$.on(n3, "click", $.bind(on_actions_link_click, n3, actions, index));
 				return n3;
-			}._w(127);
+			}._w(128);
 			var gen_sep = function (container) {
 				var n1, n2;
 				$.add(container, n1 = $.node("div", "hl-actions-table-row" + theme));
 				$.add(n1, n2 = $.node("div", "hl-actions-table-cell" + theme));
 				$.add(n2, $.node("div", "hl-actions-table-sep"));
-			}._w(128);
+			}._w(129);
 
 			if (type === "ehentai") {
 				gen_entry(n2, "View on:", CreateURL.to_gallery(data, domains.ehentai), "E-Hentai");
@@ -1637,10 +1656,10 @@
 
 			// Done
 			return actions;
-		}._w(126);
+		}._w(127);
 		var pad = function (n, sep) {
 			return (n < 10 ? "0" : "") + n + sep;
-		}._w(129);
+		}._w(130);
 		var create_tags = function (site, data) {
 			var tagfrag = d.createDocumentFragment(),
 				domain = data.type,
@@ -1662,7 +1681,7 @@
 			if (last !== null) $.remove(last);
 
 			return tagfrag;
-		}._w(130);
+		}._w(131);
 		var create_tags_full = function (site, data) {
 			var tagfrag = d.createDocumentFragment(),
 				domain = data.type,
@@ -1708,7 +1727,7 @@
 			}
 
 			return tagfrag;
-		}._w(131);
+		}._w(132);
 		var create_tags_best = function (site, data) {
 			if (data.full) {
 				for (var k in data.tags_ns) {
@@ -1716,7 +1735,7 @@
 				}
 			}
 			return create_tags(site, data);
-		}._w(132);
+		}._w(133);
 		var update_full = function (data) {
 			var domain = domains.exhentai,
 				full_id = data.type + "_" + data.gid,
@@ -1775,7 +1794,7 @@
 			) {
 				update_details_position(n, link, gallery_link_events_data.mouse_x, gallery_link_events_data.mouse_y);
 			}
-		}._w(133);
+		}._w(134);
 		var update_details_position = function (details, link, mouse_x, mouse_y) {
 			var w = window,
 				de = d.documentElement,
@@ -1792,7 +1811,7 @@
 
 			details.style.left = mouse_x + "px";
 			details.style.top = mouse_y + "px";
-		}._w(134);
+		}._w(135);
 		var close_actions = function (actions, index) {
 			var ns = $$(".hl-site-tag.hl-site-tag-active[hl-actions-index='" + index + "']"),
 				i, ii;
@@ -1803,12 +1822,12 @@
 
 			actions.classList.add("hl-actions-hidden");
 			deactivate_actions(index);
-		}._w(135);
+		}._w(136);
 		var close_all_actions = function () {
 			for (var index in actions_nodes_active) {
 				close_actions(actions_nodes_active[index], index);
 			}
-		}._w(136);
+		}._w(137);
 		var update_actions_position = function (actions, tag, tag_bg, de_rect, xpos, ypos) {
 			// Position
 			var rect = tag_bg.getBoundingClientRect(),
@@ -1862,7 +1881,7 @@
 			actions.style.top = y + "px";
 			tag.setAttribute("data-hl-actions-vpos", ypos);
 			actions.setAttribute("data-hl-actions-vpos", ypos);
-		}._w(137);
+		}._w(138);
 		var update_active_actions_position = function () {
 			var de_rect = d.documentElement.getBoundingClientRect(),
 				index, actions, tag, tag_bg, xpos, ypos;
@@ -1878,7 +1897,7 @@
 					update_actions_position(actions, tag, tag_bg, de_rect, xpos, ypos);
 				}
 			}
-		}._w(138);
+		}._w(139);
 
 		var activate_actions = function (node, index) {
 			if (config.actions.close_on_click && actions_nodes_active_count !== 0) {
@@ -1888,13 +1907,13 @@
 			actions_nodes_active[index] = node;
 
 			if (actions_close_timeout !== null) clearTimeout(actions_close_timeout);
-			actions_close_timeout = setTimeout(function () { actions_close_timeout = null; }._w(140), 1);
+			actions_close_timeout = setTimeout(function () { actions_close_timeout = null; }._w(141), 1);
 
 			if (++actions_nodes_active_count === 1) {
 				$.on(window, "resize", on_window_resize);
 				$.on(d.documentElement, "click", on_document_click);
 			}
-		}._w(139);
+		}._w(140);
 		var deactivate_actions = function (index) {
 			if (actions_nodes_active[index] === undefined) return;
 
@@ -1907,10 +1926,10 @@
 					actions_close_timeout = null;
 				}
 			}
-		}._w(141);
+		}._w(142);
 		var on_window_resize = function () {
 			update_active_actions_position();
-		}._w(142);
+		}._w(143);
 		var on_document_click = function (event) {
 			if (actions_close_timeout === null) {
 				if (config.actions.close_on_click) {
@@ -1923,12 +1942,12 @@
 					setTimeout(update_active_actions_position, 1);
 				}
 			}
-		}._w(143);
+		}._w(144);
 		var on_actions_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.stopPropagation();
 			}
-		}._w(144);
+		}._w(145);
 		var on_actions_link_click = function (actions, index, event) {
 			if ($.is_left_mouse(event)) {
 				event.stopPropagation();
@@ -1937,7 +1956,7 @@
 					close_actions(actions, index);
 				}
 			}
-		}._w(145);
+		}._w(146);
 		var create_tag_bg = function (parent) {
 			var tag_bg = $.node("div", "hl-site-tag-bg" + Theme.classes),
 				outline = $.node("div", "hl-site-tag-bg-shadow hl-hover-shadow" + Theme.classes),
@@ -1951,7 +1970,7 @@
 			$.before(parent, parent.firstChild, outline);
 
 			return tag_bg;
-		}._w(146);
+		}._w(147);
 
 		// Public
 		var create_rating_stars = function (rating) {
@@ -1968,37 +1987,37 @@
 			}
 
 			return frag;
-		}._w(147);
+		}._w(148);
 		var button = function (url, domain) {
 			var button = $.link(url, "hl-site-tag" + Theme.classes),
 				text = $.node("span", "hl-site-tag-text", button_text(domain));
 			$.add(button, text);
 			return button;
-		}._w(148);
+		}._w(149);
 		var button_get_inner = function (button) {
 			return ((button = button.lastChild) !== null && button.tagName === "SPAN") ? button : null;
-		}._w(149);
+		}._w(150);
 		var update_button_text = function (button, domain) {
 			if ((button = button_get_inner(button)) !== null) {
 				button.textContent = button_text(domain);
 			}
-		}._w(150);
+		}._w(151);
 		var mark_button_text = function (button, text) {
 			if ((button = button_get_inner(button)) !== null) {
 				button.textContent = button.textContent.replace(/\]\s*$/, text + "]");
 			}
-		}._w(151);
+		}._w(152);
 		var button_text = function (domain) {
 			var d = domain_info[domain];
 			return (d !== undefined ? "[" + d.tag + "]" : "[?]");
-		}._w(152);
+		}._w(153);
 		var format_date = function (d) {
 			return d.getUTCFullYear() + "-" +
 				pad(d.getUTCMonth() + 1, "-") +
 				pad(d.getUTCDate(), " ") +
 				pad(d.getUTCHours(), ":") +
 				pad(d.getUTCMinutes(), "");
-		}._w(153);
+		}._w(154);
 
 		var cleanup_post = function (post) {
 			var nodes, n, i, ii;
@@ -2016,7 +2035,7 @@
 				n.classList.remove("hl-site-tag-active");
 				n.removeAttribute("hl-actions-index");
 			}
-		}._w(154);
+		}._w(155);
 		var cleanup_post_removed = function (post) {
 			var nodes, index, n, i, ii;
 			nodes = $$(".hl-site-tag[hl-actions-index]", post);
@@ -2029,7 +2048,7 @@
 					deactivate_actions(index);
 				}
 			}
-		}._w(155);
+		}._w(156);
 
 		var init = function () {
 			Linkifier.register_link_events({
@@ -2038,7 +2057,7 @@
 				gallery_fetch: gallery_fetch_event,
 				gallery_error: gallery_error_event
 			});
-		}._w(156);
+		}._w(157);
 
 		// Exports
 		return {
@@ -2075,7 +2094,7 @@
 				expires: Date.now() + ttl,
 				data: data
 			}));
-		}._w(158);
+		}._w(159);
 		var cache_get = function (key) {
 			var json = Helper.json_parse_safe(cache_storage.getItem(cache_prefix + key), null);
 
@@ -2090,13 +2109,13 @@
 
 			cache_storage.removeItem(key);
 			return null;
-		}._w(159);
+		}._w(160);
 		var cache_set_object = function (object_name) {
 			cache_storage.setItem(cache_prefix + object_name, JSON.stringify({
 				expires: null,
 				data: cache_objects[object_name]
 			}));
-		}._w(160);
+		}._w(161);
 		var cache_get_object = function (object_name) {
 			var json = Helper.json_parse_safe(cache_storage.getItem(cache_prefix + object_name), null),
 				obj, target;
@@ -2113,7 +2132,7 @@
 
 			cache_storage.removeItem(object_name);
 			return false;
-		}._w(161);
+		}._w(162);
 		var cache_merge_objects = function (dest, obj) {
 			var now = Date.now(),
 				update = false,
@@ -2130,7 +2149,7 @@
 			}
 
 			return update;
-		}._w(162);
+		}._w(163);
 		var cache_cleanup = function () {
 			var storage = cache_storage,
 				re_matcher = new RegExp("^" + Helper.regex_escape(cache_prefix) + "(([en]hentai|hitomi)_gallery)-([^-]+)"),
@@ -2155,7 +2174,7 @@
 			count += ii;
 
 			return count;
-		}._w(163);
+		}._w(164);
 		var cache_clear = function () {
 			var storage_types = [ window.localStorage, window.sessionStorage ],
 				re_matcher = new RegExp("^" + Helper.regex_escape(cache_prefix)),
@@ -2180,7 +2199,7 @@
 			}
 
 			return count;
-		}._w(164);
+		}._w(165);
 		var cache_init = function () {
 			// Cache mode
 			if (config.debug.cache_mode === "none") {
@@ -2191,32 +2210,32 @@
 						length: 0,
 						key: function (index) {
 							return Object.keys(data)[index];
-						}._w(167),
+						}._w(168),
 						getItem: function (key) {
 							if (Object.prototype.hasOwnProperty.call(data, key)) {
 								return data[key];
 							}
 							return null;
-						}._w(168),
+						}._w(169),
 						setItem: function (key, value) {
 							if (!Object.prototype.hasOwnProperty.call(data, key)) {
 								++fn.length;
 							}
 							data[key] = value;
-						}._w(169),
+						}._w(170),
 						removeItem: function (key) {
 							if (Object.prototype.hasOwnProperty.call(data, key)) {
 								delete data[key];
 								--fn.length;
 							}
-						}._w(170),
+						}._w(171),
 						clear: function () {
 							data = {};
 							fn.length = 0;
-						}._w(171)
+						}._w(172)
 					};
 					return fn;
-				}._w(166))();
+				}._w(167))();
 			}
 			else if (config.debug.cache_mode === "session") {
 				cache_storage = window.sessionStorage;
@@ -2232,7 +2251,7 @@
 					cache_set_object(k);
 				}
 			}
-		}._w(165);
+		}._w(166);
 
 
 
@@ -2253,12 +2272,12 @@
 			}
 
 			return null;
-		}._w(172);
+		}._w(173);
 		var set_saved_gallery = function (data) {
 			var id_full = data.type + "-" + data.gid;
 			saved_gallery_data[id_full] = data;
 			cache_set(data.type + "_gallery-" + data.gid, data, ttl_1_hour * (data.upload_date >= Date.now() - ttl_1_day ? 1 : 12));
-		}._w(173);
+		}._w(174);
 		var set_saved_error = function (id_list, error, cache) {
 			var id = id_list.join("-");
 			cache_objects.errors[id] = {
@@ -2269,13 +2288,13 @@
 			if (cache) {
 				cache_set_object("errors");
 			}
-		}._w(174);
+		}._w(175);
 		var get_saved_error = function (id_list) {
 			var id = id_list.join("-"),
 				value = cache_objects.errors[id];
 
 			return (value !== undefined) ? value.data : null;
-		}._w(175);
+		}._w(176);
 		var get_saved_gallery_thumbnail = function (namespace, gid, page) {
 			var id = gid + "-" + page,
 				id_full = namespace + "-" + id,
@@ -2290,21 +2309,21 @@
 			}
 
 			return null;
-		}._w(176);
+		}._w(177);
 		var set_saved_gallery_thumbnail = function (namespace, gid, page, data) {
 			var id = gid + "-" + page;
 			saved_gallery_thumbnails[namespace + "-" + id] = data;
 			cache_set(namespace + "_gallery_thumb-" + id, data, ttl_1_hour * 6);
-		}._w(177);
+		}._w(178);
 
 		var hash_get_sha1_from_md5 = function (md5) {
 			var value = cache_objects.md5_to_hash[md5];
 			return (value !== undefined) ? value.data : null;
-		}._w(178);
+		}._w(179);
 		var hash_get_sha1_from_url = function (url) {
 			var value = cache_objects.url_to_hash[url];
 			return (value !== undefined) ? value.data : null;
-		}._w(179);
+		}._w(180);
 		var hash_set_md5_to_sha1 = function (md5, sha1) {
 			cache_objects.md5_to_hash[md5] = {
 				expires: Date.now() + ttl_1_year,
@@ -2312,7 +2331,7 @@
 			};
 
 			cache_set_object("md5_to_hash");
-		}._w(180);
+		}._w(181);
 		var hash_set_url_to_sha1 = function (url, sha1) {
 			cache_objects.url_to_hash[url] = {
 				expires: Date.now() + ttl_1_day,
@@ -2320,12 +2339,12 @@
 			};
 
 			cache_set_object("url_to_hash");
-		}._w(181);
+		}._w(182);
 
 		var lookup_get_results = function (hash) {
 			var value = cache_objects.lookup[hash];
 			return (value !== undefined) ? value.data : null;
-		}._w(182);
+		}._w(183);
 		var lookup_set_results = function (data) {
 			cache_objects.lookup[data.hash] = {
 				expires: Date.now() + ttl_1_day,
@@ -2333,18 +2352,13 @@
 			};
 
 			cache_set_object("lookup");
-		}._w(183);
+		}._w(184);
 
 
 
 		// Private
 		var temp_div = $.node_simple("div"),
 			re_protocol = /^https?\:/i,
-			saved_thumbnails = {
-				ehentai: {},
-				nhentai: {},
-				hitomi: {}
-			},
 			nhentai_tag_namespaces = {
 				parodies: "parody",
 				characters: "character",
@@ -2384,7 +2398,7 @@
 				tags: null,
 				tags_ns: null
 			};
-		}._w(184);
+		}._w(185);
 		var uint8_array_to_url = function (data, mime) {
 			try {
 				var blob = new Blob([ data ], { type: mime });
@@ -2392,7 +2406,7 @@
 			}
 			catch (e) {}
 			return null;
-		}._w(185);
+		}._w(186);
 		var header_string_parse = function (header_str) {
 			var lines = header_str.split("\r\n"),
 				re_line = /^([^:]*):\s(.*)$/i,
@@ -2406,11 +2420,11 @@
 			}
 
 			return headers;
-		}._w(186);
+		}._w(187);
 
 		var ehentai_simple_string = function (value, default_value) {
 			return (typeof(value) !== "string" || value.length === 0) ? default_value : value;
-		}._w(187);
+		}._w(188);
 		var ehentai_normalize_string = function (value, default_value) {
 			if (typeof(value) !== "string" || value.length === 0) {
 				return default_value;
@@ -2419,7 +2433,7 @@
 			value = temp_div.textContent;
 			temp_div.textContent = "";
 			return value;
-		}._w(188);
+		}._w(189);
 		var ehentai_normalize_info = function (info) {
 			if (info.error !== undefined) {
 				return { error: info.error };
@@ -2447,7 +2461,7 @@
 			data.tags = Array.isArray(t) ? t : [];
 
 			return data;
-		}._w(189);
+		}._w(190);
 
 		var ehentai_is_not_available = function (html) {
 			var n;
@@ -2456,14 +2470,14 @@
 				/^\s*Gallery\s+Not\s+Available/i.test(n.textContent) &&
 				$("#continue", html) !== null
 			);
-		}._w(190);
+		}._w(191);
 		var ehentai_is_content_warning = function (html) {
 			var n;
 			return (
 				(n = $("h1", html)) !== null &&
 				/^\s*Content\s+Warning/i.test(n.textContent)
 			);
-		}._w(191);
+		}._w(192);
 		var ehentai_parse_gallery_info = function (html, data) {
 			// Tags
 			var updated_tag_count = 0,
@@ -2521,13 +2535,13 @@
 			// Done
 			data.full = true;
 			return data;
-		}._w(192);
+		}._w(193);
 		var ehentai_make_removed = function (data) {
 			data.removed = true;
 			data.tags_ns = {};
 			data.full = true;
 			return data;
-		}._w(193);
+		}._w(194);
 
 		var ehentai_parse_lookup_results = function (xhr, is_similarity_scan, hash, url, md5) {
 			var final_url = xhr.finalUrl,
@@ -2590,7 +2604,7 @@
 				hash: hash,
 				results: results
 			};
-		}._w(194);
+		}._w(195);
 		var ehentai_create_lookup_url = function (sha1) {
 			var url = "http://",
 				di = domain_info[config.sauce.lookup_domain];
@@ -2600,14 +2614,14 @@
 			url += "&fs_similar=0";
 			if (config.sauce.expunged) url += "&fs_exp=1";
 			return url;
-		}._w(195);
+		}._w(196);
 
 		var nhentai_normalize_category = function (category) {
 			return Helper.title_case(category);
-		}._w(196);
+		}._w(197);
 		var nhentai_normalize_tag_namespace = function (namespace) {
 			return nhentai_tag_namespaces[namespace] || namespace;
-		}._w(197);
+		}._w(198);
 		var nhentai_parse_info = function (html) {
 			var info = $("#info", html),
 				data, nodes, tags, tag_ns, tag_ns_list, t, m, n, i, ii, j, jj;
@@ -2720,11 +2734,11 @@
 			}
 
 			return data;
-		}._w(198);
+		}._w(199);
 
 		var hitomi_normalize_category = function (category) {
 			return Helper.title_case(category);
-		}._w(199);
+		}._w(200);
 		var hitomi_parse_info = function (html) {
 			var info = $(".content", html),
 				cellmap = {},
@@ -2905,7 +2919,7 @@
 			}
 
 			return data;
-		}._w(200);
+		}._w(201);
 
 
 		var get_image = function (url, callback, progress_callback) {
@@ -2931,23 +2945,23 @@
 					else {
 						callback.call(null, "Response error " + xhr.status, null, 0, null, null);
 					}
-				}._w(202),
+				}._w(203),
 				onerror: function () {
 					callback.call(null, "Connection error", null, 0, null, null);
-				}._w(203),
+				}._w(204),
 				onabort: function () {
 					callback.call(null, "Connection aborted", null, 0, null, null);
-				}._w(204)
+				}._w(205)
 			};
 
 			if (progress_callback !== undefined) {
 				xhr_data.onprogress = function (xhr) {
 					progress_callback.call(null, "progress", xhr.lengthComputable, xhr.loaded, xhr.total);
-				}._w(205);
+				}._w(206);
 			}
 
 			HttpRequest(xhr_data);
-		}._w(201);
+		}._w(202);
 		var get_sha1_hash = function (url, md5, callback) {
 			var sha1 = null;
 
@@ -2985,11 +2999,11 @@
 					else {
 						callback.call(null, err, null);
 					}
-				}._w(207));
+				}._w(208));
 			}
 
 			return null;
-		}._w(206);
+		}._w(207);
 
 
 
@@ -2998,7 +3012,7 @@
 			this.active = false;
 			this.timeout = null;
 			this.types = [];
-		}._w(208);
+		}._w(209);
 		var RequestType = function (count, delay_okay, delay_error, group, namespace, type) {
 			this.count = count;
 			this.delay_okay = delay_okay;
@@ -3020,14 +3034,14 @@
 			this.parse_response = null;
 			this.retry_fn = null;
 			this.retry_data = null;
-		}._w(209);
+		}._w(210);
 		var RequestData = function (id, data, callback, progress_callback) {
 			this.id = id;
 			this.data = data;
 			this.callbacks = [ callback ];
 			this.progress_callbacks = [];
 			if (progress_callback !== undefined) this.progress_callbacks.push(progress_callback);
-		}._w(210);
+		}._w(211);
 
 		RequestGroup.prototype.run = function (use_delay) {
 			if (this.active) return;
@@ -3038,7 +3052,7 @@
 				if (type.queue.length > 0) {
 					this.active = true;
 					if (use_delay && type.count > 1) {
-						setTimeout(function () { type.run(); }._w(212), 1); // jshint ignore:line
+						setTimeout(function () { type.run(); }._w(213), 1); // jshint ignore:line
 					}
 					else {
 						type.run();
@@ -3046,7 +3060,7 @@
 					break;
 				}
 			}
-		}._w(211);
+		}._w(212);
 		RequestGroup.prototype.complete = function (delay) {
 			if (delay <= 0) {
 				this.active = false;
@@ -3057,9 +3071,9 @@
 				setTimeout(function () {
 					self.active = false;
 					self.run(false);
-				}._w(214), delay);
+				}._w(215), delay);
 			}
-		}._w(213);
+		}._w(214);
 
 		RequestType.get_all_progress_callbacks = function (entries) {
 			var progress_callbacks = null,
@@ -3078,7 +3092,7 @@
 			}
 
 			return progress_callbacks;
-		}._w(215);
+		}._w(216);
 		RequestType.prototype.add = function (unique_id, info, callback, progress_callback) {
 			// Check if data already exists
 			var data, err, u;
@@ -3113,11 +3127,11 @@
 			// Run (if not already running)
 			this.group.run(true);
 			return false;
-		}._w(216);
+		}._w(217);
 		RequestType.prototype.run = function () {
 			var entries = this.queue.splice(0, this.count);
 			this.run_entries(entries);
-		}._w(217);
+		}._w(218);
 		RequestType.prototype.run_entries = function (entries) {
 			var self = this,
 				progress_callbacks = RequestType.get_all_progress_callbacks(entries),
@@ -3154,22 +3168,22 @@
 					self.process_response_error(entries, "Response error " + xhr.status);
 					self.request_complete(entries, true);
 				}
-			}._w(219);
+			}._w(220);
 			xhr_data.onerror = function () {
 				self.process_response_error(entries, "Connection error");
 				self.request_complete(entries, true);
-			}._w(220);
+			}._w(221);
 			xhr_data.onabort = function () {
 				self.process_response_error(entries, "Connection aborted");
 				self.request_complete(entries, true);
-			}._w(221);
+			}._w(222);
 
 			if (progress_callbacks !== null) {
 				xhr_data.onprogress = function (xhr) {
 					for (var i = 0, ii = progress_callbacks.length; i < ii; ++i) {
 						progress_callbacks[i].call(null, "progress", xhr.lengthComputable, xhr.loaded, xhr.total);
 					}
-				}._w(222);
+				}._w(223);
 			}
 
 			if (xhr_data.data !== undefined) {
@@ -3177,18 +3191,18 @@
 				xhr_data.upload.onerror = function () {
 					self.process_response_error(entries, "Upload connection error");
 					self.request_complete(entries, true);
-				}._w(223);
+				}._w(224);
 				xhr_data.upload.onabort = function () {
 					self.process_response_error(entries, "Upload connection aborted");
 					self.request_complete(entries, true);
-				}._w(224);
+				}._w(225);
 				if (progress_callbacks !== null) {
 					xhr_data.upload.onprogress = xhr_data.onprogress;
 					xhr_data.upload.onload = function () {
 						for (var i = 0, ii = progress_callbacks.length; i < ii; ++i) {
 							progress_callbacks[i].call(null, "download");
 						}
-					}._w(225);
+					}._w(226);
 				}
 			}
 
@@ -3199,14 +3213,14 @@
 			}
 
 			HttpRequest(xhr_data);
-		}._w(218);
+		}._w(219);
 		RequestType.prototype.process_response_error = function (entries, error) {
 			var err_mode, i, ii;
 			for (i = 0, ii = entries.length; i < ii; ++i) {
 				err_mode = (this.error_mode !== null) ? this.error_mode.call(this, null, error) : RequestData.ErrorMode.NoCache;
 				entries[i].run_callbacks(error, null, err_mode, this);
 			}
-		}._w(226);
+		}._w(227);
 		RequestType.prototype.process_response = function (entries, datas) {
 			var i = 0,
 				ii = Math.min(datas.length, entries.length),
@@ -3231,7 +3245,7 @@
 					entries[i].run_callbacks(err, null, err_mode, this);
 				}
 			}
-		}._w(227);
+		}._w(228);
 		RequestType.prototype.request_complete = function (entries, error) {
 			var delay = error ? this.delay_error : this.delay_okay,
 				i, ii;
@@ -3243,7 +3257,7 @@
 
 			if (this.delay_modify !== null) delay = this.delay_modify.call(this, delay, entries);
 			this.group.complete(delay);
-		}._w(228);
+		}._w(229);
 
 		RequestData.ErrorMode = {
 			None: 0,
@@ -3264,7 +3278,7 @@
 			for (i = 0, ii = this.callbacks.length; i < ii; ++i) {
 				this.callbacks[i].call(null, err, data);
 			}
-		}._w(229);
+		}._w(230);
 
 
 
@@ -3280,15 +3294,17 @@
 			rt_ehentai_gallery_page_thumb = new RequestType(1, 200, 5000, group_ehentai_full, "ehentai", "page_thumb"),
 			rt_ehentai_lookup = new RequestType(1, 3000, 5000, group_lookup, "ehentai", "lookup"),
 			rt_nhentai_gallery = new RequestType(1, 200, 5000, group_nhentai, "nhentai", "gallery"),
-			rt_hitomi_gallery = new RequestType(1, 200, 5000, group_hitomi, "hitomi", "gallery");
+			rt_nhentai_gallery_page_thumb = new RequestType(1, 200, 5000, group_nhentai, "nhentai", "page_thumb"),
+			rt_hitomi_gallery = new RequestType(1, 200, 5000, group_hitomi, "hitomi", "gallery"),
+			rt_hitomi_gallery_page_thumb = new RequestType(1, 200, 5000, group_hitomi, "hitomi", "page_thumb");
 
 		rt_ehentai_gallery.get_data = function (info) {
 			var data = get_saved_gallery(this.namespace, info[0]);
 			return (data !== null && data.token === info[1]) ? data : null;
-		}._w(230);
+		}._w(231);
 		rt_ehentai_gallery.set_data = function (data) {
 			set_saved_gallery(data);
-		}._w(231);
+		}._w(232);
 		rt_ehentai_gallery.setup_xhr = function (entries) {
 			var gidlist = [],
 				i, ii;
@@ -3306,7 +3322,7 @@
 					gidlist: gidlist
 				})
 			};
-		}._w(232);
+		}._w(233);
 		rt_ehentai_gallery.parse_response = function (xhr) {
 			var response = Helper.json_parse_safe(xhr.responseText, null),
 				datas, i, ii;
@@ -3329,7 +3345,7 @@
 				}
 			}
 			return "Invalid response";
-		}._w(233);
+		}._w(234);
 
 		rt_ehentai_gallery_page.get_data = function (info) {
 			var data = get_saved_gallery(this.namespace, info[0]);
@@ -3340,9 +3356,9 @@
 				};
 			}
 			return null;
-		}._w(234);
-		rt_ehentai_gallery_page.set_data = function () {
 		}._w(235);
+		rt_ehentai_gallery_page.set_data = function () {
+		}._w(236);
 		rt_ehentai_gallery_page.setup_xhr = function (entries) {
 			var pagelist = [],
 				i, ii;
@@ -3360,7 +3376,7 @@
 					pagelist: pagelist
 				})
 			};
-		}._w(236);
+		}._w(237);
 		rt_ehentai_gallery_page.parse_response = function (xhr) {
 			var response = Helper.json_parse_safe(xhr.responseText, null);
 			if (response !== null) {
@@ -3377,37 +3393,37 @@
 				}
 			}
 			return "Invalid response";
-		}._w(237);
+		}._w(238);
 
 		rt_ehentai_gallery_full.get_data = function (info) {
 			var data = get_saved_gallery(this.namespace, info[0]);
 			return (data !== null && data.token === info[1] && data.full) ? data : null;
-		}._w(238);
+		}._w(239);
 		rt_ehentai_gallery_full.set_data = function (data) {
 			set_saved_gallery(data);
-		}._w(239);
+		}._w(240);
 		rt_ehentai_gallery_full.setup_xhr = function (entries) {
 			var e = entries[0].data;
 			return {
 				method: "GET",
 				url: "http://" + e.domain + "/g/" + e.gid + "/" + e.token + "/" + e.search,
 			};
-		}._w(240);
+		}._w(241);
 		rt_ehentai_gallery_full.parse_response = function (xhr, entries) {
 			var e = entries[0].data;
 			return ehentai_response_process_generic.call(this, xhr, e, this.delay_okay, function (err, html) {
 				return [ err === null ? ehentai_parse_gallery_info(html, e.data) : ehentai_make_removed(e.data) ];
-			}._w(242));
-		}._w(241);
+			}._w(243));
+		}._w(242);
 		rt_ehentai_gallery_full.retry_fn = function (entries) {
 			if (this.retry_data.delay > 0) {
 				var self = this;
-				setTimeout(function () { self.run_entries(entries); }._w(244), this.retry_data.delay);
+				setTimeout(function () { self.run_entries(entries); }._w(245), this.retry_data.delay);
 			}
 			else {
 				this.run_entries(entries);
 			}
-		}._w(243);
+		}._w(244);
 		var ehentai_response_process_generic = function (xhr, e, retry_delay, callback) {
 			var content_type = header_string_parse(xhr.responseHeaders)["content-type"],
 				html;
@@ -3449,14 +3465,14 @@
 				return callback.call(this, "Content warning", null);
 			}
 			return callback.call(this, null, html);
-		}._w(245);
+		}._w(246);
 
 		rt_ehentai_gallery_page_thumb.get_data = function (info) {
 			return get_saved_gallery_thumbnail("ehentai", info.gid, info.page);
-		}._w(246);
+		}._w(247);
 		rt_ehentai_gallery_page_thumb.set_data = function (data, info) {
 			set_saved_gallery_thumbnail("ehentai", info.gid, info.page, data);
-		}._w(247);
+		}._w(248);
 		rt_ehentai_gallery_page_thumb.setup_xhr = rt_ehentai_gallery_full.setup_xhr;
 		rt_ehentai_gallery_page_thumb.parse_response = function (xhr, entries) {
 			var e = entries[0].data,
@@ -3505,7 +3521,8 @@
 													left: parseInt(m[0][2], 10),
 													top: 0,
 													width: parseInt(m[1][1], 10),
-													height: parseInt(m[2][1], 10)
+													height: parseInt(m[2][1], 10),
+													flags: Flags.None
 												} ];
 											}
 										}
@@ -3521,7 +3538,8 @@
 												left: 0,
 												top: 0,
 												width: -1,
-												height: -1
+												height: -1,
+												flags: Flags.None
 											} ];
 										}
 									}
@@ -3541,22 +3559,22 @@
 				}
 
 				return "Thumbnail not found";
-			}._w(249));
-		}._w(248);
+			}._w(250));
+		}._w(249);
 		rt_ehentai_gallery_page_thumb.retry_fn = rt_ehentai_gallery_full.retry_fn;
 
 		rt_ehentai_lookup.error_mode = function () {
 			return RequestData.ErrorMode.None;
-		}._w(250);
+		}._w(251);
 		rt_ehentai_lookup.delay_modify = function (delay, entries) {
 			return (entries[0].data[0] ? delay : 0);
-		}._w(251);
+		}._w(252);
 		rt_ehentai_lookup.get_data = function (info) {
 			return (info[1] === null ? null : lookup_get_results(info[1]));
-		}._w(252);
+		}._w(253);
 		rt_ehentai_lookup.set_data = function (data) {
 			lookup_set_results(data);
-		}._w(253);
+		}._w(254);
 		rt_ehentai_lookup.setup_xhr = function (entries) {
 			var e = entries[0].data;
 			if (e[0]) {
@@ -3586,51 +3604,132 @@
 					url: ehentai_create_lookup_url(e[1])
 				};
 			}
-		}._w(254);
+		}._w(255);
 		rt_ehentai_lookup.parse_response = function (xhr, entries) {
 			var data = entries[0].data;
 			return [ ehentai_parse_lookup_results(xhr, data[0], data[1], data[3], data[4]) ];
-		}._w(255);
+		}._w(256);
 
 		rt_nhentai_gallery.get_data = function (info) {
 			return get_saved_gallery(this.namespace, info[0]);
-		}._w(256);
+		}._w(257);
 		rt_nhentai_gallery.set_data = function (data) {
 			set_saved_gallery(data);
-		}._w(257);
+		}._w(258);
 		rt_nhentai_gallery.setup_xhr = function (entries) {
 			return {
 				method: "GET",
 				url: "http://" + domains.nhentai + "/g/" + entries[0].data[0] + "/",
 			};
-		}._w(258);
+		}._w(259);
 		rt_nhentai_gallery.parse_response = function (xhr) {
 			var html = Helper.html_parse_safe(xhr.responseText, null);
 			if (html !== null) {
 				return [ nhentai_parse_info(html) ];
 			}
 			return "Invalid response";
-		}._w(259);
+		}._w(260);
+
+		rt_nhentai_gallery_page_thumb.get_data = function (info) {
+			return get_saved_gallery_thumbnail("nhentai", info.gid, info.page);
+		}._w(261);
+		rt_nhentai_gallery_page_thumb.set_data = function (data, info) {
+			set_saved_gallery_thumbnail("nhentai", info.gid, info.page, data);
+		}._w(262);
+		rt_nhentai_gallery_page_thumb.setup_xhr = function (entries) {
+			var e = entries[0].data;
+			return {
+				method: "GET",
+				url: "http://" + domains.nhentai + "/g/" + e.gid + "/" + e.page + "/"
+			};
+		}._w(263);
+		rt_nhentai_gallery_page_thumb.parse_response = function (xhr) {
+			var html = Helper.html_parse_safe(xhr.responseText, null),
+				n1, url;
+
+			if (html === null) {
+				return "Invalid response";
+			}
+
+			n1 = $("#image-container img[src]", html);
+			if (n1 !== null) {
+				url = n1.getAttribute("src") || "";
+				url = url.replace(/\/\/i\./i, "//t.");
+				url = url.replace(/\.\w+$/, "t$&");
+				if (/^\/\//.test(url)) url = "http:" + url;
+				return [ {
+					url: url,
+					left: 0,
+					top: 0,
+					width: -1,
+					height: -1,
+					flags: Flags.None
+				} ];
+			}
+
+			return "Thumbnail not found";
+		}._w(264);
 
 		rt_hitomi_gallery.get_data = function (info) {
 			return get_saved_gallery(this.namespace, info[0]);
-		}._w(260);
+		}._w(265);
 		rt_hitomi_gallery.set_data = function (data) {
 			set_saved_gallery(data);
-		}._w(261);
+		}._w(266);
 		rt_hitomi_gallery.setup_xhr = function (entries) {
 			return {
 				method: "GET",
 				url: "https://" + domains.hitomi + "/galleries/" + entries[0].data[0] + ".html",
 			};
-		}._w(262);
+		}._w(267);
 		rt_hitomi_gallery.parse_response = function (xhr) {
 			var html = Helper.html_parse_safe(xhr.responseText, null);
 			if (html !== null) {
 				return [ hitomi_parse_info(html) ];
 			}
 			return "Invalid response";
-		}._w(263);
+		}._w(268);
+
+		rt_hitomi_gallery_page_thumb.get_data = function (info) {
+			return get_saved_gallery_thumbnail("hitomi", info.gid, info.page);
+		}._w(269);
+		rt_hitomi_gallery_page_thumb.set_data = function (data, info) {
+			set_saved_gallery_thumbnail("hitomi", info.gid, info.page, data);
+		}._w(270);
+		rt_hitomi_gallery_page_thumb.setup_xhr = function (entries) {
+			return {
+				method: "GET",
+				url: "http://" + domains.hitomi + "/reader/" + entries[0].data.gid + ".html"
+			};
+		}._w(271);
+		rt_hitomi_gallery_page_thumb.parse_response = function (xhr, entries) {
+			var html = Helper.html_parse_safe(xhr.responseText, null),
+				n1, url;
+
+			if (html === null) {
+				return "Invalid response";
+			}
+
+			n1 = $$(".img-url", html);
+			n1 = n1[entries[0].data.page - 1];
+			if (n1 !== undefined) {
+				url = n1.textContent;
+				url = url.replace(/\/\/g\./i, "//tn.");
+				url = url.replace(/galleries/i, "smalltn");
+				url += ".jpg";
+				if (/^\/\//.test(url)) url = "http:" + url;
+				return [ {
+					url: url,
+					left: 0,
+					top: 0,
+					width: -1,
+					height: -1,
+					flags: Flags.ThumbnailNoLeech
+				} ];
+			}
+
+			return "Thumbnail not found";
+		}._w(272);
 
 
 
@@ -3638,11 +3737,11 @@
 		var get_ehentai_gallery = function (gid, token, callback) {
 			var info = [ gid, token ];
 			return rt_ehentai_gallery.add(info.join("_"), info, callback);
-		}._w(264);
+		}._w(273);
 		var get_ehentai_gallery_page = function (gid, page_token, page, callback) {
 			var info = [ gid, page_token, page ];
 			return rt_ehentai_gallery_page.add("" + gid, info, callback);
-		}._w(265);
+		}._w(274);
 		var get_ehentai_gallery_page_thumb = function (domain, gid, token, page_token, page, callback) {
 			var di = domain_info[domain];
 			domain = (di === undefined) ? domains.exhentai : di.g_domain;
@@ -3655,7 +3754,7 @@
 				page_token: page_token,
 				search: ""
 			}, callback);
-		}._w(266);
+		}._w(275);
 		var get_ehentai_gallery_full = function (domain, data, callback) {
 			var di = domain_info[domain];
 			domain = (di === undefined) ? domains.exhentai : di.g_domain;
@@ -3667,17 +3766,29 @@
 				search: "",
 				data: data
 			}, callback);
-		}._w(267);
+		}._w(276);
 		var get_nhentai_gallery = function (gid, callback) {
 			return rt_nhentai_gallery.add("" + gid, [ gid ], callback);
-		}._w(268);
+		}._w(277);
+		var get_nhentai_gallery_page_thumb = function (gid, page, callback) {
+			rt_nhentai_gallery_page_thumb.add(gid + "-" + page, {
+				gid: gid,
+				page: page
+			}, callback);
+		}._w(278);
 		var get_hitomi_gallery = function (gid, callback) {
 			return rt_hitomi_gallery.add("" + gid, [ gid ], callback);
-		}._w(269);
+		}._w(279);
+		var get_hitomi_gallery_page_thumb = function (gid, page, callback) {
+			rt_hitomi_gallery_page_thumb.add(gid + "-" + page, {
+				gid: gid,
+				page: page
+			}, callback);
+		}._w(280);
 
 		var get_gallery = function (site, gid) {
 			return get_saved_gallery(site, gid);
-		}._w(270);
+		}._w(281);
 		var get_gallery_from_link_info = function (link_info, callback) {
 			if (link_info.site === "ehentai") {
 				if (link_info.type === "gallery") {
@@ -3692,7 +3803,7 @@
 						else {
 							callback.call(null, err, null);
 						}
-					}._w(272));
+					}._w(283));
 					return true;
 				}
 			}
@@ -3710,43 +3821,36 @@
 			}
 
 			return false;
-		}._w(271);
+		}._w(282);
 
-		var get_thumbnail = function (data, callback) {
-			var thumbnail = data.thumbnail,
-				url, cache, gid;
+		var saved_thumbnails = {};
+		var get_thumbnail = function (thumbnail_url, flags, callback) {
+			var url;
 
-			if (thumbnail === null) {
+			if (thumbnail_url === null) {
 				callback.call(null, "No thumbnail", null);
 			}
 
 			// Use direct URL
-			if ((data.flags & API.Flags.ThumbnailNoLeech) === 0 && !config.general.image_leeching_disabled)  {
-				callback.call(null, null, thumbnail);
+			if ((flags & Flags.ThumbnailNoLeech) === 0 && !config.general.image_leeching_disabled)  {
+				callback.call(null, null, thumbnail_url);
 				return;
 			}
 
 			// Cached
-			cache = saved_thumbnails[data.type];
-			if (cache === undefined) {
-				callback.call(null, "Malformed data", null);
-				return;
-			}
-
-			gid = data.gid;
-			url = cache[gid];
+			url = saved_thumbnails[thumbnail_url];
 			if (url !== undefined) {
 				callback.call(null, null, url);
 				return;
 			}
 
 			// Fetch
-			get_image(thumbnail, function (err, data, data_length, mime_type) {
+			get_image(thumbnail_url, function (err, data, data_length, mime_type) {
 				if (err === null) {
 					var img_url = uint8_array_to_url(data.subarray(0, data_length), mime_type);
 
 					if (img_url !== null) {
-						cache[gid] = img_url;
+						saved_thumbnails[thumbnail_url] = img_url;
 						callback.call(null, null, img_url);
 					}
 					else {
@@ -3756,8 +3860,8 @@
 				else {
 					callback.call(null, err, null);
 				}
-			}._w(274));
-		}._w(273);
+			}._w(285));
+		}._w(284);
 
 		var lookup_on_ehentai = function (url, md5, use_similar, callback, progress_callback) {
 			if (use_similar) {
@@ -3784,7 +3888,7 @@
 						else {
 							callback.call(null, err, null);
 						}
-					}._w(276), progress_callback);
+					}._w(287), progress_callback);
 				}
 			}
 			else {
@@ -3799,14 +3903,14 @@
 					else {
 						callback.call(null, err, null);
 					}
-				}._w(277));
+				}._w(288));
 			}
-		}._w(275);
+		}._w(286);
 
 		var init = function () {
 			// Clean
 			cache_init();
-		}._w(278);
+		}._w(289);
 
 
 
@@ -3818,7 +3922,9 @@
 			get_ehentai_gallery_full: get_ehentai_gallery_full,
 			get_ehentai_gallery_page_thumb: get_ehentai_gallery_page_thumb,
 			get_nhentai_gallery: get_nhentai_gallery,
+			get_nhentai_gallery_page_thumb: get_nhentai_gallery_page_thumb,
 			get_hitomi_gallery: get_hitomi_gallery,
+			get_hitomi_gallery_page_thumb: get_hitomi_gallery_page_thumb,
 			get_gallery: get_gallery,
 			get_gallery_from_link_info: get_gallery_from_link_info,
 			get_thumbnail: get_thumbnail,
@@ -3827,7 +3933,7 @@
 			init: init
 		};
 
-	}._w(157))();
+	}._w(158))();
 	var SHA1 = (function () {
 
 		// SHA-1 JS implementation originally created by Chris Verness; http://movable-type.co.uk/scripts/sha1.html
@@ -3839,10 +3945,10 @@
 				case 2: return (x & y) ^ (x & z) ^ (y & z);
 				case 3: return x ^ y ^ z;
 			}
-		}._w(280);
+		}._w(291);
 		var rotl = function (x, n) {
 			return (x << n) | (x >>> (32 - n));
-		}._w(281);
+		}._w(292);
 		var hex = function (str) {
 			var s = "",
 				v, i;
@@ -3851,7 +3957,7 @@
 				s += v.toString(16);
 			}
 			return s;
-		}._w(282);
+		}._w(293);
 
 		// Public
 		var hash = function (data, data_length) {
@@ -3919,14 +4025,14 @@
 			}
 
 			return hex(H0) + hex(H1) + hex(H2) + hex(H3) + hex(H4);
-		}._w(283);
+		}._w(294);
 
 		// Exports
 		return {
 			hash: hash
 		};
 
-	}._w(279))();
+	}._w(290))();
 	var Sauce = (function () {
 
 		// Private
@@ -3951,7 +4057,7 @@
 					hover.classList.add("hl-exsauce-hover-hidden");
 				}
 			}
-		}._w(285);
+		}._w(296);
 		var on_sauce_click_error = function (event) {
 			event.preventDefault();
 
@@ -3965,8 +4071,8 @@
 			setTimeout(function () {
 				Linkifier.change_link_events(link, events);
 				link.click();
-			}._w(287), 1);
-		}._w(286);
+			}._w(298), 1);
+		}._w(297);
 		var on_sauce_mouseover = $.wrap_mouseenterleave_event(function () {
 			var results = Helper.get_exresults_from_exsauce(this),
 				hover, err;
@@ -3982,13 +4088,13 @@
 
 				hover.classList.remove("hl-exsauce-hover-hidden");
 			}
-		}._w(288));
+		}._w(299));
 		var on_sauce_mouseout = $.wrap_mouseenterleave_event(function () {
 			var hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id") || ""];
 			if (hover !== undefined) {
 				hover.classList.add("hl-exsauce-hover-hidden");
 			}
-		}._w(289));
+		}._w(300));
 		var on_sauce_mousemove = function (event) {
 			var hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id") || ""];
 
@@ -4014,7 +4120,7 @@
 
 			hover.style.left = x + "px";
 			hover.style.top = y + "px";
-		}._w(290);
+		}._w(301);
 
 		var create_hover = function (id, data) {
 			var results = data.results,
@@ -4033,7 +4139,7 @@
 			hover_nodes[id] = hover;
 
 			return hover;
-		}._w(291);
+		}._w(302);
 		var format = function (a, data) {
 			var count = data.results.length,
 				theme = Theme.classes,
@@ -4090,7 +4196,7 @@
 
 				Linkifier.change_link_events(a, "exsauce_toggle");
 			}
-		}._w(292);
+		}._w(303);
 		var label = function () {
 			var label = config.sauce.label;
 
@@ -4099,7 +4205,7 @@
 			}
 
 			return label;
-		}._w(293);
+		}._w(304);
 
 		var create_error = function (node, error) {
 			var id = hover_nodes_id,
@@ -4122,7 +4228,7 @@
 
 			// Done
 			return hover;
-		}._w(294);
+		}._w(305);
 		var set_error = function (node, error) {
 			// Create hover
 			create_error(node, error);
@@ -4134,7 +4240,7 @@
 
 			// Events
 			Linkifier.change_link_events(node, "exsauce_error");
-		}._w(295);
+		}._w(306);
 		var remove_error = function (node) {
 			var events = Linkifier.get_link_events(node),
 				id = node.getAttribute("data-hl-sauce-hover-id"),
@@ -4149,7 +4255,7 @@
 				if (hover.parentNode !== null) $.remove(hover);
 				delete hover_nodes[id];
 			}
-		}._w(296);
+		}._w(307);
 
 		var fetch_generic = function (link, use_similar) {
 			var url = link.href,
@@ -4169,7 +4275,7 @@
 					else if (state === "download") {
 						link.textContent = "Checking";
 					}
-				}._w(298);
+				}._w(309);
 			}
 			else {
 				link.textContent = "Downloading";
@@ -4181,7 +4287,7 @@
 					else if (state === "upload") {
 						link.textContent = "Checking";
 					}
-				}._w(299);
+				}._w(310);
 			}
 
 			remove_error(link);
@@ -4193,21 +4299,21 @@
 				else {
 					set_error(link, err);
 				}
-			}._w(300), progress);
-		}._w(297);
+			}._w(311), progress);
+		}._w(308);
 		var fetch = function (event) {
 			event.preventDefault();
 			fetch_generic(this, false);
-		}._w(301);
+		}._w(312);
 		var fetch_similar = function (event) {
 			event.preventDefault();
 			fetch_generic(this, true);
-		}._w(302);
+		}._w(313);
 
 		// Public
 		var find_link = function (container) {
 			return $(".hl-exsauce-link", container);
-		}._w(303);
+		}._w(314);
 		var create_link = function (file_info, index) {
 			var event = "exsauce_fetch",
 				sauce, err;
@@ -4234,7 +4340,7 @@
 			Linkifier.change_link_events(sauce, event);
 
 			return sauce;
-		}._w(304);
+		}._w(315);
 		var init = function () {
 			Linkifier.register_link_events({
 				exsauce_fetch: fetch,
@@ -4252,7 +4358,7 @@
 					mousemove: on_sauce_mousemove
 				},
 			});
-		}._w(305);
+		}._w(316);
 
 		// Exports
 		return {
@@ -4261,14 +4367,15 @@
 			init: init
 		};
 
-	}._w(284))();
+	}._w(295))();
 	var Linkifier = (function () {
 
 		// Private
 		var re_url = /(?:https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)\/[^<>\s\'\"]*/ig,
 			re_url_class_ignore = /(?:\binlined?\b|\bhl-)/,
 			re_fjord = /abortion|bestiality|incest|lolicon|shotacon|toddlercon/,
-			re_protocol = /^https?\:/i;
+			re_protocol = /^https?\:/i,
+			re_deferrer = /^(?:https?:)?\/\/sys\.4chan\.org\/derefer\?url=([\w\W]*)$/i;
 
 		// Linkification
 		var deep_dom_wrap = (function () {
@@ -4278,7 +4385,7 @@
 				this.text_offset = text_offset;
 				this.node = node;
 				this.node_text_length = node.nodeValue.length;
-			}._w(308);
+			}._w(319);
 
 
 
@@ -4539,7 +4646,7 @@
 
 				// Done
 				return count;
-			}._w(309);
+			}._w(320);
 
 
 
@@ -4553,7 +4660,7 @@
 			// Return the function
 			return deep_dom_wrap;
 
-		}._w(307))();
+		}._w(318))();
 
 		var linkify = function (container, results) {
 			deep_dom_wrap(
@@ -4564,7 +4671,7 @@
 					var m = re_url.exec(text);
 					if (m === null) return null;
 					return [ m.index , m.index + m[0].length, m ];
-				}._w(311),
+				}._w(322),
 				function (node) {
 					if (node.tagName === "BR" || node.tagName === "A") {
 						return deep_dom_wrap.EL_TYPE_NO_PARSE | deep_dom_wrap.EL_TYPE_LINE_BREAK;
@@ -4579,7 +4686,7 @@
 						return deep_dom_wrap.EL_TYPE_LINE_BREAK;
 					}
 					return deep_dom_wrap.EL_TYPE_PARSE;
-				}._w(312),
+				}._w(323),
 				function (node, match) {
 					var url = match[2][0];
 					if (!re_protocol.test(url)) url = "http://" + url.replace(/^\/+/, "");
@@ -4587,10 +4694,10 @@
 					node.target = "_blank";
 					node.rel = "noreferrer";
 					results.push(node);
-				}._w(313),
+				}._w(324),
 				false
 			);
-		}._w(310);
+		}._w(321);
 
 		var parse_text_for_urls = function (text) {
 			var urls = [],
@@ -4603,7 +4710,7 @@
 			}
 
 			return urls;
-		}._w(314);
+		}._w(325);
 
 		// Link creation and processing
 		var create_link = function (parent, next, url, text, auto_process) {
@@ -4614,7 +4721,7 @@
 			preprocess_link(link, auto_process);
 
 			return link;
-		}._w(315);
+		}._w(326);
 		var preprocess_link = function (node, auto_load) {
 			var url, info, rewrite, button, par;
 
@@ -4654,7 +4761,7 @@
 
 				if (auto_load) load_link(node, info);
 			}
-		}._w(316);
+		}._w(327);
 		var load_link = function (link, info) {
 			API.get_gallery_from_link_info(info, function (err, data) {
 				if (err === null) {
@@ -4663,8 +4770,8 @@
 				else {
 					format_link_error(link, err);
 				}
-			}._w(318));
-		}._w(317);
+			}._w(329));
+		}._w(328);
 		var format_link = function (link, data) {
 			if (link.parentNode === null) return;
 
@@ -4708,7 +4815,7 @@
 			if (listeners.length > 0) {
 				trigger(listeners, { link: link });
 			}
-		}._w(319);
+		}._w(330);
 		var format_link_error = function (link, error) {
 			var text = " (" + error.trim().replace(/\.$/, "") + ")",
 				button = Helper.get_tag_button_from_link(link),
@@ -4728,7 +4835,7 @@
 			else {
 				n.textContent = text;
 			}
-		}._w(320);
+		}._w(331);
 
 		// Post queue
 		var post_queue = {
@@ -4740,7 +4847,9 @@
 		var queue_posts = function (posts, flags) {
 			if ((flags & queue_posts.Flags.Flush) !== 0) {
 				// Flush
-				parse_posts(post_queue.posts);
+				if ((flags & queue_posts.Flags.FlushNoParse) === 0) {
+					parse_posts(post_queue.posts);
+				}
 				post_queue.posts = [];
 
 				// Clear timer
@@ -4763,11 +4872,12 @@
 					dequeue_posts();
 				}
 			}
-		}._w(321);
+		}._w(332);
 		queue_posts.Flags = {
 			None: 0x0,
 			UseDelay: 0x1,
 			Flush: 0x2,
+			FlushNoParse: 0x4
 		};
 		var dequeue_posts = function () {
 			var posts = post_queue.posts.splice(0, post_queue.group_size);
@@ -4783,7 +4893,7 @@
 				// Timer for next
 				post_queue.timer = setTimeout(dequeue_posts, post_queue.delay);
 			}
-		}._w(322);
+		}._w(333);
 
 		var setup_post_exsauce = function (post) {
 			var index = 0,
@@ -4804,10 +4914,10 @@
 					++index;
 				}
 			}
-		}._w(323);
+		}._w(334);
 		var parse_post = function (post) {
 			var auto_load_links = config.general.automatic_processing,
-				post_body, post_links, links, link, i, ii;
+				post_body, post_links, links, link, url, i, ii;
 
 			// Exsauce
 			if (config.sauce.enabled && !browser.is_opera) {
@@ -4817,9 +4927,12 @@
 			if ((post_body = Post.get_text_body(post)) !== null) {
 				// Content
 				re_url.lastIndex = 0;
-				if (!Config.linkify || re_url.test(post_body.innerHTML)) {
+				if (
+					!Config.linkify ||
+					(post_links = Post.get_body_links(post_body)).length > 0 ||
+					re_url.test(post_body.innerHTML)
+				) {
 					links = [];
-					post_links = Post.get_body_links(post_body);
 					for (i = 0, ii = post_links.length; i < ii; ++i) {
 						link = post_links[i];
 						if (link.classList.contains("hl-site-tag")) {
@@ -4827,11 +4940,16 @@
 						}
 						else {
 							re_url.lastIndex = 0;
-							if (re_url.test(link.href)) {
+							url = link.href;
+							if (link.classList.contains("linkified") && re_deferrer.test(url)) {
+								url = link.textContent.trim();
+							}
+							if (re_url.test(url)) {
 								link.classList.add("hl-linkified");
 								link.classList.add("hl-linkified-gallery");
 								link.target = "_blank";
 								link.rel = "noreferrer";
+								link.href = url;
 								link.setAttribute("data-hl-linkified-status", "unprocessed");
 								links.push(link);
 							}
@@ -4848,7 +4966,7 @@
 				}
 				post.classList.add("hl-post-linkified");
 			}
-		}._w(324);
+		}._w(335);
 		var parse_posts = function (posts) {
 			var post, i, ii;
 
@@ -4866,7 +4984,7 @@
 			}
 
 			Debug.log("Total posts=" + posts.length + "; time=" + Debug.timer("process"));
-		}._w(325);
+		}._w(336);
 
 		// Link events
 		var link_events = {};
@@ -4882,10 +5000,10 @@
 			}
 
 			return count;
-		}._w(326);
+		}._w(337);
 		var get_link_events = function (node) {
 			return node.getAttribute("data-hl-link-events") || null;
-		}._w(327);
+		}._w(338);
 		var set_link_events = function (node, new_events) {
 			var events = link_events[new_events],
 				k;
@@ -4901,7 +5019,7 @@
 					}
 				}
 			}
-		}._w(328);
+		}._w(339);
 		var apply_link_events = function (node, check_children) {
 			var nodes = check_children ? $$("a.hl-link-events", node) : [ node ],
 				events, i, ii;
@@ -4911,7 +5029,7 @@
 				events = node.getAttribute("data-hl-link-events");
 				set_link_events(node, events);
 			}
-		}._w(329);
+		}._w(340);
 		var change_link_events = function (node, new_events) {
 			var old_events = node.getAttribute("data-hl-link-events"),
 				events, k;
@@ -4938,15 +5056,15 @@
 				node.setAttribute("data-hl-link-events", new_events);
 				set_link_events(node, new_events);
 			}
-		}._w(330);
+		}._w(341);
 
 		// Links
 		var get_links = function (parent) {
 			return $$("a.hl-linkified-gallery[href]", parent);
-		}._w(331);
+		}._w(342);
 		var get_links_formatted = function (parent) {
 			return $$("a.hl-linkified-gallery[data-hl-linkified-status=formatted]", parent);
-		}._w(332);
+		}._w(343);
 
 		// Events
 		var event_listeners = {
@@ -4957,7 +5075,7 @@
 			if (!listeners) return false;
 			listeners.push(callback);
 			return true;
-		}._w(333);
+		}._w(344);
 		var off = function (event_name, callback) {
 			var listeners = event_listeners[event_name],
 				i, ii;
@@ -4970,21 +5088,24 @@
 				}
 			}
 			return false;
-		}._w(334);
+		}._w(345);
 		var trigger = function (listeners, data) {
 			var i, ii;
 			for (i = 0, ii = listeners.length; i < ii; ++i) {
 				listeners[i].call(null, data);
 			}
-		}._w(335);
+		}._w(346);
 
 		// Fixing
 		var relinkify_posts = function (posts) {
-			var post, links, i, ii, j, jj;
+			var cls = "hl-post-linkified",
+				post, links, i, ii, j, jj;
 
 			for (i = 0, ii = posts.length; i < ii; ++i) {
 				post = posts[i];
-				post.classList.remove("hl-post-linkified");
+				if (!post.classList.contains(cls)) continue;
+
+				post.classList.remove(cls);
 
 				links = $$(".hl-site-tag", post);
 				for (j = 0, jj = links.length; j < jj; ++j) {
@@ -4997,8 +5118,8 @@
 				}
 			}
 
-			queue_posts(posts, queue_posts.Flags.Flush | queue_posts.Flags.UseDelay);
-		}._w(336);
+			queue_posts(posts, queue_posts.Flags.Flush | queue_posts.Flags.FlushNoParse | queue_posts.Flags.UseDelay);
+		}._w(347);
 		var fix_broken_4chanx_linkification = function (node, event_links) {
 			// Somehow one of the links gets cloned, and then they all get wrapped inside another link
 			var fix = [],
@@ -5033,7 +5154,7 @@
 				link = fix[i];
 				preprocess_link(link, config.general.automatic_processing);
 			}
-		}._w(337);
+		}._w(348);
 
 		// Exports
 		return {
@@ -5052,7 +5173,7 @@
 			off: off
 		};
 
-	}._w(306))();
+	}._w(317))();
 	var Settings = (function () {
 
 		// Private
@@ -5062,13 +5183,13 @@
 
 		var html_options = function () {
 			return '<div class="hl-settings-heading"><div><span class="hl-settings-heading-cell hl-settings-heading-title">General</span> <span class="hl-settings-heading-cell hl-settings-heading-subtitle">Note: you must reload the page after saving for some changes to take effect</span></div></div><div class="hl-settings-group hl-settings-group-general hl-theme"></div><div class="hl-settings-heading"><div><span class="hl-settings-heading-cell hl-settings-heading-title">Gallery Details</span></div></div><div class="hl-settings-group hl-settings-group-details hl-theme"></div><div class="hl-settings-heading"><div><span class="hl-settings-heading-cell hl-settings-heading-title">Gallery Actions</span></div></div><div class="hl-settings-group hl-settings-group-actions hl-theme"></div><div class="hl-settings-heading"><div><span class="hl-settings-heading-cell hl-settings-heading-title">ExSauce</span></div></div><div class="hl-settings-group hl-settings-group-sauce hl-theme"></div><div class="hl-settings-heading"><div><span class="hl-settings-heading-cell hl-settings-heading-title">Filtering</span> <span class="hl-settings-heading-cell hl-settings-heading-subtitle"><a class="hl-settings-filter-guide-toggle">Click here to toggle the guide</a></span></div></div><div class="hl-settings-filter-guide hl-settings-group hl-theme">Lines starting with <code>/</code> will be treated as <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions" target="_blank" rel="noreferrer nofollow">regular expressions</a>. <span style="opacity: 0.75">(This is very similar to 4chan-x style filtering)</span><br>Lines starting with <code>#</code> are comments and will be ignored.<br>Lines starting with neither <code>#</code> nor <code>/</code> will be treated as a case-insensitive string to match anywhere.<br>For example, <code>/touhou/i</code> will highlight entries containing the string `<code>touhou</code>`, case-insensitive.<br><br>The lower a filter appears in this list, the greater its priority will be.<br><br>You can use these additional settings with each regular expression, separating them with semicolons:<br><ul><li><strong>Apply the filter to different scopes:</strong><br><code>tags;</code>, <code>title;</code> or <code>uploader;</code>. By default the scope is <code>title;tags;</code><br></li><li><strong>Force a gallery to not be highlighted:</strong> <span style="opacity: 0.75">If omitted, the gallery will be highlighted as normal</span><br><code>bad:no;</code>, <code>bad:yes;</code>, or just <code>bad;</code></li><li><strong>Only apply the filter to certain categories.</strong><br><code>only:doujinshi,manga;</code>.<div style="font-size: 0.9em; margin-top: 0.1em; opacity: 0.75">Categories: <span>artistcg, asianporn, cosplay, doujinshi, gamecg, imageset, manga, misc, <span style="white-space: nowrap">non-h</span>, private, western</span></div></li><li><strong>Only apply the filter if it <em>is not</em> a certain category:</strong><br><code>not:western,non-h;</code>.</li><li><strong>Apply a colored decoration to the matched text:</strong><br><code>color:red;</code>, <code>underline:#0080f0;</code>, or <code>background:rgba(0,255,0,0.5);</code></li><li><strong>Apply a colored decoration to the [Ex] or [EH] tag:</strong><br><code>link-color:blue;</code>, <code>link-underline:#bf48b5;</code>, or <code>link-background:rgba(220,200,20,0.5);</code></li><li><strong>Apply a colored decoration to <em>BOTH</em> the matched text and tag:</strong><br><code>colors:blue;</code>, <code>underlines:#bf48b5;</code>, or <code>backgrounds:rgba(220,200,20,0.5);</code></li><li><strong>Disable any coloring, including the default:</strong><br><code>no-colors;</code> or <code>nocolor;</code></li></ul>Additionally, some settings have aliases. If multiple are used, only the main one will be used.<br><ul><li><code>tags: tag</code></li><li class="hl-settings-li-no-space"><code>only: category, cat</code></li><li class="hl-settings-li-no-space"><code>not: no</code></li><li><code>colors: cs</code></li><li class="hl-settings-li-no-space"><code>underlines: us</code></li><li class="hl-settings-li-no-space"><code>backgrounds: bgs</code></li><li><code>color: c</code></li><li class="hl-settings-li-no-space"><code>underline: u</code></li><li class="hl-settings-li-no-space"><code>background: bg</code></li><li><code>link-color: link-c, lc</code></li><li class="hl-settings-li-no-space"><code>link-underline: link-u, lu</code></li><li class="hl-settings-li-no-space"><code>link-background: link-bg, lbg</code></li><li><code>no-colors: no-color, nocolors, nocolor</code></li></ul>For easy <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value#Color_keywords" target="_blank" rel="noreferrer nofollow">HTML color</a> selection, you can use the following helper to select a color:<br><br><div><input type="color" value="#808080" class="hl-settings-color-input"><input type="text" value="#808080" class="hl-settings-color-input" readonly="readonly"><input type="text" value="rgba(128,128,128,1)" class="hl-settings-color-input" readonly="readonly"></div></div><div class="hl-settings-group hl-settings-group-filter hl-theme"></div><div class="hl-settings-heading"><div><span class="hl-settings-heading-cell hl-settings-heading-title">Debugging</span></div></div><div class="hl-settings-group hl-settings-group-debug hl-theme"></div>';
-		}._w(339);
+		}._w(350);
 		var create_export_data = function () {
 			return {
 				config: Config.get_saved_settings(),
 				easy_list: EasyList.get_saved_settings()
 			};
-		}._w(340);
+		}._w(351);
 		var import_settings = function (data) {
 			if (data !== null && typeof(data) === "object") {
 				var v = data.config;
@@ -5079,7 +5200,7 @@
 				if (typeof(v) !== "object") v = null;
 				EasyList.set_saved_settings(v);
 			}
-		}._w(341);
+		}._w(352);
 		var gen = function (container, theme, option_type) {
 			var config_scope = config_temp[option_type],
 				entry, table, row, cell, label, input, event,
@@ -5158,7 +5279,7 @@
 
 				$.on(input, event, $.bind(on_change, input, type, option_type, name, ext));
 			}
-		}._w(342);
+		}._w(353);
 
 		var on_change = function (option_type, scope, name, extra, event) {
 			var fn, v;
@@ -5180,7 +5301,7 @@
 			if (extra !== null && (fn = extra.on_change) !== undefined) {
 				fn.call(this, event);
 			}
-		}._w(343);
+		}._w(354);
 		var on_cache_clear_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
@@ -5189,21 +5310,21 @@
 				Debug.log("Cleared cache; entries_removed=" + clears);
 				this.textContent = "Cleared!";
 			}
-		}._w(344);
+		}._w(355);
 		var on_changelog_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				close(event);
 				Changelog.open(null);
 			}
-		}._w(345);
+		}._w(356);
 		var on_export_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				close();
 				open_export();
 			}
-		}._w(346);
+		}._w(357);
 		var on_save_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
@@ -5214,14 +5335,14 @@
 				Config.save();
 				close();
 			}
-		}._w(347);
+		}._w(358);
 		var on_cancel_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 
 				close();
 			}
-		}._w(348);
+		}._w(359);
 		var on_toggle_filter_guide = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
@@ -5234,7 +5355,7 @@
 				}
 				catch (e) {}
 			}
-		}._w(349);
+		}._w(360);
 		var on_color_helper_change = function () {
 			var n = this.nextSibling,
 				m;
@@ -5249,14 +5370,14 @@
 					}
 				}
 			}
-		}._w(350);
+		}._w(361);
 		var on_settings_open_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 
 				open();
 			}
-		}._w(351);
+		}._w(362);
 
 		// Public
 		var ready = function () {
@@ -5265,7 +5386,7 @@
 			var n = $.link(Main.homepage, "hl-nav-link", "H-links Settings");
 			$.on(n, "click", on_settings_open_click);
 			HeaderBar.insert_menu_link(n);
-		}._w(352);
+		}._w(363);
 		var open = function () {
 			var theme = Theme.classes,
 				n;
@@ -5281,7 +5402,7 @@
 					$.add(container, $.link(Main.homepage, "hl-settings-title" + theme, "H-links"));
 					$.add(container, n = $.link(Changelog.url, "hl-settings-version" + theme, Main.version.join(".")));
 					$.on(n, "click", on_changelog_click);
-				}._w(354)
+				}._w(365)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -5304,7 +5425,7 @@
 					$.add(container, n = $.link("#", "hl-settings-button" + theme));
 					$.add(n, $.node("span", "hl-settings-button-text", "Cancel"));
 					$.on(n, "click", on_cancel_click);
-				}._w(355)
+				}._w(366)
 			}], {
 				body: true,
 				setup: function (container) {
@@ -5312,7 +5433,7 @@
 					Theme.apply(n);
 
 					$.add(container, n);
-				}._w(356)
+				}._w(367)
 			}]);
 
 			// Settings
@@ -5340,7 +5461,7 @@
 			// Focus
 			n = $(".hl-popup-cell-size-scroll", popup);
 			if (n !== null) $.scroll_focus(n);
-		}._w(353);
+		}._w(364);
 		var open_export = function () {
 			var theme = Theme.classes,
 				nodes = {
@@ -5358,7 +5479,7 @@
 				setup: function (container) {
 					$.add(container, $.link(Main.homepage, "hl-settings-title" + theme, "H-links"));
 					$.add(container, $.node("span", "hl-settings-title-info" + theme, " - Settings export"));
-				}._w(358)
+				}._w(369)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -5369,7 +5490,7 @@
 						s = "" + s;
 						while (s.length < len) s = "0" + s;
 						return s;
-					}._w(360);
+					}._w(371);
 
 					fn = $.node("input", "hl-settings-file-input");
 					fn.type = "file";
@@ -5386,18 +5507,18 @@
 									nodes.textarea.value = JSON.stringify(d, null, 2);
 									nodes.textarea.classList.add("hl-settings-export-textarea-changed");
 								}
-							}._w(362), false);
+							}._w(373), false);
 							reader.readAsText(files[0]);
 						}
 						this.value = null;
-					}._w(361));
+					}._w(372));
 
 					$.add(container, n = $.link(undefined, "hl-settings-button" + theme));
 					$.add(n, $.node("span", "hl-settings-button-text", "Import"));
 					$.on(n, "click", function (event) {
 						event.preventDefault();
 						fn.click();
-					}._w(363));
+					}._w(374));
 
 					$.add(container, n = $.link(export_url, "hl-settings-button" + theme));
 					n.removeAttribute("target");
@@ -5427,12 +5548,12 @@
 							}
 							nodes.textarea.classList.remove("hl-settings-export-textarea-changed");
 						}
-					}._w(364));
+					}._w(375));
 
 					$.add(container, n = $.link("#", "hl-settings-button" + theme));
 					$.add(n, $.node("span", "hl-settings-button-text", "Cancel"));
 					$.on(n, "click", on_cancel_click);
-				}._w(359)
+				}._w(370)
 			}], {
 				padding: false,
 				setup: function (container) {
@@ -5448,12 +5569,12 @@
 					n3.checked = false;
 					$.on(n3, "change", function () {
 						nodes.textarea.readOnly = !this.checked;
-					}._w(366));
+					}._w(377));
 
 					$.add(n1, $.tnode(")"));
 
 					$.add(container, n1);
-				}._w(365)
+				}._w(376)
 			}, {
 				body: true,
 				padding: false,
@@ -5467,12 +5588,12 @@
 					n.readOnly = true;
 					$.on(n, "input", function () {
 						this.classList.add("hl-settings-export-textarea-changed");
-					}._w(368));
+					}._w(379));
 
 					nodes.textarea = n;
 
 					$.add(container, n);
-				}._w(367)
+				}._w(378)
 			}]);
 			$.on(popup, "click", on_cancel_click);
 
@@ -5482,7 +5603,7 @@
 			// Focus
 			n = $(".hl-settings-export-textarea", popup);
 			if (n !== null) n.focus();
-		}._w(357);
+		}._w(368);
 		var close = function () {
 			config_temp = null;
 			if (popup !== null) {
@@ -5493,7 +5614,7 @@
 				window.URL.revokeObjectURL(export_url);
 				export_url = null;
 			}
-		}._w(369);
+		}._w(380);
 
 		// Exports
 		return {
@@ -5503,7 +5624,7 @@
 			close: close
 		};
 
-	}._w(338))();
+	}._w(349))();
 	var Config = (function () {
 
 		// Private
@@ -5528,25 +5649,25 @@
 			return {
 				getItem: function (key) {
 					return GM_getValue(key, null);
-				}._w(372),
+				}._w(383),
 				setItem: function (key, value) {
 					GM_setValue(key, value);
-				}._w(373),
+				}._w(384),
 				key: function (index) {
 					return GM_listValues()[index];
-				}._w(374),
+				}._w(385),
 				removeItem: function (key) {
 					GM_deleteValue(key);
-				}._w(375),
+				}._w(386),
 				clear: function () {
 					var v = GM_listValues(), i, ii;
 					for (i = 0, ii = v.length; i < ii; ++i) GM_deleteValue(v[i]);
-				}._w(376),
+				}._w(387),
 				get length() {
 					return GM_listValues().length;
 				}
 			};
-		}._w(371))();
+		}._w(382))();
 
 		var init = function () {
 			var update = false,
@@ -5615,7 +5736,7 @@
 
 			// Save changes
 			if (update) save();
-		}._w(377);
+		}._w(388);
 		var ready = function () {
 			var domain = Helper.get_domain(window.location.href);
 
@@ -5655,15 +5776,15 @@
 			}
 
 			return true;
-		}._w(378);
+		}._w(389);
 		var save = function () {
 			config.version = Main.version;
 			storage.setItem(settings_key, JSON.stringify(config));
 			config.version = null;
-		}._w(379);
+		}._w(390);
 		var get_saved_settings = function () {
 			return Helper.json_parse_safe(storage.getItem(settings_key), null);
-		}._w(380);
+		}._w(391);
 		var set_saved_settings = function (data) {
 			if (data === null) {
 				storage.removeItem(settings_key);
@@ -5671,7 +5792,7 @@
 			else {
 				storage.setItem(settings_key, JSON.stringify(data));
 			}
-		}._w(381);
+		}._w(392);
 
 		// Exports
 		var Module = {
@@ -5695,7 +5816,7 @@
 
 		return Module;
 
-	}._w(370))();
+	}._w(381))();
 	var Filter = (function () {
 
 		// Private
@@ -5708,7 +5829,7 @@
 			this.regex = regex;
 			this.flags = flags;
 			this.priority = priority;
-		}._w(383);
+		}._w(394);
 		var FilterFlags = function () {
 			this.title = true;
 			this.tags = true;
@@ -5724,7 +5845,7 @@
 			this.link_color = this.color;
 			this.link_underline = null;
 			this.link_background = null;
-		}._w(384);
+		}._w(395);
 		FilterFlags.scope_fn = function (name) {
 			return function (value, state) {
 				if (!state.scope) {
@@ -5735,8 +5856,8 @@
 				}
 
 				this[name] = (good_values.indexOf(value.trim().toLowerCase()) >= 0);
-			}._w(386);
-		}._w(385);
+			}._w(397);
+		}._w(396);
 		FilterFlags.color_fn = function (fn) {
 			return function (value, state) {
 				if (!state.color) {
@@ -5750,8 +5871,8 @@
 				}
 
 				fn.call(this, value.trim());
-			}._w(388);
-		}._w(387);
+			}._w(399);
+		}._w(398);
 		FilterFlags.names = {
 			"tags": FilterFlags.scope_fn("tags"),
 			"title": FilterFlags.scope_fn("title"),
@@ -5759,47 +5880,47 @@
 
 			"bad": FilterFlags.color_fn(function (value) {
 				this.bad = (good_values.indexOf(value.toLowerCase()) >= 0);
-			}._w(389)),
+			}._w(400)),
 
 			"only": function (value) {
 				this.only = this.split(value);
-			}._w(390),
+			}._w(401),
 			"not": function (value) {
 				this.not = this.split(value);
-			}._w(391),
+			}._w(402),
 
 			"colors": FilterFlags.color_fn(function (value) {
 				this.color = value;
 				this.link_color = value;
-			}._w(392)),
+			}._w(403)),
 			"underlines": FilterFlags.color_fn(function (value) {
 				this.underline = value;
 				this.link_underline = value;
-			}._w(393)),
+			}._w(404)),
 			"backgrounds": FilterFlags.color_fn(function (value) {
 				this.background = value;
 				this.link_background = value;
-			}._w(394)),
+			}._w(405)),
 
 			"color": FilterFlags.color_fn(function (value) {
 				this.color = value;
-			}._w(395)),
+			}._w(406)),
 			"underline": FilterFlags.color_fn(function (value) {
 				this.underline = value;
-			}._w(396)),
+			}._w(407)),
 			"background": FilterFlags.color_fn(function (value) {
 				this.background = value;
-			}._w(397)),
+			}._w(408)),
 
 			"link-color": FilterFlags.color_fn(function (value) {
 				this.link_color = value;
-			}._w(398)),
+			}._w(409)),
 			"link-underline": FilterFlags.color_fn(function (value) {
 				this.link_underline = value;
-			}._w(399)),
+			}._w(410)),
 			"link-background": FilterFlags.color_fn(function (value) {
 				this.link_background = value;
-			}._w(400)),
+			}._w(411)),
 
 			"no-colors": function (value, state) {
 				state.color = true;
@@ -5811,7 +5932,7 @@
 				this.link_color = value;
 				this.link_underline = value;
 				this.link_background = value;
-			}._w(401),
+			}._w(412),
 
 			"tag": "tags",
 
@@ -5861,7 +5982,7 @@
 					fn.call(this, flags_obj[k], state);
 				}
 			}
-		}._w(402);
+		}._w(413);
 		FilterFlags.prototype.split = function (text) {
 			var array, i, ii;
 
@@ -5874,22 +5995,22 @@
 			}
 
 			return array;
-		}._w(403);
+		}._w(414);
 		var Match = function (start, end, filter) {
 			this.start = start;
 			this.end = end;
 			this.filter = filter;
-		}._w(404);
+		}._w(415);
 		var MatchSegment = function (start, end, data) {
 			this.start = start;
 			this.end = end;
 			this.data = data;
-		}._w(405);
+		}._w(416);
 		var MatchInfo = function () {
 			this.matches = [];
 			this.any = false;
 			this.bad = false;
-		}._w(406);
+		}._w(417);
 
 		var create_regex = function (pattern, flags) {
 			if (flags.indexOf("g") < 0) flags += "g";
@@ -5900,7 +6021,7 @@
 			catch (e) {
 				return null;
 			}
-		}._w(407);
+		}._w(418);
 		var create_flags = function (text) {
 			var flaglist = text.split(";"),
 				flags = {},
@@ -5918,7 +6039,7 @@
 			f = new FilterFlags();
 			f.setup(flags);
 			return f;
-		}._w(408);
+		}._w(419);
 		var matches_to_segments = function (text, matches) {
 			var segments = [ new MatchSegment(0, text.length, []) ],
 				hit, m, s, i, ii, j, jj;
@@ -5946,7 +6067,7 @@
 			}
 
 			return segments;
-		}._w(409);
+		}._w(420);
 		var update_segments = function (segments, pos, match, segment) {
 			var data = segment.data.slice(0),
 				s1, s2;
@@ -5984,7 +6105,7 @@
 			}
 
 			return pos;
-		}._w(410);
+		}._w(421);
 		var apply_styles = function (node, styles) {
 			var color = null,
 				background = null,
@@ -6012,7 +6133,7 @@
 			}
 
 			apply_styling(node, color, background, underline);
-		}._w(411);
+		}._w(422);
 		var apply_styling = function (node, color, background, underline) {
 			if (color !== null) {
 				node.style.setProperty("color", color, "important");
@@ -6023,12 +6144,12 @@
 			if (underline !== null) {
 				node.style.setProperty("border-bottom", "0.125em solid " + underline, "important");
 			}
-		}._w(412);
+		}._w(423);
 		var append_match_datas = function (matchinfo, target) {
 			for (var i = 0, ii = matchinfo.matches.length; i < ii; ++i) {
 				target.push(matchinfo.matches[i].filter);
 			}
-		}._w(413);
+		}._w(424);
 		var remove_non_bad = function (list) {
 			for (var i = 0; i < list.length; ) {
 				if (!list[i].bad) {
@@ -6037,7 +6158,7 @@
 				}
 				++i;
 			}
-		}._w(414);
+		}._w(425);
 		var check_multiple = function (type, text, filters, category) {
 			var info = new MatchInfo(),
 				filter, match, i, ii;
@@ -6059,7 +6180,7 @@
 			}
 
 			return info;
-		}._w(415);
+		}._w(426);
 		var check_single = function (text, filter, category) {
 			// return null if no match
 			// return a new Match if a match was found
@@ -6083,7 +6204,7 @@
 			// Text filter
 			m = filter.regex.exec(text);
 			return (m === null) ? null : new Match(m.index, m.index + m[0].length, filter);
-		}._w(416);
+		}._w(427);
 		var hl_return = function (bad, node) {
 			if (bad) {
 				node.classList.add("hl-filter-bad");
@@ -6093,10 +6214,10 @@
 				node.classList.add("hl-filter-good");
 				return Status.Good;
 			}
-		}._w(417);
+		}._w(428);
 		var init_filters = function () {
 			active_filters = config.filter.enabled ? parse(config.filter.filters, 0) : [];
-		}._w(418);
+		}._w(429);
 
 		// Public
 		var parse = function (input, start_priority) {
@@ -6147,7 +6268,7 @@
 			}
 
 			return filters;
-		}._w(419);
+		}._w(430);
 		var highlight = function (type, node, data, input_state, results, extras) {
 			if (active_filters === null) init_filters();
 
@@ -6249,7 +6370,7 @@
 				c[text] = [ info, node ];
 			}
 			return hl_return(bad, node);
-		}._w(420);
+		}._w(431);
 		var highlight_tag = function (node, link, filter_data) {
 			if (filter_data[0] === Status.Bad) {
 				node.classList.add("hl-filter-bad");
@@ -6288,7 +6409,7 @@
 						p3 = p;
 					}
 				}
-			}._w(422);
+			}._w(433);
 
 			get_style(filter_data[1].uploader);
 			get_style(filter_data[1].title);
@@ -6308,7 +6429,7 @@
 				$.add(node, n1);
 				apply_styling(n1, color, background, underline);
 			}
-		}._w(421);
+		}._w(432);
 		var check = function (titlenode, data, extras) {
 			if (active_filters === null) init_filters();
 
@@ -6360,7 +6481,7 @@
 					// Remove dups
 					result.tags = result.tags.filter(function (item, pos, self) {
 						return (self.indexOf(item) === pos);
-					}._w(424));
+					}._w(435));
 				}
 			}
 
@@ -6376,7 +6497,7 @@
 			}
 
 			return [ status , (status === Status.None ? null : result) ];
-		}._w(423);
+		}._w(434);
 
 		// Export
 		return {
@@ -6389,7 +6510,7 @@
 			highlight_tag: highlight_tag
 		};
 
-	}._w(382))();
+	}._w(393))();
 	var Theme = (function () {
 
 		// Private
@@ -6400,7 +6521,7 @@
 			n = n.toString(16);
 			if (n.length < 2) n = "0" + n;
 			return n;
-		}._w(426);
+		}._w(437);
 		var detect = function () {
 			var doc_el = d.documentElement,
 				body = d.body,
@@ -6446,7 +6567,7 @@
 				(color[0] + color[1] + color[2] < 384) ? "dark" : "light",
 				"#" + to_hex2(colors[1][0]) + to_hex2(colors[1][1]) + to_hex2(colors[1][2])
 			];
-		}._w(427);
+		}._w(438);
 		var update = function (change_nodes) {
 			var new_theme = detect();
 			if (new_theme !== null) {
@@ -6462,7 +6583,7 @@
 				return true;
 			}
 			return false;
-		}._w(428);
+		}._w(439);
 		var update_nodes = function (new_theme) {
 			var nodes = $$(".hl-theme"),
 				ii = nodes.length,
@@ -6479,14 +6600,14 @@
 					nodes[i].classList.add(cls);
 				}
 			}
-		}._w(429);
+		}._w(440);
 		var update_nodes_bg = function () {
 			var nodes = $$(".hl-theme-post-bg"),
 				i, ii;
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				nodes[i].style.backgroundColor = post_bg;
 			}
-		}._w(430);
+		}._w(441);
 
 		var on_head_mutate = function (records) {
 			var nodes, node, tag, i, ii, j, jj;
@@ -6513,7 +6634,7 @@
 					}
 				}
 			}
-		}._w(431);
+		}._w(442);
 
 		// Public
 		var ready = function () {
@@ -6522,11 +6643,11 @@
 			if (MutationObserver !== null && d.head) {
 				new MutationObserver(on_head_mutate).observe(d.head, { childList: true });
 			}
-		}._w(432);
+		}._w(443);
 		var bg = function (node) {
 			node.classList.add("hl-theme-post-bg");
 			node.style.backgroundColor = post_bg;
-		}._w(433);
+		}._w(444);
 		var apply = function (node) {
 			if (current !== "light") {
 				var nodes = $$(".hl-theme", node),
@@ -6540,7 +6661,7 @@
 					node.classList.add("hl-theme-dark");
 				}
 			}
-		}._w(434);
+		}._w(445);
 		var get_computed_style = function (node) {
 			try {
 				// Don't use window.getComputedStyle: https://code.google.com/p/chromium/issues/detail?id=538650
@@ -6549,7 +6670,7 @@
 			catch (e) {
 				return node.style || {};
 			}
-		}._w(435);
+		}._w(446);
 		var parse_css_color = function (color) {
 			if (color && color !== "transparent") {
 				var m;
@@ -6582,7 +6703,7 @@
 			}
 
 			return [ 0 , 0 , 0 , 0 ];
-		}._w(436);
+		}._w(447);
 
 		// Exports
 		var Module =  {
@@ -6596,7 +6717,7 @@
 
 		return Module;
 
-	}._w(425))();
+	}._w(436))();
 	var EasyList = (function () {
 
 		var Entry = function (domain, site, gid) {
@@ -6604,7 +6725,7 @@
 			this.namespace = site;
 			this.id = gid;
 			this.node = null;
-		}._w(438);
+		}._w(449);
 
 		// Private
 		var settings_key = "hlinks-easylist-settings",
@@ -6650,7 +6771,7 @@
 
 		var settings_save = function () {
 			Config.storage.setItem(settings_key, JSON.stringify(settings));
-		}._w(439);
+		}._w(450);
 		var settings_load = function () {
 			// Load
 			var value = get_saved_settings(),
@@ -6670,7 +6791,7 @@
 
 			// Load filters
 			load_filters();
-		}._w(440);
+		}._w(451);
 		var create = function () {
 			popup = Popup.create("easylist", function (container) {
 				var theme = Theme.classes,
@@ -6710,13 +6831,13 @@
 				$.add(container, contents[content_current].container);
 
 				content_container = container;
-			}._w(442));
+			}._w(453));
 
 			$.on(popup, "click", on_overlay_click);
 
 			// Setup
 			update_display_mode(true);
-		}._w(441);
+		}._w(452);
 		var create_options = function (theme) {
 			var fn, n1, n2, n3, n4, n5;
 
@@ -6745,7 +6866,7 @@
 				$.on(n2, "change", on_option_change.sort_by);
 
 				return n1;
-			}._w(444);
+			}._w(455);
 			$.add(n4, fn("thread", "Appearance in thread"));
 			$.add(n4, fn("upload", "Upload date"));
 			$.add(n4, fn("rating", "Rating"));
@@ -6769,7 +6890,7 @@
 				$.on(n2, "change", change_fn);
 
 				return n1;
-			}._w(445);
+			}._w(456);
 			$.add(n4, fn(settings.group_by_filters, "Filters", on_option_change.group_by_filters));
 			$.add(n4, fn(settings.group_by_category, "Category", on_option_change.group_by_category));
 
@@ -6795,7 +6916,7 @@
 				$.on(n2, "change", on_option_change.display_mode);
 
 				return n1;
-			}._w(446);
+			}._w(457);
 			$.add(n4, fn(0, "Full"));
 			$.add(n4, fn(1, "Compact"));
 			$.add(n4, fn(2, "Minimal"));
@@ -6822,7 +6943,7 @@
 				$.on(n2, "change", on_option_change.filter_visibility);
 
 				return n1;
-			}._w(447);
+			}._w(458);
 			$.add(n4, fn(0, "Show all"));
 			$.add(n4, fn(1, "Hide bad"));
 			$.add(n4, fn(2, "Only show matches"));
@@ -6861,7 +6982,7 @@
 			$.add(n1, $.node("div", "hl-easylist-title-line"));
 
 			return n1;
-		}._w(443);
+		}._w(454);
 		var create_gallery_nodes = function (data, index, domain) {
 			var url = CreateURL.to_gallery(data, domain),
 				theme = Theme.classes,
@@ -6892,7 +7013,7 @@
 				$.on(n7, "error", on_thumbnail_error);
 				n7.alt = "";
 
-				API.get_thumbnail(data, $.bind(function (err, url) {
+				API.get_thumbnail(data.thumbnail, data.flags, $.bind(function (err, url) {
 					if (err === null) {
 						this.src = url;
 					}
@@ -6903,7 +7024,7 @@
 							par.style.height = "100%";
 						}
 					}
-				}._w(449), n7));
+				}._w(460), n7));
 			}
 			else {
 				n6.style.width = "100%";
@@ -6982,7 +7103,7 @@
 			update_filters(n1, data, true, false);
 
 			return n1;
-		}._w(448);
+		}._w(459);
 		var create_full_tags = function (domain, data, theme) {
 			var n1 = $.node("div", "hl-easylist-item-tag-table" + theme),
 				domain_type = domain_info[domain].type,
@@ -7026,7 +7147,7 @@
 			}
 
 			return [ n1, namespace !== "" ];
-		}._w(450);
+		}._w(461);
 		var add_gallery_update_timer = null;
 		var add_gallery = function (content_index, entry, index, force_reorder) {
 			var data = API.get_gallery(entry.namespace, entry.id),
@@ -7056,14 +7177,14 @@
 						if (add_gallery_update_timer !== null) clearTimeout(add_gallery_update_timer);
 						add_gallery_update_timer = setTimeout(function () {
 							update_ordering();
-						}._w(452), 1);
+						}._w(463), 1);
 					}
 					else {
 						set_empty(contents[content_index].visible === 0);
 					}
 				}
 			}
-		}._w(451);
+		}._w(462);
 		var set_empty = function (empty) {
 			if (empty_notification !== null) {
 				var cls = "hl-easylist-empty-notification-visible";
@@ -7071,10 +7192,10 @@
 					empty_notification.classList.toggle(cls);
 				}
 			}
-		}._w(453);
+		}._w(464);
 		var get_options_visible = function () {
 			return options_container.classList.contains("hl-easylist-options-visible");
-		}._w(454);
+		}._w(465);
 		var set_options_visible = function (visible) {
 			var n = $(".hl-easylist-control-link-options", popup),
 				cl, cls;
@@ -7088,7 +7209,7 @@
 			cl = options_container.classList;
 			cls = "hl-easylist-options-visible";
 			if (cl.contains(cls) !== visible) cl.toggle(cls);
-		}._w(455);
+		}._w(466);
 
 		var get_category_ordering = function () {
 			var cat_order = {},
@@ -7102,25 +7223,25 @@
 			cat_order[""] = i;
 
 			return cat_order;
-		}._w(456);
+		}._w(467);
 		var get_node_filter_group = function (node) {
 			var v = get_node_filters_bad(node);
 			return (v > 0) ? -v : get_node_filters_good(node);
-		}._w(457);
+		}._w(468);
 		var get_node_filters_good = function (node) {
 			return (parseInt(node.getAttribute("data-hl-filter-matches-title"), 10) || 0) +
 				(parseInt(node.getAttribute("data-hl-filter-matches-uploader"), 10) || 0) +
 				(parseInt(node.getAttribute("data-hl-filter-matches-tags"), 10) || 0);
-		}._w(458);
+		}._w(469);
 		var get_node_filters_bad = function (node) {
 			return (parseInt(node.getAttribute("data-hl-filter-matches-title-bad"), 10) || 0) +
 				(parseInt(node.getAttribute("data-hl-filter-matches-uploader-bad"), 10) || 0) +
 				(parseInt(node.getAttribute("data-hl-filter-matches-tags-bad"), 10) || 0);
-		}._w(459);
+		}._w(470);
 		var get_node_category_group = function (node, ordering) {
 			var k = node.getAttribute("data-hl-category") || "";
 			return ordering[k in ordering ? k : ""];
-		}._w(460);
+		}._w(471);
 		var update_display_mode = function (first) {
 			var mode = display_mode_names[settings.display_mode] || "",
 				cl = content_container.classList,
@@ -7133,7 +7254,7 @@
 			}
 
 			cl.add("hl-easylist-" + mode);
-		}._w(461);
+		}._w(472);
 		var update_ordering = function () {
 			var items = [],
 				mode = settings.sort_by,
@@ -7151,13 +7272,13 @@
 					cat_order = get_category_ordering();
 					base_array = function (node) {
 						return [ get_node_category_group(node, cat_order), get_node_filter_group(node) ];
-					}._w(463);
+					}._w(474);
 					ordering = [ 1, -1 ];
 				}
 				else {
 					base_array = function (node) {
 						return [ get_node_filter_group(node) ];
-					}._w(464);
+					}._w(475);
 					ordering = [ -1 ];
 				}
 			}
@@ -7165,11 +7286,11 @@
 				cat_order = get_category_ordering();
 				base_array = function (node) {
 					return [ get_node_category_group(node, cat_order) ];
-				}._w(465);
+				}._w(476);
 				ordering = [ 1 ];
 			}
 			else {
-				base_array = function () { return []; }._w(466);
+				base_array = function () { return []; }._w(477);
 				ordering = [];
 			}
 
@@ -7202,7 +7323,7 @@
 					if (x > y) return ordering[i];
 				}
 				return 0;
-			}._w(467));
+			}._w(478));
 
 			// Re-insert
 			// Maybe eventually add labels
@@ -7236,12 +7357,12 @@
 
 			contents[content_index].visible = current_visible_count;
 			set_empty(current_visible_count === 0);
-		}._w(462);
+		}._w(473);
 		var reset_filter_state = function (node, content_node) {
 			content_node.textContent = node.getAttribute("data-hl-original") || "";
 			node.classList.remove("hl-filter-good");
 			node.classList.remove("hl-filter-bad");
-		}._w(468);
+		}._w(479);
 		var update_filters_targets = [
 			[ ".hl-easylist-item-title-link,.hl-easylist-item-title-jp", "title" ],
 			[ ".hl-easylist-item-uploader", "uploader" ],
@@ -7283,7 +7404,7 @@
 					}
 				}
 			}
-		}._w(469);
+		}._w(480);
 		var update_all_filters = function () {
 			var content_index = content_current,
 				entries = contents[content_index].entries,
@@ -7301,10 +7422,10 @@
 			if (settings.group_by_filters || settings.filter_visibility !== 0) {
 				update_ordering();
 			}
-		}._w(470);
+		}._w(481);
 		var load_filters = function () {
 			custom_filters = Filter.parse(settings.custom_filters, undefined);
-		}._w(471);
+		}._w(482);
 		var add_links = function (links) {
 			var link, id, id_key, entry, i, ii;
 
@@ -7324,7 +7445,7 @@
 			if (queue.length > 0 && queue_timer === null) {
 				on_timer();
 			}
-		}._w(472);
+		}._w(483);
 
 		var set_content_index = function (content_index) {
 			if (content_index === content_current) return;
@@ -7344,7 +7465,7 @@
 				update_all_filters();
 				update_ordering();
 			}
-		}._w(473);
+		}._w(484);
 
 		var enable_custom_links = function (text) {
 			custom_links = [];
@@ -7360,7 +7481,7 @@
 				set_content_index(1);
 				parse_custom_urls(text);
 			}
-		}._w(474);
+		}._w(485);
 		var parse_custom_urls = function (text) {
 			var urls = Linkifier.parse_text_for_urls(text),
 				info, i, ii;
@@ -7371,7 +7492,7 @@
 					parse_custom_url_info(i, info);
 				}
 			}
-		}._w(475);
+		}._w(486);
 		var parse_custom_url_info = function (index, info) {
 			API.get_gallery_from_link_info(info, function (err, data) {
 				if (err === null) {
@@ -7384,35 +7505,35 @@
 						add_gallery(1, entry, index, true);
 					}
 				}
-			}._w(477));
-		}._w(476);
+			}._w(488));
+		}._w(487);
 
 		var on_option_change = {
 			sort_by: function () {
 				settings.sort_by = this.value;
 				settings_save();
 				update_ordering();
-			}._w(478),
+			}._w(489),
 			group_by_category: function () {
 				settings.group_by_category = this.checked;
 				settings_save();
 				update_ordering();
-			}._w(479),
+			}._w(490),
 			group_by_filters: function () {
 				settings.group_by_filters = this.checked;
 				settings_save();
 				update_ordering();
-			}._w(480),
+			}._w(491),
 			display_mode: function () {
 				settings.display_mode = parseInt(this.value, 10) || 0;
 				settings_save();
 				update_display_mode(false);
-			}._w(481),
+			}._w(492),
 			filter_visibility: function () {
 				settings.filter_visibility = parseInt(this.value, 10) || 0;
 				settings_save();
 				update_ordering();
-			}._w(482),
+			}._w(493),
 			custom_filters: function () {
 				if (settings.custom_filters !== this.value) {
 					settings.custom_filters = this.value;
@@ -7420,7 +7541,7 @@
 					load_filters();
 					update_all_filters();
 				}
-			}._w(483),
+			}._w(494),
 			custom_filters_input: function () {
 				var node = this;
 				if (on_option_change.custom_filters_input_delay_timer !== null) {
@@ -7430,17 +7551,17 @@
 					function () {
 						on_option_change.custom_filters_input_delay_timer = null;
 						on_option_change.custom_filters.call(node);
-					}._w(485),
+					}._w(496),
 					1000
 				);
-			}._w(484),
+			}._w(495),
 			custom_filters_input_delay_timer: null,
 			custom_links: function () {
 				var t = this.value.trim();
 				if (t !== custom_links_text) {
 					enable_custom_links(t);
 				}
-			}._w(486),
+			}._w(497),
 			custom_links_input: function () {
 				var node = this;
 				if (on_option_change.custom_links_input_delay_timer !== null) {
@@ -7450,10 +7571,10 @@
 					function () {
 						on_option_change.custom_links_input_delay_timer = null;
 						on_option_change.custom_links.call(node);
-					}._w(488),
+					}._w(499),
 					1000
 				);
-			}._w(487),
+			}._w(498),
 			custom_links_input_delay_timer: null
 		};
 		var on_gallery_mouseover = $.wrap_mouseenterleave_event(function () {
@@ -7481,9 +7602,9 @@
 
 						update_filters(node, data, false, true);
 					}
-				}._w(490));
+				}._w(501));
 			}
-		}._w(489));
+		}._w(500));
 		var on_thumbnail_error = function () {
 			$.off(this, "error", on_thumbnail_error);
 
@@ -7492,10 +7613,10 @@
 			par.style.width = "100%";
 			par.style.height = "100%";
 			this.style.visibility = "hidden";
-		}._w(491);
+		}._w(502);
 		var on_linkify = function (event) {
 			add_links([ event.link ]);
-		}._w(492);
+		}._w(503);
 		var on_timer = function () {
 			queue_timer = null;
 
@@ -7510,7 +7631,7 @@
 			if (queue.length > 0) {
 				queue_timer = setTimeout(on_timer, 50);
 			}
-		}._w(493);
+		}._w(504);
 		var on_open_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				open();
@@ -7518,7 +7639,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(494);
+		}._w(505);
 		var on_close_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				close();
@@ -7526,7 +7647,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(495);
+		}._w(506);
 		var on_toggle_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				if (is_open()) {
@@ -7539,7 +7660,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(496);
+		}._w(507);
 		var on_options_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				set_options_visible(!get_options_visible());
@@ -7547,7 +7668,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(497);
+		}._w(508);
 		var on_overlay_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				close();
@@ -7555,12 +7676,12 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(498);
+		}._w(509);
 
 		// Public
 		var get_saved_settings = function () {
 			return Helper.json_parse_safe(Config.storage.getItem(settings_key), null);
-		}._w(499);
+		}._w(510);
 		var set_saved_settings = function (data) {
 			if (data === null) {
 				Config.storage.removeItem(settings_key);
@@ -7568,7 +7689,7 @@
 			else {
 				Config.storage.setItem(settings_key, JSON.stringify(data));
 			}
-		}._w(500);
+		}._w(511);
 		var ready = function () {
 			Navigation.insert_link("normal", "Easy List", Main.homepage, " hl-nav-link-easylist", on_open_click);
 
@@ -7584,9 +7705,9 @@
 						"M 47.316173,40.278702 c -1.977441,10.244331 -5.318272,21.474541 -5.662805,29.784036 -0.242507,5.848836 2.420726,7.5586 5.348383,2.078223 5.586237,-10.45706 7.896687,-21.139251 10.839979,-32.018641 -1.376342,0.732535 -2.33581,0.805482 -3.567752,1.104816 2.20065,-1.826801 1.797963,-1.259845 4.683397,-4.356147 3.702042,-3.972588 11.505701,-7.842675 15.187296,-4.490869 4.597776,4.185917 3.4537,13.920509 -0.431829,18.735387 -1.301987,5.219157 -3.278232,10.993981 -4.691055,14.211545 1.650129,0.951997 7.1775,2.647886 8.723023,6.808838 1.818473,4.895806 0.447993,8.335081 -3.207776,12.929618 8.781279,-6.214409 9.875004,-12.24852 10.586682,-20.251062 C 85.596887,59.244915 85.615915,54.42819 83.82437,47.181873 82.032825,39.935556 77.484187,30.527275 73.806105,23.780748 70.128023,17.034221 68.465076,12.376515 60.467734,7.5782428 54.534892,4.0186364 44.006601,5.3633006 39.960199,11.716546 c -4.046402,6.353245 -2.052295,11.417199 0.339979,17.673546 -0.06795,1.969646 -1.145015,4.295256 0.105508,5.751383 1.875243,-0.914979 2.772108,-1.957655 4.421995,-2.639606 -0.01451,1.529931 0.320921,4.192236 -1.17535,5.722167 1.758316,1.116252 1.80495,1.414307 3.663842,2.054666 z"
 					);
 					$.add(svg, path);
-				}._w(502)
+				}._w(513)
 			);
-		}._w(501);
+		}._w(512);
 		var open = function () {
 			if (popup === null) {
 				settings_load();
@@ -7598,17 +7719,17 @@
 
 			Popup.open(popup);
 			$.scroll_focus(popup);
-		}._w(503);
+		}._w(514);
 		var close = function () {
 			Popup.close(popup);
 
 			set_options_visible(false);
 
 			Linkifier.off("format", on_linkify);
-		}._w(504);
+		}._w(515);
 		var is_open = function () {
 			return (popup !== null && Popup.is_open(popup));
-		}._w(505);
+		}._w(516);
 
 		// Exports
 		return {
@@ -7620,7 +7741,7 @@
 			is_open: is_open
 		};
 
-	}._w(437))();
+	}._w(448))();
 	var Popup = (function () {
 
 		// Private
@@ -7631,14 +7752,14 @@
 			if ($.is_left_mouse(event)) {
 				event.stopPropagation();
 			}
-		}._w(507);
+		}._w(518);
 		var on_overlay_event = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				event.stopPropagation();
 				return false;
 			}
-		}._w(508);
+		}._w(519);
 
 		// Public
 		var create = function (class_ns, setup) {
@@ -7699,7 +7820,7 @@
 			}
 
 			return n1;
-		}._w(509);
+		}._w(520);
 		var open = function (overlay) {
 			if (active !== null && active.parentNode !== null) {
 				$.remove(active);
@@ -7707,17 +7828,17 @@
 			d.documentElement.classList.add("hl-popup-overlaying");
 			hovering(overlay);
 			active = overlay;
-		}._w(510);
+		}._w(521);
 		var close = function (overlay) {
 			d.documentElement.classList.remove("hl-popup-overlaying");
 			if (overlay.parentNode !== null) {
 				$.remove(overlay);
 			}
 			active = null;
-		}._w(511);
+		}._w(522);
 		var is_open = function (overlay) {
 			return (overlay.parentNode !== null);
-		}._w(512);
+		}._w(523);
 		var hovering = function (node) {
 			if (hovering_container === null) {
 				hovering_container = $.node("div", "hl-hovering-elements");
@@ -7730,7 +7851,7 @@
 				}
 			}
 			$.add(hovering_container, node);
-		}._w(513);
+		}._w(524);
 
 		// Exports
 		return {
@@ -7741,7 +7862,7 @@
 			hovering: hovering
 		};
 
-	}._w(506))();
+	}._w(517))();
 	var Changelog = (function () {
 
 		// Private
@@ -7800,7 +7921,7 @@
 				error: null,
 				log_data: versions
 			};
-		}._w(515);
+		}._w(526);
 		var display = function (container, theme) {
 			var versions, authors, changes,
 				e, n1, n2, n3, n4, n5, i, ii, j, jj, k, kk;
@@ -7840,7 +7961,7 @@
 			}
 
 			$.add(container, n1);
-		}._w(516);
+		}._w(527);
 		var acquire = function (callback) {
 			HttpRequest({
 				method: "GET",
@@ -7852,15 +7973,15 @@
 					else {
 						callback.call(null, "Response error " + xhr.status, null);
 					}
-				}._w(518),
+				}._w(529),
 				onerror: function () {
 					callback.call(null, "Connection error", null);
-				}._w(519),
+				}._w(530),
 				onabort: function () {
 					callback.call(null, "Connection aborted", null);
-				}._w(520)
+				}._w(531)
 			});
-		}._w(517);
+		}._w(528);
 
 		var on_changelog_get = function (err, data) {
 			if (err !== null) {
@@ -7877,17 +7998,17 @@
 					display(n, Theme.classes);
 				}
 			}
-		}._w(521);
+		}._w(532);
 		var on_close_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				close();
 			}
-		}._w(522);
+		}._w(533);
 		var on_change_save = function () {
 			config.general.changelog_on_update = this.checked;
 			Config.save();
-		}._w(523);
+		}._w(534);
 
 		// Public
 		var open = function (message) {
@@ -7910,7 +8031,7 @@
 						}
 					}
 					$.add(container, $.link(Module.url, "hl-settings-version" + cls + theme, Main.version.join(".")));
-				}._w(525)
+				}._w(536)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -7926,25 +8047,25 @@
 					$.add(container, n1 = $.link("#", "hl-settings-button" + theme));
 					$.add(n1, $.node("span", "hl-settings-button-text", "Close"));
 					$.on(n1, "click", on_close_click);
-				}._w(526)
+				}._w(537)
 			}], {
 				body: true,
 				padding: false,
 				setup: function (container) {
 					container.classList.add("hl-changelog-content");
 					display(container, theme);
-				}._w(527)
+				}._w(538)
 			}]);
 
 			$.on(popup, "click", on_close_click);
 			Popup.open(popup);
-		}._w(524);
+		}._w(535);
 		var close = function () {
 			if (popup !== null) {
 				Popup.close(popup);
 				popup = null;
 			}
-		}._w(528);
+		}._w(539);
 
 		// Exports
 		var Module = {
@@ -7955,7 +8076,7 @@
 
 		return Module;
 
-	}._w(514))();
+	}._w(525))();
 	var HeaderBar = (function () {
 
 		// Private
@@ -8013,7 +8134,7 @@
 				}
 				n2.setAttribute("data-hl-color", color);
 			}
-		}._w(530);
+		}._w(541);
 
 		var on_header_bar_detected = function (node) {
 			header_bar = node;
@@ -8038,7 +8159,7 @@
 			if (shortcut_icons.length > 0) {
 				add_svg_icons(shortcut_icons);
 			}
-		}._w(531);
+		}._w(542);
 		var on_icon_mouseover = $.wrap_mouseenterleave_event(function () {
 			var n = $("svg", this),
 				c;
@@ -8051,13 +8172,13 @@
 				}
 				n.style.fill = c;
 			}
-		}._w(532));
+		}._w(543));
 		var on_icon_mouseout = $.wrap_mouseenterleave_event(function () {
 			var n = $("svg", this);
 			if (n !== null) {
 				n.style.fill = this.getAttribute("data-hl-color");
 			}
-		}._w(533));
+		}._w(544));
 		var on_menu_item_mouseover = $.wrap_mouseenterleave_event(function () {
 			var entries = $$(".entry", this.parent),
 				i, ii;
@@ -8065,16 +8186,16 @@
 				entries[i].classList.remove("focused");
 			}
 			this.classList.add("focused");
-		}._w(534));
+		}._w(545));
 		var on_menu_item_mouseout = $.wrap_mouseenterleave_event(function () {
 			this.classList.remove("focused");
-		}._w(535));
+		}._w(546));
 		var on_menu_item_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				d.documentElement.click();
 			}
-		}._w(536);
+		}._w(547);
 		var on_body_observe = function (records) {
 			var nodes, node, i, ii, j, jj;
 
@@ -8090,7 +8211,7 @@
 					}
 				}
 			}
-		}._w(537);
+		}._w(548);
 		var on_header_observe = function (records) {
 			var nodes, node, i, ii, j, jj;
 
@@ -8111,7 +8232,7 @@
 					}
 				}
 			}
-		}._w(538);
+		}._w(549);
 
 		// Public
 		var ready = function () {
@@ -8122,7 +8243,7 @@
 			else {
 				new MutationObserver(on_body_observe).observe(d.body, { childList: true, subtree: false });
 			}
-		}._w(539);
+		}._w(550);
 		var insert_shortcut_icon = function (namespace, title, url, on_click, svg_setup) {
 			var svgns = "http://www.w3.org/2000/svg",
 				n1, svg;
@@ -8142,7 +8263,7 @@
 			shortcut_icons.push(n1);
 
 			if (header_bar !== null) add_svg_icons([ n1 ]);
-		}._w(540);
+		}._w(551);
 		var insert_menu_link = function (menu_node) {
 			menu_node.classList.add("entry");
 			menu_node.style.order = 112;
@@ -8152,7 +8273,7 @@
 			$.on(menu_node, "click", on_menu_item_click);
 
 			menu_nodes.push(menu_node);
-		}._w(541);
+		}._w(552);
 
 		// Exports
 		return {
@@ -8161,7 +8282,7 @@
 			insert_menu_link: insert_menu_link
 		};
 
-	}._w(529))();
+	}._w(540))();
 	var Navigation = (function () {
 
 		// Private
@@ -8343,14 +8464,14 @@
 					}
 				}
 			}
-		}._w(543);
+		}._w(554);
 
 		// Exports
 		return {
 			insert_link: insert_link
 		};
 
-	}._w(542))();
+	}._w(553))();
 	var Main = (function () {
 
 		// Private
@@ -8362,7 +8483,7 @@
 			all_posts_reloaded = true;
 
 			Linkifier.relinkify_posts(Post.get_all_posts(d));
-		}._w(545);
+		}._w(556);
 
 		var on_ready = function () {
 			Debug.timer("init");
@@ -8401,7 +8522,7 @@
 			}
 
 			Debug.timer_log("init.ready.full duration", "init");
-		}._w(546);
+		}._w(557);
 		var on_body_node_add = function (event) {
 			var node = event.target;
 			on_body_observe([{
@@ -8411,7 +8532,7 @@
 				nextSibling: node.nextSibling,
 				previousSibling: node.previousSibling
 			}]);
-		}._w(547);
+		}._w(558);
 		var on_body_node_remove = function (event) {
 			var node = event.target;
 			on_body_observe([{
@@ -8421,7 +8542,7 @@
 				nextSibling: node.nextSibling,
 				previousSibling: node.previousSibling
 			}]);
-		}._w(548);
+		}._w(559);
 		var on_body_observe = function (records) {
 			var post_list = [],
 				reload_all = false,
@@ -8503,7 +8624,7 @@
 			if (reload_all) {
 				reload_all_posts();
 			}
-		}._w(549);
+		}._w(560);
 		var check_removed_nodes = function (nodes) {
 			var node, ns, i, ii, j, jj;
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
@@ -8520,10 +8641,10 @@
 					}
 				}
 			}
-		}._w(550);
+		}._w(561);
 		var is_post_group_container = function (node) {
 			return node.id === "qp" || node.classList.contains("thread") || node.classList.contains("inline");
-		}._w(551);
+		}._w(562);
 
 		// Public
 		var init = function () {
@@ -8540,7 +8661,7 @@
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
 			$.ready(on_ready);
-		}._w(552);
+		}._w(563);
 		var version_compare = function (v1, v2) {
 			// Returns: -1 if v1<v2, 0 if v1==v2, 1 if v1>v2
 			var ii = Math.min(v1.length, v2.length),
@@ -8573,7 +8694,7 @@
 			}
 
 			return 0;
-		}._w(553);
+		}._w(564);
 		var insert_custom_fonts = function () {
 			if (fonts_inserted) return;
 			fonts_inserted = true;
@@ -8585,12 +8706,12 @@
 			font.type = "text/css";
 			font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
 			$.add(d.head, font);
-		}._w(554);
+		}._w(565);
 
 		// Exports
 		var Module = {
 			homepage: "https://dnsev-h.github.io/h-links/",
-			version: [1,1,2,1,0xDB],
+			version: [1,1,3,0xDB],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
@@ -8599,7 +8720,7 @@
 
 		return Module;
 
-	}._w(544))();
+	}._w(555))();
 
 	Main.init();
 	Debug.timer_log("init.full duration", timing.start);

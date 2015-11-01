@@ -1,5 +1,11 @@
 ﻿master
 
+1.1.3
+- dnsev-h
+  + Fixed a bug causing links to stop linkifying when using the 4chan-inline extension
+  + Gallery page thumbnail fetching now follows referrer hiding rules
+  + Added page thumbnail display for nhentai and hitomi galleries
+
 1.1.2.1
 - dnsev-h
   + Added an animation to the gallery page thumbnail to make it appear more smoothly the first time
