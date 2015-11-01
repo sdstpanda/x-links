@@ -440,6 +440,80 @@
 			};
 		};
 
+		var parse_url = function (url) {
+			var ret = {
+					protocol: null,
+					host: null,
+					pathname: null,
+					search: null,
+					hash: null
+				},
+				m = /^[\w\-]+:/.exec(url);
+
+			if (m !== null) {
+				ret.protocol = m[0];
+				m = /^\/{0,2}([^\/\?\#]*)(\/[^\?\#]*)?(\?[^\#]*)?(\#[\w\W]*)?/.exec(url.substr(m.index + m[0].length));
+			}
+			else {
+				m = /^(?:\/\/([^\/\?\#]*))?([^\?\#]+)?(\?[^\#]*)?(\#[\w\W]*)?/.exec(url);
+			}
+
+			if (m !== null) {
+				if (m[1] !== undefined) {
+					ret.host = m[1];
+					ret.pathname = m[2] || "/";
+					ret.search = m[3] || "";
+					ret.hash = m[4] || "";
+				}
+				else if (m[2] !== undefined) {
+					ret.pathname = m[2];
+					ret.search = m[3] || "";
+					ret.hash = m[4] || "";
+				}
+				else if (m[3] !== undefined) {
+					ret.search = m[3];
+					ret.hash = m[4] || "";
+				}
+				else if (m[4] !== undefined) {
+					ret.hash = m[4];
+				}
+			}
+
+			return ret;
+		};
+		Module.resolve = function (url, from) {
+			var url_loc = parse_url(url || ""),
+				from_loc = parse_url(from !== undefined ? from : window.location.href),
+				url_path = url_loc.pathname,
+				from_path = from_loc.pathname;
+
+			if (url_loc.protocol === null) url_loc.protocol = from_loc.protocol;
+			if (url_loc.host === null) url_loc.host = from_loc.host;
+			if (url_loc.search === null) url_loc.search = from_loc.search;
+			if (url_loc.hash === null) url_loc.hash = from_loc.hash;
+
+			if (url_path === null) {
+				url_path = from_path;
+			}
+			else if (from_path !== null) {
+				if (url_path.length === 0) {
+					url_path = from_path;
+				}
+				else if (url_path[0] !== "/") {
+					url_path = from_path.replace(/[^\/]*$/, "") + url_path;
+				}
+			}
+
+			url = "";
+			if (url_loc.protocol !== null) url += url_loc.protocol;
+			if (url_loc.host !== null) url += "//" + url_loc.host;
+			if (url_path !== null) url += url_path;
+			if (url_loc.search !== null) url += url_loc.search;
+			if (url_loc.hash !== null) url += url_loc.hash;
+
+			return url;
+		};
+
 		return Module;
 
 	})();
@@ -2544,7 +2618,7 @@
 		var nhentai_normalize_tag_namespace = function (namespace) {
 			return nhentai_tag_namespaces[namespace] || namespace;
 		};
-		var nhentai_parse_info = function (html) {
+		var nhentai_parse_info = function (html, url) {
 			var info = $("#info", html),
 				data, nodes, tags, tag_ns, tag_ns_list, t, m, n, i, ii, j, jj;
 
@@ -2567,11 +2641,11 @@
 					data.gid = parseInt(m[1], 10);
 				}
 
-				if ((n = $("img", n)) !== null) {
-					data.thumbnail = n.getAttribute("src") || null;
-					if (data.thumbnail !== null && !re_protocol.test(data.thumbnail)) {
-						data.thumbnail = "http:" + data.thumbnail;
-					}
+				if (
+					(n = $("img", n)) !== null &&
+					(t = n.getAttribute("src"))
+				) {
+					data.thumbnail = $.resolve(t, url);
 				}
 			}
 
@@ -2661,7 +2735,7 @@
 		var hitomi_normalize_category = function (category) {
 			return Helper.title_case(category);
 		};
-		var hitomi_parse_info = function (html) {
+		var hitomi_parse_info = function (html, url) {
 			var info = $(".content", html),
 				cellmap = {},
 				re_gender = /\s*(\u2640|\u2642)$/, // \u2640 = female, \u2642 = male
@@ -2690,14 +2764,11 @@
 					data.gid = parseInt(m[1], 10);
 				}
 
-				if ((n = $("img", n)) !== null) {
-					t = n.getAttribute("src") || null;
-					if (t !== null) {
-						if (!re_protocol.test(t)) {
-							t = "https:" + t;
-						}
-						data.thumbnail = t; // no cross origin
-					}
+				if (
+					(n = $("img", n)) !== null &&
+					(t = n.getAttribute("src"))
+				) {
+					data.thumbnail = $.resolve(t, url); // no cross origin
 				}
 			}
 
@@ -3439,7 +3510,7 @@
 											if (m[0] !== null && m[1] !== null && m[2] !== null) {
 												url = m[0][1];
 												return [ {
-													url: url,
+													url: $.resolve(url, xhr.finalUrl),
 													left: parseInt(m[0][2], 10),
 													top: 0,
 													width: parseInt(m[1][1], 10),
@@ -3456,7 +3527,7 @@
 										) {
 											// Full image
 											return [ {
-												url: url,
+												url: $.resolve(url, xhr.finalUrl),
 												left: 0,
 												top: 0,
 												width: -1,
@@ -3547,7 +3618,7 @@
 		rt_nhentai_gallery.parse_response = function (xhr) {
 			var html = Helper.html_parse_safe(xhr.responseText, null);
 			if (html !== null) {
-				return [ nhentai_parse_info(html) ];
+				return [ nhentai_parse_info(html, xhr.finalUrl) ];
 			}
 			return "Invalid response";
 		};
@@ -3578,7 +3649,7 @@
 				url = n1.getAttribute("src") || "";
 				url = url.replace(/\/\/i\./i, "//t.");
 				url = url.replace(/\.\w+$/, "t$&");
-				if (/^\/\//.test(url)) url = "http:" + url;
+				url = $.resolve(url, xhr.finalUrl);
 				return [ {
 					url: url,
 					left: 0,
@@ -3607,7 +3678,7 @@
 		rt_hitomi_gallery.parse_response = function (xhr) {
 			var html = Helper.html_parse_safe(xhr.responseText, null);
 			if (html !== null) {
-				return [ hitomi_parse_info(html) ];
+				return [ hitomi_parse_info(html, xhr.finalUrl) ];
 			}
 			return "Invalid response";
 		};
@@ -3621,7 +3692,7 @@
 		rt_hitomi_gallery_page_thumb.setup_xhr = function (entries) {
 			return {
 				method: "GET",
-				url: "http://" + domains.hitomi + "/reader/" + entries[0].data.gid + ".html"
+				url: "https://" + domains.hitomi + "/reader/" + entries[0].data.gid + ".html"
 			};
 		};
 		rt_hitomi_gallery_page_thumb.parse_response = function (xhr, entries) {
@@ -3639,7 +3710,7 @@
 				url = url.replace(/\/\/g\./i, "//tn.");
 				url = url.replace(/galleries/i, "smalltn");
 				url += ".jpg";
-				if (/^\/\//.test(url)) url = "http:" + url;
+				url = $.resolve(url, xhr.finalUrl);
 				return [ {
 					url: url,
 					left: 0,
