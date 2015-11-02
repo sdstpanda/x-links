@@ -713,28 +713,6 @@
 			catch (e) {}
 			return null;
 		};
-		var get_tag_button_from_link = function (node) {
-			// Assume the button is the previous (or previous-previous) sibling
-			if (
-				(node = node.previousSibling) !== null &&
-				(node.classList || ((node = node.previousSibling) !== null && node.classList)) &&
-				node.classList.contains("hl-site-tag")
-			) {
-				return node;
-			}
-			return null;
-		};
-		var get_link_from_tag_button = function (node) {
-			// Assume the link is the next (or next-next) sibling
-			if (
-				(node = node.nextSibling) !== null &&
-				(node.classList || ((node = node.nextSibling) !== null && node.classList)) &&
-				node.classList.contains("hl-link")
-			) {
-				return node;
-			}
-			return null;
-		};
 		var get_exresults_from_exsauce = function (node) {
 			var container = Post.get_post_container(node);
 
@@ -761,8 +739,6 @@
 			category: category,
 			category_sort_rank: category_sort_rank,
 			get_url_info_from_node: get_url_info_from_node,
-			get_tag_button_from_link: get_tag_button_from_link,
-			get_link_from_tag_button: get_link_from_tag_button,
 			get_exresults_from_exsauce: get_exresults_from_exsauce
 		};
 
@@ -1436,7 +1412,7 @@
 					else {
 						// Create
 						if (
-							(link = Helper.get_link_from_tag_button(this)) !== null &&
+							(link = get_link_from_tag_button(this)) !== null &&
 							(id = get_node_id(link)) !== null &&
 							(data = API.get_gallery(id[0], id[1])) !== null
 						) {
@@ -1470,7 +1446,7 @@
 				Linkifier.change_link_events(this, null);
 
 				if (
-					(link = Helper.get_link_from_tag_button(this)) !== null &&
+					(link = get_link_from_tag_button(this)) !== null &&
 					(info = Helper.get_url_info_from_node(link)) !== null
 				) {
 					Linkifier.load_link(link, info);
@@ -1494,6 +1470,29 @@
 		};
 		var get_node_id_full = function (node) {
 			return node.getAttribute("data-hl-id") || "";
+		};
+
+		var get_tag_button_from_link = function (node) {
+			// Assume the button is the previous (or previous-previous) sibling
+			if (
+				(node = node.previousSibling) !== null &&
+				(node.classList || ((node = node.previousSibling) !== null && node.classList)) &&
+				node.classList.contains("hl-site-tag")
+			) {
+				return node;
+			}
+			return null;
+		};
+		var get_link_from_tag_button = function (node) {
+			// Assume the link is the next (or next-next) sibling
+			if (
+				(node = node.nextSibling) !== null &&
+				(node.classList || ((node = node.nextSibling) !== null && node.classList)) &&
+				node.classList.contains("hl-link")
+			) {
+				return node;
+			}
+			return null;
 		};
 
 		var pad = function (n, sep) {
@@ -2010,7 +2009,7 @@
 			$.before(link.parentNode, link, button);
 		};
 		var format_link = function (link, data) {
-			var button = Helper.get_tag_button_from_link(link),
+			var button = get_tag_button_from_link(link),
 				domain, fjord, ex, hl, c;
 
 			// Smart links
@@ -2047,7 +2046,7 @@
 		};
 		var format_link_error = function (link, error) {
 			var text = " (" + error.trim().replace(/\.$/, "") + ")",
-				button = Helper.get_tag_button_from_link(link),
+				button = get_tag_button_from_link(link),
 				n;
 
 			if (button !== null) {
