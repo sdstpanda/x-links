@@ -210,7 +210,9 @@
 	};
 	var $ = (function () {
 
-		// Inspired by 4chan X and jQuery API: https://api.jquery.com/ (functions are not chainable)
+		var re_short_domain = /^(?:[\w\-]+):\/*(?:[\w-]+\.)*([\w-]+\.[\w]+)/i,
+			re_change_domain = /^([\w\-]+:\/*)([\w\-]+(?:\.[\w\-]+)*)([\w\W]*)$/i;
+
 		var Module = function (selector, root) {
 			return (root || d).querySelector(selector);
 		};
@@ -515,6 +517,34 @@
 			return url;
 		};
 
+		Module.regex_escape = function (text) {
+			return text.replace(/[\$\(\)\*\+\-\.\/\?\[\\\]\^\{\|\}]/g, "\\$&");
+		};
+		Module.json_parse_safe = function (text, def) {
+			try {
+				return JSON.parse(text);
+			}
+			catch (e) {
+				return def;
+			}
+		};
+		Module.html_parse_safe = function (text, def) {
+			try {
+				return (new DOMParser()).parseFromString(text, "text/html");
+			}
+			catch (e) {
+				return def;
+			}
+		};
+		Module.get_domain = function (url) {
+			var m = re_short_domain.exec(url);
+			return (m === null) ? "" : m[1].toLowerCase();
+		};
+		Module.change_url_domain = function (url, new_domain) {
+			var m = re_change_domain.exec(url);
+			return (m === null) ? url : m[1] + new_domain + m[3];
+		};
+
 		return Module;
 
 	})();
@@ -579,51 +609,6 @@
 		};
 
 		return Module;
-
-	})();
-	var Helper = (function () {
-
-		// Private
-		var re_short_domain = /^(?:[\w\-]+):\/*(?:[\w-]+\.)*([\w-]+\.[\w]+)/i,
-			re_change_domain = /^([\w\-]+:\/*)([\w\-]+(?:\.[\w\-]+)*)([\w\W]*)$/i;
-
-		// Public
-		var regex_escape = function (text) {
-			return text.replace(/[\$\(\)\*\+\-\.\/\?\[\\\]\^\{\|\}]/g, "\\$&");
-		};
-		var json_parse_safe = function (text, def) {
-			try {
-				return JSON.parse(text);
-			}
-			catch (e) {
-				return def;
-			}
-		};
-		var html_parse_safe = function (text, def) {
-			try {
-				return (new DOMParser()).parseFromString(text, "text/html");
-			}
-			catch (e) {
-				return def;
-			}
-		};
-		var get_domain = function (url) {
-			var m = re_short_domain.exec(url);
-			return (m === null) ? "" : m[1].toLowerCase();
-		};
-		var change_url_domain = function (url, new_domain) {
-			var m = re_change_domain.exec(url);
-			return (m === null) ? url : m[1] + new_domain + m[3];
-		};
-
-		// Exports
-		return {
-			regex_escape: regex_escape,
-			json_parse_safe: json_parse_safe,
-			html_parse_safe: html_parse_safe,
-			get_domain: get_domain,
-			change_url_domain: change_url_domain
-		};
 
 	})();
 	var Post = (function () {
@@ -1164,7 +1149,7 @@
 				}
 
 				if (details === undefined) {
-					if (!((domain = Helper.get_domain(this.href)) in domain_info)) {
+					if (!((domain = $.get_domain(this.href)) in domain_info)) {
 						return;
 					}
 
@@ -1488,7 +1473,7 @@
 		};
 		var create_actions = function (data, link, index) {
 			var theme = Theme.classes,
-				domain = Helper.get_domain(link.href),
+				domain = $.get_domain(link.href),
 				g_domain = domain_info[domain].g_domain,
 				gid = data.gid,
 				token = data.token,
@@ -1637,7 +1622,7 @@
 
 			// Update domain
 			if ((n = $(".hl-details-title[href]", details)) !== null) {
-				domain = Helper.get_domain(n.href);
+				domain = $.get_domain(n.href);
 			}
 
 			// Update tags
@@ -1896,13 +1881,13 @@
 
 			// Smart links
 			if (config.general.rewrite_links === "smart") {
-				domain = Helper.get_domain(link.href);
+				domain = $.get_domain(link.href);
 				ex = (domain === domains.exhentai);
 				if (ex || domain === domains.ehentai) {
 					fjord = re_fjord.test(data.tags.join(","));
 					if (fjord !== ex) {
 						domain = fjord ? domains.exhentai : domains.ehentai;
-						link.href = Helper.change_url_domain(link.href, domain_info[domain].g_domain);
+						link.href = $.change_url_domain(link.href, domain_info[domain].g_domain);
 						if (button !== null) {
 							button.href = link.href;
 							update_button_text(button, domain);
@@ -2023,7 +2008,7 @@
 			}));
 		};
 		var cache_get = function (key) {
-			var json = Helper.json_parse_safe(cache_storage.getItem(cache_prefix + key), null);
+			var json = $.json_parse_safe(cache_storage.getItem(cache_prefix + key), null);
 
 			if (
 				json !== null &&
@@ -2044,7 +2029,7 @@
 			}));
 		};
 		var cache_get_object = function (object_name) {
-			var json = Helper.json_parse_safe(cache_storage.getItem(cache_prefix + object_name), null),
+			var json = $.json_parse_safe(cache_storage.getItem(cache_prefix + object_name), null),
 				obj, target;
 
 			if (
@@ -2079,7 +2064,7 @@
 		};
 		var cache_cleanup = function () {
 			var storage = cache_storage,
-				re_matcher = new RegExp("^" + Helper.regex_escape(cache_prefix) + "(([en]hentai|hitomi)_gallery)-([^-]+)"),
+				re_matcher = new RegExp("^" + $.regex_escape(cache_prefix) + "(([en]hentai|hitomi)_gallery)-([^-]+)"),
 				removes = [],
 				time = Date.now(),
 				count = 0,
@@ -2088,7 +2073,7 @@
 			for (i = 0, ii = storage.length; i < ii; ++i) {
 				key = storage.key(i);
 				if ((m = re_matcher.exec(key)) !== null) {
-					json = Helper.json_parse_safe(storage.getItem(key), null);
+					json = $.json_parse_safe(storage.getItem(key), null);
 					if (json === null || typeof(json) !== "object" || !(time < json.expires)) { // jshint ignore:line
 						removes.push(key);
 					}
@@ -2104,7 +2089,7 @@
 		};
 		var cache_clear = function () {
 			var storage_types = [ window.localStorage, window.sessionStorage ],
-				re_matcher = new RegExp("^" + Helper.regex_escape(cache_prefix)),
+				re_matcher = new RegExp("^" + $.regex_escape(cache_prefix)),
 				removes = [],
 				count = 0,
 				storage, key, m, i, ii, j, jj;
@@ -2543,7 +2528,7 @@
 					else {
 						Debug.log("An error occured while reverse image searching", xhr);
 						err = "Unknown error";
-						html = Helper.html_parse_safe(text, null);
+						html = $.html_parse_safe(text, null);
 						if (html !== null) {
 							n = $("#iw", html);
 							if (n !== null) err = n.textContent.trim();
@@ -2563,7 +2548,7 @@
 			}
 
 			// Get html
-			html = Helper.html_parse_safe(text, null);
+			html = $.html_parse_safe(text, null);
 
 			// Process
 			results = [];
@@ -3291,7 +3276,7 @@
 			};
 		};
 		rt_ehentai_gallery.parse_response = function (xhr) {
-			var response = Helper.json_parse_safe(xhr.responseText, null),
+			var response = $.json_parse_safe(xhr.responseText, null),
 				datas, i, ii;
 			if (response !== null) {
 				if (typeof(response) === "object") {
@@ -3345,7 +3330,7 @@
 			};
 		};
 		rt_ehentai_gallery_page.parse_response = function (xhr) {
-			var response = Helper.json_parse_safe(xhr.responseText, null);
+			var response = $.json_parse_safe(xhr.responseText, null);
 			if (response !== null) {
 				if (typeof(response) === "object") {
 					if (typeof(response.error) === "string") {
@@ -3409,7 +3394,7 @@
 			}
 
 			// Parse
-			html = Helper.html_parse_safe(xhr.responseText, null);
+			html = $.html_parse_safe(xhr.responseText, null);
 			if (html === null) {
 				return "Invalid response";
 			}
@@ -3590,7 +3575,7 @@
 			};
 		};
 		rt_nhentai_gallery.parse_response = function (xhr) {
-			var html = Helper.html_parse_safe(xhr.responseText, null);
+			var html = $.html_parse_safe(xhr.responseText, null);
 			if (html !== null) {
 				return [ nhentai_parse_info(html, xhr.finalUrl) ];
 			}
@@ -3611,7 +3596,7 @@
 			};
 		};
 		rt_nhentai_gallery_page_thumb.parse_response = function (xhr) {
-			var html = Helper.html_parse_safe(xhr.responseText, null),
+			var html = $.html_parse_safe(xhr.responseText, null),
 				n1, url;
 
 			if (html === null) {
@@ -3650,7 +3635,7 @@
 			};
 		};
 		rt_hitomi_gallery.parse_response = function (xhr) {
-			var html = Helper.html_parse_safe(xhr.responseText, null);
+			var html = $.html_parse_safe(xhr.responseText, null);
 			if (html !== null) {
 				return [ hitomi_parse_info(html, xhr.finalUrl) ];
 			}
@@ -3670,7 +3655,7 @@
 			};
 		};
 		rt_hitomi_gallery_page_thumb.parse_response = function (xhr, entries) {
-			var html = Helper.html_parse_safe(xhr.responseText, null),
+			var html = $.html_parse_safe(xhr.responseText, null),
 				n1, url;
 
 			if (html === null) {
@@ -4219,11 +4204,11 @@
 
 					if (config.sauce.lookup_domain === domains.exhentai) {
 						$.add(n2, $.link(data.url, "hl-exsauce-results-link", "ExHentai"));
-						$.add(n2, $.link(Helper.change_url_domain(data.url, domains.gehentai), "hl-exsauce-results-link", "E-Hentai"));
+						$.add(n2, $.link($.change_url_domain(data.url, domains.gehentai), "hl-exsauce-results-link", "E-Hentai"));
 					}
 					else {
 						$.add(n2,$.link(data.url, "hl-exsauce-results-link", "E-Hentai"));
-						$.add(n2, $.link(Helper.change_url_domain(data.url, domains.exhentai), "hl-exsauce-results-link", "ExHentai"));
+						$.add(n2, $.link($.change_url_domain(data.url, domains.exhentai), "hl-exsauce-results-link", "ExHentai"));
 					}
 
 					$.add(n1, n2 = $.node("div", "hl-exsauce-results-group"));
@@ -4790,7 +4775,7 @@
 					info.domain !== rewrite
 				) {
 					info.domain = rewrite;
-					url = Helper.change_url_domain(url, domain_info[rewrite].g_domain);
+					url = $.change_url_domain(url, domain_info[rewrite].g_domain);
 				}
 			}
 
@@ -5050,7 +5035,7 @@
 			node.setAttribute("data-hl-info", JSON.stringify(info));
 		};
 		var get_node_url_info = function (node) {
-			return Helper.json_parse_safe(node.getAttribute("data-hl-info"), null);
+			return $.json_parse_safe(node.getAttribute("data-hl-info"), null);
 		};
 
 		// Events
@@ -5490,7 +5475,7 @@
 						if (files.length > 0 && /\.json$/i.test(files[0].name)) {
 							reader = new FileReader();
 							reader.addEventListener("load", function () {
-								var d = Helper.json_parse_safe(this.result, null);
+								var d = $.json_parse_safe(this.result, null);
 								if (d !== null) {
 									nodes.textarea.value = JSON.stringify(d, null, 2);
 									nodes.textarea.classList.add("hl-settings-export-textarea-changed");
@@ -5526,7 +5511,7 @@
 					$.on(n, "click", function (event) {
 						if ($.is_left_mouse(event)) {
 							event.preventDefault();
-							var v = Helper.json_parse_safe(nodes.textarea.value, null);
+							var v = $.json_parse_safe(nodes.textarea.value, null);
 							if (v !== null) {
 								nodes.textarea.classList.remove("hl-settings-export-textarea-error");
 								import_settings(v);
@@ -5726,7 +5711,7 @@
 			if (update) save();
 		};
 		var ready = function () {
-			var domain = Helper.get_domain(window.location.href);
+			var domain = $.get_domain(window.location.href);
 
 			if (domain === "4chan.org") {
 				Module.mode = "4chan";
@@ -5771,7 +5756,7 @@
 			config.version = null;
 		};
 		var get_saved_settings = function () {
-			return Helper.json_parse_safe(storage.getItem(settings_key), null);
+			return $.json_parse_safe(storage.getItem(settings_key), null);
 		};
 		var set_saved_settings = function (data) {
 			if (data === null) {
@@ -6248,7 +6233,7 @@
 						regex = line;
 						flags = create_flags("");
 					}
-					regex = new RegExp(Helper.regex_escape(regex), "ig");
+					regex = new RegExp($.regex_escape(regex), "ig");
 
 					filters.push(new Filter(regex, flags, start_priority));
 					++start_priority;
@@ -7651,7 +7636,7 @@
 
 		// Public
 		var get_saved_settings = function () {
-			return Helper.json_parse_safe(Config.storage.getItem(settings_key), null);
+			return $.json_parse_safe(Config.storage.getItem(settings_key), null);
 		};
 		var set_saved_settings = function (data) {
 			if (data === null) {
