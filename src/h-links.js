@@ -24,19 +24,6 @@
 		is_opera: /presto/i.test("" + navigator.userAgent),
 		is_firefox: /firefox/i.test("" + navigator.userAgent)
 	};
-	var categories = {
-		"Artist CG Sets": { "short": "artistcg",  "name": "Artist CG"  },
-		"Asian Porn":     { "short": "asianporn", "name": "Asian Porn" },
-		"Cosplay":        { "short": "cosplay",   "name": "Cosplay"    },
-		"Doujinshi":      { "short": "doujinshi", "name": "Doujinshi"  },
-		"Game CG Sets":   { "short": "gamecg",    "name": "Game CG"    },
-		"Image Sets":     { "short": "imageset",  "name": "Image Set"  },
-		"Manga":          { "short": "manga",     "name": "Manga"      },
-		"Misc":           { "short": "misc",      "name": "Misc"       },
-		"Non-H":          { "short": "non-h",     "name": "Non-H"      },
-		"Private":        { "short": "private",   "name": "Private"    },
-		"Western":        { "short": "western",   "name": "Western"    }
-	};
 	var domains = {
 		exhentai: "exhentai.org",
 		gehentai: "g.e-hentai.org",
@@ -587,6 +574,20 @@
 			re_short_domain = /^(?:[\w\-]+):\/*(?:[\w-]+\.)*([\w-]+\.[\w]+)/i,
 			re_change_domain = /^([\w\-]+:\/*)([\w\-]+(?:\.[\w\-]+)*)([\w\W]*)$/i;
 
+		var categories = {
+			artistcg:  { sort: 0,  short_name: "artistcg",  name: "Artist CG" },
+			asianporn: { sort: 1,  short_name: "asianporn", name: "Asian Porn" },
+			cosplay:   { sort: 2,  short_name: "cosplay",   name: "Cosplay" },
+			doujinshi: { sort: 3,  short_name: "doujinshi", name: "Doujinshi" },
+			gamecg:    { sort: 4,  short_name: "gamecg",    name: "Game CG" },
+			imageset:  { sort: 5,  short_name: "imageset",  name: "Image Set" },
+			manga:     { sort: 6,  short_name: "manga",     name: "Manga" },
+			misc:      { sort: 7,  short_name: "misc",      name: "Misc" },
+			non_h:     { sort: 8,  short_name: "non-h",     name: "Non-H" },
+			"private": { sort: 9,  short_name: "private",   name: "Private" },
+			western:   { sort: 10, short_name: "western",   name: "Western" }
+		};
+
 		// Public
 		var regex_escape = function (text) {
 			return text.replace(/[\$\(\)\*\+\-\.\/\?\[\\\]\^\{\|\}]/g, "\\$&");
@@ -688,7 +689,11 @@
 		};
 		var category = function (name) {
 			var c = categories[name];
-			return (c !== undefined) ? c : categories.Misc;
+			return (c !== undefined) ? c : categories.misc;
+		};
+		var category_sort_rank = function (name) {
+			var c = categories[name];
+			return (c !== undefined) ? c.sort : Object.keys(categories).length;
 		};
 
 		var get_id_from_node = function (node) {
@@ -754,6 +759,7 @@
 			change_url_domain: change_url_domain,
 			title_case: title_case,
 			category: category,
+			category_sort_rank: category_sort_rank,
 			get_id_from_node: get_id_from_node,
 			get_id_from_node_full: get_id_from_node_full,
 			get_info_from_node: get_info_from_node,
@@ -1121,7 +1127,7 @@
 		};
 		var to_category = {
 			ehentai: function (data, domain) {
-				return "http://" + domain_info[domain].g_domain + "/" + Helper.category(data.category).short;
+				return "http://" + domain_info[domain].g_domain + "/" + Helper.category(data.category).short_name;
 			},
 			nhentai: function (data) {
 				return "http://" + domains.nhentai + "/category/" + data.category.toLowerCase() + "/";
@@ -1507,7 +1513,7 @@
 			// Sidebar
 			$.add(content, n1 = $.node("div", "hl-details-side-panel"));
 
-			$.add(n1, n2 = $.node("div", "hl-button hl-button-eh hl-button-" + category.short + theme));
+			$.add(n1, n2 = $.node("div", "hl-button hl-button-eh hl-button-" + category.short_name + theme));
 			$.add(n2, $.node("div", "hl-noise", category.name));
 
 			if (data.rating >= 0) {
@@ -2361,6 +2367,30 @@
 				groups: "group"
 			};
 
+		var ehentai_category_mapping = {
+			"artist cg sets": "artistcg",
+			"asian porn": "asianporn",
+			"cosplay": "cosplay",
+			"doujinshi": "doujinshi",
+			"game cg sets": "gamecg",
+			"image sets": "imageset",
+			"manga": "manga",
+			"misc": "misc",
+			"non-h": "non_h",
+			"private": "private",
+			"western": "western"
+		};
+		var nhentai_category_mapping = {
+			"doujinshi": "doujinshi",
+			"manga": "manga"
+		};
+		var hitomi_category_mapping = {
+			"doujinshi": "doujinshi",
+			"manga": "manga",
+			"artist cg": "artistcg",
+			"game cg": "gamecg"
+		};
+
 		var Flags = {
 			None: 0x0,
 			ThumbnailNoLeech: 0x1
@@ -2374,7 +2404,7 @@
 				title: "",
 				title_jpn: null,
 				uploader: "",
-				category: "",
+				category: "misc",
 				thumbnail: null,
 
 				flags: 0,
@@ -2416,6 +2446,10 @@
 
 			return headers;
 		};
+		var normalize_category = function (mapping, category) {
+			var t = mapping[category.toLowerCase()];
+			return (t !== undefined ? t : "misc");
+		};
 
 		var ehentai_simple_string = function (value, default_value) {
 			return (typeof(value) !== "string" || value.length === 0) ? default_value : value;
@@ -2443,7 +2477,7 @@
 			data.title = ehentai_normalize_string(info.title, "");
 			data.title_jpn = ehentai_normalize_string(info.title_jpn, null);
 			data.uploader = ehentai_normalize_string(info.uploader, null);
-			data.category = ehentai_simple_string(info.category, "");
+			data.category = normalize_category(ehentai_category_mapping, ehentai_simple_string(info.category, ""));
 			data.thumbnail = ehentai_simple_string(info.thumb, null);
 			data.upload_date = (parseInt(info.posted, 10) || 0) * 1000;
 			data.file_count = parseInt(info.filecount, 10) || 0;
@@ -2610,9 +2644,6 @@
 			return url;
 		};
 
-		var nhentai_normalize_category = function (category) {
-			return Helper.title_case(category);
-		};
 		var nhentai_normalize_tag_namespace = function (namespace) {
 			return nhentai_tag_namespaces[namespace] || namespace;
 		};
@@ -2673,7 +2704,7 @@
 							(n = tags[0].firstChild) !== null &&
 							n.nodeType === Node.TEXT_NODE
 						) {
-							data.category = nhentai_normalize_category(n.nodeValue.trim());
+							data.category = normalize_category(nhentai_category_mapping, n.nodeValue.trim());
 						}
 						tags = [];
 					}
@@ -2729,9 +2760,6 @@
 			return data;
 		};
 
-		var hitomi_normalize_category = function (category) {
-			return Helper.title_case(category);
-		};
 		var hitomi_parse_info = function (html, url) {
 			var info = $(".content", html),
 				cellmap = {},
@@ -2849,7 +2877,7 @@
 			if ((n = cellmap.type) !== undefined) {
 				t = n.textContent.trim();
 				if (t.length > 0 && t !== "N/A") {
-					data.category = hitomi_normalize_category(t);
+					data.category = normalize_category(hitomi_category_mapping, t);
 				}
 			}
 
@@ -6264,7 +6292,7 @@
 
 			var no_extras = true,
 				filters = active_filters,
-				category = Helper.category(data.category).short,
+				category = Helper.category(data.category).short_name,
 				info, matches, text, frag, segment, cache_type, bad, c, i, t, n1, n2;
 
 			if (extras && extras.length > 0) {
@@ -6425,7 +6453,7 @@
 
 			var filters = active_filters,
 				status = Status.None,
-				category = Helper.category(data.category).short,
+				category = Helper.category(data.category).short_name,
 				str, tags, result, i, info;
 
 			if (extras && extras.length > 0) {
@@ -6984,7 +7012,7 @@
 			if (data.token !== null) n1.setAttribute("data-hl-token", data.token);
 			n1.setAttribute("data-hl-rating", data.rating);
 			n1.setAttribute("data-hl-date-uploaded", data.upload_date);
-			n1.setAttribute("data-hl-category", data.category.toLowerCase());
+			n1.setAttribute("data-hl-category", data.category);
 			n1.setAttribute("data-hl-domain", domain);
 
 			$.add(n1, n2 = $.node("div", "hl-easylist-item-table-container" + theme));
@@ -7064,7 +7092,7 @@
 			$.add(n4, n5 = $.node("div", "hl-easylist-item-info" + theme));
 
 			$.add(n5, n6 = $.link(CreateURL.to_category(data, domain),
-				"hl-easylist-item-info-button hl-button hl-button-eh hl-button-" + Helper.category(data.category).short + theme
+				"hl-easylist-item-info-button hl-button hl-button-eh hl-button-" + Helper.category(data.category).short_name + theme
 			));
 			$.add(n6, $.node("div", "hl-noise", Helper.category(data.category).name));
 
@@ -7201,19 +7229,6 @@
 			if (cl.contains(cls) !== visible) cl.toggle(cls);
 		};
 
-		var get_category_ordering = function () {
-			var cat_order = {},
-				i = 0,
-				k;
-
-			for (k in categories) {
-				cat_order[categories[k].short] = i;
-				++i;
-			}
-			cat_order[""] = i;
-
-			return cat_order;
-		};
 		var get_node_filter_group = function (node) {
 			var v = get_node_filters_bad(node);
 			return (v > 0) ? -v : get_node_filters_good(node);
@@ -7228,9 +7243,8 @@
 				(parseInt(node.getAttribute("data-hl-filter-matches-uploader-bad"), 10) || 0) +
 				(parseInt(node.getAttribute("data-hl-filter-matches-tags-bad"), 10) || 0);
 		};
-		var get_node_category_group = function (node, ordering) {
-			var k = node.getAttribute("data-hl-category") || "";
-			return ordering[k in ordering ? k : ""];
+		var get_node_category_group = function (node) {
+			return Helper.category_sort_rank(node.getAttribute("data-hl-category"));
 		};
 		var update_display_mode = function (first) {
 			var mode = display_mode_names[settings.display_mode] || "",
@@ -7254,14 +7268,13 @@
 				entries = contents[content_index].entries,
 				items_container = contents[content_index].container,
 				current_visible_count = 0,
-				ordering, base_array, item, attr, cat_order, n, n2, i, ii;
+				ordering, base_array, item, attr, n, n2, i, ii;
 
 			// Grouping
 			if (settings.group_by_filters) {
 				if (settings.group_by_category) {
-					cat_order = get_category_ordering();
 					base_array = function (node) {
-						return [ get_node_category_group(node, cat_order), get_node_filter_group(node) ];
+						return [ get_node_category_group(node), get_node_filter_group(node) ];
 					};
 					ordering = [ 1, -1 ];
 				}
@@ -7273,9 +7286,8 @@
 				}
 			}
 			else if (settings.group_by_category) {
-				cat_order = get_category_ordering();
 				base_array = function (node) {
-					return [ get_node_category_group(node, cat_order) ];
+					return [ get_node_category_group(node) ];
 				};
 				ordering = [ 1 ];
 			}
