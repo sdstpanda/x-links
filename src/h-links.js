@@ -713,7 +713,7 @@
 		var get_id_from_node_full = function (node) {
 			return node.getAttribute("data-hl-id") || "";
 		};
-		var get_info_from_node = function (node) {
+		var get_url_info_from_node = function (node) {
 			var attr = node.getAttribute("data-hl-info");
 			try {
 				return JSON.parse(attr);
@@ -770,7 +770,7 @@
 			category_sort_rank: category_sort_rank,
 			get_id_from_node: get_id_from_node,
 			get_id_from_node_full: get_id_from_node_full,
-			get_info_from_node: get_info_from_node,
+			get_url_info_from_node: get_url_info_from_node,
 			get_tag_button_from_link: get_tag_button_from_link,
 			get_link_from_tag_button: get_link_from_tag_button,
 			get_exresults_from_exsauce: get_exresults_from_exsauce
@@ -1307,7 +1307,7 @@
 					info, data, domain, thumb_state, thumb_cb;
 
 				if (
-					(info = Helper.get_info_from_node(this)) === null ||
+					(info = Helper.get_url_info_from_node(this)) === null ||
 					(data = API.get_gallery(info.site, info.gid)) === null
 				) {
 					return;
@@ -1480,7 +1480,7 @@
 
 				if (
 					(link = Helper.get_link_from_tag_button(this)) !== null &&
-					(info = Helper.get_info_from_node(link)) !== null
+					(info = Helper.get_url_info_from_node(link)) !== null
 				) {
 					Linkifier.load_link(link, info);
 				}
@@ -7406,7 +7406,7 @@
 			var info, key, entry, i, ii;
 
 			for (i = 0, ii = links.length; i < ii; ++i) {
-				info = Helper.get_info_from_node(links[i]);
+				info = Helper.get_url_info_from_node(links[i]);
 				if (info !== null) {
 					key = info.site + "_" + info.gid;
 					if (data_map[key] === undefined) {
