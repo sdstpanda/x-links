@@ -50,7 +50,7 @@
 			],
 			[ "external_resources", true,
 				"Allow external resources", "Enable the usage of web-fonts provided by Google servers",
-				"Use Extenral Resources"
+				"Use Extenral Resources" // [sic]
 			],
 			[ "image_leeching_disabled", false,
 				"Hide referrer for thumbnails", "Thumbnails fetching should not send referrer information",
@@ -70,14 +70,28 @@
 				}
 			],
 		],
+		sites: [
+			[ "ehentai", true,
+				"e*hentai.org", "Enable link processing for E-Hentai and ExHentai",
+				null
+			],
+			[ "ehentai_ext", true,
+				"e*hentai.org extended", "Fetch complete gallery info for E*Hentai, including tag namespaces",
+				"Extended Info"
+			],
+			[ "nhentai", true,
+				"nhentai.net", "Enable link processing for nhentai.net",
+				null
+			],
+			[ "hitomi", true,
+				"hitomi.la", "Enable link processing for hitomi.la",
+				null
+			],
+		],
 		details: [
 			[ "enabled", true,
 				"Enabled", "Show details for gallery links on hover",
 				"Gallery Details"
-			],
-			[ "extended_info", true,
-				"Extended info", "Fetch complete gallery info for E*Hentai, including tag namespaces",
-				"Extended Info"
 			],
 			[ "hover_position", -0.25,
 				"Hovering position", "Change the horizontal offset of the gallery details from the cursor",
@@ -728,7 +742,7 @@
 			if (
 				(node = node.nextSibling) !== null &&
 				(node.classList || ((node = node.nextSibling) !== null && node.classList)) &&
-				node.classList.contains("hl-linkified-gallery")
+				node.classList.contains("hl-linkified")
 			) {
 				return node;
 			}
@@ -1576,7 +1590,7 @@
 			$.add(content, $.node("div", "hl-details-clear"));
 
 			// Full info
-			if (config.details.extended_info && data.type === "ehentai" && !data.full) {
+			if (data.type === "ehentai" && config.sites.ehentai_ext && !data.full) {
 				API.get_ehentai_gallery_full(domain, data, function (err, data) {
 					if (err === null) {
 						update_full(data);
@@ -4667,7 +4681,7 @@
 
 		})();
 
-		var linkify = function (container, results) {
+		var linkify = function (container, result_nodes, result_urls) {
 			deep_dom_wrap(
 				container,
 				"a",
@@ -4695,10 +4709,8 @@
 				function (node, match) {
 					var url = match[2][0];
 					if (!re_protocol.test(url)) url = "http://" + url.replace(/^\/+/, "");
-					node.href = url;
-					node.target = "_blank";
-					node.rel = "noreferrer";
-					results.push(node);
+					result_nodes.push(node);
+					result_urls.push(url);
 				},
 				false
 			);
@@ -4719,53 +4731,54 @@
 
 		// Link creation and processing
 		var create_link = function (parent, next, url, text, auto_process) {
-			var link = $.link(url, "hl-linkified", text);
+			var link = $.link(url, "hl-created-link", text);
 
 			$.before(parent, next, link);
 
-			preprocess_link(link, auto_process);
+			preprocess_link(link, url, auto_process);
 
 			return link;
 		};
-		var preprocess_link = function (node, auto_load) {
-			var url, info, rewrite, button, par;
+		var preprocess_link = function (node, url, auto_load) {
+			var info, rewrite, button, par;
 
 			if (
 				(par = node.parentNode) === null ||
-				(info = Helper.get_url_info((url = node.href))) === null
+				(info = Helper.get_url_info(url)) === null ||
+				!config.sites[info.site]
 			) {
-				node.classList.remove("hl-linkified-gallery");
-				node.removeAttribute("data-hl-linkified-status");
+				return;
 			}
-			else {
-				if (info.site === "ehentai") {
-					rewrite = config.general.rewrite_links;
-					if (
-						(rewrite === domains.exhentai || rewrite === domains.ehentai) &&
-						info.domain !== rewrite
-					) {
-						info.domain = rewrite;
-						url = Helper.change_url_domain(url, domain_info[rewrite].g_domain);
-						node.href = url;
-					}
+
+			if (info.site === "ehentai") {
+				rewrite = config.general.rewrite_links;
+				if (
+					(rewrite === domains.exhentai || rewrite === domains.ehentai) &&
+					info.domain !== rewrite
+				) {
+					info.domain = rewrite;
+					url = Helper.change_url_domain(url, domain_info[rewrite].g_domain);
 				}
-
-				node.classList.add("hl-linkified");
-				node.classList.add("hl-linkified-gallery");
-				node.setAttribute("data-hl-linkified-status", "processed");
-
-				node.setAttribute("data-hl-info", JSON.stringify(info));
-				node.setAttribute("data-hl-id", info.site + "_" + info.gid);
-
-				button = UI.button(url, info.domain);
-
-				change_link_events(node, "gallery_link");
-				change_link_events(button, "gallery_fetch");
-
-				$.before(par, node, button);
-
-				if (auto_load) load_link(node, info);
 			}
+
+			node.href = url;
+			node.target = "_blank";
+			node.rel = "noreferrer";
+
+			node.classList.add("hl-linkified");
+			node.setAttribute("data-hl-linkified-status", "processed");
+
+			node.setAttribute("data-hl-info", JSON.stringify(info));
+			node.setAttribute("data-hl-id", info.site + "_" + info.gid);
+
+			button = UI.button(url, info.domain);
+
+			change_link_events(node, "gallery_link");
+			change_link_events(button, "gallery_fetch");
+
+			$.before(par, node, button);
+
+			if (auto_load) load_link(node, info);
 		};
 		var load_link = function (link, info) {
 			API.get_gallery_from_link_info(info, function (err, data) {
@@ -4922,7 +4935,7 @@
 		};
 		var parse_post = function (post) {
 			var auto_load_links = config.general.automatic_processing,
-				post_body, post_links, links, link, url, i, ii;
+				post_body, post_links, link_nodes, link_urls, link, url, i, ii;
 
 			// Exsauce
 			if (config.sauce.enabled && !browser.is_opera) {
@@ -4938,7 +4951,8 @@
 					post_links.length > 0 ||
 					re_url.test(post_body.innerHTML)
 				) {
-					links = [];
+					link_nodes = [];
+					link_urls = [];
 					for (i = 0, ii = post_links.length; i < ii; ++i) {
 						link = post_links[i];
 						if (link.classList.contains("hl-site-tag")) {
@@ -4951,23 +4965,18 @@
 								url = link.textContent.trim();
 							}
 							if (re_url.test(url)) {
-								link.classList.add("hl-linkified");
-								link.classList.add("hl-linkified-gallery");
-								link.target = "_blank";
-								link.rel = "noreferrer";
-								link.href = url;
-								link.setAttribute("data-hl-linkified-status", "unprocessed");
-								links.push(link);
+								link_nodes.push(link);
+								link_urls.push(url);
 							}
 						}
 					}
 
 					if (Config.linkify) {
-						linkify(post_body, links);
+						linkify(post_body, link_nodes, link_urls);
 					}
 
-					for (i = 0, ii = links.length; i < ii; ++i) {
-						preprocess_link(links[i], auto_load_links);
+					for (i = 0, ii = link_nodes.length; i < ii; ++i) {
+						preprocess_link(link_nodes[i], link_urls[i], auto_load_links);
 					}
 				}
 				post.classList.add("hl-post-linkified");
@@ -5066,10 +5075,10 @@
 
 		// Links
 		var get_links = function (parent) {
-			return $$("a.hl-linkified-gallery[href]", parent);
+			return $$("a.hl-linkified[href]", parent);
 		};
 		var get_links_formatted = function (parent) {
-			return $$("a.hl-linkified-gallery[data-hl-linkified-status=formatted]", parent);
+			return $$("a.hl-linkified[data-hl-linkified-status=formatted]", parent);
 		};
 
 		// Events
@@ -5158,7 +5167,7 @@
 
 			for (i = 0, ii = fix.length; i < ii; i += 2) {
 				link = fix[i];
-				preprocess_link(link, config.general.automatic_processing);
+				preprocess_link(link, link.href || "", config.general.automatic_processing);
 			}
 		};
 
@@ -5444,6 +5453,7 @@
 
 			// Settings
 			gen($(".hl-settings-group-general", popup), theme, "general");
+			gen($(".hl-settings-group-sites", popup), theme, "sites");
 			gen($(".hl-settings-group-details", popup), theme, "details");
 			gen($(".hl-settings-group-actions", popup), theme, "actions");
 			gen($(".hl-settings-group-sauce", popup), theme, "sauce");

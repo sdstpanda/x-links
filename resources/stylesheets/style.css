@@ -642,7 +642,7 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 /* Filtering */
 .hl-tag.hl-filter-good,
 .hl-site-tag.hl-filter-good,
-.hl-linkified-gallery.hl-filter-good,
+.hl-linkified.hl-filter-good,
 .hl-details-uploader.hl-filter-good,
 .hl-actions-uploader.hl-filter-good {
 	font-weight: bold;
