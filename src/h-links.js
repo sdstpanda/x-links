@@ -1570,7 +1570,7 @@
 			$.add(n1, $.node("strong", "hl-details-tag-block-label", "Tags:"));
 			$.add(n1, n2 = $.node("span", "hl-details-tags hl-tags"));
 			n2.setAttribute("data-hl-id", data.type + "_" + data.gid);
-			$.add(n2, create_tags_best(g_domain, data));
+			$.add(n2, create_tags(g_domain, data));
 
 			// End
 			$.add(content, $.node("div", "hl-details-clear"));
@@ -1665,78 +1665,67 @@
 		var create_tags = function (site, data) {
 			var tagfrag = d.createDocumentFragment(),
 				domain = data.type,
-				tags = data.tags,
-				theme = Theme.classes,
-				last = null,
-				tag, link, i, ii;
-
-			for (i = 0, ii = tags.length; i < ii; ++i) {
-				tag = $.node("span", "hl-tag-block" + theme);
-				link = $.link(CreateURL.to_tag(tags[i], domain, site), "hl-tag", tags[i]);
-
-				Filter.highlight("tags", link, data, Filter.None);
-
-				$.add(tag, link);
-				$.add(tag, last = $.tnode(","));
-				$.add(tagfrag, tag);
-			}
-			if (last !== null) $.remove(last);
-
-			return tagfrag;
-		};
-		var create_tags_full = function (site, data) {
-			var tagfrag = d.createDocumentFragment(),
-				domain = data.type,
 				tags_ns = data.tags_ns,
 				theme = Theme.classes,
 				tag = null,
+				last = null,
 				namespace, namespace_style, tags, link, tf, i, ii;
 
-			for (namespace in tags_ns) {
-				tags = tags_ns[namespace];
-				ii = tags.length;
-				if (ii === 0) continue;
-				namespace_style = theme + " hl-tag-namespace-" + namespace.replace(/\s+/g, "-");
-
-				tag = $.node("span", "hl-tag-namespace-block" + namespace_style);
-				link = $.node("span", "hl-tag-namespace", namespace);
-				tf = $.node("span", "hl-tag-namespace-first");
-				$.add(tag, link);
-				$.add(tag, $.tnode(":"));
-				$.add(tf, tag);
-				$.add(tagfrag, tf);
-
-				for (i = 0; i < ii; ++i) {
-					tag = $.node("span", "hl-tag-block" + namespace_style);
-					link = $.link(CreateURL.to_tag_ns(tags[i], namespace, domain, site), "hl-tag", tags[i]);
+			if (tags_ns === null) {
+				// Non-namespaced tags
+				tags = data.tags;
+				for (i = 0, ii = tags.length; i < ii; ++i) {
+					tag = $.node("span", "hl-tag-block" + theme);
+					link = $.link(CreateURL.to_tag(tags[i], domain, site), "hl-tag", tags[i]);
 
 					Filter.highlight("tags", link, data, Filter.None);
 
 					$.add(tag, link);
-					if (i < ii - 1) {
-						$.add(tag, $.tnode(","));
-					}
-					else {
-						tag.classList.add("hl-tag-block-last-of-namespace");
-					}
-					$.add(tf, tag);
-					tf = tagfrag;
+					$.add(tag, last = $.tnode(","));
+					$.add(tagfrag, tag);
 				}
+				if (last !== null) $.remove(last);
 			}
+			else {
+				// Namespaced tags
+				for (namespace in tags_ns) {
+					tags = tags_ns[namespace];
+					ii = tags.length;
+					if (ii === 0) continue;
+					namespace_style = theme + " hl-tag-namespace-" + namespace.replace(/\s+/g, "-");
 
-			if (tag !== null) {
-				tag.classList.add("hl-tag-block-last");
+					tag = $.node("span", "hl-tag-namespace-block" + namespace_style);
+					link = $.node("span", "hl-tag-namespace", namespace);
+					tf = $.node("span", "hl-tag-namespace-first");
+					$.add(tag, link);
+					$.add(tag, $.tnode(":"));
+					$.add(tf, tag);
+					$.add(tagfrag, tf);
+
+					for (i = 0; i < ii; ++i) {
+						tag = $.node("span", "hl-tag-block" + namespace_style);
+						link = $.link(CreateURL.to_tag_ns(tags[i], namespace, domain, site), "hl-tag", tags[i]);
+
+						Filter.highlight("tags", link, data, Filter.None);
+
+						$.add(tag, link);
+						if (i < ii - 1) {
+							$.add(tag, $.tnode(","));
+						}
+						else {
+							tag.classList.add("hl-tag-block-last-of-namespace");
+						}
+						$.add(tf, tag);
+						tf = tagfrag;
+					}
+				}
+
+				if (tag !== null) {
+					tag.classList.add("hl-tag-block-last");
+				}
 			}
 
 			return tagfrag;
-		};
-		var create_tags_best = function (site, data) {
-			if (data.full) {
-				for (var k in data.tags_ns) {
-					return create_tags_full(site, data);
-				}
-			}
-			return create_tags(site, data);
 		};
 		var update_full = function (data) {
 			var domain = domains.exhentai,
@@ -1757,9 +1746,9 @@
 			nodes = $$(".hl-tags[data-hl-id='" + full_id + "']");
 			ii = nodes.length;
 
-			if (ii === 0 || Object.keys(data.tags_ns).length === 0) return;
+			if (ii === 0 || data.tags_ns === null) return;
 
-			tagfrag = create_tags_full(domain, data);
+			tagfrag = create_tags(domain, data);
 
 			i = 0;
 			while (true) {
@@ -2555,9 +2544,9 @@
 				}
 			}
 
-			data.tags_ns = tags;
 			if (tags_array.length > 0) {
 				data.tags = tags_array;
+				data.tags_ns = tags;
 			}
 
 			// Done
@@ -2566,7 +2555,6 @@
 		};
 		var ehentai_make_removed = function (data) {
 			data.removed = true;
-			data.tags_ns = {};
 			data.full = true;
 			return data;
 		};
@@ -7129,7 +7117,7 @@
 				namespace_style = "",
 				all_tags, namespace, tags, n2, n3, n4, i, ii;
 
-			if (data.full && Object.keys(data.tags_ns).length > 0) {
+			if (data.tags_ns !== null) {
 				all_tags = data.tags_ns;
 			}
 			else {
