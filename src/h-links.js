@@ -1404,8 +1404,7 @@
 				}
 			}),
 			mouseout: $.wrap_mouseenterleave_event(function () {
-				var full_id = Helper.get_id_from_node_full(this),
-					details = details_nodes[full_id];
+				var details = details_nodes[Helper.get_id_from_node_full(this)];
 
 				if (details === undefined) return;
 
@@ -1564,7 +1563,7 @@
 
 			// Title
 			$.add(content, n1 = $.node("div", "hl-details-title-container" + theme));
-			$.add(n1, n2 = $.link("#", "hl-details-title" + theme, data.title));
+			$.add(n1, n2 = $.link(CreateURL.to_gallery(data, domain), "hl-details-title" + theme, data.title));
 			Filter.highlight("title", n2, data, Filter.None);
 			if (data.title_jpn !== null) {
 				$.add(n1, n2 = $.node("div", "hl-details-title-jp" + theme, data.title_jpn));
@@ -1582,7 +1581,7 @@
 			// Tags
 			$.add(content, n1 = $.node("div", "hl-details-tag-block" + theme));
 			$.add(n1, $.node("strong", "hl-details-tag-block-label", "Tags:"));
-			$.add(n1, n2 = $.node("span", "hl-details-tags hl-tags"));
+			$.add(n1, n2 = $.node("span", "hl-details-tags"));
 			n2.setAttribute("data-hl-id", data.type + "_" + data.gid);
 			$.add(n2, create_tags(g_domain, data));
 
@@ -1744,60 +1743,41 @@
 		var update_full = function (data) {
 			var domain = domains.exhentai,
 				full_id = data.type + "_" + data.gid,
-				g_domain, tagfrag, nodes, link, tags, last, i, ii, j, jj, n, f;
+				details = details_nodes[full_id],
+				tagfrag, n, n2;
 
+			if (details === undefined) return;
+
+			// Removed status
 			if (data.removed === true) {
-				if (
-					(n = details_nodes[data.type + "_" + data.gid]) !== null &&
-					(link = $(".hl-details-side-box-visible>.hl-details-side-box-inner", n)) !== null
-				) {
-					link.innerHTML = "";
+				if ((n2 = $(".hl-details-side-box-visible>.hl-details-side-box-inner", details)) !== null) {
 					n = $.node("strong", "hl-details-side-box-error" + Theme.classes, "Removed");
-					link.appendChild(n);
+					n2.innerHTML = "";
+					n2.appendChild(n);
 				}
 			}
 
-			nodes = $$(".hl-tags[data-hl-id='" + full_id + "']");
-			ii = nodes.length;
+			// Update domain
+			if ((n = $(".hl-details-title[href]", details)) !== null) {
+				domain = Helper.get_domain(n.href);
+			}
 
-			if (ii === 0 || data.tags_ns === null) return;
-
-			tagfrag = create_tags(domain, data);
-
-			i = 0;
-			while (true) {
-				n = nodes[i];
-				f = tagfrag;
-				last = (++i >= ii);
-
-				if (
-					(link = $("a[href]", n)) !== null &&
-					Helper.get_domain(link.href) !== domain
-				) {
-					g_domain = Helper.get_full_domain(link.href);
-					f = last ? tagfrag : tagfrag.cloneNode(true);
-					tags = $$("a[href]", f);
-					for (j = 0, jj = tags.length; j < jj; ++j) {
-						tags[j].href = Helper.change_url_domain(tags[j].href, g_domain);
-					}
-				}
-				else if (!last) {
-					f = tagfrag.cloneNode(true);
-				}
-
+			// Update tags
+			if (
+				data.tags_ns !== null &&
+				(n = $(".hl-details-tags", details)) !== null
+			) {
+				tagfrag = create_tags(domain, data);
 				n.innerHTML = "";
-				$.add(n, f);
-
-				if (last) break;
+				$.add(n, tagfrag);
 			}
 
 			// Reposition any open details
 			if (
-				(n = details_nodes[full_id]) !== undefined &&
-				(link = gallery_link_events_data.link) !== null &&
-				Helper.get_id_from_node_full(link) === full_id
+				(n = gallery_link_events_data.link) !== null &&
+				Helper.get_id_from_node_full(n) === full_id
 			) {
-				update_details_position(n, link, gallery_link_events_data.mouse_x, gallery_link_events_data.mouse_y);
+				update_details_position(details, n, gallery_link_events_data.mouse_x, gallery_link_events_data.mouse_y);
 			}
 		};
 		var update_details_position = function (details, link, mouse_x, mouse_y) {
