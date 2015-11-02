@@ -629,11 +629,6 @@
 			var m = re_change_domain.exec(url);
 			return (m === null) ? url : m[1] + new_domain + m[3];
 		};
-		var title_case = function (text) {
-			return text.replace(/\b\w/g, function (m) {
-				return m.toUpperCase();
-			});
-		};
 		var category = function (name) {
 			var c = categories[name];
 			return (c !== undefined) ? c : categories.misc;
@@ -650,7 +645,6 @@
 			html_parse_safe: html_parse_safe,
 			get_domain: get_domain,
 			change_url_domain: change_url_domain,
-			title_case: title_case,
 			category: category,
 			category_sort_rank: category_sort_rank
 		};
