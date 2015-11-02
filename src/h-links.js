@@ -705,14 +705,6 @@
 			return (c !== undefined) ? c.sort : Object.keys(categories).length;
 		};
 
-		var get_id_from_node = function (node) {
-			var a = node.getAttribute("data-hl-id"),
-				i;
-			return (a && (i = a.indexOf("_")) >= 0) ? [ a.substr(0, i), a.substr(i + 1) ] : null;
-		};
-		var get_id_from_node_full = function (node) {
-			return node.getAttribute("data-hl-id") || "";
-		};
 		var get_url_info_from_node = function (node) {
 			var attr = node.getAttribute("data-hl-info");
 			try {
@@ -768,8 +760,6 @@
 			title_case: title_case,
 			category: category,
 			category_sort_rank: category_sort_rank,
-			get_id_from_node: get_id_from_node,
-			get_id_from_node_full: get_id_from_node_full,
 			get_url_info_from_node: get_url_info_from_node,
 			get_tag_button_from_link: get_tag_button_from_link,
 			get_link_from_tag_button: get_link_from_tag_button,
@@ -1301,7 +1291,7 @@
 		};
 		var gallery_link_events = {
 			mouseover: $.wrap_mouseenterleave_event(function (event) {
-				var full_id = Helper.get_id_from_node_full(this),
+				var full_id = get_node_id_full(this),
 					details = details_nodes[full_id],
 					node = this,
 					info, data, domain, thumb_state, thumb_cb;
@@ -1398,7 +1388,7 @@
 				}
 			}),
 			mouseout: $.wrap_mouseenterleave_event(function () {
-				var details = details_nodes[Helper.get_id_from_node_full(this)];
+				var details = details_nodes[get_node_id_full(this)];
 
 				if (details === undefined) return;
 
@@ -1407,7 +1397,7 @@
 				gallery_link_events_data.link = null;
 			}),
 			mousemove: function (event) {
-				var details = details_nodes[Helper.get_id_from_node_full(this)];
+				var details = details_nodes[get_node_id_full(this)];
 
 				if (details === undefined) return;
 
@@ -1446,7 +1436,7 @@
 						// Create
 						if (
 							(link = Helper.get_link_from_tag_button(this)) !== null &&
-							(id = Helper.get_id_from_node(link)) !== null &&
+							(id = get_node_id(link)) !== null &&
 							(data = API.get_gallery(id[0], id[1])) !== null
 						) {
 							actions = create_actions(data, link, index);
@@ -1493,6 +1483,15 @@
 			}
 		};
 
+		var get_node_id = function (node) {
+			var a = node.getAttribute("data-hl-id"),
+				i;
+			return (a && (i = a.indexOf("_")) >= 0) ? [ a.substr(0, i), a.substr(i + 1) ] : null;
+		};
+		var get_node_id_full = function (node) {
+			return node.getAttribute("data-hl-id") || "";
+		};
+
 		var create_details = function (data, domain) {
 			var g_domain = domain_info[domain].g_domain,
 				category = Helper.category(data.category),
@@ -1502,7 +1501,6 @@
 
 			// Body
 			content = $.node("div", "hl-details hl-hover-shadow" + theme);
-			content.setAttribute("data-hl-id", data.type + "_" + data.gid);
 			Theme.bg(content);
 
 			// Image
@@ -1576,7 +1574,6 @@
 			$.add(content, n1 = $.node("div", "hl-details-tag-block" + theme));
 			$.add(n1, $.node("strong", "hl-details-tag-block-label", "Tags:"));
 			$.add(n1, n2 = $.node("span", "hl-details-tags"));
-			n2.setAttribute("data-hl-id", data.type + "_" + data.gid);
 			$.add(n2, create_tags(g_domain, data));
 
 			// End
@@ -1769,7 +1766,7 @@
 			// Reposition any open details
 			if (
 				(n = gallery_link_events_data.link) !== null &&
-				Helper.get_id_from_node_full(n) === full_id
+				get_node_id_full(n) === full_id
 			) {
 				update_details_position(details, n, gallery_link_events_data.mouse_x, gallery_link_events_data.mouse_y);
 			}
