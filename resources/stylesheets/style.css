@@ -721,7 +721,7 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 .hl-site-tag-text {
 	position: relative;
 }
-.hl-link {
+.hl-link.hl-link-formatted {
 	text-decoration: none !important;
 }
 .hl-link.hl-link-error {
