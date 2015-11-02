@@ -2366,11 +2366,11 @@
 			ThumbnailNoLeech: 0x1
 		};
 
-		var create_empty_gallery_info = function () {
+		var create_empty_gallery_info = function (type) {
 			return {
+				type: type,
 				gid: 0,
 				token: null,
-				type: "",
 				title: "",
 				title_jpn: null,
 				uploader: "",
@@ -2434,12 +2434,11 @@
 				return { error: info.error };
 			}
 
-			var data = create_empty_gallery_info(),
+			var data = create_empty_gallery_info("ehentai"),
 				t;
 
 			data.gid = parseInt(info.gid, 10) || 0;
 			data.token = ehentai_simple_string(info.token, null);
-			data.type = "ehentai";
 			data.archiver_key = ehentai_simple_string(info.archiver_key, null);
 			data.title = ehentai_normalize_string(info.title, "");
 			data.title_jpn = ehentai_normalize_string(info.title_jpn, null);
@@ -2626,9 +2625,8 @@
 			}
 
 			// Create data
-			data = create_empty_gallery_info();
-			data.type = "nhentai";
-			data.uploader = "nhentai";
+			data = create_empty_gallery_info("nhentai");
+			data.uploader = "nhentai.net";
 			data.full = true;
 			data.tags = [];
 			data.tags_ns = {};
@@ -2748,9 +2746,8 @@
 			}
 
 			// Create data
-			data = create_empty_gallery_info();
-			data.type = "hitomi";
-			data.flags |= Flags.ThumbnailNoLeech;
+			data = create_empty_gallery_info("hitomi");
+			data.flags |= Flags.ThumbnailNoLeech; // no cross origin thumbnails
 			data.uploader = "hitomi.la";
 			data.full = true;
 			data.tags = tags = [];
@@ -2767,7 +2764,7 @@
 					(n = $("img", n)) !== null &&
 					(t = n.getAttribute("src"))
 				) {
-					data.thumbnail = $.resolve(t, url); // no cross origin
+					data.thumbnail = $.resolve(t, url);
 				}
 			}
 
