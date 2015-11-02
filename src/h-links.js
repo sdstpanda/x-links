@@ -4919,9 +4919,10 @@
 			if ((post_body = Post.get_text_body(post)) !== null) {
 				// Content
 				re_url.lastIndex = 0;
+				post_links = Post.get_body_links(post_body);
 				if (
 					!Config.linkify ||
-					(post_links = Post.get_body_links(post_body)).length > 0 ||
+					post_links.length > 0 ||
 					re_url.test(post_body.innerHTML)
 				) {
 					links = [];
