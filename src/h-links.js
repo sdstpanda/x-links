@@ -7403,17 +7403,16 @@
 			custom_filters = Filter.parse(settings.custom_filters, undefined);
 		};
 		var add_links = function (links) {
-			var link, id, id_key, entry, i, ii;
+			var info, key, entry, i, ii;
 
 			for (i = 0, ii = links.length; i < ii; ++i) {
-				link = links[i];
-				id = Helper.get_id_from_node(link);
-				if (id !== null) {
-					id_key = id[0] + "_" + id[1];
-					if (data_map[id_key] === undefined) {
-						entry = new Entry(Helper.get_domain(link.href || "") || domains.exhentai, id[0], id[1]);
+				info = Helper.get_info_from_node(links[i]);
+				if (info !== null) {
+					key = info.site + "_" + info.gid;
+					if (data_map[key] === undefined) {
+						entry = new Entry(info.domain, info.site, info.gid);
 						queue.push(entry);
-						data_map[id_key] = entry;
+						data_map[key] = entry;
 					}
 				}
 			}
