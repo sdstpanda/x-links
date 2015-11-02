@@ -642,7 +642,7 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 /* Filtering */
 .hl-tag.hl-filter-good,
 .hl-site-tag.hl-filter-good,
-.hl-linkified.hl-filter-good,
+.hl-link.hl-filter-good,
 .hl-details-uploader.hl-filter-good,
 .hl-actions-uploader.hl-filter-good {
 	font-weight: bold;
@@ -721,13 +721,13 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 .hl-site-tag-text {
 	position: relative;
 }
-.hl-linkified {
+.hl-link {
 	text-decoration: none !important;
 }
-.hl-linkified.hl-linkified-error {
+.hl-link.hl-link-error {
 	font-style: italic;
 }
-.hl-linkified-error-message {
+.hl-link-error-message {
 	opacity: 0.75;
 }
 

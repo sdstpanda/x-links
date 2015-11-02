@@ -742,7 +742,7 @@
 			if (
 				(node = node.nextSibling) !== null &&
 				(node.classList || ((node = node.nextSibling) !== null && node.classList)) &&
-				node.classList.contains("hl-linkified")
+				node.classList.contains("hl-link")
 			) {
 				return node;
 			}
@@ -4731,26 +4731,28 @@
 
 		// Link creation and processing
 		var create_link = function (parent, next, url, text, auto_process) {
-			var link = $.link(url, "hl-created-link", text);
+			var link = $.link(url, "hl-link-created", text);
 
 			$.before(parent, next, link);
 
-			preprocess_link(link, url, auto_process);
+			preprocess_link(link, url, false, auto_process);
 
 			return link;
 		};
-		var preprocess_link = function (node, url, auto_load) {
+		var preprocess_link = function (node, url, update_on_fail, auto_load) {
 			var info, rewrite, button, par;
-
-			node.target = "_blank";
-			node.rel = "noreferrer";
 
 			if (
 				(par = node.parentNode) === null ||
 				(info = Helper.get_url_info(url)) === null ||
 				!config.sites[info.site]
 			) {
-				node.href = url;
+				if (update_on_fail) {
+					node.href = url;
+					node.target = "_blank";
+					node.rel = "noreferrer";
+					node.classList.add("hl-linkified");
+				}
 				return;
 			}
 
@@ -4766,9 +4768,11 @@
 			}
 
 			node.href = url;
+			node.target = "_blank";
+			node.rel = "noreferrer";
 
+			node.classList.add("hl-link");
 			node.classList.add("hl-linkified");
-			node.setAttribute("data-hl-linkified-status", "processed");
 
 			node.setAttribute("data-hl-info", JSON.stringify(info));
 			node.setAttribute("data-hl-id", info.site + "_" + info.gid);
@@ -4818,7 +4822,7 @@
 
 			// Link title
 			link.textContent = data.title;
-			link.setAttribute("data-hl-linkified-status", "formatted");
+			link.classList.add("hl-link-formatted");
 
 			// Button
 			if (button !== null) {
@@ -4843,14 +4847,13 @@
 
 			if (button !== null) {
 				change_link_events(button, "gallery_error");
-				button.classList.add("hl-linkified-error");
+				button.classList.add("hl-link-error");
 			}
 
-			link.classList.add("hl-linkified-error");
-			link.setAttribute("data-hl-linkified-status", "formatted_error");
-			n = $(".hl-linkified-error-message", link);
+			link.classList.add("hl-link-error");
+			n = $(".hl-link-error-message", link);
 			if (n === null) {
-				$.add(link, $.node("span", "hl-linkified-error-message", text));
+				$.add(link, $.node("span", "hl-link-error-message", text));
 			}
 			else {
 				n.textContent = text;
@@ -4937,7 +4940,7 @@
 		};
 		var parse_post = function (post) {
 			var auto_load_links = config.general.automatic_processing,
-				post_body, post_links, link_nodes, link_urls, link, url, i, ii;
+				post_body, post_links, link_nodes, link_urls, link, url, i, ii, j;
 
 			// Exsauce
 			if (config.sauce.enabled && !browser.is_opera) {
@@ -4973,12 +4976,13 @@
 						}
 					}
 
+					j = link_nodes.length;
 					if (Config.linkify) {
 						linkify(post_body, link_nodes, link_urls);
 					}
 
 					for (i = 0, ii = link_nodes.length; i < ii; ++i) {
-						preprocess_link(link_nodes[i], link_urls[i], auto_load_links);
+						preprocess_link(link_nodes[i], link_urls[i], (i >= j), auto_load_links);
 					}
 				}
 				post.classList.add("hl-post-linkified");
@@ -5076,11 +5080,8 @@
 		};
 
 		// Links
-		var get_links = function (parent) {
-			return $$("a.hl-linkified[href]", parent);
-		};
 		var get_links_formatted = function (parent) {
-			return $$("a.hl-linkified[data-hl-linkified-status=formatted]", parent);
+			return $$("a.hl-link.hl-link-formatted", parent);
 		};
 
 		// Events
@@ -5143,7 +5144,7 @@
 				n = node.nextSibling,
 				link, events, i, ii;
 
-			if (n !== null && n.tagName === "A" && n.classList.contains("hl-linkified")) {
+			if (n !== null && n.tagName === "A" && n.classList.contains("hl-link")) {
 				$.remove(n);
 			}
 
@@ -5160,7 +5161,7 @@
 				if (link.classList.contains("hl-site-tag")) {
 					$.remove(link);
 				}
-				else if (link.classList.contains("hl-linkified")) {
+				else if (link.classList.contains("hl-link")) {
 					fix.push(link, events);
 				}
 			}
@@ -5169,7 +5170,7 @@
 
 			for (i = 0, ii = fix.length; i < ii; i += 2) {
 				link = fix[i];
-				preprocess_link(link, link.href || "", config.general.automatic_processing);
+				preprocess_link(link, link.href || "", false, config.general.automatic_processing);
 			}
 		};
 
@@ -5182,7 +5183,6 @@
 			get_link_events: get_link_events,
 			change_link_events: change_link_events,
 			register_link_events: register_link_events,
-			get_links: get_links,
 			get_links_formatted: get_links_formatted,
 			relinkify_posts: relinkify_posts,
 			fix_broken_4chanx_linkification: fix_broken_4chanx_linkification,
