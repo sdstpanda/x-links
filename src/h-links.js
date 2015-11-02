@@ -4390,7 +4390,7 @@
 	var Linkifier = (function () {
 
 		// Private
-		var re_url = /(?:https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)\/[^<>\s\'\"]*/ig,
+		var re_url = /(?:https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)(?:\/[^<>\s\'\"]*)?/ig,
 			re_url_class_ignore = /(?:\binlined?\b|\bhl-)/,
 			re_fjord = /abortion|bestiality|incest|lolicon|shotacon|toddlercon/,
 			re_protocol = /^https?\:/i,
@@ -4742,11 +4742,15 @@
 		var preprocess_link = function (node, url, auto_load) {
 			var info, rewrite, button, par;
 
+			node.target = "_blank";
+			node.rel = "noreferrer";
+
 			if (
 				(par = node.parentNode) === null ||
 				(info = Helper.get_url_info(url)) === null ||
 				!config.sites[info.site]
 			) {
+				node.href = url;
 				return;
 			}
 
@@ -4762,8 +4766,6 @@
 			}
 
 			node.href = url;
-			node.target = "_blank";
-			node.rel = "noreferrer";
 
 			node.classList.add("hl-linkified");
 			node.setAttribute("data-hl-linkified-status", "processed");
