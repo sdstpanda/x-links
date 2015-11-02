@@ -584,8 +584,7 @@
 	var Helper = (function () {
 
 		// Private
-		var re_full_domain = /^(?:[\w\-]+):\/*([\w\-]+(?:\.[\w\-]+)*)/i,
-			re_short_domain = /^(?:[\w\-]+):\/*(?:[\w-]+\.)*([\w-]+\.[\w]+)/i,
+		var re_short_domain = /^(?:[\w\-]+):\/*(?:[\w-]+\.)*([\w-]+\.[\w]+)/i,
 			re_change_domain = /^([\w\-]+:\/*)([\w\-]+(?:\.[\w\-]+)*)([\w\W]*)$/i;
 
 		var categories = {
@@ -684,10 +683,6 @@
 
 			return null;
 		};
-		var get_full_domain = function (url) {
-			var m = re_full_domain.exec(url);
-			return (m === null) ? "" : m[1];
-		};
 		var get_domain = function (url) {
 			var m = re_short_domain.exec(url);
 			return (m === null) ? "" : m[1].toLowerCase();
@@ -768,7 +763,6 @@
 			json_parse_safe: json_parse_safe,
 			html_parse_safe: html_parse_safe,
 			get_url_info: get_url_info,
-			get_full_domain: get_full_domain,
 			get_domain: get_domain,
 			change_url_domain: change_url_domain,
 			title_case: title_case,
