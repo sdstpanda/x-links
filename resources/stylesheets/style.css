@@ -461,7 +461,8 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 	line-height: 1em !important;
 }
 .hl-details-side-box {
-	width: 5.75em;
+	width: 100%;
+	min-width: 6em;
 	font-size: 0.8em;
 	padding: 0.5em 0;
 	margin: 0.8em 0 0.4em;
