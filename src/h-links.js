@@ -713,19 +713,6 @@
 			catch (e) {}
 			return null;
 		};
-		var get_exresults_from_exsauce = function (node) {
-			var container = Post.get_post_container(node);
-
-			if (
-				container !== null &&
-				(node = $(".hl-exsauce-results[data-hl-image-index='" + node.getAttribute("data-hl-image-index") + "']", container)) !== null &&
-				Post.get_post_container(node) === container
-			) {
-				return node;
-			}
-
-			return null;
-		};
 
 		// Exports
 		return {
@@ -738,8 +725,7 @@
 			title_case: title_case,
 			category: category,
 			category_sort_rank: category_sort_rank,
-			get_url_info_from_node: get_url_info_from_node,
-			get_exresults_from_exsauce: get_exresults_from_exsauce
+			get_url_info_from_node: get_url_info_from_node
 		};
 
 	})();
@@ -4098,10 +4084,24 @@
 		var hover_nodes = {},
 			hover_nodes_id = 0;
 
+		var get_exresults_from_exsauce = function (node) {
+			var container = Post.get_post_container(node);
+
+			if (
+				container !== null &&
+				(node = $(".hl-exsauce-results[data-hl-image-index='" + node.getAttribute("data-hl-image-index") + "']", container)) !== null &&
+				Post.get_post_container(node) === container
+			) {
+				return node;
+			}
+
+			return null;
+		};
+
 		var on_sauce_click = function (event) {
 			event.preventDefault();
 
-			var results = Helper.get_exresults_from_exsauce(this),
+			var results = get_exresults_from_exsauce(this),
 				hover;
 
 			if (results !== null) {
@@ -4133,7 +4133,7 @@
 			}, 1);
 		};
 		var on_sauce_mouseover = $.wrap_mouseenterleave_event(function () {
-			var results = Helper.get_exresults_from_exsauce(this),
+			var results = get_exresults_from_exsauce(this),
 				hover, err;
 
 			if (results === null || results.classList.contains("hl-exsauce-results-hidden")) {
