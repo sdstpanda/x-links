@@ -1282,7 +1282,8 @@
 			actions_nodes_active = {},
 			actions_nodes_active_count = 0,
 			actions_nodes_index = 0,
-			actions_close_timeout = null;
+			actions_close_timeout = null,
+			re_fjord = /abortion|bestiality|incest|lolicon|shotacon|toddlercon/;
 
 		var gallery_link_events_data = {
 			link: null,
@@ -1483,6 +1484,9 @@
 			}
 		};
 
+		var set_node_id = function (node, namespace, id) {
+			node.setAttribute("data-hl-id", namespace + "_" + id);
+		};
 		var get_node_id = function (node) {
 			var a = node.getAttribute("data-hl-id"),
 				i;
@@ -1490,6 +1494,10 @@
 		};
 		var get_node_id_full = function (node) {
 			return node.getAttribute("data-hl-id") || "";
+		};
+
+		var pad = function (n, sep) {
+			return (n < 10 ? "0" : "") + n + sep;
 		};
 
 		var create_details = function (data, domain) {
@@ -1662,9 +1670,6 @@
 
 			// Done
 			return actions;
-		};
-		var pad = function (n, sep) {
-			return (n < 10 ? "0" : "") + n + sep;
 		};
 		var create_tags = function (site, data) {
 			var tagfrag = d.createDocumentFragment(),
@@ -1948,6 +1953,17 @@
 			return tag_bg;
 		};
 
+		var mark_button_text = function (button, text) {
+			if ((button = button_get_inner(button)) !== null) {
+				button.textContent = button.textContent.replace(/\]\s*$/, text + "]");
+			}
+		};
+		var update_button_text = function (button, domain) {
+			if ((button = button_get_inner(button)) !== null) {
+				button.textContent = button_text(domain);
+			}
+		};
+
 		// Public
 		var create_rating_stars = function (rating) {
 			var frag = d.createDocumentFragment(),
@@ -1964,24 +1980,8 @@
 
 			return frag;
 		};
-		var button = function (url, domain) {
-			var button = $.link(url, "hl-site-tag" + Theme.classes),
-				text = $.node("span", "hl-site-tag-text", button_text(domain));
-			$.add(button, text);
-			return button;
-		};
 		var button_get_inner = function (button) {
 			return ((button = button.lastChild) !== null && button.tagName === "SPAN") ? button : null;
-		};
-		var update_button_text = function (button, domain) {
-			if ((button = button_get_inner(button)) !== null) {
-				button.textContent = button_text(domain);
-			}
-		};
-		var mark_button_text = function (button, text) {
-			if ((button = button_get_inner(button)) !== null) {
-				button.textContent = button.textContent.replace(/\]\s*$/, text + "]");
-			}
 		};
 		var button_text = function (domain) {
 			var d = domain_info[domain];
@@ -1993,6 +1993,76 @@
 				pad(d.getUTCDate(), " ") +
 				pad(d.getUTCHours(), ":") +
 				pad(d.getUTCMinutes(), "");
+		};
+
+		var setup_link = function (link, url, info) {
+			var button = $.link(url, "hl-site-tag" + Theme.classes),
+				text = $.node("span", "hl-site-tag-text", button_text(info.domain));
+
+			set_node_id(link, info.site, info.gid);
+			link.setAttribute("data-hl-info", JSON.stringify(info));
+
+			$.add(button, text);
+
+			Linkifier.change_link_events(link, "gallery_link");
+			Linkifier.change_link_events(button, "gallery_fetch");
+
+			$.before(link.parentNode, link, button);
+		};
+		var format_link = function (link, data) {
+			var button = Helper.get_tag_button_from_link(link),
+				domain, fjord, ex, hl, c;
+
+			// Smart links
+			if (config.general.rewrite_links === "smart") {
+				domain = Helper.get_domain(link.href);
+				ex = (domain === domains.exhentai);
+				if (ex || domain === domains.ehentai) {
+					fjord = re_fjord.test(data.tags.join(","));
+					if (fjord !== ex) {
+						domain = fjord ? domains.exhentai : domains.ehentai;
+						link.href = Helper.change_url_domain(link.href, domain_info[domain].g_domain);
+						if (button !== null) {
+							button.href = link.href;
+							update_button_text(button, domain);
+						}
+					}
+				}
+			}
+
+			// Link title
+			link.textContent = data.title;
+			link.classList.add("hl-link-formatted");
+
+			// Button
+			if (button !== null) {
+				hl = Filter.check(link, data);
+				if (hl[0] !== Filter.None) {
+					c = (hl[0] === Filter.Good) ? config.filter.good_tag_marker : config.filter.bad_tag_marker;
+					mark_button_text(button, c);
+					Filter.highlight_tag(button, link, hl);
+				}
+				Linkifier.change_link_events(button, "gallery_toggle_actions");
+			}
+		};
+		var format_link_error = function (link, error) {
+			var text = " (" + error.trim().replace(/\.$/, "") + ")",
+				button = Helper.get_tag_button_from_link(link),
+				n;
+
+			if (button !== null) {
+				Linkifier.change_link_events(button, "gallery_error");
+				button.classList.add("hl-link-error");
+			}
+
+			link.classList.add("hl-link-error");
+			n = $(".hl-link-error-message", link);
+			if (n === null) {
+				$.add(link, $.node("span", "hl-link-error-message", text));
+			}
+			else {
+				n.textContent = text;
+			}
 		};
 
 		var cleanup_post = function (post) {
@@ -2037,11 +2107,11 @@
 
 		// Exports
 		return {
+			setup_link: setup_link,
+			format_link: format_link,
+			format_link_error: format_link_error,
 			create_rating_stars: create_rating_stars,
-			button: button,
 			button_get_inner: button_get_inner,
-			update_button_text: update_button_text,
-			mark_button_text: mark_button_text,
 			button_text: button_text,
 			format_date: format_date,
 			cleanup_post: cleanup_post,
@@ -4363,7 +4433,6 @@
 		// Private
 		var re_url = /(?:https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)(?:\/[^<>\s\'\"]*)?/ig,
 			re_url_class_ignore = /(?:\binlined?\b|\bhl-)/,
-			re_fjord = /abortion|bestiality|incest|lolicon|shotacon|toddlercon/,
 			re_protocol = /^https?\:/i,
 			re_deferrer = /^(?:https?:)?\/\/sys\.4chan\.org\/derefer\?url=([\w\W]*)$/i;
 
@@ -4711,10 +4780,10 @@
 			return link;
 		};
 		var preprocess_link = function (node, url, update_on_fail, auto_load) {
-			var info, rewrite, button, par;
+			var info, rewrite;
 
 			if (
-				(par = node.parentNode) === null ||
+				node.parentNode === null ||
 				(info = Helper.get_url_info(url)) === null ||
 				!config.sites[info.site]
 			) {
@@ -4745,90 +4814,24 @@
 			node.classList.add("hl-link");
 			node.classList.add("hl-linkified");
 
-			node.setAttribute("data-hl-info", JSON.stringify(info));
-			node.setAttribute("data-hl-id", info.site + "_" + info.gid);
-
-			button = UI.button(url, info.domain);
-
-			change_link_events(node, "gallery_link");
-			change_link_events(button, "gallery_fetch");
-
-			$.before(par, node, button);
+			UI.setup_link(node, url, info);
 
 			if (auto_load) load_link(node, info);
 		};
 		var load_link = function (link, info) {
 			API.get_gallery_from_link_info(info, function (err, data) {
-				if (err === null) {
-					format_link(link, data);
-				}
-				else {
-					format_link_error(link, err);
-				}
-			});
-		};
-		var format_link = function (link, data) {
-			if (link.parentNode === null) return;
-
-			var button = Helper.get_tag_button_from_link(link),
-				listeners = event_listeners.format,
-				domain, fjord, ex, hl, c;
-
-			// Smart links
-			if (config.general.rewrite_links === "smart") {
-				domain = Helper.get_domain(link.href);
-				ex = (domain === domains.exhentai);
-				if (ex || domain === domains.ehentai) {
-					fjord = re_fjord.test(data.tags.join(","));
-					if (fjord !== ex) {
-						domain = fjord ? domains.exhentai : domains.ehentai;
-						link.href = Helper.change_url_domain(link.href, domain_info[domain].g_domain);
-						if (button !== null) {
-							button.href = link.href;
-							UI.update_button_text(button, domain);
+				if (link.parentNode !== null) {
+					if (err === null) {
+						UI.format_link(link, data);
+						if (event_listeners.format.length > 0) {
+							trigger(event_listeners.format, { link: link });
 						}
 					}
+					else {
+						UI.format_link_error(link, err);
+					}
 				}
-			}
-
-			// Link title
-			link.textContent = data.title;
-			link.classList.add("hl-link-formatted");
-
-			// Button
-			if (button !== null) {
-				hl = Filter.check(link, data);
-				if (hl[0] !== Filter.None) {
-					c = (hl[0] === Filter.Good) ? config.filter.good_tag_marker : config.filter.bad_tag_marker;
-					UI.mark_button_text(button, c);
-					Filter.highlight_tag(button, link, hl);
-				}
-				change_link_events(button, "gallery_toggle_actions");
-			}
-
-			// Event
-			if (listeners.length > 0) {
-				trigger(listeners, { link: link });
-			}
-		};
-		var format_link_error = function (link, error) {
-			var text = " (" + error.trim().replace(/\.$/, "") + ")",
-				button = Helper.get_tag_button_from_link(link),
-				n;
-
-			if (button !== null) {
-				change_link_events(button, "gallery_error");
-				button.classList.add("hl-link-error");
-			}
-
-			link.classList.add("hl-link-error");
-			n = $(".hl-link-error-message", link);
-			if (n === null) {
-				$.add(link, $.node("span", "hl-link-error-message", text));
-			}
-			else {
-				n.textContent = text;
-			}
+			});
 		};
 
 		// Post queue
