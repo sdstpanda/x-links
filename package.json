@@ -1,5 +1,5 @@
 {
-	"name": "H-links",
+	"name": "X-links",
 	"version": "1.1.4.2",
 	"author": "dnsev-h",
 	"description": "Making your browsing experience on 4chan and friends more pleasurable",
@@ -13,22 +13,22 @@
 	"scripts": {},
 	"repository": {
 		"type": "git",
-		"url": "git://github.com/dnsev-h/h-links.git"
+		"url": "git://github.com/dnsev-h/x-links.git"
 	},
 	"keywords": [
 		"userscript"
 	],
 	"license": "MIT",
 	"bugs": {
-		"url": "https://github.com/dnsev-h/h-links/issues"
+		"url": "https://github.com/dnsev-h/x-links/issues"
 	},
-	"homepage": "https://dnsev-h.github.io/h-links/",
+	"homepage": "https://dnsev-h.github.io/x-links/",
 	"custom": {
-		"name_short": "H",
+		"name_short": "X",
 		"namespace": "dnsev-h",
-		"settings_prefix": "hlinks-",
-		"update_url_base": "https://raw.githubusercontent.com/dnsev-h/h-links/stable/",
-		"changelog_url": "https://raw.githubusercontent.com/dnsev-h/h-links/stable/changelog",
+		"settings_prefix": "xlinks-",
+		"update_url_base": "https://raw.githubusercontent.com/dnsev-h/x-links/stable/",
+		"changelog_url": "https://raw.githubusercontent.com/dnsev-h/x-links/stable/changelog",
 		"targets": [
 			"http://boards.4chan.org/*",
 			"https://boards.4chan.org/*",
