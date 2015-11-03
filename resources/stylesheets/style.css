@@ -730,6 +730,11 @@ a.hl-exsauce-link.hl-exsauce-link-disabled {
 .hl-link-error-message {
 	opacity: 0.75;
 }
+.hl-link-page {
+	font-weight: normal;
+	font-style: italic;
+	white-space: nowrap;
+}
 
 /* Nav */
 .hl-nav-extras-mobile {
