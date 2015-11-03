@@ -1157,9 +1157,9 @@
 					details_nodes[full_id] = details;
 				}
 
-				details.classList.remove("hl-details-hidden");
-				details.classList.remove("hl-details-has-thumbnail");
-				details.classList.remove("hl-details-has-thumbnail-visible");
+				details.classList.remove("xl-details-hidden");
+				details.classList.remove("xl-details-has-thumbnail");
+				details.classList.remove("xl-details-has-thumbnail-visible");
 
 				gallery_link_events_data.link = this;
 				gallery_link_events_data.mouse_x = event.clientX;
@@ -1176,9 +1176,9 @@
 								if (err === null && node === gallery_link_events_data.link) {
 									var n0, n1, n2;
 									if (
-										(n0 = $(".hl-details-page-thumbnail", details)) !== null &&
-										(n1 = $(".hl-details-page-thumbnail-size", n0)) !== null &&
-										(n2 = $(".hl-details-page-thumbnail-image", n1)) !== null
+										(n0 = $(".xl-details-page-thumbnail", details)) !== null &&
+										(n1 = $(".xl-details-page-thumbnail-size", n0)) !== null &&
+										(n2 = $(".xl-details-page-thumbnail-image", n1)) !== null
 									) {
 										n2.style.backgroundImage = "url('" + thumb_url + "')";
 
@@ -1212,14 +1212,14 @@
 										if (thumb_state === 1) {
 											Theme.get_computed_style(n0).getPropertyValue("transform");
 										}
-										details.classList.add("hl-details-has-thumbnail-visible");
+										details.classList.add("xl-details-has-thumbnail-visible");
 									}
 								}
 							});
 						}
 					};
 
-					details.classList.add("hl-details-has-thumbnail");
+					details.classList.add("xl-details-has-thumbnail");
 					if (info.site === "ehentai") {
 						API.get_ehentai_gallery_page_thumb(info.domain, data.gid, data.token, info.page_token, info.page, thumb_cb);
 					}
@@ -1237,7 +1237,7 @@
 
 				if (details === undefined) return;
 
-				details.classList.add("hl-details-hidden");
+				details.classList.add("xl-details-hidden");
 
 				gallery_link_events_data.link = null;
 			}),
@@ -1256,24 +1256,24 @@
 			if ($.is_left_mouse(event) && config.actions.enabled) {
 				event.preventDefault();
 
-				var index = this.getAttribute("hl-actions-index"),
+				var index = this.getAttribute("xl-actions-index"),
 					actions, tag_bg, data, link, id;
 
 				if (!index) {
 					index = "" + actions_nodes_index;
 					++actions_nodes_index;
-					this.setAttribute("hl-actions-index", index);
+					this.setAttribute("xl-actions-index", index);
 				}
 
-				if (this.classList.toggle("hl-site-tag-active")) {
+				if (this.classList.toggle("xl-site-tag-active")) {
 					// Create bg
-					tag_bg = $(".hl-site-tag-bg", this);
+					tag_bg = $(".xl-site-tag-bg", this);
 					if (tag_bg === null) tag_bg = create_tag_bg(this);
 
 					// Show
 					actions = actions_nodes[index];
 					if (actions !== undefined) {
-						actions.classList.remove("hl-actions-hidden");
+						actions.classList.remove("xl-actions-hidden");
 						Popup.hovering(actions);
 						activate_actions(actions, index);
 					}
@@ -1329,15 +1329,15 @@
 		};
 
 		var set_node_id = function (node, namespace, id) {
-			node.setAttribute("data-hl-id", namespace + "_" + id);
+			node.setAttribute("data-xl-id", namespace + "_" + id);
 		};
 		var get_node_id = function (node) {
-			var a = node.getAttribute("data-hl-id"),
+			var a = node.getAttribute("data-xl-id"),
 				i;
 			return (a && (i = a.indexOf("_")) >= 0) ? [ a.substr(0, i), a.substr(i + 1) ] : null;
 		};
 		var get_node_id_full = function (node) {
-			return node.getAttribute("data-hl-id") || "";
+			return node.getAttribute("data-xl-id") || "";
 		};
 
 		var get_tag_button_from_link = function (node) {
@@ -1345,7 +1345,7 @@
 			if (
 				(node = node.previousSibling) !== null &&
 				(node.classList || ((node = node.previousSibling) !== null && node.classList)) &&
-				node.classList.contains("hl-site-tag")
+				node.classList.contains("xl-site-tag")
 			) {
 				return node;
 			}
@@ -1356,7 +1356,7 @@
 			if (
 				(node = node.nextSibling) !== null &&
 				(node.classList || ((node = node.nextSibling) !== null && node.classList)) &&
-				node.classList.contains("hl-link")
+				node.classList.contains("xl-link")
 			) {
 				return node;
 			}
@@ -1375,14 +1375,14 @@
 				content, n1, n2, n3;
 
 			// Body
-			content = $.node("div", "hl-details hl-hover-shadow" + theme);
+			content = $.node("div", "xl-details xl-hover-shadow" + theme);
 			Theme.bg(content);
 
 			// Image
-			$.add(content, n1 = $.node("div", "hl-details-thumbnail" + theme));
-			$.add(n1, n2 = $.node("div", "hl-details-page-thumbnail hl-hover-shadow" + theme));
-			$.add(n2, n3 = $.node("div", "hl-details-page-thumbnail-size" + theme));
-			$.add(n3, $.node("div", "hl-details-page-thumbnail-image" + theme));
+			$.add(content, n1 = $.node("div", "xl-details-thumbnail" + theme));
+			$.add(n1, n2 = $.node("div", "xl-details-page-thumbnail xl-hover-shadow" + theme));
+			$.add(n2, n3 = $.node("div", "xl-details-page-thumbnail-size" + theme));
+			$.add(n3, $.node("div", "xl-details-page-thumbnail-image" + theme));
 			API.get_thumbnail(data.thumbnail, data.flags, $.bind(function (err, url) {
 				if (err === null) {
 					this.style.backgroundImage = "url('" + url + "')";
@@ -1391,68 +1391,68 @@
 
 
 			// Sidebar
-			$.add(content, n1 = $.node("div", "hl-details-side-panel"));
+			$.add(content, n1 = $.node("div", "xl-details-side-panel"));
 
-			$.add(n1, n2 = $.node("div", "hl-button hl-button-eh hl-button-" + category.short_name + theme));
-			$.add(n2, $.node("div", "hl-noise", category.name));
+			$.add(n1, n2 = $.node("div", "xl-button xl-button-eh xl-button-" + category.short_name + theme));
+			$.add(n2, $.node("div", "xl-noise", category.name));
 
 			if (data.rating >= 0) {
-				$.add(n1, n2 = $.node("div", "hl-details-side-box hl-details-side-box-rating" + theme));
-				$.add(n2, n3 = $.node("div", "hl-details-rating hl-stars-container"));
+				$.add(n1, n2 = $.node("div", "xl-details-side-box xl-details-side-box-rating" + theme));
+				$.add(n2, n3 = $.node("div", "xl-details-rating xl-stars-container"));
 				$.add(n3, create_rating_stars(data.rating));
-				$.add(n2, $.node("div", "hl-details-rating-text", "(Avg. " + data.rating.toFixed(2) + ")"));
+				$.add(n2, $.node("div", "xl-details-rating-text", "(Avg. " + data.rating.toFixed(2) + ")"));
 			}
 
-			$.add(n1, n2 = $.node("div", "hl-details-side-box hl-details-side-box-rating" + theme));
-			$.add(n2, $.node("div", "hl-details-file-count", data.file_count + " image" + (data.file_count === 1 ? "" : "s")));
+			$.add(n1, n2 = $.node("div", "xl-details-side-box xl-details-side-box-rating" + theme));
+			$.add(n2, $.node("div", "xl-details-file-count", data.file_count + " image" + (data.file_count === 1 ? "" : "s")));
 			if (data.total_size >= 0) {
-				$.add(n2, $.node("div", "hl-details-file-size", "(" + file_size + " MB)"));
+				$.add(n2, $.node("div", "xl-details-file-size", "(" + file_size + " MB)"));
 			}
 
 			if (data.torrent_count >= 0) {
-				$.add(n1, n2 = $.node("div", "hl-details-side-box hl-details-side-box-torrents" + theme));
-				$.add(n2, n3 = $.node("div", "hl-details-side-box-inner"));
+				$.add(n1, n2 = $.node("div", "xl-details-side-box xl-details-side-box-torrents" + theme));
+				$.add(n2, n3 = $.node("div", "xl-details-side-box-inner"));
 				$.add(n3, $.node("strong", "", "Torrents:"));
 				$.add(n3, $.node("span", "", " " + data.torrent_count));
 			}
 
 			if (data.removed === true) {
-				$.add(n1, n2 = $.node("div", "hl-details-side-box hl-details-side-box-visible" + theme));
-				$.add(n2, n3 = $.node("div", "hl-details-side-box-inner"));
-				$.add(n3, $.node("strong", "hl-details-side-box-error" + theme, "Removed"));
+				$.add(n1, n2 = $.node("div", "xl-details-side-box xl-details-side-box-visible" + theme));
+				$.add(n2, n3 = $.node("div", "xl-details-side-box-inner"));
+				$.add(n3, $.node("strong", "xl-details-side-box-error" + theme, "Removed"));
 			}
 			else if (data.visible !== null) {
-				$.add(n1, n2 = $.node("div", "hl-details-side-box hl-details-side-box-visible" + theme));
-				$.add(n2, n3 = $.node("div", "hl-details-side-box-inner"));
+				$.add(n1, n2 = $.node("div", "xl-details-side-box xl-details-side-box-visible" + theme));
+				$.add(n2, n3 = $.node("div", "xl-details-side-box-inner"));
 				$.add(n3, $.node("strong", "", "Visible:"));
 				$.add(n3, $.node("span", "", data.visible ? " Yes" : " No"));
 			}
 
 			// Title
-			$.add(content, n1 = $.node("div", "hl-details-title-container" + theme));
-			$.add(n1, n2 = $.link(CreateURL.to_gallery(data, domain), "hl-details-title" + theme, data.title));
+			$.add(content, n1 = $.node("div", "xl-details-title-container" + theme));
+			$.add(n1, n2 = $.link(CreateURL.to_gallery(data, domain), "xl-details-title" + theme, data.title));
 			Filter.highlight("title", n2, data, Filter.None);
 			if (data.title_jpn !== null) {
-				$.add(n1, n2 = $.node("div", "hl-details-title-jp" + theme, data.title_jpn));
+				$.add(n1, n2 = $.node("div", "xl-details-title-jp" + theme, data.title_jpn));
 				Filter.highlight("title", n2, data, Filter.None);
 			}
 
 			// Upload info
-			$.add(content, n1 = $.node("div", "hl-details-upload-info" + theme));
+			$.add(content, n1 = $.node("div", "xl-details-upload-info" + theme));
 			$.add(n1, $.tnode("Uploaded by"));
-			$.add(n1, n2 = $.node("strong", "hl-details-uploader", data.uploader));
+			$.add(n1, n2 = $.node("strong", "xl-details-uploader", data.uploader));
 			Filter.highlight("uploader", n2, data, Filter.None);
 			$.add(n1, $.tnode("on"));
-			$.add(n1, $.node("strong", "hl-details-upload-date", format_date(new Date(data.upload_date))));
+			$.add(n1, $.node("strong", "xl-details-upload-date", format_date(new Date(data.upload_date))));
 
 			// Tags
-			$.add(content, n1 = $.node("div", "hl-details-tag-block" + theme));
-			$.add(n1, $.node("strong", "hl-details-tag-block-label", "Tags:"));
-			$.add(n1, n2 = $.node("span", "hl-details-tags"));
+			$.add(content, n1 = $.node("div", "xl-details-tag-block" + theme));
+			$.add(n1, $.node("strong", "xl-details-tag-block-label", "Tags:"));
+			$.add(n1, n2 = $.node("span", "xl-details-tags"));
 			$.add(n2, create_tags(g_domain, data));
 
 			// End
-			$.add(content, $.node("div", "hl-details-clear"));
+			$.add(content, $.node("div", "xl-details-clear"));
 
 			// Full info
 			if (data.type === "ehentai" && config.sites.ehentai_ext && !data.full) {
@@ -1478,27 +1478,27 @@
 				gid = data.gid,
 				token = data.token,
 				type = data.type,
-				actions = $.node("div", "hl-actions hl-hover-shadow" + theme),
+				actions = $.node("div", "xl-actions xl-hover-shadow" + theme),
 				n1, n2, n3;
 
-			$.add(actions, n1 = $.node("div", "hl-actions-inner" + theme));
-			$.add(n1, n2 = $.node("div", "hl-actions-table" + theme));
+			$.add(actions, n1 = $.node("div", "xl-actions-inner" + theme));
+			$.add(n1, n2 = $.node("div", "xl-actions-table" + theme));
 
 			var gen_entry = function (container, label, url, text) {
 				var n1, n2, n3;
-				$.add(container, n1 = $.node("div", "hl-actions-table-row" + theme));
-				$.add(n1, n2 = $.node("div", "hl-actions-table-cell" + theme));
-				if (label !== null) $.add(n2, $.node("div", "hl-actions-table-header", label));
-				$.add(n1, n2 = $.node("div", "hl-actions-table-cell" + theme));
-				$.add(n2, n3 = $.link(url, "hl-actions-option" + theme, text));
+				$.add(container, n1 = $.node("div", "xl-actions-table-row" + theme));
+				$.add(n1, n2 = $.node("div", "xl-actions-table-cell" + theme));
+				if (label !== null) $.add(n2, $.node("div", "xl-actions-table-header", label));
+				$.add(n1, n2 = $.node("div", "xl-actions-table-cell" + theme));
+				$.add(n2, n3 = $.link(url, "xl-actions-option" + theme, text));
 				$.on(n3, "click", $.bind(on_actions_link_click, n3, actions, index));
 				return n3;
 			};
 			var gen_sep = function (container) {
 				var n1, n2;
-				$.add(container, n1 = $.node("div", "hl-actions-table-row" + theme));
-				$.add(n1, n2 = $.node("div", "hl-actions-table-cell" + theme));
-				$.add(n2, $.node("div", "hl-actions-table-sep"));
+				$.add(container, n1 = $.node("div", "xl-actions-table-row" + theme));
+				$.add(n1, n2 = $.node("div", "xl-actions-table-cell" + theme));
+				$.add(n2, $.node("div", "xl-actions-table-sep"));
 			};
 
 			if (type === "ehentai") {
@@ -1508,7 +1508,7 @@
 				gen_sep(n2);
 
 				n3 = gen_entry(n2, "Uploader:", CreateURL.to_uploader(data, domain), data.uploader);
-				n3.classList.add("hl-actions-uploader");
+				n3.classList.add("xl-actions-uploader");
 				Filter.highlight("uploader", n3, data, Filter.None);
 
 				gen_sep(n2);
@@ -1551,8 +1551,8 @@
 				// Non-namespaced tags
 				tags = data.tags;
 				for (i = 0, ii = tags.length; i < ii; ++i) {
-					tag = $.node("span", "hl-tag-block" + theme);
-					link = $.link(CreateURL.to_tag(tags[i], domain, site), "hl-tag", tags[i]);
+					tag = $.node("span", "xl-tag-block" + theme);
+					link = $.link(CreateURL.to_tag(tags[i], domain, site), "xl-tag", tags[i]);
 
 					Filter.highlight("tags", link, data, Filter.None);
 
@@ -1568,19 +1568,19 @@
 					tags = tags_ns[namespace];
 					ii = tags.length;
 					if (ii === 0) continue;
-					namespace_style = theme + " hl-tag-namespace-" + namespace.replace(/\s+/g, "-");
+					namespace_style = theme + " xl-tag-namespace-" + namespace.replace(/\s+/g, "-");
 
-					tag = $.node("span", "hl-tag-namespace-block" + namespace_style);
-					link = $.node("span", "hl-tag-namespace", namespace);
-					tf = $.node("span", "hl-tag-namespace-first");
+					tag = $.node("span", "xl-tag-namespace-block" + namespace_style);
+					link = $.node("span", "xl-tag-namespace", namespace);
+					tf = $.node("span", "xl-tag-namespace-first");
 					$.add(tag, link);
 					$.add(tag, $.tnode(":"));
 					$.add(tf, tag);
 					$.add(tagfrag, tf);
 
 					for (i = 0; i < ii; ++i) {
-						tag = $.node("span", "hl-tag-block" + namespace_style);
-						link = $.link(CreateURL.to_tag_ns(tags[i], namespace, domain, site), "hl-tag", tags[i]);
+						tag = $.node("span", "xl-tag-block" + namespace_style);
+						link = $.link(CreateURL.to_tag_ns(tags[i], namespace, domain, site), "xl-tag", tags[i]);
 
 						Filter.highlight("tags", link, data, Filter.None);
 
@@ -1589,7 +1589,7 @@
 							$.add(tag, $.tnode(","));
 						}
 						else {
-							tag.classList.add("hl-tag-block-last-of-namespace");
+							tag.classList.add("xl-tag-block-last-of-namespace");
 						}
 						$.add(tf, tag);
 						tf = tagfrag;
@@ -1597,7 +1597,7 @@
 				}
 
 				if (tag !== null) {
-					tag.classList.add("hl-tag-block-last");
+					tag.classList.add("xl-tag-block-last");
 				}
 			}
 
@@ -1613,22 +1613,22 @@
 
 			// Removed status
 			if (data.removed === true) {
-				if ((n2 = $(".hl-details-side-box-visible>.hl-details-side-box-inner", details)) !== null) {
-					n = $.node("strong", "hl-details-side-box-error" + Theme.classes, "Removed");
+				if ((n2 = $(".xl-details-side-box-visible>.xl-details-side-box-inner", details)) !== null) {
+					n = $.node("strong", "xl-details-side-box-error" + Theme.classes, "Removed");
 					n2.innerHTML = "";
 					n2.appendChild(n);
 				}
 			}
 
 			// Update domain
-			if ((n = $(".hl-details-title[href]", details)) !== null) {
+			if ((n = $(".xl-details-title[href]", details)) !== null) {
 				domain = $.get_domain(n.href);
 			}
 
 			// Update tags
 			if (
 				data.tags_ns !== null &&
-				(n = $(".hl-details-tags", details)) !== null
+				(n = $(".xl-details-tags", details)) !== null
 			) {
 				tagfrag = create_tags(domain, data);
 				n.innerHTML = "";
@@ -1661,14 +1661,14 @@
 			details.style.top = mouse_y + "px";
 		};
 		var close_actions = function (actions, index) {
-			var ns = $$(".hl-site-tag.hl-site-tag-active[hl-actions-index='" + index + "']"),
+			var ns = $$(".xl-site-tag.xl-site-tag-active[xl-actions-index='" + index + "']"),
 				i, ii;
 
 			for (i = 0, ii = ns.length; i < ii; ++i) {
-				ns[i].classList.remove("hl-site-tag-active");
+				ns[i].classList.remove("xl-site-tag-active");
 			}
 
-			actions.classList.add("hl-actions-hidden");
+			actions.classList.add("xl-actions-hidden");
 			deactivate_actions(index);
 		};
 		var close_all_actions = function () {
@@ -1716,8 +1716,8 @@
 			}
 
 			actions.style.left = x + "px";
-			tag.setAttribute("data-hl-actions-hpos", xpos);
-			actions.setAttribute("data-hl-actions-hpos", xpos);
+			tag.setAttribute("data-xl-actions-hpos", xpos);
+			actions.setAttribute("data-xl-actions-hpos", xpos);
 
 			if (below) {
 				y = rect.bottom - de_rect.top - 0.0625;
@@ -1727,8 +1727,8 @@
 			}
 
 			actions.style.top = y + "px";
-			tag.setAttribute("data-hl-actions-vpos", ypos);
-			actions.setAttribute("data-hl-actions-vpos", ypos);
+			tag.setAttribute("data-xl-actions-vpos", ypos);
+			actions.setAttribute("data-xl-actions-vpos", ypos);
 		};
 		var update_active_actions_position = function () {
 			var de_rect = d.documentElement.getBoundingClientRect(),
@@ -1737,11 +1737,11 @@
 			for (index in actions_nodes_active) {
 				actions = actions_nodes_active[index];
 				if (
-					(tag = $(".hl-site-tag.hl-site-tag-active[hl-actions-index='" + index + "']")) !== null &&
-					(tag_bg = $(".hl-site-tag-bg", tag)) !== null
+					(tag = $(".xl-site-tag.xl-site-tag-active[xl-actions-index='" + index + "']")) !== null &&
+					(tag_bg = $(".xl-site-tag-bg", tag)) !== null
 				) {
-					xpos = actions.getAttribute("data-hl-actions-hpos");
-					ypos = actions.getAttribute("data-hl-actions-vpos");
+					xpos = actions.getAttribute("data-xl-actions-hpos");
+					ypos = actions.getAttribute("data-xl-actions-vpos");
 					update_actions_position(actions, tag, tag_bg, de_rect, xpos, ypos);
 				}
 			}
@@ -1806,9 +1806,9 @@
 			}
 		};
 		var create_tag_bg = function (parent) {
-			var tag_bg = $.node("div", "hl-site-tag-bg" + Theme.classes),
-				outline = $.node("div", "hl-site-tag-bg-shadow hl-hover-shadow" + Theme.classes),
-				inner = $.node("div", "hl-site-tag-bg-inner" + Theme.classes);
+			var tag_bg = $.node("div", "xl-site-tag-bg" + Theme.classes),
+				outline = $.node("div", "xl-site-tag-bg-shadow xl-hover-shadow" + Theme.classes),
+				inner = $.node("div", "xl-site-tag-bg-inner" + Theme.classes);
 
 			Theme.bg(inner);
 
@@ -1842,7 +1842,7 @@
 				tmp = $.clamp(rating - (i * 2), 0, 2);
 				star = (tmp === 2 ? "full" : (tmp === 1 ? "half" : "none"));
 				++i;
-				$.add(frag, $.node("div", "hl-star hl-star-" + i + " hl-star-" + star));
+				$.add(frag, $.node("div", "xl-star xl-star-" + i + " xl-star-" + star));
 			}
 
 			return frag;
@@ -1863,8 +1863,8 @@
 		};
 
 		var setup_link = function (link, url, info) {
-			var button = $.link(url, "hl-site-tag" + Theme.classes),
-				text = $.node("span", "hl-site-tag-text", button_text(info.domain));
+			var button = $.link(url, "xl-site-tag" + Theme.classes),
+				text = $.node("span", "xl-site-tag-text", button_text(info.domain));
 
 			set_node_id(link, info.site, info.gid);
 
@@ -1898,7 +1898,7 @@
 
 			// Link title
 			link.textContent = data.title;
-			link.classList.add("hl-link-formatted");
+			link.classList.add("xl-link-formatted");
 
 			// Button
 			if (button !== null) {
@@ -1913,7 +1913,7 @@
 
 			// Page
 			if (info.page !== undefined) {
-				n = $.node("span", "hl-link-page", " (page " + info.page + ")");
+				n = $.node("span", "xl-link-page", " (page " + info.page + ")");
 				link.appendChild(n);
 			}
 		};
@@ -1924,13 +1924,13 @@
 
 			if (button !== null) {
 				Linkifier.change_link_events(button, "gallery_error");
-				button.classList.add("hl-link-error");
+				button.classList.add("xl-link-error");
 			}
 
-			link.classList.add("hl-link-error");
-			n = $(".hl-link-error-message", link);
+			link.classList.add("xl-link-error");
+			n = $(".xl-link-error-message", link);
 			if (n === null) {
-				$.add(link, $.node("span", "hl-link-error-message", text));
+				$.add(link, $.node("span", "xl-link-error-message", text));
 			}
 			else {
 				n.textContent = text;
@@ -1939,26 +1939,26 @@
 
 		var cleanup_post = function (post) {
 			var nodes, n, i, ii;
-			nodes = $$(".hl-exsauce-results:not(.hl-exsauce-results-hidden)", post);
+			nodes = $$(".xl-exsauce-results:not(.xl-exsauce-results-hidden)", post);
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
-				nodes[i].classList.add("hl-exsauce-results-hidden");
+				nodes[i].classList.add("xl-exsauce-results-hidden");
 			}
-			nodes = $$(".hl-actions:not(.hl-actions-hidden)", post);
+			nodes = $$(".xl-actions:not(.xl-actions-hidden)", post);
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
-				nodes[i].classList.add("hl-actions-hidden");
+				nodes[i].classList.add("xl-actions-hidden");
 			}
-			nodes = $$(".hl-site-tag[hl-actions-index]", post);
+			nodes = $$(".xl-site-tag[xl-actions-index]", post);
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				n = nodes[i];
-				n.classList.remove("hl-site-tag-active");
-				n.removeAttribute("hl-actions-index");
+				n.classList.remove("xl-site-tag-active");
+				n.removeAttribute("xl-actions-index");
 			}
 		};
 		var cleanup_post_removed = function (post) {
 			var nodes, index, n, i, ii;
-			nodes = $$(".hl-site-tag[hl-actions-index]", post);
+			nodes = $$(".xl-site-tag[xl-actions-index]", post);
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
-				index = nodes[i].getAttribute("hl-actions-index") || "";
+				index = nodes[i].getAttribute("xl-actions-index") || "";
 				n = actions_nodes[index];
 				if (n !== undefined) {
 					if (n.parentNode !== null) $.remove(n);
@@ -4069,7 +4069,7 @@
 
 			if (
 				container !== null &&
-				(node = $(".hl-exsauce-results[data-hl-image-index='" + node.getAttribute("data-hl-image-index") + "']", container)) !== null &&
+				(node = $(".xl-exsauce-results[data-xl-image-index='" + node.getAttribute("data-xl-image-index") + "']", container)) !== null &&
 				Post.get_post_container(node) === container
 			) {
 				return node;
@@ -4085,15 +4085,15 @@
 				hover;
 
 			if (results !== null) {
-				hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id") || ""];
+				hover = hover_nodes[this.getAttribute("data-xl-sauce-hover-id") || ""];
 				if (hover === undefined) return;
 
-				if (results.classList.toggle("hl-exsauce-results-hidden")) {
-					hover.classList.remove("hl-exsauce-hover-hidden");
+				if (results.classList.toggle("xl-exsauce-results-hidden")) {
+					hover.classList.remove("xl-exsauce-hover-hidden");
 					on_sauce_mousemove.call(this, event);
 				}
 				else {
-					hover.classList.add("hl-exsauce-hover-hidden");
+					hover.classList.add("xl-exsauce-hover-hidden");
 				}
 			}
 		};
@@ -4101,7 +4101,7 @@
 			event.preventDefault();
 
 			var link = this,
-				events = this.getAttribute("data-hl-exsauce-events") || null;
+				events = this.getAttribute("data-xl-exsauce-events") || null;
 
 			if (events === null) return;
 
@@ -4116,28 +4116,28 @@
 			var results = get_exresults_from_exsauce(this),
 				hover, err;
 
-			if (results === null || results.classList.contains("hl-exsauce-results-hidden")) {
-				hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id")];
+			if (results === null || results.classList.contains("xl-exsauce-results-hidden")) {
+				hover = hover_nodes[this.getAttribute("data-xl-sauce-hover-id")];
 				if (hover === undefined) {
-					err = this.getAttribute("data-hl-exsauce-error");
+					err = this.getAttribute("data-xl-exsauce-error");
 					if (!err) return;
-					this.removeAttribute("data-hl-exsauce-error");
+					this.removeAttribute("data-xl-exsauce-error");
 					hover = create_error(this, err);
 				}
 
-				hover.classList.remove("hl-exsauce-hover-hidden");
+				hover.classList.remove("xl-exsauce-hover-hidden");
 			}
 		});
 		var on_sauce_mouseout = $.wrap_mouseenterleave_event(function () {
-			var hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id") || ""];
+			var hover = hover_nodes[this.getAttribute("data-xl-sauce-hover-id") || ""];
 			if (hover !== undefined) {
-				hover.classList.add("hl-exsauce-hover-hidden");
+				hover.classList.add("xl-exsauce-hover-hidden");
 			}
 		});
 		var on_sauce_mousemove = function (event) {
-			var hover = hover_nodes[this.getAttribute("data-hl-sauce-hover-id") || ""];
+			var hover = hover_nodes[this.getAttribute("data-xl-sauce-hover-id") || ""];
 
-			if (hover === undefined || hover.classList.contains("hl-exsauce-hover-hidden")) return;
+			if (hover === undefined || hover.classList.contains("xl-exsauce-hover-hidden")) return;
 
 			hover.style.left = "0";
 			hover.style.top = "0";
@@ -4165,12 +4165,12 @@
 			var results = data.results,
 				hover, i, ii;
 
-			hover = $.node("div", "hl-exsauce-hover hl-exsauce-hover-hidden hl-hover-shadow" + Theme.classes);
+			hover = $.node("div", "xl-exsauce-hover xl-exsauce-hover-hidden xl-hover-shadow" + Theme.classes);
 			Theme.bg(hover);
-			hover.setAttribute("data-hl-sauce-hover-id", id);
+			hover.setAttribute("data-xl-sauce-hover-id", id);
 
 			for (i = 0, ii = results.length; i < ii; ) {
-				$.add(hover, $.link(results[i].url, "hl-exsauce-hover-link", results[i].title));
+				$.add(hover, $.link(results[i].url, "xl-exsauce-hover-link", results[i].title));
 				if (++i < ii) $.add(hover, $.node_simple("br"));
 			}
 
@@ -4182,10 +4182,10 @@
 		var format = function (a, data) {
 			var count = data.results.length,
 				theme = Theme.classes,
-				index = a.getAttribute("data-hl-image-index") || "",
+				index = a.getAttribute("data-xl-image-index") || "",
 				results, link, par, url, n1, n2, n, i, ii;
 
-			a.classList.add("hl-exsauce-link-valid");
+			a.classList.add("xl-exsauce-link-valid");
 			a.textContent = "Found: " + count;
 			a.href = data.url;
 			a.target = "_blank";
@@ -4198,27 +4198,27 @@
 					(n = Post.get_text_body(n)) !== null &&
 					(par = n.parentNode) !== null
 				) {
-					results = $.node("div", "hl-exsauce-results" + theme);
-					results.setAttribute("data-hl-image-index", index);
+					results = $.node("div", "xl-exsauce-results" + theme);
+					results.setAttribute("data-xl-image-index", index);
 
-					$.add(results, n1 = $.node("div", "hl-exsauce-results-inner" + theme));
+					$.add(results, n1 = $.node("div", "xl-exsauce-results-inner" + theme));
 
-					$.add(n1, n2 = $.node("div", "hl-exsauce-results-group" + theme));
+					$.add(n1, n2 = $.node("div", "xl-exsauce-results-group" + theme));
 
-					$.add(n2, $.node("strong", "hl-exsauce-results-title", "Reverse Image Search Results"));
-					$.add(n2, $.node("span", "hl-exsauce-results-sep", "|"));
-					$.add(n2, $.node("span", "hl-exsauce-results-label", "View on:"));
+					$.add(n2, $.node("strong", "xl-exsauce-results-title", "Reverse Image Search Results"));
+					$.add(n2, $.node("span", "xl-exsauce-results-sep", "|"));
+					$.add(n2, $.node("span", "xl-exsauce-results-label", "View on:"));
 
 					if (config.sauce.lookup_domain === domains.exhentai) {
-						$.add(n2, $.link(data.url, "hl-exsauce-results-link", "ExHentai"));
-						$.add(n2, $.link($.change_url_domain(data.url, domains.gehentai), "hl-exsauce-results-link", "E-Hentai"));
+						$.add(n2, $.link(data.url, "xl-exsauce-results-link", "ExHentai"));
+						$.add(n2, $.link($.change_url_domain(data.url, domains.gehentai), "xl-exsauce-results-link", "E-Hentai"));
 					}
 					else {
-						$.add(n2,$.link(data.url, "hl-exsauce-results-link", "E-Hentai"));
-						$.add(n2, $.link($.change_url_domain(data.url, domains.exhentai), "hl-exsauce-results-link", "ExHentai"));
+						$.add(n2,$.link(data.url, "xl-exsauce-results-link", "E-Hentai"));
+						$.add(n2, $.link($.change_url_domain(data.url, domains.exhentai), "xl-exsauce-results-link", "ExHentai"));
 					}
 
-					$.add(n1, n2 = $.node("div", "hl-exsauce-results-group"));
+					$.add(n1, n2 = $.node("div", "xl-exsauce-results-group"));
 
 					for (i = 0, ii = data.results.length; i < ii; ++i) {
 						url = data.results[i].url;
@@ -4229,7 +4229,7 @@
 					$.before(par, n, results);
 				}
 
-				a.setAttribute("data-hl-sauce-hover-id", hover_nodes_id);
+				a.setAttribute("data-xl-sauce-hover-id", hover_nodes_id);
 				create_hover(hover_nodes_id, data);
 				++hover_nodes_id;
 
@@ -4254,13 +4254,13 @@
 			++hover_nodes_id;
 
 			// Create hover
-			hover = $.node("div", "hl-exsauce-hover hl-exsauce-hover-hidden hl-hover-shadow" + Theme.classes);
+			hover = $.node("div", "xl-exsauce-hover xl-exsauce-hover-hidden xl-hover-shadow" + Theme.classes);
 			Theme.bg(hover);
-			$.add(hover, $.node("span", "hl-exsauce-hover-link", error));
+			$.add(hover, $.node("span", "xl-exsauce-hover-link", error));
 
 			// Ids
-			hover.setAttribute("data-hl-sauce-hover-id", id);
-			node.setAttribute("data-hl-sauce-hover-id", id);
+			hover.setAttribute("data-xl-sauce-hover-id", id);
+			node.setAttribute("data-xl-sauce-hover-id", id);
 
 			Popup.hovering(hover);
 			hover_nodes[id] = hover;
@@ -4273,7 +4273,7 @@
 			create_error(node, error);
 
 			// Link
-			node.classList.add("hl-exsauce-link-error");
+			node.classList.add("xl-exsauce-link-error");
 			node.textContent = "Error";
 			node.removeAttribute("title");
 
@@ -4282,13 +4282,13 @@
 		};
 		var remove_error = function (node) {
 			var events = Linkifier.get_link_events(node),
-				id = node.getAttribute("data-hl-sauce-hover-id"),
+				id = node.getAttribute("data-xl-sauce-hover-id"),
 				hover = hover_nodes[id];
 
 			Linkifier.change_link_events(node, null);
-			node.classList.remove("hl-exsauce-link-error");
-			node.setAttribute("data-hl-exsauce-events", events);
-			node.removeAttribute("data-hl-sauce-hover-id");
+			node.classList.remove("xl-exsauce-link-error");
+			node.setAttribute("data-xl-exsauce-events", events);
+			node.removeAttribute("data-xl-sauce-hover-id");
 
 			if (hover !== undefined) {
 				if (hover.parentNode !== null) $.remove(hover);
@@ -4351,15 +4351,15 @@
 
 		// Public
 		var find_link = function (container) {
-			return $(".hl-exsauce-link", container);
+			return $(".xl-exsauce-link", container);
 		};
 		var create_link = function (file_info, index) {
 			var event = "exsauce_fetch",
 				sauce, err;
 
-			sauce = $.link(file_info.url, "hl-exsauce-link", label());
-			sauce.setAttribute("data-hl-filename", file_info.name);
-			sauce.setAttribute("data-hl-image-index", index);
+			sauce = $.link(file_info.url, "xl-exsauce-link", label());
+			sauce.setAttribute("data-xl-filename", file_info.name);
+			sauce.setAttribute("data-xl-image-index", index);
 			if (file_info.md5 !== null) {
 				sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
 			}
@@ -4371,8 +4371,8 @@
 				else {
 					err = "Reverse Image Search doesn't work for .jpg images because 4chan manipulates them on upload";
 					event = "exsauce_error";
-					sauce.classList.add("hl-exsauce-link-disabled");
-					sauce.setAttribute("data-hl-exsauce-error", err);
+					sauce.classList.add("xl-exsauce-link-disabled");
+					sauce.setAttribute("data-xl-exsauce-error", err);
 				}
 			}
 
@@ -4411,7 +4411,7 @@
 
 		// Private
 		var re_url = /(https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)(?:\/[^<>\s\'\"]*)?/ig,
-			re_url_class_ignore = /(?:\binlined?\b|\bhl-)/,
+			re_url_class_ignore = /(?:\binlined?\b|\bxl-)/,
 			re_deferrer = /^(?:https?:)?\/\/sys\.4chan\.org\/derefer\?url=([\w\W]*)$/i;
 
 		// Linkification
@@ -4749,7 +4749,7 @@
 
 		// Link creation and processing
 		var create_link = function (parent, next, url, text, auto_process) {
-			var link = $.link(url, "hl-link-created", text);
+			var link = $.link(url, "xl-link-created", text);
 
 			$.before(parent, next, link);
 
@@ -4769,7 +4769,7 @@
 					node.href = url;
 					node.target = "_blank";
 					node.rel = "noreferrer";
-					node.classList.add("hl-linkified");
+					node.classList.add("xl-linkified");
 				}
 				return;
 			}
@@ -4789,8 +4789,8 @@
 			node.target = "_blank";
 			node.rel = "noreferrer";
 
-			node.classList.add("hl-link");
-			node.classList.add("hl-linkified");
+			node.classList.add("xl-link");
+			node.classList.add("xl-linkified");
 
 			set_node_url_info(node, info);
 			UI.setup_link(node, url, info);
@@ -4913,7 +4913,7 @@
 					link_urls = [];
 					for (i = 0, ii = post_links.length; i < ii; ++i) {
 						link = post_links[i];
-						if (link.classList.contains("hl-site-tag")) {
+						if (link.classList.contains("xl-site-tag")) {
 							$.remove(link);
 						}
 						else {
@@ -4938,7 +4938,7 @@
 						preprocess_link(link_nodes[i], link_urls[i], (i >= j), auto_load_links);
 					}
 				}
-				post.classList.add("hl-post-linkified");
+				post.classList.add("xl-post-linkified");
 			}
 		};
 		var parse_posts = function (posts) {
@@ -4948,7 +4948,7 @@
 
 			for (i = 0, ii = posts.length; i < ii; ++i) {
 				post = posts[i];
-				if (post.classList.contains("hl-post-linkified")) {
+				if (post.classList.contains("xl-post-linkified")) {
 					UI.cleanup_post(post);
 					apply_link_events(post, true);
 				}
@@ -4976,7 +4976,7 @@
 			return count;
 		};
 		var get_link_events = function (node) {
-			return node.getAttribute("data-hl-link-events") || null;
+			return node.getAttribute("data-xl-link-events") || null;
 		};
 		var set_link_events = function (node, new_events) {
 			var events = link_events[new_events],
@@ -4995,17 +4995,17 @@
 			}
 		};
 		var apply_link_events = function (node, check_children) {
-			var nodes = check_children ? $$("a.hl-link-events", node) : [ node ],
+			var nodes = check_children ? $$("a.xl-link-events", node) : [ node ],
 				events, i, ii;
 
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				node = nodes[i];
-				events = node.getAttribute("data-hl-link-events");
+				events = node.getAttribute("data-xl-link-events");
 				set_link_events(node, events);
 			}
 		};
 		var change_link_events = function (node, new_events) {
-			var old_events = node.getAttribute("data-hl-link-events"),
+			var old_events = node.getAttribute("data-xl-link-events"),
 				events, k;
 
 			events = link_events[old_events];
@@ -5022,26 +5022,26 @@
 			}
 
 			if (new_events === null) {
-				node.classList.remove("hl-link-events");
-				node.removeAttribute("data-hl-link-events");
+				node.classList.remove("xl-link-events");
+				node.removeAttribute("data-xl-link-events");
 			}
 			else {
-				node.classList.add("hl-link-events");
-				node.setAttribute("data-hl-link-events", new_events);
+				node.classList.add("xl-link-events");
+				node.setAttribute("data-xl-link-events", new_events);
 				set_link_events(node, new_events);
 			}
 		};
 
 		// Links
 		var get_links_formatted = function (parent) {
-			return $$("a.hl-link.hl-link-formatted", parent);
+			return $$("a.xl-link.xl-link-formatted", parent);
 		};
 
 		var set_node_url_info = function (node, info) {
-			node.setAttribute("data-hl-info", JSON.stringify(info));
+			node.setAttribute("data-xl-info", JSON.stringify(info));
 		};
 		var get_node_url_info = function (node) {
-			return $.json_parse_safe(node.getAttribute("data-hl-info"), null);
+			return $.json_parse_safe(node.getAttribute("data-xl-info"), null);
 		};
 
 		// Events
@@ -5076,7 +5076,7 @@
 
 		// Fixing
 		var relinkify_posts = function (posts) {
-			var cls = "hl-post-linkified",
+			var cls = "xl-post-linkified",
 				post, links, i, ii, j, jj;
 
 			for (i = 0, ii = posts.length; i < ii; ++i) {
@@ -5085,12 +5085,12 @@
 
 				post.classList.remove(cls);
 
-				links = $$(".hl-site-tag", post);
+				links = $$(".xl-site-tag", post);
 				for (j = 0, jj = links.length; j < jj; ++j) {
 					$.remove(links[j]);
 				}
 
-				links = $$(".hl-link-events", post);
+				links = $$(".xl-link-events", post);
 				for (j = 0, jj = links.length; j < jj; ++j) {
 					change_link_events(links[j], null);
 				}
@@ -5104,12 +5104,12 @@
 				n = node.nextSibling,
 				link, events, i, ii;
 
-			if (n !== null && n.tagName === "A" && n.classList.contains("hl-link")) {
+			if (n !== null && n.tagName === "A" && n.classList.contains("xl-link")) {
 				$.remove(n);
 			}
 
 			n = node.previousSibling;
-			if (n !== null && n.tagName === "A" && n.classList.contains("hl-site-tag")) {
+			if (n !== null && n.tagName === "A" && n.classList.contains("xl-site-tag")) {
 				$.remove(n);
 			}
 
@@ -5118,10 +5118,10 @@
 				events = get_link_events(link);
 				change_link_events(link, null);
 
-				if (link.classList.contains("hl-site-tag")) {
+				if (link.classList.contains("xl-site-tag")) {
 					$.remove(link);
 				}
-				else if (link.classList.contains("hl-link")) {
+				else if (link.classList.contains("xl-link")) {
 					fix.push(link, events);
 				}
 			}
@@ -5196,62 +5196,62 @@
 				ext = (obj.length > 5 ? obj[5] : null);
 				if (ext === null || (type = ext.type) === undefined) type = "checkbox";
 				value = (name === null ? null : config_scope[name]);
-				id = "hl-settings-" + option_type + "-" + i;
+				id = "xl-settings-" + option_type + "-" + i;
 				event = "change";
 
-				$.add(container, entry = $.node("div", "hl-settings-entry" + theme));
-				$.add(entry, table = $.node("div", "hl-settings-entry-table"));
-				$.add(table, row = $.node("div", "hl-settings-entry-row"));
+				$.add(container, entry = $.node("div", "xl-settings-entry" + theme));
+				$.add(entry, table = $.node("div", "xl-settings-entry-table"));
+				$.add(table, row = $.node("div", "xl-settings-entry-row"));
 
-				$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
-				$.add(cell, label = $.node("label", "hl-settings-entry-label"));
+				$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
+				$.add(cell, label = $.node("label", "xl-settings-entry-label"));
 				label.htmlFor = id;
-				$.add(label, $.node("strong", "hl-settings-entry-label-name", label_text + ":"));
+				$.add(label, $.node("strong", "xl-settings-entry-label-name", label_text + ":"));
 				if (desc.length > 0) {
-					n = $.node("span", "hl-settings-entry-label-description");
+					n = $.node("span", "xl-settings-entry-label-description");
 					n.innerHTML = " " + desc;
 					$.add(label, n);
 				}
 
 				if (type === "checkbox") {
-					$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
-					$.add(cell, input = $.node("input", "hl-settings-entry-input" + theme));
+					$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
+					$.add(cell, input = $.node("input", "xl-settings-entry-input" + theme));
 					input.type = "checkbox";
 					input.id = id;
 					input.checked = value;
 				}
 				else if (type === "select") {
-					$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
-					$.add(cell, input = $.node("select", "hl-settings-entry-input" + theme));
+					$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
+					$.add(cell, input = $.node("select", "xl-settings-entry-input" + theme));
 
 					values = ext.options;
 					for (j = 0, jj = values.length; j < jj; ++j) {
 						v = values[j];
-						$.add(input, n = $.node("option", "hl-settings-entry-input-option", v[1]));
+						$.add(input, n = $.node("option", "xl-settings-entry-input-option", v[1]));
 						n.value = v[0];
 						n.selected = (v[0] === value);
 						if (v.length > 2) n.title = v[2];
 					}
 				}
 				else if (type === "textbox") {
-					$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
-					$.add(cell, input = $.node("input", "hl-settings-entry-input" + theme));
+					$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
+					$.add(cell, input = $.node("input", "xl-settings-entry-input" + theme));
 					input.type = "text";
 					input.id = id;
 					input.value = value;
 				}
 				else if (type === "textarea") {
-					$.add(table, row = $.node("div", "hl-settings-entry-row"));
-					$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
-					$.add(cell, input = $.node("textarea", "hl-settings-entry-input" + theme));
+					$.add(table, row = $.node("div", "xl-settings-entry-row"));
+					$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
+					$.add(cell, input = $.node("textarea", "xl-settings-entry-input" + theme));
 					input.wrap = "off";
 					input.spellcheck = false;
 					input.id = id;
 					input.value = value;
 				}
 				else if (type === "button") {
-					$.add(row, cell = $.node("span", "hl-settings-entry-cell"));
-					$.add(cell, input = $.node("button", "hl-settings-entry-input" + theme, ext.text || ""));
+					$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
+					$.add(cell, input = $.node("button", "xl-settings-entry-input" + theme, ext.text || ""));
 					event = "click";
 				}
 
@@ -5327,8 +5327,8 @@
 
 				try {
 					var n = this.parentNode.parentNode.parentNode.nextSibling;
-					if (n.classList.contains("hl-settings-filter-guide")) {
-						n.classList.toggle("hl-settings-filter-guide-visible");
+					if (n.classList.contains("xl-settings-filter-guide")) {
+						n.classList.toggle("xl-settings-filter-guide-visible");
 					}
 				}
 				catch (e) {}
@@ -5359,9 +5359,9 @@
 
 		// Public
 		var ready = function () {
-			Navigation.insert_link("main", "#TITLE#", Main.homepage, " hl-nav-link-settings", on_settings_open_click);
+			Navigation.insert_link("main", "#TITLE#", Main.homepage, " xl-nav-link-settings", on_settings_open_click);
 
-			var n = $.link(Main.homepage, "hl-nav-link", "#TITLE# Settings");
+			var n = $.link(Main.homepage, "xl-nav-link", "#TITLE# Settings");
 			$.on(n, "click", on_settings_open_click);
 			HeaderBar.insert_menu_link(n);
 		};
@@ -5377,31 +5377,31 @@
 				small: true,
 				setup: function (container) {
 					var n;
-					$.add(container, $.link(Main.homepage, "hl-settings-title" + theme, "#TITLE#"));
-					$.add(container, n = $.link(Changelog.url, "hl-settings-version" + theme, Main.version.join(".")));
+					$.add(container, $.link(Main.homepage, "xl-settings-title" + theme, "#TITLE#"));
+					$.add(container, n = $.link(Changelog.url, "xl-settings-version" + theme, Main.version.join(".")));
 					$.on(n, "click", on_changelog_click);
 				}
 			}, {
 				align: "right",
 				setup: function (container) {
 					var n;
-					$.add(container, n = $.link("#ISSUES#", "hl-settings-button" + theme));
-					$.add(n, $.node("span", "hl-settings-button-text", "Issues"));
+					$.add(container, n = $.link("#ISSUES#", "xl-settings-button" + theme));
+					$.add(n, $.node("span", "xl-settings-button-text", "Issues"));
 
-					$.add(container, n = $.link(Changelog.url, "hl-settings-button" + theme));
-					$.add(n, $.node("span", "hl-settings-button-text", "Changelog"));
+					$.add(container, n = $.link(Changelog.url, "xl-settings-button" + theme));
+					$.add(n, $.node("span", "xl-settings-button-text", "Changelog"));
 					$.on(n, "click", on_changelog_click);
 
-					$.add(container, n = $.link("#", "hl-settings-button" + theme));
-					$.add(n, $.node("span", "hl-settings-button-text", "Export"));
+					$.add(container, n = $.link("#", "xl-settings-button" + theme));
+					$.add(n, $.node("span", "xl-settings-button-text", "Export"));
 					$.on(n, "click", on_export_click);
 
-					$.add(container, n = $.link("#", "hl-settings-button" + theme));
-					$.add(n, $.node("span", "hl-settings-button-text", "Save settings"));
+					$.add(container, n = $.link("#", "xl-settings-button" + theme));
+					$.add(n, $.node("span", "xl-settings-button-text", "Save settings"));
 					$.on(n, "click", on_save_click);
 
-					$.add(container, n = $.link("#", "hl-settings-button" + theme));
-					$.add(n, $.node("span", "hl-settings-button-text", "Cancel"));
+					$.add(container, n = $.link("#", "xl-settings-button" + theme));
+					$.add(n, $.node("span", "xl-settings-button-text", "Cancel"));
 					$.on(n, "click", on_cancel_click);
 				}
 			}], {
@@ -5415,13 +5415,13 @@
 			}]);
 
 			// Settings
-			gen($(".hl-settings-group-general", popup), theme, "general");
-			gen($(".hl-settings-group-sites", popup), theme, "sites");
-			gen($(".hl-settings-group-details", popup), theme, "details");
-			gen($(".hl-settings-group-actions", popup), theme, "actions");
-			gen($(".hl-settings-group-sauce", popup), theme, "sauce");
-			gen($(".hl-settings-group-filter", popup), theme, "filter");
-			gen($(".hl-settings-group-debug", popup), theme, "debug",
+			gen($(".xl-settings-group-general", popup), theme, "general");
+			gen($(".xl-settings-group-sites", popup), theme, "sites");
+			gen($(".xl-settings-group-details", popup), theme, "details");
+			gen($(".xl-settings-group-actions", popup), theme, "actions");
+			gen($(".xl-settings-group-sauce", popup), theme, "sauce");
+			gen($(".xl-settings-group-filter", popup), theme, "filter");
+			gen($(".xl-settings-group-debug", popup), theme, "debug",
 				[ null, null,
 					"Clear cache data", "Clear all cached gallery data",
 					null,
@@ -5431,14 +5431,14 @@
 
 			// Events
 			$.on(popup, "click", on_cancel_click);
-			$.on($("input.hl-settings-color-input[type=color]", popup), "change", on_color_helper_change);
-			$.on($(".hl-settings-filter-guide-toggle", popup), "click", on_toggle_filter_guide);
+			$.on($("input.xl-settings-color-input[type=color]", popup), "change", on_color_helper_change);
+			$.on($(".xl-settings-filter-guide-toggle", popup), "click", on_toggle_filter_guide);
 
 			// Add to body
 			Popup.open(popup);
 
 			// Focus
-			n = $(".hl-popup-cell-size-scroll", popup);
+			n = $(".xl-popup-cell-size-scroll", popup);
 			if (n !== null) $.scroll_focus(n);
 		};
 		var open_export = function () {
@@ -5456,8 +5456,8 @@
 			popup = Popup.create("settings", [[{
 				small: true,
 				setup: function (container) {
-					$.add(container, $.link(Main.homepage, "hl-settings-title" + theme, "#TITLE#"));
-					$.add(container, $.node("span", "hl-settings-title-info" + theme, " - Settings export"));
+					$.add(container, $.link(Main.homepage, "xl-settings-title" + theme, "#TITLE#"));
+					$.add(container, $.node("span", "xl-settings-title-info" + theme, " - Settings export"));
 				}
 			}, {
 				align: "right",
@@ -5471,7 +5471,7 @@
 						return s;
 					};
 
-					fn = $.node("input", "hl-settings-file-input");
+					fn = $.node("input", "xl-settings-file-input");
 					fn.type = "file";
 					fn.accept = ".json";
 					$.add(container, fn);
@@ -5484,7 +5484,7 @@
 								var d = $.json_parse_safe(this.result, null);
 								if (d !== null) {
 									nodes.textarea.value = JSON.stringify(d, null, 2);
-									nodes.textarea.classList.add("hl-settings-export-textarea-changed");
+									nodes.textarea.classList.add("xl-settings-export-textarea-changed");
 								}
 							}, false);
 							reader.readAsText(files[0]);
@@ -5492,14 +5492,14 @@
 						this.value = null;
 					});
 
-					$.add(container, n = $.link(undefined, "hl-settings-button" + theme));
-					$.add(n, $.node("span", "hl-settings-button-text", "Import"));
+					$.add(container, n = $.link(undefined, "xl-settings-button" + theme));
+					$.add(n, $.node("span", "xl-settings-button-text", "Import"));
 					$.on(n, "click", function (event) {
 						event.preventDefault();
 						fn.click();
 					});
 
-					$.add(container, n = $.link(export_url, "hl-settings-button" + theme));
+					$.add(container, n = $.link(export_url, "xl-settings-button" + theme));
 					n.removeAttribute("target");
 					n.setAttribute("download",
 						"#TITLE#".toLowerCase() + "-settings-" +
@@ -5510,27 +5510,27 @@
 						pad(d.getHours(), 2) + "." +
 						pad(d.getMinutes(), 2) + ".json"
 					);
-					$.add(n, $.node("span", "hl-settings-button-text", "Export"));
+					$.add(n, $.node("span", "xl-settings-button-text", "Export"));
 
-					$.add(container, n = $.link("#", "hl-settings-button" + theme));
-					$.add(n, $.node("span", "hl-settings-button-text", "Save settings"));
+					$.add(container, n = $.link("#", "xl-settings-button" + theme));
+					$.add(n, $.node("span", "xl-settings-button-text", "Save settings"));
 					$.on(n, "click", function (event) {
 						if ($.is_left_mouse(event)) {
 							event.preventDefault();
 							var v = $.json_parse_safe(nodes.textarea.value, null);
 							if (v !== null) {
-								nodes.textarea.classList.remove("hl-settings-export-textarea-error");
+								nodes.textarea.classList.remove("xl-settings-export-textarea-error");
 								import_settings(v);
 							}
 							else {
-								nodes.textarea.classList.add("hl-settings-export-textarea-error");
+								nodes.textarea.classList.add("xl-settings-export-textarea-error");
 							}
-							nodes.textarea.classList.remove("hl-settings-export-textarea-changed");
+							nodes.textarea.classList.remove("xl-settings-export-textarea-changed");
 						}
 					});
 
-					$.add(container, n = $.link("#", "hl-settings-button" + theme));
-					$.add(n, $.node("span", "hl-settings-button-text", "Cancel"));
+					$.add(container, n = $.link("#", "xl-settings-button" + theme));
+					$.add(n, $.node("span", "xl-settings-button-text", "Cancel"));
 					$.on(n, "click", on_cancel_click);
 				}
 			}], {
@@ -5538,12 +5538,12 @@
 				setup: function (container) {
 					var n1, n2, n3;
 
-					$.add(container, n1 = $.node("div", "hl-settings-export-message", "Disclaimer: changing these settings can easily break things. Edit at your own risk. ("));
+					$.add(container, n1 = $.node("div", "xl-settings-export-message", "Disclaimer: changing these settings can easily break things. Edit at your own risk. ("));
 
-					$.add(n1, n2 = $.node("label", "hl-settings-export-label"));
-					$.add(n2, n3 = $.node("input", "hl-settings-export-checkbox"));
-					$.add(n2, $.node("span", "hl-settings-export-label-text", "Enable editing"));
-					$.add(n2, $.node("span", "hl-settings-export-label-text", "Editing enabled"));
+					$.add(n1, n2 = $.node("label", "xl-settings-export-label"));
+					$.add(n2, n3 = $.node("input", "xl-settings-export-checkbox"));
+					$.add(n2, $.node("span", "xl-settings-export-label-text", "Enable editing"));
+					$.add(n2, $.node("span", "xl-settings-export-label-text", "Editing enabled"));
 					n3.type = "checkbox";
 					n3.checked = false;
 					$.on(n3, "change", function () {
@@ -5560,13 +5560,13 @@
 				setup: function (container) {
 					var n;
 
-					n = $.node("textarea", "hl-settings-export-textarea" + theme);
+					n = $.node("textarea", "xl-settings-export-textarea" + theme);
 					n.spellcheck = false;
 					n.wrap = "off";
 					n.value = export_data_string;
 					n.readOnly = true;
 					$.on(n, "input", function () {
-						this.classList.add("hl-settings-export-textarea-changed");
+						this.classList.add("xl-settings-export-textarea-changed");
 					});
 
 					nodes.textarea = n;
@@ -5580,7 +5580,7 @@
 			Popup.open(popup);
 
 			// Focus
-			n = $(".hl-settings-export-textarea", popup);
+			n = $(".xl-settings-export-textarea", popup);
 			if (n !== null) n.focus();
 		};
 		var close = function () {
@@ -6197,11 +6197,11 @@
 		};
 		var hl_return = function (bad, node) {
 			if (bad) {
-				node.classList.add("hl-filter-bad");
+				node.classList.add("xl-filter-bad");
 				return Status.Bad;
 			}
 			else {
-				node.classList.add("hl-filter-good");
+				node.classList.add("xl-filter-good");
 				return Status.Good;
 			}
 		};
@@ -6301,7 +6301,7 @@
 				while ((n2 = n1.firstChild) !== null) {
 					$.add(node, n2);
 				}
-				return hl_return(n1.classList.contains("hl-filter-bad"), node);
+				return hl_return(n1.classList.contains("xl-filter-bad"), node);
 			}
 
 			// Check filters
@@ -6344,8 +6344,8 @@
 					$.add(frag, $.tnode(t));
 				}
 				else {
-					n1 = $.node("span", "hl-filter-text");
-					n2 = $.node("span", "hl-filter-text-inner", t);
+					n1 = $.node("span", "xl-filter-text");
+					n2 = $.node("span", "xl-filter-text-inner", t);
 					$.add(n1, n2);
 					$.add(frag, n1);
 					apply_styles(n1, segment.data);
@@ -6365,13 +6365,13 @@
 		};
 		var highlight_tag = function (node, link, filter_data) {
 			if (filter_data[0] === Status.Bad) {
-				node.classList.add("hl-filter-bad");
-				link.classList.add("hl-filter-bad");
-				link.classList.remove("hl-filter-good");
+				node.classList.add("xl-filter-bad");
+				link.classList.add("xl-filter-bad");
+				link.classList.remove("xl-filter-good");
 			}
 			else {
-				node.classList.add("hl-filter-good");
-				link.classList.add("hl-filter-good");
+				node.classList.add("xl-filter-good");
+				link.classList.add("xl-filter-good");
 			}
 
 			// Get styles
@@ -6412,8 +6412,8 @@
 				(color !== null || background !== null || underline !== null) &&
 				(node = UI.button_get_inner(node)) !== null
 			) {
-				n1 = $.node("span", "hl-filter-text");
-				n2 = $.node("span", "hl-filter-text-inner");
+				n1 = $.node("span", "xl-filter-text");
+				n2 = $.node("span", "xl-filter-text-inner");
 				while ((n = node.firstChild) !== null) {
 					$.add(n2, n);
 				}
@@ -6567,7 +6567,7 @@
 				if (new_theme[0] !== current) {
 					if (change_nodes) update_nodes(new_theme);
 					current = new_theme[0];
-					Theme.classes = (current === "light" ? " hl-theme" : " hl-theme hl-theme-dark");
+					Theme.classes = (current === "light" ? " xl-theme" : " xl-theme xl-theme-dark");
 				}
 				if (new_theme[1] !== post_bg) {
 					post_bg = new_theme[1];
@@ -6578,24 +6578,24 @@
 			return false;
 		};
 		var update_nodes = function (new_theme) {
-			var nodes = $$(".hl-theme"),
+			var nodes = $$(".xl-theme"),
 				ii = nodes.length,
 				cls, i;
 			if (new_theme === "light") {
-				cls = "hl-theme-" + current;
+				cls = "xl-theme-" + current;
 				for (i = 0; i < ii; ++i) {
 					nodes[i].classList.remove(cls);
 				}
 			}
 			else {
-				cls = "hl-theme-" + new_theme;
+				cls = "xl-theme-" + new_theme;
 				for (i = 0; i < ii; ++i) {
 					nodes[i].classList.add(cls);
 				}
 			}
 		};
 		var update_nodes_bg = function () {
-			var nodes = $$(".hl-theme-post-bg"),
+			var nodes = $$(".xl-theme-post-bg"),
 				i, ii;
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				nodes[i].style.backgroundColor = post_bg;
@@ -6638,20 +6638,20 @@
 			}
 		};
 		var bg = function (node) {
-			node.classList.add("hl-theme-post-bg");
+			node.classList.add("xl-theme-post-bg");
 			node.style.backgroundColor = post_bg;
 		};
 		var apply = function (node) {
 			if (current !== "light") {
-				var nodes = $$(".hl-theme", node),
+				var nodes = $$(".xl-theme", node),
 					i, ii;
 
 				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					nodes[i].classList.add("hl-theme-dark");
+					nodes[i].classList.add("xl-theme-dark");
 				}
 
-				if (node.classList && node.classList.contains("hl-theme")) {
-					node.classList.add("hl-theme-dark");
+				if (node.classList && node.classList.contains("xl-theme")) {
+					node.classList.add("xl-theme-dark");
 				}
 			}
 		};
@@ -6700,7 +6700,7 @@
 
 		// Exports
 		var Module =  {
-			classes: " hl-theme",
+			classes: " xl-theme",
 			ready: ready,
 			bg: bg,
 			apply: apply,
@@ -6744,9 +6744,9 @@
 			custom_links_map = {},
 			custom_links_text = "",
 			node_sort_order_keys = {
-				thread: [ "data-hl-index", 1 ],
-				upload: [ "data-hl-date-uploaded", -1 ],
-				rating: [ "data-hl-rating", -1 ]
+				thread: [ "data-xl-index", 1 ],
+				upload: [ "data-xl-date-uploaded", -1 ],
+				rating: [ "data-xl-rating", -1 ]
 			},
 			display_mode_names = [
 				"full",
@@ -6791,21 +6791,21 @@
 					n1, n2;
 
 				// Overlay
-				$.add(container, n1 = $.node("div", "hl-easylist-title"));
+				$.add(container, n1 = $.node("div", "xl-easylist-title"));
 
-				$.add(n1, $.node("span", "hl-easylist-title-text", "#TITLE# Easy List"));
-				$.add(n1, $.node("span", "hl-easylist-subtitle", "More porn, less hassle"));
+				$.add(n1, $.node("span", "xl-easylist-title-text", "#TITLE# Easy List"));
+				$.add(n1, $.node("span", "xl-easylist-subtitle", "More porn, less hassle"));
 
 				// Close
-				$.add(container, n1 = $.node("div", "hl-easylist-control-links"));
+				$.add(container, n1 = $.node("div", "xl-easylist-control-links"));
 
-				$.add(n1, n2 = $.link(undefined, "hl-easylist-control-link hl-easylist-control-link-options", "options"));
+				$.add(n1, n2 = $.link(undefined, "xl-easylist-control-link xl-easylist-control-link-options", "options"));
 				$.on(n2, "click", on_options_click);
 
-				$.add(n1, n2 = $.link(undefined, "hl-easylist-control-link", "close"));
+				$.add(n1, n2 = $.link(undefined, "xl-easylist-control-link", "close"));
 				$.on(n2, "click", on_close_click);
 
-				$.add(container, $.node("div", "hl-easylist-title-line"));
+				$.add(container, $.node("div", "xl-easylist-title-line"));
 
 				// Settings
 				options_container = create_options(theme);
@@ -6813,14 +6813,14 @@
 
 				// Empty notification
 				empty_notification = $.node("div",
-					"hl-easylist-empty-notification hl-easylist-empty-notification-visible",
+					"xl-easylist-empty-notification xl-easylist-empty-notification-visible",
 					"No galleries found"
 				);
 				$.add(container, empty_notification);
 
 				// Items list
-				contents[0].container = $.node("div", "hl-easylist-items" + theme);
-				contents[1].container = $.node("div", "hl-easylist-items" + theme);
+				contents[0].container = $.node("div", "xl-easylist-items" + theme);
+				contents[1].container = $.node("div", "xl-easylist-items" + theme);
 				$.add(container, contents[content_current].container);
 
 				content_container = container;
@@ -6834,27 +6834,27 @@
 		var create_options = function (theme) {
 			var fn, n1, n2, n3, n4, n5;
 
-			n1 = $.node("div", "hl-easylist-options");
-			$.add(n1, n2 = $.node("div", "hl-easylist-option-table"));
+			n1 = $.node("div", "xl-easylist-options");
+			$.add(n1, n2 = $.node("div", "xl-easylist-option-table"));
 
 
-			$.add(n2, n3 = $.node("div", "hl-easylist-option-row"));
-			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
-			$.add(n4, $.node("span", "hl-easylist-option-title", "Sort by:"));
+			$.add(n2, n3 = $.node("div", "xl-easylist-option-row"));
+			$.add(n3, n4 = $.node("div", "xl-easylist-option-cell"));
+			$.add(n4, $.node("span", "xl-easylist-option-title", "Sort by:"));
 
-			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
+			$.add(n3, n4 = $.node("div", "xl-easylist-option-cell"));
 
 			fn = function (value, text) {
-				var n1 = $.node("label", "hl-easylist-option-label"),
-					n2 = $.node("input", "hl-easylist-option-input");
+				var n1 = $.node("label", "xl-easylist-option-label"),
+					n2 = $.node("input", "xl-easylist-option-input");
 
-				n2.name = "hl-easylist-options-sort-by";
+				n2.name = "xl-easylist-options-sort-by";
 				n2.type = "radio";
 				n2.checked = (settings.sort_by === value);
 				n2.value = value;
 
 				$.add(n1, n2);
-				$.add(n1, $.node("span", "hl-easylist-option-button" + theme, text));
+				$.add(n1, $.node("span", "xl-easylist-option-button" + theme, text));
 
 				$.on(n2, "change", on_option_change.sort_by);
 
@@ -6864,21 +6864,21 @@
 			$.add(n4, fn("upload", "Upload date"));
 			$.add(n4, fn("rating", "Rating"));
 
-			$.add(n2, n3 = $.node("div", "hl-easylist-option-row"));
-			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
-			$.add(n4, $.node("span", "hl-easylist-option-title", "Group by:"));
+			$.add(n2, n3 = $.node("div", "xl-easylist-option-row"));
+			$.add(n3, n4 = $.node("div", "xl-easylist-option-cell"));
+			$.add(n4, $.node("span", "xl-easylist-option-title", "Group by:"));
 
-			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
+			$.add(n3, n4 = $.node("div", "xl-easylist-option-cell"));
 
 			fn = function (checked, text, change_fn) {
-				var n1 = $.node("label", "hl-easylist-option-label"),
-					n2 = $.node("input", "hl-easylist-option-input");
+				var n1 = $.node("label", "xl-easylist-option-label"),
+					n2 = $.node("input", "xl-easylist-option-input");
 
 				n2.type = "checkbox";
 				n2.checked = checked;
 
 				$.add(n1, n2);
-				$.add(n1, $.node("span", "hl-easylist-option-button" + theme, text));
+				$.add(n1, $.node("span", "xl-easylist-option-button" + theme, text));
 
 				$.on(n2, "change", change_fn);
 
@@ -6888,23 +6888,23 @@
 			$.add(n4, fn(settings.group_by_category, "Category", on_option_change.group_by_category));
 
 
-			$.add(n2, n3 = $.node("div", "hl-easylist-option-row"));
-			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
-			$.add(n4, $.node("span", "hl-easylist-option-title", "Display mode:"));
+			$.add(n2, n3 = $.node("div", "xl-easylist-option-row"));
+			$.add(n3, n4 = $.node("div", "xl-easylist-option-cell"));
+			$.add(n4, $.node("span", "xl-easylist-option-title", "Display mode:"));
 
-			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
+			$.add(n3, n4 = $.node("div", "xl-easylist-option-cell"));
 
 			fn = function (value, text) {
-				var n1 = $.node("label", "hl-easylist-option-label"),
-					n2 = $.node("input", "hl-easylist-option-input");
+				var n1 = $.node("label", "xl-easylist-option-label"),
+					n2 = $.node("input", "xl-easylist-option-input");
 
-				n2.name = "hl-easylist-options-display";
+				n2.name = "xl-easylist-options-display";
 				n2.type = "radio";
 				n2.checked = (settings.display_mode === value);
 				n2.value = "" + value;
 
 				$.add(n1, n2);
-				$.add(n1, $.node("span", "hl-easylist-option-button" + theme, text));
+				$.add(n1, $.node("span", "xl-easylist-option-button" + theme, text));
 
 				$.on(n2, "change", on_option_change.display_mode);
 
@@ -6915,23 +6915,23 @@
 			$.add(n4, fn(2, "Minimal"));
 
 
-			$.add(n2, n3 = $.node("div", "hl-easylist-option-row"));
-			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
-			$.add(n4, $.node("span", "hl-easylist-option-title", "Filter visibility:"));
+			$.add(n2, n3 = $.node("div", "xl-easylist-option-row"));
+			$.add(n3, n4 = $.node("div", "xl-easylist-option-cell"));
+			$.add(n4, $.node("span", "xl-easylist-option-title", "Filter visibility:"));
 
-			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
+			$.add(n3, n4 = $.node("div", "xl-easylist-option-cell"));
 
 			fn = function (value, text) {
-				var n1 = $.node("label", "hl-easylist-option-label"),
-					n2 = $.node("input", "hl-easylist-option-input");
+				var n1 = $.node("label", "xl-easylist-option-label"),
+					n2 = $.node("input", "xl-easylist-option-input");
 
-				n2.name = "hl-easylist-options-filter-visibility";
+				n2.name = "xl-easylist-options-filter-visibility";
 				n2.type = "radio";
 				n2.checked = (settings.filter_visibility === value);
 				n2.value = "" + value;
 
 				$.add(n1, n2);
-				$.add(n1, $.node("span", "hl-easylist-option-button" + theme, text));
+				$.add(n1, $.node("span", "xl-easylist-option-button" + theme, text));
 
 				$.on(n2, "change", on_option_change.filter_visibility);
 
@@ -6942,13 +6942,13 @@
 			$.add(n4, fn(2, "Only show matches"));
 
 
-			$.add(n2, n3 = $.node("div", "hl-easylist-option-row"));
-			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
-			$.add(n4, $.node("span", "hl-easylist-option-title", "Custom filters:"));
+			$.add(n2, n3 = $.node("div", "xl-easylist-option-row"));
+			$.add(n3, n4 = $.node("div", "xl-easylist-option-cell"));
+			$.add(n4, $.node("span", "xl-easylist-option-title", "Custom filters:"));
 
-			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
+			$.add(n3, n4 = $.node("div", "xl-easylist-option-cell"));
 
-			$.add(n4, n5 = $.node("textarea", "hl-easylist-option-textarea" + theme));
+			$.add(n4, n5 = $.node("textarea", "xl-easylist-option-textarea" + theme));
 			n5.value = settings.custom_filters;
 			n5.wrap = "off";
 			n5.spellcheck = false;
@@ -6956,23 +6956,23 @@
 			$.on(n5, "input", on_option_change.custom_filters_input);
 
 
-			$.add(n2, n3 = $.node("div", "hl-easylist-option-row"));
-			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
-			$.add(n4, $.node("span", "hl-easylist-option-title", "Custom links:"));
+			$.add(n2, n3 = $.node("div", "xl-easylist-option-row"));
+			$.add(n3, n4 = $.node("div", "xl-easylist-option-cell"));
+			$.add(n4, $.node("span", "xl-easylist-option-title", "Custom links:"));
 			$.add(n4, $.node_simple("br"));
-			$.add(n4, n5 = $.node("div", "hl-easylist-option-title-sub"));
-			$.add(n5, $.node("div", "hl-easylist-option-title-sub-text", "Display a list of links from an external source"));
+			$.add(n4, n5 = $.node("div", "xl-easylist-option-title-sub"));
+			$.add(n5, $.node("div", "xl-easylist-option-title-sub-text", "Display a list of links from an external source"));
 
-			$.add(n3, n4 = $.node("div", "hl-easylist-option-cell"));
+			$.add(n3, n4 = $.node("div", "xl-easylist-option-cell"));
 
-			$.add(n4, n5 = $.node("textarea", "hl-easylist-option-textarea" + theme));
+			$.add(n4, n5 = $.node("textarea", "xl-easylist-option-textarea" + theme));
 			n5.value = custom_links_text;
 			n5.wrap = "off";
 			n5.spellcheck = false;
 			$.on(n5, "change", on_option_change.custom_links);
 			$.on(n5, "input", on_option_change.custom_links_input);
 
-			$.add(n1, $.node("div", "hl-easylist-title-line"));
+			$.add(n1, $.node("div", "xl-easylist-title-line"));
 
 			return n1;
 		};
@@ -6981,28 +6981,28 @@
 				theme = Theme.classes,
 				n1, n2, n3, n4, n5, n6, n7, i, t;
 
-			n1 = $.node("div", "hl-easylist-item" + theme);
-			n1.setAttribute("data-hl-index", index);
-			n1.setAttribute("data-hl-gid", data.gid);
-			if (data.token !== null) n1.setAttribute("data-hl-token", data.token);
-			n1.setAttribute("data-hl-rating", data.rating);
-			n1.setAttribute("data-hl-date-uploaded", data.upload_date);
-			n1.setAttribute("data-hl-category", data.category);
-			n1.setAttribute("data-hl-domain", domain);
+			n1 = $.node("div", "xl-easylist-item" + theme);
+			n1.setAttribute("data-xl-index", index);
+			n1.setAttribute("data-xl-gid", data.gid);
+			if (data.token !== null) n1.setAttribute("data-xl-token", data.token);
+			n1.setAttribute("data-xl-rating", data.rating);
+			n1.setAttribute("data-xl-date-uploaded", data.upload_date);
+			n1.setAttribute("data-xl-category", data.category);
+			n1.setAttribute("data-xl-domain", domain);
 
-			$.add(n1, n2 = $.node("div", "hl-easylist-item-table-container" + theme));
-			$.add(n2, n3 = $.node("div", "hl-easylist-item-table" + theme));
+			$.add(n1, n2 = $.node("div", "xl-easylist-item-table-container" + theme));
+			$.add(n2, n3 = $.node("div", "xl-easylist-item-table" + theme));
 			n2 = n3;
-			$.add(n2, n3 = $.node("div", "hl-easylist-item-row" + theme));
-			$.add(n3, n4 = $.node("div", "hl-easylist-item-cell hl-easylist-item-cell-image" + theme));
+			$.add(n2, n3 = $.node("div", "xl-easylist-item-row" + theme));
+			$.add(n3, n4 = $.node("div", "xl-easylist-item-cell xl-easylist-item-cell-image" + theme));
 
 			// Image
-			$.add(n4, n5 = $.link(url, "hl-easylist-item-image-container" + theme));
+			$.add(n4, n5 = $.link(url, "xl-easylist-item-image-container" + theme));
 
-			$.add(n5, n6 = $.node("div", "hl-easylist-item-image-outer" + theme));
+			$.add(n5, n6 = $.node("div", "xl-easylist-item-image-outer" + theme));
 
 			if (data.thumbnail !== null) {
-				$.add(n6, n7 = $.node("img", "hl-easylist-item-image" + theme));
+				$.add(n6, n7 = $.node("img", "xl-easylist-item-image" + theme));
 				$.on(n7, "error", on_thumbnail_error);
 				n7.alt = "";
 
@@ -7024,35 +7024,35 @@
 				n6.style.height = "100%";
 			}
 
-			$.add(n6, $.node("span", "hl-easylist-item-image-index" + theme, "#" + (index + 1)));
+			$.add(n6, $.node("span", "xl-easylist-item-image-index" + theme, "#" + (index + 1)));
 
 
 			// Main content
-			$.add(n3, n4 = $.node("div", "hl-easylist-item-cell" + theme));
+			$.add(n3, n4 = $.node("div", "xl-easylist-item-cell" + theme));
 
-			$.add(n4, n5 = $.node("div", "hl-easylist-item-title" + theme));
+			$.add(n4, n5 = $.node("div", "xl-easylist-item-title" + theme));
 
 			t = UI.button_text(domain);
-			$.add(n5, n6 = $.link(url, "hl-easylist-item-title-tag-link" + theme));
-			$.add(n6, $.node("span", "hl-easylist-item-title-tag-link-text", t));
-			n6.setAttribute("data-hl-original", t);
+			$.add(n5, n6 = $.link(url, "xl-easylist-item-title-tag-link" + theme));
+			$.add(n6, $.node("span", "xl-easylist-item-title-tag-link-text", t));
+			n6.setAttribute("data-xl-original", t);
 
-			$.add(n5, n6 = $.link(url, "hl-easylist-item-title-link" + theme, data.title));
-			n6.setAttribute("data-hl-original", n6.textContent);
+			$.add(n5, n6 = $.link(url, "xl-easylist-item-title-link" + theme, data.title));
+			n6.setAttribute("data-xl-original", n6.textContent);
 
 			if (data.title_jpn !== null) {
-				$.add(n4, n5 = $.node("span", "hl-easylist-item-title-jp" + theme, data.title_jpn));
-				n5.setAttribute("data-hl-original", n5.textContent);
+				$.add(n4, n5 = $.node("span", "xl-easylist-item-title-jp" + theme, data.title_jpn));
+				n5.setAttribute("data-xl-original", n5.textContent);
 			}
 
-			$.add(n4, n5 = $.node("div", "hl-easylist-item-upload-info" + theme));
+			$.add(n4, n5 = $.node("div", "xl-easylist-item-upload-info" + theme));
 			$.add(n5, $.tnode("Uploaded by "));
-			$.add(n5, n6 = $.link(CreateURL.to_uploader(data, domain), "hl-easylist-item-uploader" + theme, data.uploader));
-			n6.setAttribute("data-hl-original", n6.textContent);
+			$.add(n5, n6 = $.link(CreateURL.to_uploader(data, domain), "xl-easylist-item-uploader" + theme, data.uploader));
+			n6.setAttribute("data-xl-original", n6.textContent);
 			$.add(n5, $.tnode(" on "));
-			$.add(n5, $.node("span", "hl-easylist-item-upload-date" + theme, UI.format_date(new Date(data.upload_date))));
+			$.add(n5, $.node("span", "xl-easylist-item-upload-date" + theme, UI.format_date(new Date(data.upload_date))));
 
-			$.add(n4, n5 = $.node("div", "hl-easylist-item-tags" + theme));
+			$.add(n4, n5 = $.node("div", "xl-easylist-item-tags" + theme));
 
 			n6 = create_full_tags(domain, data, theme);
 			$.add(n5, n6[0]);
@@ -7062,34 +7062,34 @@
 
 
 			// Right sidebar
-			$.add(n3, n4 = $.node("div", "hl-easylist-item-cell hl-easylist-item-cell-side" + theme));
+			$.add(n3, n4 = $.node("div", "xl-easylist-item-cell xl-easylist-item-cell-side" + theme));
 
-			$.add(n4, n5 = $.node("div", "hl-easylist-item-info" + theme));
+			$.add(n4, n5 = $.node("div", "xl-easylist-item-info" + theme));
 
 			$.add(n5, n6 = $.link(CreateURL.to_category(data, domain),
-				"hl-easylist-item-info-button hl-button hl-button-eh hl-button-" + API.get_category(data.category).short_name + theme
+				"xl-easylist-item-info-button xl-button xl-button-eh xl-button-" + API.get_category(data.category).short_name + theme
 			));
-			$.add(n6, $.node("div", "hl-noise", API.get_category(data.category).name));
+			$.add(n6, $.node("div", "xl-noise", API.get_category(data.category).name));
 
 
-			$.add(n5, n6 = $.node("div", "hl-easylist-item-info-item hl-easylist-item-info-item-rating" + theme));
-			$.add(n6, n7 = $.node("div", "hl-stars-container"));
+			$.add(n5, n6 = $.node("div", "xl-easylist-item-info-item xl-easylist-item-info-item-rating" + theme));
+			$.add(n6, n7 = $.node("div", "xl-stars-container"));
 			$.add(n7, UI.create_rating_stars(data.rating));
 			if (data.rating >= 0) {
-				$.add(n6, $.node("span", "hl-easylist-item-info-light", "(Avg: " + data.rating.toFixed(2) + ")"));
+				$.add(n6, $.node("span", "xl-easylist-item-info-light", "(Avg: " + data.rating.toFixed(2) + ")"));
 			}
 			else {
-				n7.classList.add("hl-stars-container-na");
-				$.add(n6, $.node("span", "hl-easylist-item-info-light", "(n/a)"));
+				n7.classList.add("xl-stars-container-na");
+				$.add(n6, $.node("span", "xl-easylist-item-info-light", "(n/a)"));
 			}
 
-			$.add(n5, n6 = $.node("div", "hl-easylist-item-info-item hl-easylist-item-info-item-files" + theme));
+			$.add(n5, n6 = $.node("div", "xl-easylist-item-info-item xl-easylist-item-info-item-files" + theme));
 			i = data.file_count;
 			$.add(n6, $.node("span", "", i + " image" + (i === 1 ? "" : "s")));
 			if (data.total_size >= 0) {
 				$.add(n6, $.node_simple("br"));
 				i = (data.total_size / 1024 / 1024).toFixed(2).replace(/\.?0+$/, "");
-				$.add(n6, $.node("span", "hl-easylist-item-info-light", "(" + i + " MB)"));
+				$.add(n6, $.node("span", "xl-easylist-item-info-light", "(" + i + " MB)"));
 			}
 
 			// Highlight
@@ -7098,7 +7098,7 @@
 			return n1;
 		};
 		var create_full_tags = function (domain, data, theme) {
-			var n1 = $.node("div", "hl-easylist-item-tag-table" + theme),
+			var n1 = $.node("div", "xl-easylist-item-tag-table" + theme),
 				domain_type = domain_info[domain].type,
 				full_domain = domain_info[domain].g_domain,
 				namespace_style = "",
@@ -7114,26 +7114,26 @@
 			for (namespace in all_tags) {
 				tags = all_tags[namespace];
 
-				$.add(n1, n2 = $.node("div", "hl-easylist-item-tag-row" + theme));
+				$.add(n1, n2 = $.node("div", "xl-easylist-item-tag-row" + theme));
 
 				if (namespace !== "") {
-					namespace_style = " hl-tag-namespace-" + namespace.replace(/\ /g, "-") + theme;
-					$.add(n2, n3 = $.node("div", "hl-easylist-item-tag-cell hl-easylist-item-tag-cell-label" + theme));
-					$.add(n3, n4 = $.node("span", "hl-tag-namespace-block hl-tag-namespace-block-no-outline" + namespace_style));
-					$.add(n4, $.node("span", "hl-tag-namespace", namespace));
+					namespace_style = " xl-tag-namespace-" + namespace.replace(/\ /g, "-") + theme;
+					$.add(n2, n3 = $.node("div", "xl-easylist-item-tag-cell xl-easylist-item-tag-cell-label" + theme));
+					$.add(n3, n4 = $.node("span", "xl-tag-namespace-block xl-tag-namespace-block-no-outline" + namespace_style));
+					$.add(n4, $.node("span", "xl-tag-namespace", namespace));
 					$.add(n3, $.tnode(":"));
 				}
 
-				$.add(n2, n3 = $.node("div", "hl-easylist-item-tag-cell" + theme));
+				$.add(n2, n3 = $.node("div", "xl-easylist-item-tag-cell" + theme));
 				n2 = n3;
 
 				for (i = 0, ii = tags.length; i < ii; ++i) {
-					$.add(n2, n3 = $.node("span", "hl-tag-block" + namespace_style));
+					$.add(n2, n3 = $.node("span", "xl-tag-block" + namespace_style));
 					$.add(n3, n4 = $.link(CreateURL.to_tag(tags[i], domain_type, full_domain),
-						"hl-tag hl-tag-color-inherit hl-easylist-item-tag",
+						"xl-tag xl-tag-color-inherit xl-easylist-item-tag",
 						tags[i]
 					));
-					n4.setAttribute("data-hl-original", n4.textContent);
+					n4.setAttribute("data-xl-original", n4.textContent);
 
 					if (i < ii - 1) $.add(n3, $.tnode(","));
 				}
@@ -7149,7 +7149,7 @@
 			if (data !== null) {
 				entries = contents[content_index].entries;
 				n = create_gallery_nodes(data, index, entry.domain);
-				n.setAttribute("data-hl-easylist-item-parity", (contents[content_index].visible % 2) === 0 ? "odd" : "even");
+				n.setAttribute("data-xl-easylist-item-parity", (contents[content_index].visible % 2) === 0 ? "odd" : "even");
 
 				Main.insert_custom_fonts();
 
@@ -7180,27 +7180,27 @@
 		};
 		var set_empty = function (empty) {
 			if (empty_notification !== null) {
-				var cls = "hl-easylist-empty-notification-visible";
+				var cls = "xl-easylist-empty-notification-visible";
 				if (empty !== empty_notification.classList.contains(cls)) {
 					empty_notification.classList.toggle(cls);
 				}
 			}
 		};
 		var get_options_visible = function () {
-			return options_container.classList.contains("hl-easylist-options-visible");
+			return options_container.classList.contains("xl-easylist-options-visible");
 		};
 		var set_options_visible = function (visible) {
-			var n = $(".hl-easylist-control-link-options", popup),
+			var n = $(".xl-easylist-control-link-options", popup),
 				cl, cls;
 
 			if (n !== null) {
 				cl = n.classList;
-				cls = "hl-easylist-control-link-focus";
+				cls = "xl-easylist-control-link-focus";
 				if (cl.contains(cls) !== visible) cl.toggle(cls);
 			}
 
 			cl = options_container.classList;
-			cls = "hl-easylist-options-visible";
+			cls = "xl-easylist-options-visible";
 			if (cl.contains(cls) !== visible) cl.toggle(cls);
 		};
 
@@ -7209,17 +7209,17 @@
 			return (v > 0) ? -v : get_node_filters_good(node);
 		};
 		var get_node_filters_good = function (node) {
-			return (parseInt(node.getAttribute("data-hl-filter-matches-title"), 10) || 0) +
-				(parseInt(node.getAttribute("data-hl-filter-matches-uploader"), 10) || 0) +
-				(parseInt(node.getAttribute("data-hl-filter-matches-tags"), 10) || 0);
+			return (parseInt(node.getAttribute("data-xl-filter-matches-title"), 10) || 0) +
+				(parseInt(node.getAttribute("data-xl-filter-matches-uploader"), 10) || 0) +
+				(parseInt(node.getAttribute("data-xl-filter-matches-tags"), 10) || 0);
 		};
 		var get_node_filters_bad = function (node) {
-			return (parseInt(node.getAttribute("data-hl-filter-matches-title-bad"), 10) || 0) +
-				(parseInt(node.getAttribute("data-hl-filter-matches-uploader-bad"), 10) || 0) +
-				(parseInt(node.getAttribute("data-hl-filter-matches-tags-bad"), 10) || 0);
+			return (parseInt(node.getAttribute("data-xl-filter-matches-title-bad"), 10) || 0) +
+				(parseInt(node.getAttribute("data-xl-filter-matches-uploader-bad"), 10) || 0) +
+				(parseInt(node.getAttribute("data-xl-filter-matches-tags-bad"), 10) || 0);
 		};
 		var get_node_category_group = function (node) {
-			return API.get_category_sort_rank(node.getAttribute("data-hl-category"));
+			return API.get_category_sort_rank(node.getAttribute("data-xl-category"));
 		};
 		var update_display_mode = function (first) {
 			var mode = display_mode_names[settings.display_mode] || "",
@@ -7228,11 +7228,11 @@
 
 			if (!first) {
 				for (i = 0, ii = display_mode_names.length; i < ii; ++i) {
-					cl.remove("hl-easylist-" + display_mode_names[i]);
+					cl.remove("xl-easylist-" + display_mode_names[i]);
 				}
 			}
 
-			cl.add("hl-easylist-" + mode);
+			cl.add("xl-easylist-" + mode);
 		};
 		var update_ordering = function () {
 			var items = [],
@@ -7283,7 +7283,7 @@
 				};
 				item.order.push(
 					parseFloat(n.getAttribute(attr)) || 0,
-					parseFloat(n.getAttribute("data-hl-index")) || 0
+					parseFloat(n.getAttribute("data-xl-index")) || 0
 				);
 				items.push(item);
 			}
@@ -7306,7 +7306,7 @@
 			// Maybe eventually add labels
 			for (i = 0, ii = items.length; i < ii; ++i) {
 				n = items[i].node;
-				n2 = $(".hl-easylist-item-image-index", n);
+				n2 = $(".xl-easylist-item-image-index", n);
 
 				$.add(items_container, n);
 
@@ -7318,15 +7318,15 @@
 				}
 
 				if (show) {
-					n.setAttribute("data-hl-easylist-item-parity", (current_visible_count % 2) === 0 ? "odd" : "even");
-					n.classList.remove("hl-easylist-item-hidden");
+					n.setAttribute("data-xl-easylist-item-parity", (current_visible_count % 2) === 0 ? "odd" : "even");
+					n.classList.remove("xl-easylist-item-hidden");
 					++current_visible_count;
 
 					if (n2 !== null) n2.textContent = "#" + current_visible_count;
 				}
 				else {
-					n.setAttribute("data-hl-easylist-item-parity", "hidden");
-					n.classList.add("hl-easylist-item-hidden");
+					n.setAttribute("data-xl-easylist-item-parity", "hidden");
+					n.classList.add("xl-easylist-item-hidden");
 
 					if (n2 !== null) n2.textContent = "#";
 				}
@@ -7336,14 +7336,14 @@
 			set_empty(current_visible_count === 0);
 		};
 		var reset_filter_state = function (node, content_node) {
-			content_node.textContent = node.getAttribute("data-hl-original") || "";
-			node.classList.remove("hl-filter-good");
-			node.classList.remove("hl-filter-bad");
+			content_node.textContent = node.getAttribute("data-xl-original") || "";
+			node.classList.remove("xl-filter-good");
+			node.classList.remove("xl-filter-bad");
 		};
 		var update_filters_targets = [
-			[ ".hl-easylist-item-title-link,.hl-easylist-item-title-jp", "title" ],
-			[ ".hl-easylist-item-uploader", "uploader" ],
-			[ ".hl-easylist-item-tag", "tags" ],
+			[ ".xl-easylist-item-title-link,.xl-easylist-item-title-jp", "title" ],
+			[ ".xl-easylist-item-uploader", "uploader" ],
+			[ ".xl-easylist-item-tag", "tags" ],
 		];
 		var update_filters = function (node, data, first, tags_only) {
 			var target, nodes, mode, results, link, bad, hl, n, i, ii, j, jj;
@@ -7364,13 +7364,13 @@
 					if (results[j].flags.bad) ++bad;
 				}
 
-				node.setAttribute("data-hl-filter-matches-" + mode, results.length - bad);
-				node.setAttribute("data-hl-filter-matches-" + mode + "-bad", bad);
+				node.setAttribute("data-xl-filter-matches-" + mode, results.length - bad);
+				node.setAttribute("data-xl-filter-matches-" + mode + "-bad", bad);
 			}
 
 			if (!tags_only) {
-				link = $(".hl-easylist-item-title-link", node);
-				n = $(".hl-easylist-item-title-tag-link>span", node);
+				link = $(".xl-easylist-item-title-link", node);
+				n = $(".xl-easylist-item-title-tag-link>span", node);
 
 				if (link !== null && n !== null) {
 					if (!first) reset_filter_state(n.parentNode, n);
@@ -7560,17 +7560,17 @@
 				gid, token, data, domain;
 
 			if (
-				(gid = this.getAttribute("data-hl-gid")) &&
-				(token = this.getAttribute("data-hl-token")) &&
+				(gid = this.getAttribute("data-xl-gid")) &&
+				(token = this.getAttribute("data-xl-token")) &&
 				(data = API.get_ehentai_gallery(gid, token)) !== null &&
-				(domain = this.getAttribute("data-hl-domain"))
+				(domain = this.getAttribute("data-xl-domain"))
 			) {
 				API.get_ehentai_gallery_full(domain, data, function (err, data) {
 					var tags_container, n;
 
 					if (
 						err === null &&
-						(tags_container = $(".hl-easylist-item-tags", node)) !== null
+						(tags_container = $(".xl-easylist-item-tags", node)) !== null
 					) {
 						n = create_full_tags(domain, data, Theme.classes);
 						tags_container.textContent = "";
@@ -7667,7 +7667,7 @@
 			}
 		};
 		var ready = function () {
-			Navigation.insert_link("normal", "Easy List", Main.homepage, " hl-nav-link-easylist", on_open_click);
+			Navigation.insert_link("normal", "Easy List", Main.homepage, " xl-nav-link-easylist", on_open_click);
 
 			HeaderBar.insert_shortcut_icon(
 				"panda",
@@ -7675,7 +7675,7 @@
 				Main.homepage,
 				on_toggle_click,
 				function (svg, svgns) {
-					var path = $.node_ns(svgns, "path", "hl-header-bar-svg-panda-path");
+					var path = $.node_ns(svgns, "path", "xl-header-bar-svg-panda-path");
 					path.setAttribute("d",
 						"M 16.633179,51.146308 c 3.64987,0.96291 4.964143,6.353343 5.848553,6.951214 1.803534,1.219209 16.129984,0.579826 16.129984,0.579826 1.197865,-11.724731 1.212833,-8.671318 2.95548,-16.59613 -1.989075,-1.34607 -5.333693,-2.23712 -5.797288,-4.88791 -0.463595,-2.65078 0.255088,-2.142681 0.187543,-6.314371 -1.439647,-2.768736 -2.204016,-6.03551 -2.500789,-9.43479 -3.024907,-1.751033 -6.026517,-0.494694 -6.433955,-5.297229 -0.353512,-4.166916 6.132756,-5.138818 9.747309,-7.5194007 7.077373,-8.28015298 12.684056,-7.86614927 18.26733,-7.86614927 5.583275,0 12.190976,3.76366917 17.585988,11.22034497 6.53222,9.028459 10.674317,18.629087 14.466281,30.044847 3.791954,11.41577 4.453617,21.459054 1.537854,31.769198 2.36821,0.77671 4.928378,1.009485 5.226735,3.950385 0.298366,2.94089 -1.267399,5.363996 -3.607729,5.963956 -2.34033,0.59995 -4.60182,-0.139224 -6.646539,-0.619694 -3.86217,3.77416 -9.011474,7.538043 -17.479555,9.177123 -8.468078,1.63908 -26.453377,6.593222 -32.623916,6.30881 C 27.325926,98.291926 26.634713,94.42266 25.658825,90.03441 24.682937,85.64616 25.403148,82.440968 25.465957,78.696308 19.909553,79.123928 11.055576,79.654646 9.0799525,78.775913 5.9995252,77.405776 4.2346784,69.110754 5.7658643,59.974024 6.9338652,53.004454 12.660658,50.22377 16.633179,51.146308 z " +
 						"M 47.316173,40.278702 c -1.977441,10.244331 -5.318272,21.474541 -5.662805,29.784036 -0.242507,5.848836 2.420726,7.5586 5.348383,2.078223 5.586237,-10.45706 7.896687,-21.139251 10.839979,-32.018641 -1.376342,0.732535 -2.33581,0.805482 -3.567752,1.104816 2.20065,-1.826801 1.797963,-1.259845 4.683397,-4.356147 3.702042,-3.972588 11.505701,-7.842675 15.187296,-4.490869 4.597776,4.185917 3.4537,13.920509 -0.431829,18.735387 -1.301987,5.219157 -3.278232,10.993981 -4.691055,14.211545 1.650129,0.951997 7.1775,2.647886 8.723023,6.808838 1.818473,4.895806 0.447993,8.335081 -3.207776,12.929618 8.781279,-6.214409 9.875004,-12.24852 10.586682,-20.251062 C 85.596887,59.244915 85.615915,54.42819 83.82437,47.181873 82.032825,39.935556 77.484187,30.527275 73.806105,23.780748 70.128023,17.034221 68.465076,12.376515 60.467734,7.5782428 54.534892,4.0186364 44.006601,5.3633006 39.960199,11.716546 c -4.046402,6.353245 -2.052295,11.417199 0.339979,17.673546 -0.06795,1.969646 -1.145015,4.295256 0.105508,5.751383 1.875243,-0.914979 2.772108,-1.957655 4.421995,-2.639606 -0.01451,1.529931 0.320921,4.192236 -1.17535,5.722167 1.758316,1.116252 1.80495,1.414307 3.663842,2.054666 z"
@@ -7742,10 +7742,10 @@
 			var theme = Theme.classes,
 				container, list, obj, n1, n2, n3, n4, n5, n6, i, ii, j, jj, v;
 
-			n1 = $.node("div", "hl-popup-overlay hl-" + class_ns + "-popup-overlay" + theme);
-			$.add(n1, n2 = $.node("div", "hl-popup-aligner hl-" + class_ns + "-popup-aligner" + theme));
-			$.add(n2, n3 = $.node("div", "hl-popup-align hl-" + class_ns + "-popup-align" + theme));
-			$.add(n3, container = $.node("div", "hl-popup-content hl-" + class_ns + "-popup-content hl-hover-shadow" + theme));
+			n1 = $.node("div", "xl-popup-overlay xl-" + class_ns + "-popup-overlay" + theme);
+			$.add(n1, n2 = $.node("div", "xl-popup-aligner xl-" + class_ns + "-popup-aligner" + theme));
+			$.add(n2, n3 = $.node("div", "xl-popup-align xl-" + class_ns + "-popup-align" + theme));
+			$.add(n3, container = $.node("div", "xl-popup-content xl-" + class_ns + "-popup-content xl-hover-shadow" + theme));
 			Theme.bg(container);
 
 			$.on(n1, "mousedown", on_overlay_event);
@@ -7756,34 +7756,34 @@
 				setup.call(null, container);
 			}
 			else {
-				$.add(container, n2 = $.node("div", "hl-popup-table" + theme));
+				$.add(container, n2 = $.node("div", "xl-popup-table" + theme));
 
 				for (i = 0, ii = setup.length; i < ii; ++i) {
 					list = setup[i];
 					if (!Array.isArray(list)) list = [ list ];
 
-					$.add(n2, n3 = $.node("div", "hl-popup-row" + theme));
+					$.add(n2, n3 = $.node("div", "xl-popup-row" + theme));
 					jj = list.length;
 					if (jj > 1) {
-						$.add(n3, n4 = $.node("div", "hl-popup-cell" + theme));
-						$.add(n4, n5 = $.node("div", "hl-popup-table" + theme));
-						$.add(n5, n3 = $.node("div", "hl-popup-row" + theme));
+						$.add(n3, n4 = $.node("div", "xl-popup-cell" + theme));
+						$.add(n4, n5 = $.node("div", "xl-popup-table" + theme));
+						$.add(n5, n3 = $.node("div", "xl-popup-row" + theme));
 					}
 					for (j = 0; j < jj; ++j) {
 						obj = list[j];
 
-						$.add(n3, n4 = $.node("div", "hl-popup-cell" + theme));
+						$.add(n3, n4 = $.node("div", "xl-popup-cell" + theme));
 
-						if (obj.small) n4.classList.add("hl-popup-cell-small");
-						if ((v = obj.align) !== undefined && v !== "left") n4.classList.add("hl-popup-cell-" + v);
-						if ((v = obj.valign) !== undefined && v !== "top") n4.classList.add("hl-popup-cell-" + v);
+						if (obj.small) n4.classList.add("xl-popup-cell-small");
+						if ((v = obj.align) !== undefined && v !== "left") n4.classList.add("xl-popup-cell-" + v);
+						if ((v = obj.valign) !== undefined && v !== "top") n4.classList.add("xl-popup-cell-" + v);
 						if (obj.body) {
-							n3.classList.add("hl-popup-row-body");
+							n3.classList.add("xl-popup-row-body");
 
-							$.add(n4, n5 = $.node("div", "hl-popup-cell-size" + theme));
-							$.add(n5, n6 = $.node("div", "hl-popup-cell-size-scroll" + theme));
+							$.add(n4, n5 = $.node("div", "xl-popup-cell-size" + theme));
+							$.add(n5, n6 = $.node("div", "xl-popup-cell-size-scroll" + theme));
 							if (obj.padding !== false) {
-								$.add(n6, n4 = $.node("div", "hl-popup-cell-size-padding" + theme));
+								$.add(n6, n4 = $.node("div", "xl-popup-cell-size-padding" + theme));
 							}
 							else {
 								n4 = n6;
@@ -7801,12 +7801,12 @@
 			if (active !== null && active.parentNode !== null) {
 				$.remove(active);
 			}
-			d.documentElement.classList.add("hl-popup-overlaying");
+			d.documentElement.classList.add("xl-popup-overlaying");
 			hovering(overlay);
 			active = overlay;
 		};
 		var close = function (overlay) {
-			d.documentElement.classList.remove("hl-popup-overlaying");
+			d.documentElement.classList.remove("xl-popup-overlaying");
 			if (overlay.parentNode !== null) {
 				$.remove(overlay);
 			}
@@ -7817,7 +7817,7 @@
 		};
 		var hovering = function (node) {
 			if (hovering_container === null) {
-				hovering_container = $.node("div", "hl-hovering-elements");
+				hovering_container = $.node("div", "xl-hovering-elements");
 				if (Config.is_tinyboard) {
 					// Fix some poor choices of selectors (div.post:last) that infinity uses
 					$.prepend(d.body, hovering_container);
@@ -7903,34 +7903,34 @@
 				e, n1, n2, n3, n4, n5, i, ii, j, jj, k, kk;
 
 			if (change_data === null) {
-				n1 = $.node("div", "hl-changelog-message-container");
-				$.add(n1, $.node("div", "hl-changelog-message" + theme, "Loading changelog..."));
+				n1 = $.node("div", "xl-changelog-message-container");
+				$.add(n1, $.node("div", "xl-changelog-message" + theme, "Loading changelog..."));
 			}
 			else if ((e = change_data.error) !== null) {
-				n1 = $.node("div", "hl-changelog-message-container");
-				$.add(n1, n2 = $.node("div", "hl-changelog-message hl-changelog-message-error" + theme));
-				$.add(n2, $.node("strong", "hl-changelog-message-line" + theme, "Failed to load changelog:"));
+				n1 = $.node("div", "xl-changelog-message-container");
+				$.add(n1, n2 = $.node("div", "xl-changelog-message xl-changelog-message-error" + theme));
+				$.add(n2, $.node("strong", "xl-changelog-message-line" + theme, "Failed to load changelog:"));
 				$.add(n2, $.node_simple("br"));
-				$.add(n2, $.node("span", "hl-changelog-message-line" + theme, e));
+				$.add(n2, $.node("span", "xl-changelog-message-line" + theme, e));
 			}
 			else {
-				n1 = $.node("div", "hl-changelog-entries");
+				n1 = $.node("div", "xl-changelog-entries");
 
 				versions = change_data.log_data;
 				for (i = 0, ii = versions.length; i < ii; ++i) {
-					$.add(n1, n2 = $.node("div", "hl-changelog-entry" + theme));
-					$.add(n2, $.node("div", "hl-changelog-entry-version" + theme, versions[i].version));
-					$.add(n2, n3 = $.node("div", "hl-changelog-entry-users" + theme));
+					$.add(n1, n2 = $.node("div", "xl-changelog-entry" + theme));
+					$.add(n2, $.node("div", "xl-changelog-entry-version" + theme, versions[i].version));
+					$.add(n2, n3 = $.node("div", "xl-changelog-entry-users" + theme));
 
 					authors = versions[i].authors;
 					for (j = 0, jj = authors.length; j < jj; ++j) {
-						$.add(n3, n4 = $.node("div", "hl-changelog-entry-user" + theme));
-						$.add(n4, $.node("div", "hl-changelog-entry-user-name" + theme, authors[j].author));
-						$.add(n4, n5 = $.node("ul", "hl-changelog-entry-changes" + theme));
+						$.add(n3, n4 = $.node("div", "xl-changelog-entry-user" + theme));
+						$.add(n4, $.node("div", "xl-changelog-entry-user-name" + theme, authors[j].author));
+						$.add(n4, n5 = $.node("ul", "xl-changelog-entry-changes" + theme));
 
 						changes = authors[j].changes;
 						for (k = 0, kk = changes.length; k < kk; ++k) {
-							$.add(n5, $.node("li", "hl-changelog-entry-change" + theme, changes[k]));
+							$.add(n5, $.node("li", "xl-changelog-entry-change" + theme, changes[k]));
 						}
 					}
 				}
@@ -7968,7 +7968,7 @@
 			}
 
 			if (popup !== null) {
-				var n = $(".hl-changelog-content", popup);
+				var n = $(".xl-changelog-content", popup);
 				if (n !== null) {
 					n.innerHTML = "";
 					display(n, Theme.classes);
@@ -7999,36 +7999,36 @@
 				small: true,
 				setup: function (container) {
 					var cls = "";
-					$.add(container, $.link(Main.homepage, "hl-settings-title" + theme, "#TITLE#"));
+					$.add(container, $.link(Main.homepage, "xl-settings-title" + theme, "#TITLE#"));
 					if (message !== null) {
-						$.add(container, $.node("span", "hl-settings-title-info" + theme, message));
+						$.add(container, $.node("span", "xl-settings-title-info" + theme, message));
 						if (/\s+$/.test(message)) {
-							cls = " hl-settings-version-large";
+							cls = " xl-settings-version-large";
 						}
 					}
-					$.add(container, $.link(Module.url, "hl-settings-version" + cls + theme, Main.version.join(".")));
+					$.add(container, $.link(Module.url, "xl-settings-version" + cls + theme, Main.version.join(".")));
 				}
 			}, {
 				align: "right",
 				setup: function (container) {
 					var n1, n2;
-					$.add(container, n1 = $.node("label", "hl-settings-button" + theme));
-					$.add(n1, n2 = $.node("input", "hl-settings-button-checkbox"));
-					$.add(n1, $.node("span", "hl-settings-button-text hl-settings-button-checkbox-text", " Show on update"));
-					$.add(n1, $.node("span", "hl-settings-button-text hl-settings-button-checkbox-text", " Don't show on update"));
+					$.add(container, n1 = $.node("label", "xl-settings-button" + theme));
+					$.add(n1, n2 = $.node("input", "xl-settings-button-checkbox"));
+					$.add(n1, $.node("span", "xl-settings-button-text xl-settings-button-checkbox-text", " Show on update"));
+					$.add(n1, $.node("span", "xl-settings-button-text xl-settings-button-checkbox-text", " Don't show on update"));
 					n2.type = "checkbox";
 					n2.checked = config.general.changelog_on_update;
 					$.on(n2, "change", on_change_save);
 
-					$.add(container, n1 = $.link("#", "hl-settings-button" + theme));
-					$.add(n1, $.node("span", "hl-settings-button-text", "Close"));
+					$.add(container, n1 = $.link("#", "xl-settings-button" + theme));
+					$.add(n1, $.node("span", "xl-settings-button-text", "Close"));
 					$.on(n1, "click", on_close_click);
 				}
 			}], {
 				body: true,
 				padding: false,
 				setup: function (container) {
-					container.classList.add("hl-changelog-content");
+					container.classList.add("xl-changelog-content");
 					display(container, theme);
 				}
 			}]);
@@ -8091,7 +8091,7 @@
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				n2 = nodes[i];
 				if (is_appchan) {
-					n2.classList.add("hl-appchanx");
+					n2.classList.add("xl-appchanx");
 					n2.classList.add("a-icon");
 					n2.classList.add("shortcut");
 					n2.classList.add("fa");
@@ -8108,7 +8108,7 @@
 				if (color && (n1 = $("svg", n2)) !== null) {
 					n1.setAttribute("style", "fill:" + color + ";");
 				}
-				n2.setAttribute("data-hl-color", color);
+				n2.setAttribute("data-xl-color", color);
 			}
 		};
 
@@ -8141,10 +8141,10 @@
 				c;
 
 			if (n !== null) {
-				c = this.getAttribute("data-hl-hover-color");
+				c = this.getAttribute("data-xl-hover-color");
 				if (!c) {
 					c = Theme.get_computed_style(this).color;
-					this.setAttribute("data-hl-hover-color", c);
+					this.setAttribute("data-xl-hover-color", c);
 				}
 				n.style.fill = c;
 			}
@@ -8152,7 +8152,7 @@
 		var on_icon_mouseout = $.wrap_mouseenterleave_event(function () {
 			var n = $("svg", this);
 			if (n !== null) {
-				n.style.fill = this.getAttribute("data-hl-color");
+				n.style.fill = this.getAttribute("data-xl-color");
 			}
 		});
 		var on_menu_item_mouseover = $.wrap_mouseenterleave_event(function () {
@@ -8224,9 +8224,9 @@
 			var svgns = "http://www.w3.org/2000/svg",
 				n1, svg;
 
-			n1 = $.link(url, "hl-header-bar-link hl-header-bar-link-" + namespace);
+			n1 = $.link(url, "xl-header-bar-link xl-header-bar-link-" + namespace);
 			n1.setAttribute("title", title);
-			$.add(n1, svg = $.node_ns(svgns, "svg", "hl-header-bar-svg hl-header-bar-svg-" + namespace));
+			$.add(n1, svg = $.node_ns(svgns, "svg", "xl-header-bar-svg xl-header-bar-svg-" + namespace));
 			svg.setAttribute("viewBox", "0 0 100 100");
 			svg.setAttribute("svgns", svgns);
 			svg.setAttribute("version", "1.1");
@@ -8292,12 +8292,12 @@
 				if ((flags & Flags.Mobile) !== 0) {
 					par = node.parentNode;
 					container = first_mobile ? node.previousSibling : node.nextSibling;
-					if (container === null || !container.classList || !container.classList.contains("hl-nav-extras")) {
-						container = $.node("div", "mobile hl-nav-extras-mobile");
+					if (container === null || !container.classList || !container.classList.contains("xl-nav-extras")) {
+						container = $.node("div", "mobile xl-nav-extras-mobile");
 					}
 
-					$.add(container, n1 = $.node("span", "mobileib button hl-nav-button" + class_name));
-					$.add(n1, $.link(url, "hl-nav-button-inner" + class_name, t));
+					$.add(container, n1 = $.node("span", "mobileib button xl-nav-button" + class_name));
+					$.add(n1, $.link(url, "xl-nav-button-inner" + class_name, t));
 
 					if (first_mobile) {
 						$.before(par, node, container);
@@ -8309,7 +8309,7 @@
 					node = container;
 				}
 				else {
-					n1 = $.link(url, "hl-nav-link" + class_name, t);
+					n1 = $.link(url, "xl-nav-link" + class_name, t);
 				}
 				$.on(n1, "click", on_click);
 
@@ -8461,7 +8461,7 @@
 				return;
 			}
 
-			var links = $$(".hl-nav-link", node),
+			var links = $$(".xl-nav-link", node),
 				link, entry, n, i, ii;
 
 			// Remove bad copies
@@ -8623,7 +8623,7 @@
 							if (
 								node.tagName === "A" &&
 								node.classList.contains("linkify") &&
-								(ns = $$(".hl-link-events", node)).length > 0
+								(ns = $$(".xl-link-events", node)).length > 0
 							) {
 								Linkifier.fix_broken_4chanx_linkification(node, ns);
 							}
