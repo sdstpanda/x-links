@@ -1,5 +1,11 @@
 ﻿master
 
+1.1.4.1
+- dnsev-h
+  + Fixed a bug that would result in certain page thumbnails not being displayed
+  + Added a "site:" option for filters
+  + Added page indicators for links
+
 1.1.4
 - dnsev-h
   + Fixed a bug that would display certain categories from hitomi incorrectly
