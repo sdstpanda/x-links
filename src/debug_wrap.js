@@ -9,61 +9,7 @@
 
 	var timing = function () { return 0; };
 
-	var wrap_setup_simple = function () {
-		var error_node = null;
-
-		var format_stack = function (stack) {
-			var output = "",
-				line, i, ii;
-			stack = stack.trim().replace(/\r\n/g, "\n").split("\n");
-			for (i = 0, ii = stack.length; i < ii; ++i) {
-				line = stack[i];
-				line = line.replace(/(@file:)(?:.*?)([^\/\\\\]+)$/, "$1$2");
-				if (i > 0) output += "\n";
-				output += line;
-			}
-			return output;
-		};
-		var log = function (exception) {
-			if (error_node === null) {
-				var n0 = document.body || document.documentElement,
-					n1 = document.createElement("div"),
-					n2 = document.createElement("textarea");
-
-				n1.setAttribute("style", "position:fixed!important;right:0!important;top:0!important;bottom:0!important;width:20em!important;opacity:0.8!important;background:#fff!important;color:#000!important;z-index:999999999!important;");
-				n2.setAttribute("style", "position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important;padding:0.5em!important;margin:0!important;color:inherit!important;background:transparent!important;font-family:inherit!important;font-size:8px!important;line-height:1.1em!important;border:none!important;resize:none!important;font-family:Courier,monospace!important;box-sizing:border-box!important;");
-				n2.spellcheck = false;
-				n2.readOnly = true;
-				n2.wrap = "off";
-				n1.appendChild(n2);
-				if (n0) n0.appendChild(n1);
-
-				error_node = n2;
-			}
-
-			var s = "";
-			if (error_node.value.length > 0) s += "\n====================\n";
-			s += "" + exception + "\n" + (format_stack("" + exception.stack));
-			error_node.value += s;
-
-			console.log("Exception:", exception);
-		};
-
-		Function.prototype._w = function () {
-			var fn = this;
-			return function () {
-				try {
-					return fn.apply(this, arguments);
-				}
-				catch (e) {
-					log(e);
-					throw e;
-				}
-			};
-		};
-	};
-
-	var wrap_setup = function () {
+	var wrap_setup = function (simple) {
 		var error_node = null,
 			function_names = [],
 			total_counter = 0,
@@ -107,11 +53,14 @@
 
 		var format_stack = function (stack) {
 			var output = "",
-				line, i, ii;
+				line, i, ii, p;
 			stack = stack.trim().replace(/\r\n/g, "\n").split("\n");
 			for (i = 0, ii = stack.length; i < ii; ++i) {
 				line = stack[i];
-				line = line.replace(/(@file:)(?:.*?)([^\/\\\\]+)$/, "$1$2");
+				if ((p = line.indexOf("@")) >= 0) {
+					++p;
+					line = line.substr(0, p) + line.substr(p).replace(/[\w\-]+:(?:[\w\W]*?)([^\/]+?\.js)/ig, "$1");
+				}
 				if (i > 0) output += "\n";
 				output += line;
 			}
@@ -124,7 +73,7 @@
 					n2 = document.createElement("textarea");
 
 				n1.setAttribute("style", "position:fixed!important;right:0!important;top:0!important;bottom:0!important;width:20em!important;opacity:0.8!important;background:#fff!important;color:#000!important;z-index:999999999!important;");
-				n2.setAttribute("style", "position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important;padding:0.5em!important;margin:0!important;color:inherit!important;background:transparent!important;font-family:inherit!important;font-size:8px!important;line-height:1.1em!important;border:none!important;resize:none!important;font-family:Courier,monospace!important;box-sizing:border-box!important;");
+				n2.setAttribute("style", "position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important;padding:0.5em!important;margin:0!important;color:inherit!important;background:transparent!important;font-family:inherit!important;font-size:8px!important;line-height:1.1em!important;border:none!important;resize:none!important;font-family:Courier,monospace!important;box-sizing:border-box!important;cursor:initial!important;");
 				n2.spellcheck = false;
 				n2.readOnly = true;
 				n2.wrap = "off";
@@ -197,16 +146,29 @@
 			console.log("[Debug Function Call Counter] Init+" + time_diff + ": call_count=" + count + ";", sortable);
 		};
 
+		var last_error = undefined;
+		var last_error_clear_timer = false;
+		var last_error_clear = function () {
+			last_error = undefined;
+			last_error_clear_timer = false;
+		};
 		Function.prototype._w = function (fn_index) {
 			var fn = this;
 			return function () {
-				increase_counter(fn_index);
+				if (!simple) increase_counter(fn_index);
 
 				try {
 					return fn.apply(this, arguments);
 				}
 				catch (e) {
-					log(e);
+					if (last_error !== e) {
+						if (!last_error_clear_timer) {
+							last_error_clear_timer = true;
+							set_timeout_0ms(last_error_clear);
+						}
+						last_error = e;
+						log(e);
+					}
 					throw e;
 				}
 			};
@@ -286,7 +248,7 @@
 					start_parens = parens;
 					indent = /(?:^|\n)([\t ]*)$/.exec(output);
 					indent = (indent === null) ? "" : indent[1];
-					c = "(" + stringify_function(simple ? wrap_setup_simple : wrap_setup, indent) + ")();";
+					c = "(" + stringify_function(wrap_setup, indent) + ")(" + simple + ");";
 
 					// Position
 					if (!simple) {
