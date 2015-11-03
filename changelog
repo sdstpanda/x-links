@@ -1,5 +1,9 @@
 ﻿master
 
+1.2.0
+- dnsev-h
+  + Renamed to X-links
+
 1.1.4.2
 - dnsev-h
   + Improved debug version of the script (better logging messages)
