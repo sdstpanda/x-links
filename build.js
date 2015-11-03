@@ -11,9 +11,9 @@
 		debug_wrap = require("./src/debug_wrap");
 
 
-	var SCRIPT_SOURCE = "./src/h-links.js",
-		OUTPUT_MAIN = "./builds/h-links.user.js",
-		OUTPUT_DEBUG = "./builds/h-links.debug.user.js",
+	var SCRIPT_SOURCE = "./src/x-links.js",
+		OUTPUT_MAIN = "./builds/x-links.user.js",
+		OUTPUT_DEBUG = "./builds/x-links.debug.user.js",
 		PACKAGE_JSON = "./package.json",
 		RESOURCES = "./resources",
 		RES_STYLESHEET = RESOURCES + "/stylesheets/style.css",
