@@ -2,7 +2,7 @@
 // @name        H-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.1.4.1
+// @version     1.1.4.2
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -8779,7 +8779,7 @@
 		// Exports
 		var Module = {
 			homepage: "https://dnsev-h.github.io/h-links/",
-			version: [1,1,4,1],
+			version: [1,1,4,2],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
