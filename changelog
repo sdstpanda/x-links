@@ -1,5 +1,13 @@
 ﻿master
 
+1.1.4
+- dnsev-h
+  + Fixed a bug that would display certain categories from hitomi incorrectly
+  + Fixed hover details sometimes having elements that overflow improperly
+  + Fixed bottom navigation links on 4chan not working properly
+  + Added options to disable link processing depending on the link's site
+  + Code cleanup and various performance tweaks
+
 1.1.3.1
 - dnsev-h
   + Fixed a bug that would break linkification on some sites
