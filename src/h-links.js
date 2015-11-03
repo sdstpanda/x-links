@@ -4404,9 +4404,8 @@
 	var Linkifier = (function () {
 
 		// Private
-		var re_url = /(?:https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)(?:\/[^<>\s\'\"]*)?/ig,
+		var re_url = /(https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)(?:\/[^<>\s\'\"]*)?/ig,
 			re_url_class_ignore = /(?:\binlined?\b|\bhl-)/,
-			re_protocol = /^https?\:/i,
 			re_deferrer = /^(?:https?:)?\/\/sys\.4chan\.org\/derefer\?url=([\w\W]*)$/i;
 
 		// Linkification
@@ -4721,7 +4720,7 @@
 				},
 				function (node, match) {
 					var url = match[2][0];
-					if (!re_protocol.test(url)) url = "http://" + url.replace(/^\/+/, "");
+					if (match[2][1] === undefined) url = "http://" + url.replace(/^\/+/, "");
 					result_nodes.push(node);
 					result_urls.push(url);
 				},
