@@ -1875,9 +1875,9 @@
 
 			$.before(link.parentNode, link, button);
 		};
-		var format_link = function (link, data) {
+		var format_link = function (link, data, info) {
 			var button = get_tag_button_from_link(link),
-				domain, fjord, ex, hl, c;
+				domain, fjord, ex, hl, c, n;
 
 			// Smart links
 			if (config.general.rewrite_links === "smart") {
@@ -1909,6 +1909,12 @@
 					Filter.highlight_tag(button, link, hl);
 				}
 				Linkifier.change_link_events(button, "gallery_toggle_actions");
+			}
+
+			// Page
+			if (info.page !== undefined) {
+				n = $.node("span", "hl-link-page", " (page " + info.page + ")");
+				link.appendChild(n);
 			}
 		};
 		var format_link_error = function (link, error) {
@@ -4795,13 +4801,13 @@
 			API.get_data_from_url_info(info, function (err, data) {
 				if (link.parentNode !== null) {
 					if (err === null) {
-						UI.format_link(link, data);
+						UI.format_link(link, data, info);
 						if (event_listeners.format.length > 0) {
 							trigger(event_listeners.format, { link: link });
 						}
 					}
 					else {
-						UI.format_link_error(link, err);
+						UI.format_link_error(link, err, info);
 					}
 				}
 			});
