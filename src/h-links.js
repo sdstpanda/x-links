@@ -5817,6 +5817,7 @@
 
 			this.only = null;
 			this.not = null;
+			this.site = null;
 
 			this.color = "#EE2200";
 			this.underline = null;
@@ -5866,6 +5867,9 @@
 			},
 			"not": function (value) {
 				this.not = this.split(value);
+			},
+			"site": function (value) {
+				this.site = this.split(value);
 			},
 
 			"colors": FilterFlags.color_fn(function (value) {
@@ -5918,6 +5922,7 @@
 			"category": "only",
 			"cat": "only",
 			"no": "not",
+			"sites": "site",
 
 			"cs": "colors",
 			"us": "underlines",
@@ -6138,7 +6143,7 @@
 				++i;
 			}
 		};
-		var check_multiple = function (type, text, filters, category) {
+		var check_multiple = function (type, text, filters, category, site_type) {
 			var info = new MatchInfo(),
 				filter, match, i, ii;
 
@@ -6147,7 +6152,7 @@
 				if (filter.flags[type] !== true) continue;
 				filter.regex.lastIndex = 0;
 				while (true) {
-					match = check_single(text, filter, category);
+					match = check_single(text, filter, category, site_type);
 					if (match === null) break;
 
 					info.any = true;
@@ -6160,10 +6165,18 @@
 
 			return info;
 		};
-		var check_single = function (text, filter, category) {
+		var check_single = function (text, filter, category, site_type) {
 			// return null if no match
 			// return a new Match if a match was found
 			var list, i, ii, m;
+
+			// Site filtering
+			if ((list = filter.flags.site) !== null) {
+				for (i = 0, ii = list.length; i < ii; ++i) {
+					if (list[i] === site_type) break;
+				}
+				if (i >= ii) return null;
+			}
 
 			// Category filtering
 			if ((list = filter.flags.only) !== null) {
@@ -6174,9 +6187,7 @@
 			}
 			if ((list = filter.flags.not) !== null) {
 				for (i = 0, ii = list.length; i < ii; ++i) {
-					if (list[i] === category) {
-						return null;
-					}
+					if (list[i] === category) return null;
 				}
 			}
 
@@ -6254,6 +6265,8 @@
 			var no_extras = true,
 				filters = active_filters,
 				category = API.get_category(data.category).short_name,
+				site_type = data.type,
+				cache_key = site_type + "_" + category,
 				info, matches, text, frag, segment, cache_type, bad, c, i, t, n1, n2;
 
 			if (extras && extras.length > 0) {
@@ -6270,7 +6283,7 @@
 				no_extras &&
 				input_state !== Status.Bad &&
 				(cache_type = cache[type]) !== undefined &&
-				(c = cache_type[category]) !== undefined &&
+				(c = cache_type[cache_key]) !== undefined &&
 				(c = c[text]) !== undefined
 			) {
 				if (c === null) {
@@ -6292,11 +6305,11 @@
 			}
 
 			// Check filters
-			info = check_multiple(type, text, filters, category);
+			info = check_multiple(type, text, filters, category, site_type);
 			if (!info.any) {
 				if (cache_type !== undefined) {
-					if ((c = cache_type[category]) === undefined) {
-						cache_type[category] = c = {};
+					if ((c = cache_type[cache_key]) === undefined) {
+						cache_type[cache_key] = c = {};
 					}
 					c[text] = null;
 				}
@@ -6343,8 +6356,8 @@
 			node.innerHTML = "";
 			$.add(node, frag);
 			if (cache_type !== undefined) {
-				if ((c = cache_type[category]) === undefined) {
-					cache_type[category] = c = {};
+				if ((c = cache_type[cache_key]) === undefined) {
+					cache_type[cache_key] = c = {};
 				}
 				c[text] = [ info, node ];
 			}
@@ -6415,6 +6428,7 @@
 			var filters = active_filters,
 				status = Status.None,
 				category = API.get_category(data.category).short_name,
+				site_type = data.type,
 				str, tags, result, i, info;
 
 			if (extras && extras.length > 0) {
@@ -6431,7 +6445,7 @@
 			if (filters.length > 0) {
 				// Uploader
 				if ((str = data.uploader)) {
-					info = check_multiple("uploader", str, filters, category);
+					info = check_multiple("uploader", str, filters, category, site_type);
 					if (info.any) {
 						append_match_datas(info, result.uploader);
 						if (info.bad) {
@@ -6446,7 +6460,7 @@
 				// Tags
 				if ((tags = data.tags) && tags.length > 0) {
 					for (i = 0; i < tags.length; ++i) {
-						info = check_multiple("tags", tags[i], filters, category);
+						info = check_multiple("tags", tags[i], filters, category, site_type);
 						if (info.any) {
 							append_match_datas(info, result.tags);
 							if (info.bad) {
