@@ -1,6 +1,6 @@
 # Information saved in your browser
 
-H-links saves information related to its settings and cached gallery data.
+X-links saves information related to its settings and cached gallery data.
 
 * <b>Settings</b>
   All settings are saved using `GM_setValue`, `GM_getValue`, `GM_deleteValue`, and `GM_listValues`. This helps make the settings persist across http/https, and other websites.
@@ -20,18 +20,18 @@ H-links saves information related to its settings and cached gallery data.
 
 # Information sent and received over the web
 
-H-links fetches from various different websites using `GM_xmlhttpRequest`. This may mean that on Firefox, you may not be able to see these requests displayed in the Networking tab of the developer console. However, you can enable debug logging to see when each request is sent out, where it's going, and what it's sending.
+X-links fetches from various different websites using `GM_xmlhttpRequest`. This may mean that on Firefox, you may not be able to see these requests displayed in the Networking tab of the developer console. However, you can enable debug logging to see when each request is sent out, where it's going, and what it's sending.
 
 * <b>[https://fonts.googleapis.com/css?family=Source+Sans+Pro:900](#)</b>
   This web font is requested when gallery details are displayed for the first time. This can be disabled in settings by unchecking `General` / `Allow external resources`.
 
-* <b>[https://raw.githubusercontent.com/dnsev-h/h-links/master/changelog](#)</b>
+* <b>[https://raw.githubusercontent.com/dnsev-h/x-links/stable/changelog](#)</b>
   The changelog is fetched after an update, or if you click the "Changelog" button in the settings. This can be disabled in settings by unchecking `General` / `Show changelog on update`.
 
-* <b>[https://raw.githubusercontent.com/dnsev-h/h-links/master/builds/h-links.meta.js](#)</b>
+* <b>[https://raw.githubusercontent.com/dnsev-h/x-links/stable/builds/x-links.meta.js](#)</b>
   This URL may be queried by your userscript manager to check if an update is available.
 
-* <b>[https://raw.githubusercontent.com/dnsev-h/h-links/master/builds/h-links.user.js](#)</b>
+* <b>[https://raw.githubusercontent.com/dnsev-h/x-links/stable/builds/x-links.user.js](#)</b>
   This URL may be used by your userscript manager to auto-update if an update is available.
 
 * <b>Any image URLs on the board you're browsing</b>
