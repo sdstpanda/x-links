@@ -8242,6 +8242,7 @@
 	var Navigation = (function () {
 
 		// Private
+		var navbotright_waiting = [];
 		var Flags = {
 			None: 0x0,
 			Prepend: 0x1,
@@ -8254,72 +8255,9 @@
 			LowerCase: 0x80
 		};
 
-		// Public
-		var insert_link = function (mode, text, url, class_name, on_click) {
-			var locations = [],
-				first_mobile = true,
-				container, flags, nodes, node, par, pre, next, sep, cl, i, ii, n1, t, t2, t_opt;
-
-			if (Config.is_4chan) {
-				if (mode === "main") {
-					nodes = $$("#navtopright,#navbotright");
-					for (i = 0, ii = nodes.length; i < ii; ++i) {
-						locations.push(nodes[i], Flags.OuterSpace | Flags.Brackets | Flags.Prepend, null);
-					}
-					nodes = $$("#settingsWindowLinkMobile");
-					for (i = 0, ii = nodes.length; i < ii; ++i) {
-						locations.push(nodes[i], Flags.Before, null);
-					}
-				}
-				else {
-					cl = d.documentElement.classList;
-					if (
-						!cl.contains("catalog-mode") &&
-						!cl.contains("archive") &&
-						$("#order-ctrl,#arc-list") === null
-					) {
-						nodes = $$("#ctrl-top,.navLinks");
-						for (i = 0, ii = nodes.length; i < ii; ++i) {
-							node = nodes[i];
-							locations.push(
-								node,
-								(node.classList.contains("mobile") ? Flags.Mobile : (Flags.OuterSpace | Flags.Brackets)),
-								null
-							);
-						}
-					}
-				}
-			}
-			else if (Config.is_foolz) {
-				nodes = $$(".letters");
-				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					locations.push(nodes[i], Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets, null);
-				}
-			}
-			else if (Config.is_fuuka) {
-				node = $("body>div:first-child");
-				if (node !== null) {
-					locations.push(node, Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets, null);
-				}
-			}
-			else if (Config.is_tinyboard) {
-				nodes = $$(".boardlist");
-				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					locations.push(nodes[i], Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets | Flags.LowerCase, null);
-				}
-			}
-			else if (Config.is_ipb) {
-				node = $("#livechat");
-				if (node !== null) {
-					locations.push(node, Flags.Prepend | Flags.OuterSpace, null);
-				}
-			}
-			else if (Config.is_ipb_lofi) {
-				node = $(".ipbnavsmall");
-				if (node !== null) {
-					locations.push(node, Flags.Prepend | Flags.OuterSpace, "-");
-				}
-			}
+		var insert_at_locations = function (locations, text, url, class_name, on_click) {
+			var first_mobile = true,
+				container, flags, node, par, pre, next, sep, i, ii, n1, t, t2, t_opt;
 
 			for (i = 0, ii = locations.length; i < ii; i += 3) {
 				node = locations[i];
@@ -8422,9 +8360,121 @@
 			}
 		};
 
+		// Public
+		var insert_link = function (mode, text, url, class_name, on_click) {
+			var locations = [],
+				nodes, node, cl, i, ii;
+
+			if (Config.is_4chan) {
+				if (mode === "main") {
+					if ((node = $("#navtopright")) !== null) {
+						locations.push(node, Flags.OuterSpace | Flags.Brackets | Flags.Prepend, null);
+					}
+					if ((node = $("#navbotright")) !== null) {
+						locations.push(node, Flags.OuterSpace | Flags.Brackets | Flags.Prepend, null);
+						if (navbotright_waiting !== null) update_navbotright(node);
+					}
+					else if (navbotright_waiting !== null) {
+						navbotright_waiting.push([ text, url, class_name, on_click ]);
+					}
+					nodes = $$("#settingsWindowLinkMobile");
+					for (i = 0, ii = nodes.length; i < ii; ++i) {
+						locations.push(nodes[i], Flags.Before, null);
+					}
+				}
+				else {
+					cl = d.documentElement.classList;
+					if (
+						!cl.contains("catalog-mode") &&
+						!cl.contains("archive") &&
+						$("#order-ctrl,#arc-list") === null
+					) {
+						nodes = $$("#ctrl-top,.navLinks");
+						for (i = 0, ii = nodes.length; i < ii; ++i) {
+							node = nodes[i];
+							locations.push(
+								node,
+								(node.classList.contains("mobile") ? Flags.Mobile : (Flags.OuterSpace | Flags.Brackets)),
+								null
+							);
+						}
+					}
+				}
+			}
+			else if (Config.is_foolz) {
+				nodes = $$(".letters");
+				for (i = 0, ii = nodes.length; i < ii; ++i) {
+					locations.push(nodes[i], Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets, null);
+				}
+			}
+			else if (Config.is_fuuka) {
+				node = $("body>div:first-child");
+				if (node !== null) {
+					locations.push(node, Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets, null);
+				}
+			}
+			else if (Config.is_tinyboard) {
+				nodes = $$(".boardlist");
+				for (i = 0, ii = nodes.length; i < ii; ++i) {
+					locations.push(nodes[i], Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets | Flags.LowerCase, null);
+				}
+			}
+			else if (Config.is_ipb) {
+				node = $("#livechat");
+				if (node !== null) {
+					locations.push(node, Flags.Prepend | Flags.OuterSpace, null);
+				}
+			}
+			else if (Config.is_ipb_lofi) {
+				node = $(".ipbnavsmall");
+				if (node !== null) {
+					locations.push(node, Flags.Prepend | Flags.OuterSpace, "-");
+				}
+			}
+
+			insert_at_locations(locations, text, url, class_name, on_click);
+		};
+		var update_navbotright = function (node) {
+			if (navbotright_waiting === null) return;
+			if (navbotright_waiting.length === 0) {
+				navbotright_waiting = null;
+				return;
+			}
+
+			var links = $$(".hl-nav-link", node),
+				link, entry, n, i, ii;
+
+			// Remove bad copies
+			for (i = 0, ii = links.length; i < ii; ++i) {
+				link = links[i];
+				if ((n = link.previousSibling) !== null) {
+					$.remove(n);
+				}
+				if ((n = link.nextSibling) !== null && n.nodeType === Node.TEXT_NODE) {
+					n.nodeValue = n.nodeValue.replace(/^\s*\]\s*/, "");
+				}
+				$.remove(link);
+			}
+
+			// Add
+			for (i = 0, ii = navbotright_waiting.length; i < ii; ++i) {
+				entry = navbotright_waiting[i];
+				insert_at_locations(
+					[ node, Flags.OuterSpace | Flags.Brackets | Flags.Prepend, null ],
+					entry[0],
+					entry[1],
+					entry[2],
+					entry[3]
+				);
+			}
+
+			navbotright_waiting = null;
+		};
+
 		// Exports
 		return {
-			insert_link: insert_link
+			insert_link: insert_link,
+			update_navbotright: update_navbotright
 		};
 
 	})();
@@ -8568,6 +8618,20 @@
 									// This seems to be some sort of timing issue where 4chan-inline replaces the body contents of EVERY SINGLE POST on ready()
 									reload_all = true;
 								}
+							}
+						}
+					}
+
+					// Check for navbotright
+					if (e.target === d.body) {
+						for (j = 0, jj = nodes.length; j < jj; ++j) {
+							node = nodes[j];
+							if (
+								node.id === "boardNavDesktopFoot" &&
+								(node = $("#navbotright", node)) !== null
+							) {
+								Navigation.update_navbotright(node);
+								break;
 							}
 						}
 					}
