@@ -2064,17 +2064,20 @@
 		};
 		var cache_cleanup = function () {
 			var storage = cache_storage,
-				re_matcher = new RegExp("^" + $.regex_escape(cache_prefix) + "(([en]hentai|hitomi)_gallery)-([^-]+)"),
 				removes = [],
 				time = Date.now(),
-				count = 0,
-				key, json, m, i, ii;
+				key, json, i, ii;
 
 			for (i = 0, ii = storage.length; i < ii; ++i) {
 				key = storage.key(i);
-				if ((m = re_matcher.exec(key)) !== null) {
+				if (key.length >= cache_prefix.length && key.substr(0, cache_prefix.length) === cache_prefix) {
 					json = $.json_parse_safe(storage.getItem(key), null);
-					if (json === null || typeof(json) !== "object" || !(time < json.expires)) { // jshint ignore:line
+					if (json === null || typeof(json) !== "object") {
+						// Invalid
+						removes.push(key);
+					}
+					else if (json.expires !== null && !(time < json.expires)) { // jshint ignore:line
+						// This should also cover undefined values
 						removes.push(key);
 					}
 				}
@@ -2083,23 +2086,21 @@
 			for (i = 0, ii = removes.length; i < ii; ++i) {
 				storage.removeItem(removes[i]);
 			}
-			count += ii;
 
-			return count;
+			return ii;
 		};
 		var cache_clear = function () {
 			var storage_types = [ window.localStorage, window.sessionStorage ],
-				re_matcher = new RegExp("^" + $.regex_escape(cache_prefix)),
 				removes = [],
 				count = 0,
-				storage, key, m, i, ii, j, jj;
+				storage, key, i, ii, j, jj;
 
 			for (i = 0, ii = storage_types.length; i < ii; ++i) {
 				storage = storage_types[i];
 
 				for (j = 0, jj = storage.length; j < jj; ++j) {
 					key = storage.key(j);
-					if ((m = re_matcher.exec(key)) !== null) {
+					if (key.length >= cache_prefix.length && key.substr(0, cache_prefix.length) === cache_prefix) {
 						removes.push(key);
 					}
 				}
