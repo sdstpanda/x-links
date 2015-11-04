@@ -1179,8 +1179,7 @@
 			actions_nodes_active = {},
 			actions_nodes_active_count = 0,
 			actions_nodes_index = 0,
-			actions_close_timeout = null,
-			re_fjord = /abortion|bestiality|incest|lolicon|shotacon|toddlercon/;
+			actions_close_timeout = null;
 
 		var gallery_link_events_data = {
 			link: null,
@@ -1933,18 +1932,15 @@
 				domain, fjord, ex, hl, c, n;
 
 			// Smart links
-			if (config.general.rewrite_links === "smart") {
-				domain = $.get_domain(link.href);
-				ex = (domain === domains.exhentai);
-				if (ex || domain === domains.ehentai) {
-					fjord = re_fjord.test(data.tags.join(","));
-					if (fjord !== ex) {
-						domain = fjord ? domains.exhentai : domains.ehentai;
-						link.href = $.change_url_domain(link.href, domain_info[domain].g_domain);
-						if (button !== null) {
-							button.href = link.href;
-							update_button_text(button, domain);
-						}
+			if (config.general.rewrite_links === "smart" && data.type === "ehentai") {
+				ex = ($.get_domain(link.href) === domains.exhentai);
+				fjord = API.is_fjording(data);
+				if (fjord !== ex) {
+					domain = fjord ? domains.exhentai : domains.ehentai;
+					link.href = $.change_url_domain(link.href, domain_info[domain].g_domain);
+					if (button !== null) {
+						button.href = link.href;
+						update_button_text(button, domain);
 					}
 				}
 			}
@@ -3748,6 +3744,14 @@
 
 
 
+		// Fjord test
+		var re_fjord = /abortion|bestiality|incest|lolicon|shotacon|toddlercon/;
+		var is_fjording = function (data) {
+			return re_fjord.test(data.tags.join(","));
+		};
+
+
+
 		// Public
 		var get_url_info = function (url) {
 			var match = /^(https?):\/*((?:[\w-]+\.)*)([\w-]+\.[\w]+)((?:[\/\?\#][\w\W]*)?)/.exec(url),
@@ -4011,6 +4015,7 @@
 			cache_clear: cache_clear,
 			get_category: get_category,
 			get_category_sort_rank: get_category_sort_rank,
+			is_fjording: is_fjording,
 			init: init
 		};
 
