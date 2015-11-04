@@ -209,7 +209,7 @@
 		var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver || null;
 
 		if (MutationObserver === null) {
-			// Polyfill
+			// Partial polyfill
 			var on_body_node_add = function (event) {
 				var node = event.target;
 				this.callback.call(this, [{
@@ -251,6 +251,7 @@
 					$.off(node, "DOMNodeInserted", this.on_body_node_add);
 					$.off(node, "DOMNodeRemoved", this.on_body_node_remove);
 				}
+				this.nodes = [];
 			};
 		}
 
