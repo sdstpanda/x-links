@@ -2967,19 +2967,23 @@
 
 
 		// API request base code
+		var request_groups = {};
 		var RequestGroup = function () {
 			this.active = false;
 			this.timeout = null;
 			this.types = [];
 		};
-		var RequestType = function (count, delay_okay, delay_error, group, namespace, type) {
+		var RequestType = function (count, delay_okay, delay_error, group_name, namespace, type) {
 			this.count = count;
 			this.delay_okay = delay_okay;
 			this.delay_error = delay_error;
 			this.queue = [];
 			this.unique = {};
 
-			this.group = group;
+			this.group = request_groups[group_name];
+			if (this.group === undefined) {
+				request_groups[group_name] = this.group = new RequestGroup();
+			}
 			this.group.types.push(this);
 
 			this.namespace = namespace;
@@ -3256,20 +3260,15 @@
 
 
 		// API request specializations
-		var group_ehentai = new RequestGroup(),
-			group_ehentai_full = new RequestGroup(),
-			group_lookup = new RequestGroup(),
-			group_nhentai = new RequestGroup(),
-			group_hitomi = new RequestGroup(),
-			rt_ehentai_gallery_page = new RequestType(25, 200, 5000, group_ehentai, "ehentai", "page"),
-			rt_ehentai_gallery = new RequestType(25, 200, 5000, group_ehentai, "ehentai", "gallery"),
-			rt_ehentai_gallery_full = new RequestType(1, 200, 5000, group_ehentai_full, "ehentai", "full"),
-			rt_ehentai_gallery_page_thumb = new RequestType(1, 200, 5000, group_ehentai_full, "ehentai", "page_thumb"),
-			rt_ehentai_lookup = new RequestType(1, 3000, 5000, group_lookup, "ehentai", "lookup"),
-			rt_nhentai_gallery = new RequestType(1, 200, 5000, group_nhentai, "nhentai", "gallery"),
-			rt_nhentai_gallery_page_thumb = new RequestType(1, 200, 5000, group_nhentai, "nhentai", "page_thumb"),
-			rt_hitomi_gallery = new RequestType(1, 200, 5000, group_hitomi, "hitomi", "gallery"),
-			rt_hitomi_gallery_page_thumb = new RequestType(1, 200, 5000, group_hitomi, "hitomi", "page_thumb");
+		var rt_ehentai_gallery_page = new RequestType(25, 200, 5000, "ehentai_api", "ehentai", "page"),
+			rt_ehentai_gallery = new RequestType(25, 200, 5000, "ehentai_api", "ehentai", "gallery"),
+			rt_ehentai_gallery_full = new RequestType(1, 200, 5000, "ehentai_full", "ehentai", "full"),
+			rt_ehentai_gallery_page_thumb = new RequestType(1, 200, 5000, "ehentai_full", "ehentai", "page_thumb"),
+			rt_ehentai_lookup = new RequestType(1, 3000, 5000, "ehentai_lookup", "ehentai", "lookup"),
+			rt_nhentai_gallery = new RequestType(1, 200, 5000, "nhentai", "nhentai", "gallery"),
+			rt_nhentai_gallery_page_thumb = new RequestType(1, 200, 5000, "nhentai", "nhentai", "page_thumb"),
+			rt_hitomi_gallery = new RequestType(1, 200, 5000, "hitomi", "hitomi", "gallery"),
+			rt_hitomi_gallery_page_thumb = new RequestType(1, 200, 5000, "hitomi", "hitomi", "page_thumb");
 
 		rt_ehentai_gallery.get_data = function (info) {
 			var data = get_saved_data(this.namespace, info[0]);
