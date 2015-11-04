@@ -204,7 +204,59 @@
 	};
 	var config = { version: null, settings_version: 1 };
 
-	var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver || null;
+	var MutationObserver = (function () {
+
+		var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver || null;
+
+		if (MutationObserver === null) {
+			// Polyfill
+			var on_body_node_add = function (event) {
+				var node = event.target;
+				this.callback.call(this, [{
+					target: node.parentNode,
+					addedNodes: [ node ],
+					removedNodes: [],
+					nextSibling: node.nextSibling,
+					previousSibling: node.previousSibling
+				}]);
+			};
+			var on_body_node_remove = function (event) {
+				var node = event.target;
+				this.callback.call(this, [{
+					target: node.parentNode,
+					addedNodes: [],
+					removedNodes: [ node ],
+					nextSibling: node.nextSibling,
+					previousSibling: node.previousSibling
+				}]);
+			};
+
+			MutationObserver = function (callback) {
+				this.on_body_node_add = $.bind(on_body_node_add, this);
+				this.on_body_node_remove = $.bind(on_body_node_remove, this);
+				this.callback = callback;
+				this.nodes = [];
+			};
+			MutationObserver.prototype.observe = function (node, data) {
+				this.nodes.push(node);
+				if (data.childList) {
+					$.on(node, "DOMNodeInserted", this.on_body_node_add);
+					$.on(node, "DOMNodeRemoved", this.on_body_node_remove);
+				}
+			};
+			MutationObserver.prototype.disconnect = function () {
+				var node, i, ii;
+				for (i = 0, ii = this.nodes.length; i < ii; ++i) {
+					node = this.nodes[i];
+					$.off(node, "DOMNodeInserted", this.on_body_node_add);
+					$.off(node, "DOMNodeRemoved", this.on_body_node_remove);
+				}
+			};
+		}
+
+		return MutationObserver;
+
+	})();
 	var $$ = function (selector, root) {
 		return (root || d).querySelectorAll(selector);
 	};
@@ -8265,7 +8317,10 @@
 	var Navigation = (function () {
 
 		// Private
-		var navbotright_waiting = [];
+		var waiting = {},
+			waiting_count = 0,
+			waiting_observer = null;
+
 		var Flags = {
 			None: 0x0,
 			Prepend: 0x1,
@@ -8278,17 +8333,113 @@
 			LowerCase: 0x80
 		};
 
-		var insert_at_locations = function (locations, text, url, class_name, on_click) {
+		var cleanup_functions = {
+			"#navbotright": function (node) {
+				var links = $$(".xl-nav-link", node),
+					link, n, i, ii;
+
+				// Remove bad copies
+				for (i = 0, ii = links.length; i < ii; ++i) {
+					link = links[i];
+					if ((n = link.previousSibling) !== null) {
+						$.remove(n);
+					}
+					if ((n = link.nextSibling) !== null && n.nodeType === Node.TEXT_NODE) {
+						n.nodeValue = n.nodeValue.replace(/^\s*\]\s*/, "");
+					}
+					$.remove(link);
+				}
+			}
+		};
+
+		var on_observe_all = function (records) {
+			var nodes, node, list, fn, i, ii, j, jj, k, m, mm;
+
+			for (i = 0, ii = records.length; i < ii; ++i) {
+				nodes = records[i].addedNodes;
+				if (nodes && (jj = nodes.length) > 0) {
+					// Added nodes
+					for (k in waiting) {
+						for (j = 0; j < jj; ++j) {
+							// Selector matches
+							node = nodes[j];
+							if (
+								node.nodeType === Node.ELEMENT_NODE &&
+								($.test(node, k) || (node = $(k, node)) !== null)
+							) {
+								fn = cleanup_functions[k];
+								if (fn !== undefined) {
+									fn.call(null, node);
+								}
+
+								list = waiting[k];
+								for (m = 0, mm = list.length; m < mm; m += 3) {
+									list[m].nodes = [ node, list[m + 1], list[m + 2] ];
+									list[m].insert();
+								}
+
+								--waiting_count;
+								delete waiting[k];
+								break;
+							}
+						}
+					}
+				}
+			}
+
+			if (waiting_count === 0) {
+				this.disconnect();
+				waiting_observer = null;
+			}
+		};
+
+		var LocationData = function (text, url, class_name, on_click) {
+			this.nodes = [];
+			this.text = text;
+			this.url = url;
+			this.class_name = class_name;
+			this.on_click = on_click;
+		};
+		LocationData.prototype.add = function (selector, flags, separator) {
+			var node = $(selector);
+			if (node !== null) {
+				this.nodes.push(node, flags, separator);
+			}
+			else {
+				var k = waiting[selector];
+				if (k === undefined) {
+					waiting[selector] = k = [];
+					++waiting_count;
+				}
+				k.push(this, flags, separator);
+				if (waiting_observer === null) {
+					waiting_observer = new MutationObserver(on_observe_all);
+					waiting_observer.observe(d.body, { childList: true, subtree: true });
+				}
+			}
+		};
+		LocationData.prototype.add_node = function (node, flags, separator) {
+			this.nodes.push(node, flags, separator);
+		};
+		LocationData.prototype.add_all = function (selector, flags, separator) {
+			var nodes = $$(selector),
+				i, ii;
+
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				this.nodes.push(nodes[i], flags, separator);
+			}
+		};
+		LocationData.prototype.insert = function () {
 			var first_mobile = true,
 				container, flags, node, par, pre, next, sep, i, ii, n1, t, t2, t_opt;
 
-			for (i = 0, ii = locations.length; i < ii; i += 3) {
-				node = locations[i];
-				flags = locations[i + 1];
-				sep = locations[i + 2];
+			for (i = 0, ii = this.nodes.length; i < ii; i += 3) {
+				node = this.nodes[i];
+				flags = this.nodes[i + 1];
+				sep = this.nodes[i + 2];
 
 				// Text
-				t = text;
+				t = this.text;
 				if ((flags & Flags.InnerSpace) !== 0) t = " " + t + " ";
 
 				// Create
@@ -8299,8 +8450,8 @@
 						container = $.node("div", "mobile xl-nav-extras-mobile");
 					}
 
-					$.add(container, n1 = $.node("span", "mobileib button xl-nav-button" + class_name));
-					$.add(n1, $.link(url, "xl-nav-button-inner" + class_name, t));
+					$.add(container, n1 = $.node("span", "mobileib button xl-nav-button" + this.class_name));
+					$.add(n1, $.link(this.url, "xl-nav-button-inner" + this.class_name, t));
 
 					if (first_mobile) {
 						$.before(par, node, container);
@@ -8312,9 +8463,9 @@
 					node = container;
 				}
 				else {
-					n1 = $.link(url, "xl-nav-link" + class_name, t);
+					n1 = $.link(this.url, "xl-nav-link" + this.class_name, t);
 				}
-				$.on(n1, "click", on_click);
+				$.on(n1, "click", this.on_click);
 
 				// Case
 				if ((flags & Flags.LowerCase) !== 0) {
@@ -8354,7 +8505,7 @@
 				}
 				if (t !== null) {
 					if (next !== null) {
-						if (sep !== null) t = ((flags & Flags.OuterSpace) !== 0 ? " " : "") + sep + t;
+						if (sep !== undefined) t = ((flags & Flags.OuterSpace) !== 0 ? " " : "") + sep + t;
 						if (next.nodeType === Node.TEXT_NODE) {
 							next.nodeValue = t + next.nodeValue.replace(/^\s*/, "");
 						}
@@ -8368,7 +8519,7 @@
 
 					pre = n1.previousSibling;
 					if (pre !== null) {
-						if (sep !== null) t += sep + ((flags & Flags.OuterSpace) !== 0 ? " " : "");
+						if (sep !== undefined) t += sep + ((flags & Flags.OuterSpace) !== 0 ? " " : "");
 						if (pre.nodeType === Node.TEXT_NODE) {
 							pre.nodeValue = pre.nodeValue.replace(/\s*$/, "") + t2;
 						}
@@ -8381,29 +8532,21 @@
 					}
 				}
 			}
+
+			this.nodes = null;
 		};
 
 		// Public
 		var insert_link = function (mode, text, url, class_name, on_click) {
-			var locations = [],
+			var locations = new LocationData(text, url, class_name, on_click),
 				nodes, node, cl, i, ii;
 
 			if (Config.is_4chan) {
 				if (mode === "main") {
-					if ((node = $("#navtopright")) !== null) {
-						locations.push(node, Flags.OuterSpace | Flags.Brackets | Flags.Prepend, null);
-					}
-					if ((node = $("#navbotright")) !== null) {
-						locations.push(node, Flags.OuterSpace | Flags.Brackets | Flags.Prepend, null);
-						if (navbotright_waiting !== null) update_navbotright(node);
-					}
-					else if (navbotright_waiting !== null) {
-						navbotright_waiting.push([ text, url, class_name, on_click ]);
-					}
-					nodes = $$("#settingsWindowLinkMobile");
-					for (i = 0, ii = nodes.length; i < ii; ++i) {
-						locations.push(nodes[i], Flags.Before, null);
-					}
+					locations.add("#navtopright", Flags.OuterSpace | Flags.Brackets | Flags.Prepend);
+					locations.add("#navbotright", Flags.OuterSpace | Flags.Brackets | Flags.Prepend);
+					locations.add("#settingsWindowLinkMobile", Flags.Before);
+					locations.add("#settingsWindowLinkClassic", Flags.Before);
 				}
 				else {
 					cl = d.documentElement.classList;
@@ -8415,89 +8558,36 @@
 						nodes = $$("#ctrl-top,.navLinks");
 						for (i = 0, ii = nodes.length; i < ii; ++i) {
 							node = nodes[i];
-							locations.push(
+							locations.add_node(
 								node,
-								(node.classList.contains("mobile") ? Flags.Mobile : (Flags.OuterSpace | Flags.Brackets)),
-								null
+								(node.classList.contains("mobile") ? Flags.Mobile : (Flags.OuterSpace | Flags.Brackets))
 							);
 						}
 					}
 				}
 			}
 			else if (Config.is_foolz) {
-				nodes = $$(".letters");
-				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					locations.push(nodes[i], Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets, null);
-				}
+				locations.add_all(".letters", Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets);
 			}
 			else if (Config.is_fuuka) {
-				node = $("body>div:first-child");
-				if (node !== null) {
-					locations.push(node, Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets, null);
-				}
+				locations.add("body>div:first-child", Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets);
 			}
 			else if (Config.is_tinyboard) {
-				nodes = $$(".boardlist");
-				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					locations.push(nodes[i], Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets | Flags.LowerCase, null);
-				}
+				locations.add_all(".boardlist", Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets | Flags.LowerCase);
 			}
 			else if (Config.is_ipb) {
-				node = $("#livechat");
-				if (node !== null) {
-					locations.push(node, Flags.Prepend | Flags.OuterSpace, null);
-				}
+				locations.add("#livechat", Flags.Prepend | Flags.OuterSpace);
 			}
 			else if (Config.is_ipb_lofi) {
-				node = $(".ipbnavsmall");
-				if (node !== null) {
-					locations.push(node, Flags.Prepend | Flags.OuterSpace, "-");
-				}
+				locations.add(".ipbnavsmall", Flags.Prepend | Flags.OuterSpace, "-");
 			}
 
-			insert_at_locations(locations, text, url, class_name, on_click);
-		};
-		var update_navbotright = function (node) {
-			if (navbotright_waiting === null) return;
-			if (navbotright_waiting.length === 0) {
-				navbotright_waiting = null;
-				return;
-			}
-
-			var links = $$(".xl-nav-link", node),
-				link, entry, n, i, ii;
-
-			// Remove bad copies
-			for (i = 0, ii = links.length; i < ii; ++i) {
-				link = links[i];
-				if ((n = link.previousSibling) !== null) {
-					$.remove(n);
-				}
-				if ((n = link.nextSibling) !== null && n.nodeType === Node.TEXT_NODE) {
-					n.nodeValue = n.nodeValue.replace(/^\s*\]\s*/, "");
-				}
-				$.remove(link);
-			}
-
-			// Add
-			for (i = 0, ii = navbotright_waiting.length; i < ii; ++i) {
-				entry = navbotright_waiting[i];
-				insert_at_locations(
-					[ node, Flags.OuterSpace | Flags.Brackets | Flags.Prepend, null ],
-					entry[0],
-					entry[1],
-					entry[2],
-					entry[3]
-				);
-			}
-
-			navbotright_waiting = null;
+			locations.insert();
 		};
 
 		// Exports
 		return {
-			insert_link: insert_link,
-			update_navbotright: update_navbotright
+			insert_link: insert_link
 		};
 
 	})();
@@ -8641,20 +8731,6 @@
 									// This seems to be some sort of timing issue where 4chan-inline replaces the body contents of EVERY SINGLE POST on ready()
 									reload_all = true;
 								}
-							}
-						}
-					}
-
-					// Check for navbotright
-					if (e.target === d.body) {
-						for (j = 0, jj = nodes.length; j < jj; ++j) {
-							node = nodes[j];
-							if (
-								node.id === "boardNavDesktopFoot" &&
-								(node = $("#navbotright", node)) !== null
-							) {
-								Navigation.update_navbotright(node);
-								break;
 							}
 						}
 					}
