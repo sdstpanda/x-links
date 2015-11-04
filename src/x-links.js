@@ -3322,13 +3322,18 @@
 			return null;
 		};
 
-		RequestType.prototype.add_async = function (unique_id, info, callback, progress_callback) {
+		RequestType.prototype.add_async = function (unique_id, info, callback, progress_callback, no_fetch) {
 			var self = this;
 			this.get_data.call(this, info, function (data) {
 				var err, u;
 
 				if (data !== null) {
 					callback.call(null, null, data);
+					return;
+				}
+
+				if (no_fetch) {
+					callback.call(null, "Not found", null);
 					return;
 				}
 
