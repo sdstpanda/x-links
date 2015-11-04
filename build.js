@@ -17,7 +17,7 @@
 		PACKAGE_JSON = "./package.json",
 		RESOURCES = "./resources",
 		RES_STYLESHEET = RESOURCES + "/stylesheets/style.css",
-		RES_HTML_SETTINGS = RESOURCES + "/html/settings.html",
+		RES_HTML_FILTER_GUIDE = RESOURCES + "/html/filter_guide.html",
 		RES_ICON_X48 = RESOURCES + "/images/icon48.png",
 		RES_ICON_X64 = RESOURCES + "/images/icon64.png";
 
@@ -96,7 +96,7 @@
 
 		source = fs.readFileSync(SCRIPT_SOURCE, "utf8");
 
-		source = source.replace(/\#OPTIONS\#/g, html(RES_HTML_SETTINGS));
+		source = source.replace(/\#FILTER_GUIDE\#/g, html(RES_HTML_FILTER_GUIDE));
 		source = source.replace(/\/\*\#VERSION\#\*\//g, version.split(".").join(","));
 		source = source.replace(/\#HOMEPAGE\#/g, pkg.homepage);
 		source = source.replace(/\#ISSUES\#/g, pkg.bugs.url);
@@ -168,7 +168,7 @@
 
 		fs.watchFile(SCRIPT_SOURCE, settings, check);
 		fs.watchFile(RES_STYLESHEET, settings, check);
-		fs.watchFile(RES_HTML_SETTINGS, settings, check);
+		fs.watchFile(RES_HTML_FILTER_GUIDE, settings, check);
 		fs.watchFile(RES_ICON_X48, settings, check);
 		fs.watchFile(RES_ICON_X64, settings, check);
 		fs.watchFile(PACKAGE_JSON, settings, check);

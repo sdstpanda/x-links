@@ -5215,8 +5215,8 @@
 			export_url = null,
 			popup = null;
 
-		var html_options = function () {
-			return '#OPTIONS#';
+		var html_filter_guide = function () {
+			return '#FILTER_GUIDE#';
 		};
 		var create_export_data = function () {
 			return {
@@ -5235,14 +5235,28 @@
 				EasyList.set_saved_settings(v);
 			}
 		};
-		var gen = function (container, theme, option_type) {
+		var gen = function (container, option_type, title, message, pre) {
 			var config_scope = config_temp[option_type],
+				theme = Theme.classes,
 				entry, table, row, cell, label, input, event,
-				args, values, id, name, desc, type, value, obj, label_text, ext, i, ii, j, jj, n, v;
+				args, values, id, name, desc, type, value, obj, label_text, ext, i, ii, j, jj, n, n2, n3, v;
 
 			// [ name, default, label, description, old_name, formatter, info? ]
 			args = options[option_type];
-			if (arguments.length > 3) args = Array.prototype.concat.call(args, Array.prototype.slice.call(arguments, 3));
+			if (arguments.length > 5) args = Array.prototype.concat.call(args, Array.prototype.slice.call(arguments, 5));
+
+			n = $.node("div", "xl-settings-heading" + theme);
+			$.add(n, n2 = $.node("div", "xl-settings-heading-inner" + theme));
+			$.add(n2, $.node("div", "xl-settings-heading-cell xl-settings-heading-title" + theme, title));
+			if (message !== undefined) {
+				$.add(n2, n3 = $.node("div", "xl-settings-heading-cell xl-settings-heading-subtitle" + theme));
+				$.add(n3, message);
+			}
+
+			$.add(container, n);
+			if (pre !== undefined) $.add(container, pre);
+
+			n = $.node("div", "xl-settings-group xl-settings-group-" + option_type + theme);
 
 			for (i = 0, ii = args.length; i < ii; ++i) {
 				obj = args[i];
@@ -5255,7 +5269,7 @@
 				id = "xl-settings-" + option_type + "-" + i;
 				event = "change";
 
-				$.add(container, entry = $.node("div", "xl-settings-entry" + theme));
+				$.add(n, entry = $.node("div", "xl-settings-entry" + theme));
 				$.add(entry, table = $.node("div", "xl-settings-entry-table"));
 				$.add(table, row = $.node("div", "xl-settings-entry-row"));
 
@@ -5264,9 +5278,9 @@
 				label.htmlFor = id;
 				$.add(label, $.node("strong", "xl-settings-entry-label-name", label_text + ":"));
 				if (desc.length > 0) {
-					n = $.node("span", "xl-settings-entry-label-description");
-					n.innerHTML = " " + desc;
-					$.add(label, n);
+					n2 = $.node("span", "xl-settings-entry-label-description");
+					n2.innerHTML = " " + desc;
+					$.add(label, n2);
 				}
 
 				if (type === "checkbox") {
@@ -5283,10 +5297,10 @@
 					values = ext.options;
 					for (j = 0, jj = values.length; j < jj; ++j) {
 						v = values[j];
-						$.add(input, n = $.node("option", "xl-settings-entry-input-option", v[1]));
-						n.value = v[0];
-						n.selected = (v[0] === value);
-						if (v.length > 2) n.title = v[2];
+						$.add(input, n2 = $.node("option", "xl-settings-entry-input-option", v[1]));
+						n2.value = v[0];
+						n2.selected = (v[0] === value);
+						if (v.length > 2) n2.title = v[2];
 					}
 				}
 				else if (type === "textbox") {
@@ -5313,6 +5327,8 @@
 
 				$.on(input, event, $.bind(on_change, input, type, option_type, name, ext));
 			}
+
+			$.add(container, n);
 		};
 
 		var on_change = function (option_type, scope, name, extra, event) {
@@ -5423,7 +5439,7 @@
 		};
 		var open = function () {
 			var theme = Theme.classes,
-				n;
+				content_container, n, n2;
 
 			// Config
 			config_temp = JSON.parse(JSON.stringify(config));
@@ -5463,21 +5479,24 @@
 			}], {
 				body: true,
 				setup: function (container) {
-					var n = $.frag(html_options());
-					Theme.apply(n);
-
-					$.add(container, n);
+					content_container = container;
 				}
 			}]);
 
 			// Settings
-			gen($(".xl-settings-group-general", popup), theme, "general");
-			gen($(".xl-settings-group-sites", popup), theme, "sites");
-			gen($(".xl-settings-group-details", popup), theme, "details");
-			gen($(".xl-settings-group-actions", popup), theme, "actions");
-			gen($(".xl-settings-group-sauce", popup), theme, "sauce");
-			gen($(".xl-settings-group-filter", popup), theme, "filter");
-			gen($(".xl-settings-group-debug", popup), theme, "debug",
+			n = $.tnode("Note: you must reload the page after saving for some changes to take effect");
+			gen(content_container, "general", "General", n);
+			gen(content_container, "sites", "Sites");
+			gen(content_container, "details", "Gallery Details");
+			gen(content_container, "actions", "Gallery Actions");
+			gen(content_container, "sauce", "ExSauce");
+			n = $.link("#", "xl-settings-filter-guide-toggle", "Click here to toggle the guide");
+			n2 = $.frag(html_filter_guide());
+			$.on(n, "click", on_toggle_filter_guide);
+			$.on($("input.xl-settings-color-input[type=color]", n2), "change", on_color_helper_change);
+			Theme.apply(n2);
+			gen(content_container, "filter", "Filtering", n, n2);
+			gen(content_container, "debug", "Debugging", undefined, undefined,
 				[ null, null,
 					"Clear cache data", "Clear all cached gallery data",
 					null,
@@ -5487,8 +5506,6 @@
 
 			// Events
 			$.on(popup, "click", on_cancel_click);
-			$.on($("input.xl-settings-color-input[type=color]", popup), "change", on_color_helper_change);
-			$.on($(".xl-settings-filter-guide-toggle", popup), "click", on_toggle_filter_guide);
 
 			// Add to body
 			Popup.open(popup);
