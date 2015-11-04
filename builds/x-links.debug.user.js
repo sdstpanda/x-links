@@ -2,7 +2,7 @@
 // @name        X-links (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.0.0xDB
+// @version     1.2.0.1.0xDB
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -3157,23 +3157,33 @@
 
 
 		// API request base code
+		var request_groups = {};
 		var RequestGroup = function () {
-			this.active = false;
+			this.active = 0;
 			this.timeout = null;
 			this.types = [];
 		}._w(205);
-		var RequestType = function (count, delay_okay, delay_error, group, namespace, type) {
+		var RequestType = function (count, concurrent, delay_okay, delay_error, group_name, namespace, type) {
 			this.count = count;
+			this.concurrent = concurrent;
 			this.delay_okay = delay_okay;
 			this.delay_error = delay_error;
 			this.queue = [];
 			this.unique = {};
 
-			this.group = group;
+			this.group = request_groups[group_name];
+			if (this.group === undefined) {
+				request_groups[group_name] = this.group = new RequestGroup();
+			}
 			this.group.types.push(this);
 
 			this.namespace = namespace;
 			this.type = type;
+
+			this.retry_data = {
+				count: 0,
+				delay: 0
+			};
 
 			this.delay_modify = null;
 			this.error_mode = null;
@@ -3181,8 +3191,6 @@
 			this.set_data = null;
 			this.setup_xhr = null;
 			this.parse_response = null;
-			this.retry_fn = null;
-			this.retry_data = null;
 		}._w(206);
 		var RequestData = function (id, data, callback, progress_callback) {
 			this.id = id;
@@ -3193,32 +3201,32 @@
 		}._w(207);
 
 		RequestGroup.prototype.run = function (use_delay) {
-			if (this.active) return;
-
 			var type, i, ii;
 			for (i = 0, ii = this.types.length; i < ii; ++i) {
 				type = this.types[i];
-				if (type.queue.length > 0) {
-					this.active = true;
+				while (true) {
+					if (this.active >= type.concurrent) return;
+					if (type.queue.length === 0) break;
+					++this.active;
+
 					if (use_delay && type.count > 1) {
 						setTimeout(function () { type.run(); }._w(209), 1); // jshint ignore:line
 					}
 					else {
 						type.run();
 					}
-					break;
 				}
 			}
 		}._w(208);
 		RequestGroup.prototype.complete = function (delay) {
 			if (delay <= 0) {
-				this.active = false;
+				--this.active;
 				this.run(false);
 			}
 			else {
 				var self = this;
 				setTimeout(function () {
-					self.active = false;
+					--self.active;
 					self.run(false);
 				}._w(211), delay);
 			}
@@ -3293,14 +3301,9 @@
 					var response = self.parse_response.call(self, xhr, entries);
 
 					if (response === null) {
-						if (self.retry_fn !== null) {
-							response = self.retry_fn.call(self, entries);
-							if (typeof(response) !== "string") return; // Retrying
-						}
-						else {
-							// Error
-							response = "Null response";
-						}
+						// Retry
+						self.retry_request(self.retry_data.delay, entries);
+						return;
 					}
 					if (typeof(response) === "string") {
 						// Error
@@ -3402,11 +3405,27 @@
 				delete this.unique[entries[i].id];
 			}
 
-			this.retry_data = null;
+			this.retry_data.count = 0;
 
 			if (this.delay_modify !== null) delay = this.delay_modify.call(this, delay, entries);
 			this.group.complete(delay);
 		}._w(225);
+		RequestType.prototype.retry_request = function (delay, entries) {
+			if (delay > 0) {
+				var self = this;
+				setTimeout(function () {
+					self.run_entries(entries);
+				}._w(227), delay);
+			}
+			else {
+				this.run_entries(entries);
+			}
+		}._w(226);
+		RequestType.prototype.retry = function (delay) {
+			this.retry_data.delay = delay;
+			++this.retry_data.count;
+			return null;
+		}._w(228);
 
 		RequestData.ErrorMode = {
 			None: 0,
@@ -3427,33 +3446,28 @@
 			for (i = 0, ii = this.callbacks.length; i < ii; ++i) {
 				this.callbacks[i].call(null, err, data);
 			}
-		}._w(226);
+		}._w(229);
 
 
 
 		// API request specializations
-		var group_ehentai = new RequestGroup(),
-			group_ehentai_full = new RequestGroup(),
-			group_lookup = new RequestGroup(),
-			group_nhentai = new RequestGroup(),
-			group_hitomi = new RequestGroup(),
-			rt_ehentai_gallery_page = new RequestType(25, 200, 5000, group_ehentai, "ehentai", "page"),
-			rt_ehentai_gallery = new RequestType(25, 200, 5000, group_ehentai, "ehentai", "gallery"),
-			rt_ehentai_gallery_full = new RequestType(1, 200, 5000, group_ehentai_full, "ehentai", "full"),
-			rt_ehentai_gallery_page_thumb = new RequestType(1, 200, 5000, group_ehentai_full, "ehentai", "page_thumb"),
-			rt_ehentai_lookup = new RequestType(1, 3000, 5000, group_lookup, "ehentai", "lookup"),
-			rt_nhentai_gallery = new RequestType(1, 200, 5000, group_nhentai, "nhentai", "gallery"),
-			rt_nhentai_gallery_page_thumb = new RequestType(1, 200, 5000, group_nhentai, "nhentai", "page_thumb"),
-			rt_hitomi_gallery = new RequestType(1, 200, 5000, group_hitomi, "hitomi", "gallery"),
-			rt_hitomi_gallery_page_thumb = new RequestType(1, 200, 5000, group_hitomi, "hitomi", "page_thumb");
+		var rt_ehentai_gallery_page = new RequestType(25, 1, 200, 5000, "ehentai_api", "ehentai", "page"),
+			rt_ehentai_gallery = new RequestType(25, 1, 200, 5000, "ehentai_api", "ehentai", "gallery"),
+			rt_ehentai_gallery_full = new RequestType(1, 1, 200, 5000, "ehentai_full", "ehentai", "full"),
+			rt_ehentai_gallery_page_thumb = new RequestType(1, 1, 200, 5000, "ehentai_full", "ehentai", "page_thumb"),
+			rt_ehentai_lookup = new RequestType(1, 1, 3000, 5000, "ehentai_lookup", "ehentai", "lookup"),
+			rt_nhentai_gallery = new RequestType(1, 1, 200, 5000, "nhentai", "nhentai", "gallery"),
+			rt_nhentai_gallery_page_thumb = new RequestType(1, 1, 200, 5000, "nhentai", "nhentai", "page_thumb"),
+			rt_hitomi_gallery = new RequestType(1, 1, 200, 5000, "hitomi", "hitomi", "gallery"),
+			rt_hitomi_gallery_page_thumb = new RequestType(1, 1, 200, 5000, "hitomi", "hitomi", "page_thumb");
 
 		rt_ehentai_gallery.get_data = function (info) {
 			var data = get_saved_data(this.namespace, info[0]);
 			return (data !== null && data.token === info[1]) ? data : null;
-		}._w(227);
+		}._w(230);
 		rt_ehentai_gallery.set_data = function (data) {
 			set_saved_data(data);
-		}._w(228);
+		}._w(231);
 		rt_ehentai_gallery.setup_xhr = function (entries) {
 			var gidlist = [],
 				i, ii;
@@ -3471,7 +3485,7 @@
 					gidlist: gidlist
 				})
 			};
-		}._w(229);
+		}._w(232);
 		rt_ehentai_gallery.parse_response = function (xhr) {
 			var response = $.json_parse_safe(xhr.responseText, null),
 				datas, i, ii;
@@ -3494,7 +3508,7 @@
 				}
 			}
 			return "Invalid response";
-		}._w(230);
+		}._w(233);
 
 		rt_ehentai_gallery_page.get_data = function (info) {
 			var data = get_saved_data(this.namespace, info[0]);
@@ -3505,9 +3519,9 @@
 				};
 			}
 			return null;
-		}._w(231);
+		}._w(234);
 		rt_ehentai_gallery_page.set_data = function () {
-		}._w(232);
+		}._w(235);
 		rt_ehentai_gallery_page.setup_xhr = function (entries) {
 			var pagelist = [],
 				i, ii;
@@ -3525,7 +3539,7 @@
 					pagelist: pagelist
 				})
 			};
-		}._w(233);
+		}._w(236);
 		rt_ehentai_gallery_page.parse_response = function (xhr) {
 			var response = $.json_parse_safe(xhr.responseText, null);
 			if (response !== null) {
@@ -3542,48 +3556,38 @@
 				}
 			}
 			return "Invalid response";
-		}._w(234);
+		}._w(237);
 
 		rt_ehentai_gallery_full.get_data = function (info) {
 			var data = get_saved_data(this.namespace, info[0]);
 			return (data !== null && data.token === info[1] && data.full) ? data : null;
-		}._w(235);
+		}._w(238);
 		rt_ehentai_gallery_full.set_data = function (data) {
 			set_saved_data(data);
-		}._w(236);
+		}._w(239);
 		rt_ehentai_gallery_full.setup_xhr = function (entries) {
 			var e = entries[0].data;
 			return {
 				method: "GET",
 				url: "http://" + e.domain + "/g/" + e.gid + "/" + e.token + "/" + e.search,
 			};
-		}._w(237);
+		}._w(240);
 		rt_ehentai_gallery_full.parse_response = function (xhr, entries) {
 			var e = entries[0].data;
 			return ehentai_response_process_generic.call(this, xhr, e, this.delay_okay, function (err, html) {
 				return [ err === null ? ehentai_parse_gallery_info(html, e.data) : ehentai_make_removed(e.data) ];
-			}._w(239));
-		}._w(238);
-		rt_ehentai_gallery_full.retry_fn = function (entries) {
-			if (this.retry_data.delay > 0) {
-				var self = this;
-				setTimeout(function () { self.run_entries(entries); }._w(241), this.retry_data.delay);
-			}
-			else {
-				this.run_entries(entries);
-			}
-		}._w(240);
+			}._w(242));
+		}._w(241);
 		var ehentai_response_process_generic = function (xhr, e, retry_delay, callback) {
 			var content_type = header_string_parse(xhr.responseHeaders)["content-type"],
 				html;
 
 			if (!/^text\/html/i.test(content_type || "")) {
 				// Panda
-				if (this.retry_data === null && e.domain === domains.exhentai) {
+				if (this.retry_data.count === 0 && e.domain === domains.exhentai) {
 					// Retry
 					e.domain = domains.gehentai;
-					this.retry_data = { delay: retry_delay, count: 1};
-					return null;
+					return this.retry(retry_delay);
 				}
 				else {
 					return "Invalid response type " + content_type;
@@ -3596,32 +3600,33 @@
 				return "Invalid response";
 			}
 			if (ehentai_is_not_available(html)) {
-				if (this.retry_data === null && e.domain === domains.gehentai) {
+				if (this.retry_data.count === 0 && e.domain === domains.gehentai) {
 					// Retry
 					e.domain = domains.exhentai;
-					this.retry_data = { delay: retry_delay, count: 1 };
-					return null;
+					return this.retry(retry_delay);
 				}
+				this.retry_data.count = 0;
 				return callback.call(this, "Not available", null);
 			}
 			if (ehentai_is_content_warning(html)) {
-				if (this.retry_data === null) {
+				if (this.retry_data.count <= 1) {
 					// Retry
 					e.search = "?nw=session"; // bypass the "Content Warning"
-					this.retry_data = { delay: retry_delay, count: 1 };
-					return null;
+					return this.retry(retry_delay);
 				}
+				this.retry_data.count = 0;
 				return callback.call(this, "Content warning", null);
 			}
+			this.retry_data.count = 0;
 			return callback.call(this, null, html);
-		}._w(242);
+		}._w(243);
 
 		rt_ehentai_gallery_page_thumb.get_data = function (info) {
 			return get_saved_thumbnail("ehentai", info.gid, info.page);
-		}._w(243);
+		}._w(244);
 		rt_ehentai_gallery_page_thumb.set_data = function (data, info) {
 			set_saved_thumbnail("ehentai", info.gid, info.page, data);
-		}._w(244);
+		}._w(245);
 		rt_ehentai_gallery_page_thumb.setup_xhr = rt_ehentai_gallery_full.setup_xhr;
 		rt_ehentai_gallery_page_thumb.parse_response = function (xhr, entries) {
 			var e = entries[0].data,
@@ -3697,33 +3702,31 @@
 						}
 						else if (e.page >= 1 && e.page <= total) {
 							// Wrong page
-							if (this.retry_data === null || this.retry_data.count <= 1) {
+							if (this.retry_data.count === 0) {
 								// Next
 								e.search = "?p=" + Math.floor((e.page - 1) / (end - (start - 1)));
-								this.retry_data = { delay: retry_delay, count: 2 };
-								return null;
+								return this.retry(retry_delay);
 							}
 						}
 					}
 				}
 
 				return "Thumbnail not found";
-			}._w(246));
-		}._w(245);
-		rt_ehentai_gallery_page_thumb.retry_fn = rt_ehentai_gallery_full.retry_fn;
+			}._w(247));
+		}._w(246);
 
 		rt_ehentai_lookup.error_mode = function () {
 			return RequestData.ErrorMode.None;
-		}._w(247);
+		}._w(248);
 		rt_ehentai_lookup.delay_modify = function (delay, entries) {
 			return (entries[0].data[0] ? delay : 0);
-		}._w(248);
+		}._w(249);
 		rt_ehentai_lookup.get_data = function (info) {
 			return (info[1] === null ? null : lookup_get_results(info[1]));
-		}._w(249);
+		}._w(250);
 		rt_ehentai_lookup.set_data = function (data) {
 			lookup_set_results(data);
-		}._w(250);
+		}._w(251);
 		rt_ehentai_lookup.setup_xhr = function (entries) {
 			var e = entries[0].data;
 			if (e[0]) {
@@ -3753,45 +3756,45 @@
 					url: ehentai_create_lookup_url(e[1])
 				};
 			}
-		}._w(251);
+		}._w(252);
 		rt_ehentai_lookup.parse_response = function (xhr, entries) {
 			var data = entries[0].data;
 			return [ ehentai_parse_lookup_results(xhr, data[0], data[1], data[3], data[4]) ];
-		}._w(252);
+		}._w(253);
 
 		rt_nhentai_gallery.get_data = function (info) {
 			return get_saved_data(this.namespace, info[0]);
-		}._w(253);
+		}._w(254);
 		rt_nhentai_gallery.set_data = function (data) {
 			set_saved_data(data);
-		}._w(254);
+		}._w(255);
 		rt_nhentai_gallery.setup_xhr = function (entries) {
 			return {
 				method: "GET",
 				url: "http://" + domains.nhentai + "/g/" + entries[0].data[0] + "/",
 			};
-		}._w(255);
+		}._w(256);
 		rt_nhentai_gallery.parse_response = function (xhr) {
 			var html = $.html_parse_safe(xhr.responseText, null);
 			if (html !== null) {
 				return [ nhentai_parse_info(html, xhr.finalUrl) ];
 			}
 			return "Invalid response";
-		}._w(256);
+		}._w(257);
 
 		rt_nhentai_gallery_page_thumb.get_data = function (info) {
 			return get_saved_thumbnail("nhentai", info.gid, info.page);
-		}._w(257);
+		}._w(258);
 		rt_nhentai_gallery_page_thumb.set_data = function (data, info) {
 			set_saved_thumbnail("nhentai", info.gid, info.page, data);
-		}._w(258);
+		}._w(259);
 		rt_nhentai_gallery_page_thumb.setup_xhr = function (entries) {
 			var e = entries[0].data;
 			return {
 				method: "GET",
 				url: "http://" + domains.nhentai + "/g/" + e.gid + "/" + e.page + "/"
 			};
-		}._w(259);
+		}._w(260);
 		rt_nhentai_gallery_page_thumb.parse_response = function (xhr) {
 			var html = $.html_parse_safe(xhr.responseText, null),
 				n1, url;
@@ -3817,40 +3820,40 @@
 			}
 
 			return "Thumbnail not found";
-		}._w(260);
+		}._w(261);
 
 		rt_hitomi_gallery.get_data = function (info) {
 			return get_saved_data(this.namespace, info[0]);
-		}._w(261);
+		}._w(262);
 		rt_hitomi_gallery.set_data = function (data) {
 			set_saved_data(data);
-		}._w(262);
+		}._w(263);
 		rt_hitomi_gallery.setup_xhr = function (entries) {
 			return {
 				method: "GET",
 				url: "https://" + domains.hitomi + "/galleries/" + entries[0].data[0] + ".html",
 			};
-		}._w(263);
+		}._w(264);
 		rt_hitomi_gallery.parse_response = function (xhr) {
 			var html = $.html_parse_safe(xhr.responseText, null);
 			if (html !== null) {
 				return [ hitomi_parse_info(html, xhr.finalUrl) ];
 			}
 			return "Invalid response";
-		}._w(264);
+		}._w(265);
 
 		rt_hitomi_gallery_page_thumb.get_data = function (info) {
 			return get_saved_thumbnail("hitomi", info.gid, info.page);
-		}._w(265);
+		}._w(266);
 		rt_hitomi_gallery_page_thumb.set_data = function (data, info) {
 			set_saved_thumbnail("hitomi", info.gid, info.page, data);
-		}._w(266);
+		}._w(267);
 		rt_hitomi_gallery_page_thumb.setup_xhr = function (entries) {
 			return {
 				method: "GET",
 				url: "https://" + domains.hitomi + "/reader/" + entries[0].data.gid + ".html"
 			};
-		}._w(267);
+		}._w(268);
 		rt_hitomi_gallery_page_thumb.parse_response = function (xhr, entries) {
 			var html = $.html_parse_safe(xhr.responseText, null),
 				n1, url;
@@ -3878,7 +3881,7 @@
 			}
 
 			return "Thumbnail not found";
-		}._w(268);
+		}._w(269);
 
 
 
@@ -3944,16 +3947,16 @@
 			}
 
 			return null;
-		}._w(269);
+		}._w(270);
 
 		var get_ehentai_gallery = function (gid, token, callback) {
 			var info = [ gid, token ];
 			return rt_ehentai_gallery.add(info.join("_"), info, callback);
-		}._w(270);
+		}._w(271);
 		var get_ehentai_gallery_page = function (gid, page_token, page, callback) {
 			var info = [ gid, page_token, page ];
 			return rt_ehentai_gallery_page.add("" + gid, info, callback);
-		}._w(271);
+		}._w(272);
 		var get_ehentai_gallery_page_thumb = function (domain, gid, token, page_token, page, callback) {
 			var di = domain_info[domain];
 			domain = (di === undefined) ? domains.exhentai : di.g_domain;
@@ -3966,7 +3969,7 @@
 				page_token: page_token,
 				search: ""
 			}, callback);
-		}._w(272);
+		}._w(273);
 		var get_ehentai_gallery_full = function (domain, data, callback) {
 			var di = domain_info[domain];
 			domain = (di === undefined) ? domains.exhentai : di.g_domain;
@@ -3978,29 +3981,29 @@
 				search: "",
 				data: data
 			}, callback);
-		}._w(273);
+		}._w(274);
 		var get_nhentai_gallery = function (gid, callback) {
 			return rt_nhentai_gallery.add("" + gid, [ gid ], callback);
-		}._w(274);
+		}._w(275);
 		var get_nhentai_gallery_page_thumb = function (gid, page, callback) {
 			rt_nhentai_gallery_page_thumb.add(gid + "-" + page, {
 				gid: gid,
 				page: page
 			}, callback);
-		}._w(275);
+		}._w(276);
 		var get_hitomi_gallery = function (gid, callback) {
 			return rt_hitomi_gallery.add("" + gid, [ gid ], callback);
-		}._w(276);
+		}._w(277);
 		var get_hitomi_gallery_page_thumb = function (gid, page, callback) {
 			rt_hitomi_gallery_page_thumb.add(gid + "-" + page, {
 				gid: gid,
 				page: page
 			}, callback);
-		}._w(277);
+		}._w(278);
 
 		var get_data = function (site, gid) {
 			return get_saved_data(site, gid);
-		}._w(278);
+		}._w(279);
 		var get_data_from_url_info = function (url_info, callback) {
 			if (url_info.site === "ehentai") {
 				if (url_info.type === "gallery") {
@@ -4015,7 +4018,7 @@
 						else {
 							callback.call(null, err, null);
 						}
-					}._w(280));
+					}._w(281));
 					return true;
 				}
 			}
@@ -4033,7 +4036,7 @@
 			}
 
 			return false;
-		}._w(279);
+		}._w(280);
 
 		var cached_thumbnail_urls = {};
 		var get_thumbnail = function (thumbnail_url, flags, callback) {
@@ -4072,8 +4075,8 @@
 				else {
 					callback.call(null, err, null);
 				}
-			}._w(282));
-		}._w(281);
+			}._w(283));
+		}._w(282);
 
 		var lookup_on_ehentai = function (url, md5, use_similar, callback, progress_callback) {
 			if (use_similar) {
@@ -4100,7 +4103,7 @@
 						else {
 							callback.call(null, err, null);
 						}
-					}._w(284), progress_callback);
+					}._w(285), progress_callback);
 				}
 			}
 			else {
@@ -4115,14 +4118,14 @@
 					else {
 						callback.call(null, err, null);
 					}
-				}._w(285));
+				}._w(286));
 			}
-		}._w(283);
+		}._w(284);
 
 		var init = function () {
 			// Clean
 			cache_init();
-		}._w(286);
+		}._w(287);
 
 
 
@@ -4160,10 +4163,10 @@
 				case 2: return (x & y) ^ (x & z) ^ (y & z);
 				case 3: return x ^ y ^ z;
 			}
-		}._w(288);
+		}._w(289);
 		var rotl = function (x, n) {
 			return (x << n) | (x >>> (32 - n));
-		}._w(289);
+		}._w(290);
 		var hex = function (str) {
 			var s = "",
 				v, i;
@@ -4172,7 +4175,7 @@
 				s += v.toString(16);
 			}
 			return s;
-		}._w(290);
+		}._w(291);
 
 		// Public
 		var hash = function (data, data_length) {
@@ -4240,14 +4243,14 @@
 			}
 
 			return hex(H0) + hex(H1) + hex(H2) + hex(H3) + hex(H4);
-		}._w(291);
+		}._w(292);
 
 		// Exports
 		return {
 			hash: hash
 		};
 
-	}._w(287))();
+	}._w(288))();
 	var Sauce = (function () {
 
 		// Private
@@ -4266,7 +4269,7 @@
 			}
 
 			return null;
-		}._w(293);
+		}._w(294);
 
 		var on_sauce_click = function (event) {
 			event.preventDefault();
@@ -4286,7 +4289,7 @@
 					hover.classList.add("xl-exsauce-hover-hidden");
 				}
 			}
-		}._w(294);
+		}._w(295);
 		var on_sauce_click_error = function (event) {
 			event.preventDefault();
 
@@ -4300,8 +4303,8 @@
 			setTimeout(function () {
 				Linkifier.change_link_events(link, events);
 				link.click();
-			}._w(296), 1);
-		}._w(295);
+			}._w(297), 1);
+		}._w(296);
 		var on_sauce_mouseover = $.wrap_mouseenterleave_event(function () {
 			var results = get_exresults_from_exsauce(this),
 				hover, err;
@@ -4317,13 +4320,13 @@
 
 				hover.classList.remove("xl-exsauce-hover-hidden");
 			}
-		}._w(297));
+		}._w(298));
 		var on_sauce_mouseout = $.wrap_mouseenterleave_event(function () {
 			var hover = hover_nodes[this.getAttribute("data-xl-sauce-hover-id") || ""];
 			if (hover !== undefined) {
 				hover.classList.add("xl-exsauce-hover-hidden");
 			}
-		}._w(298));
+		}._w(299));
 		var on_sauce_mousemove = function (event) {
 			var hover = hover_nodes[this.getAttribute("data-xl-sauce-hover-id") || ""];
 
@@ -4349,7 +4352,7 @@
 
 			hover.style.left = x + "px";
 			hover.style.top = y + "px";
-		}._w(299);
+		}._w(300);
 
 		var create_hover = function (id, data) {
 			var results = data.results,
@@ -4368,7 +4371,7 @@
 			hover_nodes[id] = hover;
 
 			return hover;
-		}._w(300);
+		}._w(301);
 		var format = function (a, data) {
 			var count = data.results.length,
 				theme = Theme.classes,
@@ -4425,7 +4428,7 @@
 
 				Linkifier.change_link_events(a, "exsauce_toggle");
 			}
-		}._w(301);
+		}._w(302);
 		var label = function () {
 			var label = config.sauce.label;
 
@@ -4434,7 +4437,7 @@
 			}
 
 			return label;
-		}._w(302);
+		}._w(303);
 
 		var create_error = function (node, error) {
 			var id = hover_nodes_id,
@@ -4457,7 +4460,7 @@
 
 			// Done
 			return hover;
-		}._w(303);
+		}._w(304);
 		var set_error = function (node, error) {
 			// Create hover
 			create_error(node, error);
@@ -4469,7 +4472,7 @@
 
 			// Events
 			Linkifier.change_link_events(node, "exsauce_error");
-		}._w(304);
+		}._w(305);
 		var remove_error = function (node) {
 			var events = Linkifier.get_link_events(node),
 				id = node.getAttribute("data-xl-sauce-hover-id"),
@@ -4484,7 +4487,7 @@
 				if (hover.parentNode !== null) $.remove(hover);
 				delete hover_nodes[id];
 			}
-		}._w(305);
+		}._w(306);
 
 		var fetch_generic = function (link, use_similar) {
 			var url = link.href,
@@ -4504,7 +4507,7 @@
 					else if (state === "download") {
 						link.textContent = "Checking";
 					}
-				}._w(307);
+				}._w(308);
 			}
 			else {
 				link.textContent = "Downloading";
@@ -4516,7 +4519,7 @@
 					else if (state === "upload") {
 						link.textContent = "Checking";
 					}
-				}._w(308);
+				}._w(309);
 			}
 
 			remove_error(link);
@@ -4528,21 +4531,21 @@
 				else {
 					set_error(link, err);
 				}
-			}._w(309), progress);
-		}._w(306);
+			}._w(310), progress);
+		}._w(307);
 		var fetch = function (event) {
 			event.preventDefault();
 			fetch_generic(this, false);
-		}._w(310);
+		}._w(311);
 		var fetch_similar = function (event) {
 			event.preventDefault();
 			fetch_generic(this, true);
-		}._w(311);
+		}._w(312);
 
 		// Public
 		var find_link = function (container) {
 			return $(".xl-exsauce-link", container);
-		}._w(312);
+		}._w(313);
 		var create_link = function (file_info, index) {
 			var event = "exsauce_fetch",
 				sauce, err;
@@ -4569,7 +4572,7 @@
 			Linkifier.change_link_events(sauce, event);
 
 			return sauce;
-		}._w(313);
+		}._w(314);
 		var init = function () {
 			Linkifier.register_link_events({
 				exsauce_fetch: fetch,
@@ -4587,7 +4590,7 @@
 					mousemove: on_sauce_mousemove
 				},
 			});
-		}._w(314);
+		}._w(315);
 
 		// Exports
 		return {
@@ -4596,7 +4599,7 @@
 			init: init
 		};
 
-	}._w(292))();
+	}._w(293))();
 	var Linkifier = (function () {
 
 		// Private
@@ -4612,7 +4615,7 @@
 				this.text_offset = text_offset;
 				this.node = node;
 				this.node_text_length = node.nodeValue.length;
-			}._w(317);
+			}._w(318);
 
 
 
@@ -4873,7 +4876,7 @@
 
 				// Done
 				return count;
-			}._w(318);
+			}._w(319);
 
 
 
@@ -4887,7 +4890,7 @@
 			// Return the function
 			return deep_dom_wrap;
 
-		}._w(316))();
+		}._w(317))();
 
 		var linkify = function (container, result_nodes, result_urls) {
 			deep_dom_wrap(
@@ -4898,7 +4901,7 @@
 					var m = re_url.exec(text);
 					if (m === null) return null;
 					return [ m.index , m.index + m[0].length, m ];
-				}._w(320),
+				}._w(321),
 				function (node) {
 					if (node.tagName === "BR" || node.tagName === "A") {
 						return deep_dom_wrap.EL_TYPE_NO_PARSE | deep_dom_wrap.EL_TYPE_LINE_BREAK;
@@ -4913,16 +4916,16 @@
 						return deep_dom_wrap.EL_TYPE_LINE_BREAK;
 					}
 					return deep_dom_wrap.EL_TYPE_PARSE;
-				}._w(321),
+				}._w(322),
 				function (node, match) {
 					var url = match[2][0];
 					if (match[2][1] === undefined) url = "http://" + url.replace(/^\/+/, "");
 					result_nodes.push(node);
 					result_urls.push(url);
-				}._w(322),
+				}._w(323),
 				false
 			);
-		}._w(319);
+		}._w(320);
 
 		var parse_text_for_urls = function (text) {
 			var urls = [],
@@ -4935,7 +4938,7 @@
 			}
 
 			return urls;
-		}._w(323);
+		}._w(324);
 
 		// Link creation and processing
 		var create_link = function (parent, next, url, text, auto_process) {
@@ -4946,7 +4949,7 @@
 			preprocess_link(link, url, false, auto_process);
 
 			return link;
-		}._w(324);
+		}._w(325);
 		var preprocess_link = function (node, url, update_on_fail, auto_load) {
 			var info, rewrite;
 
@@ -4986,7 +4989,7 @@
 			UI.setup_link(node, url, info);
 
 			if (auto_load) load_link(node, info);
-		}._w(325);
+		}._w(326);
 		var load_link = function (link, info) {
 			API.get_data_from_url_info(info, function (err, data) {
 				if (link.parentNode !== null) {
@@ -5000,8 +5003,8 @@
 						UI.format_link_error(link, err, info);
 					}
 				}
-			}._w(327));
-		}._w(326);
+			}._w(328));
+		}._w(327);
 
 		// Post queue
 		var post_queue = {
@@ -5038,7 +5041,7 @@
 					dequeue_posts();
 				}
 			}
-		}._w(328);
+		}._w(329);
 		queue_posts.Flags = {
 			None: 0x0,
 			UseDelay: 0x1,
@@ -5059,7 +5062,7 @@
 				// Timer for next
 				post_queue.timer = setTimeout(dequeue_posts, post_queue.delay);
 			}
-		}._w(329);
+		}._w(330);
 
 		var setup_post_exsauce = function (post) {
 			var index = 0,
@@ -5080,7 +5083,7 @@
 					++index;
 				}
 			}
-		}._w(330);
+		}._w(331);
 		var parse_post = function (post) {
 			var auto_load_links = config.general.automatic_processing,
 				post_body, post_links, link_nodes, link_urls, link, url, i, ii, j;
@@ -5130,7 +5133,7 @@
 				}
 				post.classList.add("xl-post-linkified");
 			}
-		}._w(331);
+		}._w(332);
 		var parse_posts = function (posts) {
 			var post, i, ii;
 
@@ -5148,7 +5151,7 @@
 			}
 
 			Debug.log("Total posts=" + posts.length + "; time=" + Debug.timer("process"));
-		}._w(332);
+		}._w(333);
 
 		// Link events
 		var link_events = {};
@@ -5164,10 +5167,10 @@
 			}
 
 			return count;
-		}._w(333);
+		}._w(334);
 		var get_link_events = function (node) {
 			return node.getAttribute("data-xl-link-events") || null;
-		}._w(334);
+		}._w(335);
 		var set_link_events = function (node, new_events) {
 			var events = link_events[new_events],
 				k;
@@ -5183,7 +5186,7 @@
 					}
 				}
 			}
-		}._w(335);
+		}._w(336);
 		var apply_link_events = function (node, check_children) {
 			var nodes = check_children ? $$("a.xl-link-events", node) : [ node ],
 				events, i, ii;
@@ -5193,7 +5196,7 @@
 				events = node.getAttribute("data-xl-link-events");
 				set_link_events(node, events);
 			}
-		}._w(336);
+		}._w(337);
 		var change_link_events = function (node, new_events) {
 			var old_events = node.getAttribute("data-xl-link-events"),
 				events, k;
@@ -5220,19 +5223,19 @@
 				node.setAttribute("data-xl-link-events", new_events);
 				set_link_events(node, new_events);
 			}
-		}._w(337);
+		}._w(338);
 
 		// Links
 		var get_links_formatted = function (parent) {
 			return $$("a.xl-link.xl-link-formatted", parent);
-		}._w(338);
+		}._w(339);
 
 		var set_node_url_info = function (node, info) {
 			node.setAttribute("data-xl-info", JSON.stringify(info));
-		}._w(339);
+		}._w(340);
 		var get_node_url_info = function (node) {
 			return $.json_parse_safe(node.getAttribute("data-xl-info"), null);
-		}._w(340);
+		}._w(341);
 
 		// Events
 		var event_listeners = {
@@ -5243,7 +5246,7 @@
 			if (!listeners) return false;
 			listeners.push(callback);
 			return true;
-		}._w(341);
+		}._w(342);
 		var off = function (event_name, callback) {
 			var listeners = event_listeners[event_name],
 				i, ii;
@@ -5256,13 +5259,13 @@
 				}
 			}
 			return false;
-		}._w(342);
+		}._w(343);
 		var trigger = function (listeners, data) {
 			var i, ii;
 			for (i = 0, ii = listeners.length; i < ii; ++i) {
 				listeners[i].call(null, data);
 			}
-		}._w(343);
+		}._w(344);
 
 		// Fixing
 		var relinkify_posts = function (posts) {
@@ -5287,7 +5290,7 @@
 			}
 
 			queue_posts(posts, queue_posts.Flags.Flush | queue_posts.Flags.FlushNoParse | queue_posts.Flags.UseDelay);
-		}._w(344);
+		}._w(345);
 		var fix_broken_4chanx_linkification = function (node, event_links) {
 			// Somehow one of the links gets cloned, and then they all get wrapped inside another link
 			var fix = [],
@@ -5322,7 +5325,7 @@
 				link = fix[i];
 				preprocess_link(link, link.href || "", false, config.general.automatic_processing);
 			}
-		}._w(345);
+		}._w(346);
 
 		// Exports
 		return {
@@ -5341,7 +5344,7 @@
 			off: off
 		};
 
-	}._w(315))();
+	}._w(316))();
 	var Settings = (function () {
 
 		// Private
@@ -5351,13 +5354,13 @@
 
 		var html_options = function () {
 			return '<div class="xl-settings-heading"><div><span class="xl-settings-heading-cell xl-settings-heading-title">General</span> <span class="xl-settings-heading-cell xl-settings-heading-subtitle">Note: you must reload the page after saving for some changes to take effect</span></div></div><div class="xl-settings-group xl-settings-group-general xl-theme"></div><div class="xl-settings-heading"><div><span class="xl-settings-heading-cell xl-settings-heading-title">Sites</span></div></div><div class="xl-settings-group xl-settings-group-sites xl-theme"></div><div class="xl-settings-heading"><div><span class="xl-settings-heading-cell xl-settings-heading-title">Gallery Details</span></div></div><div class="xl-settings-group xl-settings-group-details xl-theme"></div><div class="xl-settings-heading"><div><span class="xl-settings-heading-cell xl-settings-heading-title">Gallery Actions</span></div></div><div class="xl-settings-group xl-settings-group-actions xl-theme"></div><div class="xl-settings-heading"><div><span class="xl-settings-heading-cell xl-settings-heading-title">ExSauce</span></div></div><div class="xl-settings-group xl-settings-group-sauce xl-theme"></div><div class="xl-settings-heading"><div><span class="xl-settings-heading-cell xl-settings-heading-title">Filtering</span> <span class="xl-settings-heading-cell xl-settings-heading-subtitle"><a class="xl-settings-filter-guide-toggle">Click here to toggle the guide</a></span></div></div><div class="xl-settings-filter-guide xl-settings-group xl-theme">Lines starting with <code>/</code> will be treated as <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions" target="_blank" rel="noreferrer nofollow">regular expressions</a>. <span style="opacity: 0.75">(This is very similar to 4chan-x style filtering)</span><br>Lines starting with <code>#</code> are comments and will be ignored.<br>Lines starting with neither <code>#</code> nor <code>/</code> will be treated as a case-insensitive string to match anywhere.<br>For example, <code>/touhou/i</code> will highlight entries containing the string `<code>touhou</code>`, case-insensitive.<br><br>The lower a filter appears in this list, the greater its priority will be.<br><br>You can use these additional settings with each regular expression, separating them with semicolons:<br><ul><li><strong>Apply the filter to different scopes:</strong><br><code>tags;</code>, <code>title;</code> or <code>uploader;</code>. By default the scope is <code>title;tags;</code><br></li><li><strong>Force a gallery to not be highlighted:</strong> <span style="opacity: 0.75">If omitted, the gallery will be highlighted as normal</span><br><code>bad:no;</code>, <code>bad:yes;</code>, or just <code>bad;</code></li><li><strong>Only apply the filter to certain categories:</strong><br><code>only:doujinshi,manga;</code>.<div style="font-size: 0.9em; margin-top: 0.1em; opacity: 0.75">Categories: <span>artistcg, asianporn, cosplay, doujinshi, gamecg, imageset, manga, misc, <span style="white-space: nowrap">non-h</span>, private, western</span></div></li><li><strong>Only apply the filter if it <em>is not</em> a certain category:</strong><br><code>not:western,non-h;</code>.</li><li><strong>Only apply the filter to certain sites:</strong><br><code>only:ehentai;</code>.<div style="font-size: 0.9em; margin-top: 0.1em; opacity: 0.75">Sites: <span>ehentai, nhentai, hitomi</span></div></li><li><strong>Apply a colored decoration to the matched text:</strong><br><code>color:red;</code>, <code>underline:#0080f0;</code>, or <code>background:rgba(0,255,0,0.5);</code></li><li><strong>Apply a colored decoration to the [Ex] or [EH] tag:</strong><br><code>link-color:blue;</code>, <code>link-underline:#bf48b5;</code>, or <code>link-background:rgba(220,200,20,0.5);</code></li><li><strong>Apply a colored decoration to <em>BOTH</em> the matched text and tag:</strong><br><code>colors:blue;</code>, <code>underlines:#bf48b5;</code>, or <code>backgrounds:rgba(220,200,20,0.5);</code></li><li><strong>Disable any coloring, including the default:</strong><br><code>no-colors;</code> or <code>nocolor;</code></li></ul>Additionally, some settings have aliases. If multiple are used, only the main one will be used.<br><ul><li><code>tags: tag</code></li><li><code>only: category, cat</code></li><li class="xl-settings-li-no-space"><code>not: no</code></li><li class="xl-settings-li-no-space"><code>site: sites</code></li><li><code>colors: cs</code></li><li class="xl-settings-li-no-space"><code>underlines: us</code></li><li class="xl-settings-li-no-space"><code>backgrounds: bgs</code></li><li><code>color: c</code></li><li class="xl-settings-li-no-space"><code>underline: u</code></li><li class="xl-settings-li-no-space"><code>background: bg</code></li><li><code>link-color: link-c, lc</code></li><li class="xl-settings-li-no-space"><code>link-underline: link-u, lu</code></li><li class="xl-settings-li-no-space"><code>link-background: link-bg, lbg</code></li><li><code>no-colors: no-color, nocolors, nocolor</code></li></ul>For easy <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value#Color_keywords" target="_blank" rel="noreferrer nofollow">HTML color</a> selection, you can use the following helper to select a color:<br><br><div><input type="color" value="#808080" class="xl-settings-color-input"><input type="text" value="#808080" class="xl-settings-color-input" readonly="readonly"><input type="text" value="rgba(128,128,128,1)" class="xl-settings-color-input" readonly="readonly"></div></div><div class="xl-settings-group xl-settings-group-filter xl-theme"></div><div class="xl-settings-heading"><div><span class="xl-settings-heading-cell xl-settings-heading-title">Debugging</span></div></div><div class="xl-settings-group xl-settings-group-debug xl-theme"></div>';
-		}._w(347);
+		}._w(348);
 		var create_export_data = function () {
 			return {
 				config: Config.get_saved_settings(),
 				easy_list: EasyList.get_saved_settings()
 			};
-		}._w(348);
+		}._w(349);
 		var import_settings = function (data) {
 			if (data !== null && typeof(data) === "object") {
 				var v = data.config;
@@ -5368,7 +5371,7 @@
 				if (typeof(v) !== "object") v = null;
 				EasyList.set_saved_settings(v);
 			}
-		}._w(349);
+		}._w(350);
 		var gen = function (container, theme, option_type) {
 			var config_scope = config_temp[option_type],
 				entry, table, row, cell, label, input, event,
@@ -5447,7 +5450,7 @@
 
 				$.on(input, event, $.bind(on_change, input, type, option_type, name, ext));
 			}
-		}._w(350);
+		}._w(351);
 
 		var on_change = function (option_type, scope, name, extra, event) {
 			var fn, v;
@@ -5469,7 +5472,7 @@
 			if (extra !== null && (fn = extra.on_change) !== undefined) {
 				fn.call(this, event);
 			}
-		}._w(351);
+		}._w(352);
 		var on_cache_clear_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
@@ -5478,21 +5481,21 @@
 				Debug.log("Cleared cache; entries_removed=" + clears);
 				this.textContent = "Cleared!";
 			}
-		}._w(352);
+		}._w(353);
 		var on_changelog_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				close(event);
 				Changelog.open(null);
 			}
-		}._w(353);
+		}._w(354);
 		var on_export_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				close();
 				open_export();
 			}
-		}._w(354);
+		}._w(355);
 		var on_save_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
@@ -5503,14 +5506,14 @@
 				Config.save();
 				close();
 			}
-		}._w(355);
+		}._w(356);
 		var on_cancel_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 
 				close();
 			}
-		}._w(356);
+		}._w(357);
 		var on_toggle_filter_guide = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
@@ -5523,7 +5526,7 @@
 				}
 				catch (e) {}
 			}
-		}._w(357);
+		}._w(358);
 		var on_color_helper_change = function () {
 			var n = this.nextSibling,
 				m;
@@ -5538,14 +5541,14 @@
 					}
 				}
 			}
-		}._w(358);
+		}._w(359);
 		var on_settings_open_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 
 				open();
 			}
-		}._w(359);
+		}._w(360);
 
 		// Public
 		var ready = function () {
@@ -5554,7 +5557,7 @@
 			var n = $.link(Main.homepage, "xl-nav-link", "X-links Settings");
 			$.on(n, "click", on_settings_open_click);
 			HeaderBar.insert_menu_link(n);
-		}._w(360);
+		}._w(361);
 		var open = function () {
 			var theme = Theme.classes,
 				n;
@@ -5570,7 +5573,7 @@
 					$.add(container, $.link(Main.homepage, "xl-settings-title" + theme, "X-links"));
 					$.add(container, n = $.link(Changelog.url, "xl-settings-version" + theme, Main.version.join(".")));
 					$.on(n, "click", on_changelog_click);
-				}._w(362)
+				}._w(363)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -5593,7 +5596,7 @@
 					$.add(container, n = $.link("#", "xl-settings-button" + theme));
 					$.add(n, $.node("span", "xl-settings-button-text", "Cancel"));
 					$.on(n, "click", on_cancel_click);
-				}._w(363)
+				}._w(364)
 			}], {
 				body: true,
 				setup: function (container) {
@@ -5601,7 +5604,7 @@
 					Theme.apply(n);
 
 					$.add(container, n);
-				}._w(364)
+				}._w(365)
 			}]);
 
 			// Settings
@@ -5630,7 +5633,7 @@
 			// Focus
 			n = $(".xl-popup-cell-size-scroll", popup);
 			if (n !== null) $.scroll_focus(n);
-		}._w(361);
+		}._w(362);
 		var open_export = function () {
 			var theme = Theme.classes,
 				nodes = {
@@ -5648,7 +5651,7 @@
 				setup: function (container) {
 					$.add(container, $.link(Main.homepage, "xl-settings-title" + theme, "X-links"));
 					$.add(container, $.node("span", "xl-settings-title-info" + theme, " - Settings export"));
-				}._w(366)
+				}._w(367)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -5659,7 +5662,7 @@
 						s = "" + s;
 						while (s.length < len) s = "0" + s;
 						return s;
-					}._w(368);
+					}._w(369);
 
 					fn = $.node("input", "xl-settings-file-input");
 					fn.type = "file";
@@ -5676,18 +5679,18 @@
 									nodes.textarea.value = JSON.stringify(d, null, 2);
 									nodes.textarea.classList.add("xl-settings-export-textarea-changed");
 								}
-							}._w(370), false);
+							}._w(371), false);
 							reader.readAsText(files[0]);
 						}
 						this.value = null;
-					}._w(369));
+					}._w(370));
 
 					$.add(container, n = $.link(undefined, "xl-settings-button" + theme));
 					$.add(n, $.node("span", "xl-settings-button-text", "Import"));
 					$.on(n, "click", function (event) {
 						event.preventDefault();
 						fn.click();
-					}._w(371));
+					}._w(372));
 
 					$.add(container, n = $.link(export_url, "xl-settings-button" + theme));
 					n.removeAttribute("target");
@@ -5717,12 +5720,12 @@
 							}
 							nodes.textarea.classList.remove("xl-settings-export-textarea-changed");
 						}
-					}._w(372));
+					}._w(373));
 
 					$.add(container, n = $.link("#", "xl-settings-button" + theme));
 					$.add(n, $.node("span", "xl-settings-button-text", "Cancel"));
 					$.on(n, "click", on_cancel_click);
-				}._w(367)
+				}._w(368)
 			}], {
 				padding: false,
 				setup: function (container) {
@@ -5738,12 +5741,12 @@
 					n3.checked = false;
 					$.on(n3, "change", function () {
 						nodes.textarea.readOnly = !this.checked;
-					}._w(374));
+					}._w(375));
 
 					$.add(n1, $.tnode(")"));
 
 					$.add(container, n1);
-				}._w(373)
+				}._w(374)
 			}, {
 				body: true,
 				padding: false,
@@ -5757,12 +5760,12 @@
 					n.readOnly = true;
 					$.on(n, "input", function () {
 						this.classList.add("xl-settings-export-textarea-changed");
-					}._w(376));
+					}._w(377));
 
 					nodes.textarea = n;
 
 					$.add(container, n);
-				}._w(375)
+				}._w(376)
 			}]);
 			$.on(popup, "click", on_cancel_click);
 
@@ -5772,7 +5775,7 @@
 			// Focus
 			n = $(".xl-settings-export-textarea", popup);
 			if (n !== null) n.focus();
-		}._w(365);
+		}._w(366);
 		var close = function () {
 			config_temp = null;
 			if (popup !== null) {
@@ -5783,7 +5786,7 @@
 				window.URL.revokeObjectURL(export_url);
 				export_url = null;
 			}
-		}._w(377);
+		}._w(378);
 
 		// Exports
 		return {
@@ -5793,7 +5796,7 @@
 			close: close
 		};
 
-	}._w(346))();
+	}._w(347))();
 	var Config = (function () {
 
 		// Private
@@ -5818,25 +5821,25 @@
 			return {
 				getItem: function (key) {
 					return GM_getValue(key, null);
-				}._w(380),
+				}._w(381),
 				setItem: function (key, value) {
 					GM_setValue(key, value);
-				}._w(381),
+				}._w(382),
 				key: function (index) {
 					return GM_listValues()[index];
-				}._w(382),
+				}._w(383),
 				removeItem: function (key) {
 					GM_deleteValue(key);
-				}._w(383),
+				}._w(384),
 				clear: function () {
 					var v = GM_listValues(), i, ii;
 					for (i = 0, ii = v.length; i < ii; ++i) GM_deleteValue(v[i]);
-				}._w(384),
+				}._w(385),
 				get length() {
 					return GM_listValues().length;
 				}
 			};
-		}._w(379))();
+		}._w(380))();
 
 		var init = function () {
 			var update = false,
@@ -5905,7 +5908,7 @@
 
 			// Save changes
 			if (update) save();
-		}._w(385);
+		}._w(386);
 		var ready = function () {
 			var domain = $.get_domain(window.location.href);
 
@@ -5945,15 +5948,15 @@
 			}
 
 			return true;
-		}._w(386);
+		}._w(387);
 		var save = function () {
 			config.version = Main.version;
 			storage.setItem(settings_key, JSON.stringify(config));
 			config.version = null;
-		}._w(387);
+		}._w(388);
 		var get_saved_settings = function () {
 			return $.json_parse_safe(storage.getItem(settings_key), null);
-		}._w(388);
+		}._w(389);
 		var set_saved_settings = function (data) {
 			if (data === null) {
 				storage.removeItem(settings_key);
@@ -5961,7 +5964,7 @@
 			else {
 				storage.setItem(settings_key, JSON.stringify(data));
 			}
-		}._w(389);
+		}._w(390);
 
 		// Exports
 		var Module = {
@@ -5985,7 +5988,7 @@
 
 		return Module;
 
-	}._w(378))();
+	}._w(379))();
 	var Filter = (function () {
 
 		// Private
@@ -5998,7 +6001,7 @@
 			this.regex = regex;
 			this.flags = flags;
 			this.priority = priority;
-		}._w(391);
+		}._w(392);
 		var FilterFlags = function () {
 			this.title = true;
 			this.tags = true;
@@ -6015,7 +6018,7 @@
 			this.link_color = this.color;
 			this.link_underline = null;
 			this.link_background = null;
-		}._w(392);
+		}._w(393);
 		FilterFlags.scope_fn = function (name) {
 			return function (value, state) {
 				if (!state.scope) {
@@ -6026,8 +6029,8 @@
 				}
 
 				this[name] = (good_values.indexOf(value.trim().toLowerCase()) >= 0);
-			}._w(394);
-		}._w(393);
+			}._w(395);
+		}._w(394);
 		FilterFlags.color_fn = function (fn) {
 			return function (value, state) {
 				if (!state.color) {
@@ -6041,8 +6044,8 @@
 				}
 
 				fn.call(this, value.trim());
-			}._w(396);
-		}._w(395);
+			}._w(397);
+		}._w(396);
 		FilterFlags.names = {
 			"tags": FilterFlags.scope_fn("tags"),
 			"title": FilterFlags.scope_fn("title"),
@@ -6050,50 +6053,50 @@
 
 			"bad": FilterFlags.color_fn(function (value) {
 				this.bad = (good_values.indexOf(value.toLowerCase()) >= 0);
-			}._w(397)),
+			}._w(398)),
 
 			"only": function (value) {
 				this.only = this.split(value);
-			}._w(398),
+			}._w(399),
 			"not": function (value) {
 				this.not = this.split(value);
-			}._w(399),
+			}._w(400),
 			"site": function (value) {
 				this.site = this.split(value);
-			}._w(400),
+			}._w(401),
 
 			"colors": FilterFlags.color_fn(function (value) {
 				this.color = value;
 				this.link_color = value;
-			}._w(401)),
+			}._w(402)),
 			"underlines": FilterFlags.color_fn(function (value) {
 				this.underline = value;
 				this.link_underline = value;
-			}._w(402)),
+			}._w(403)),
 			"backgrounds": FilterFlags.color_fn(function (value) {
 				this.background = value;
 				this.link_background = value;
-			}._w(403)),
+			}._w(404)),
 
 			"color": FilterFlags.color_fn(function (value) {
 				this.color = value;
-			}._w(404)),
+			}._w(405)),
 			"underline": FilterFlags.color_fn(function (value) {
 				this.underline = value;
-			}._w(405)),
+			}._w(406)),
 			"background": FilterFlags.color_fn(function (value) {
 				this.background = value;
-			}._w(406)),
+			}._w(407)),
 
 			"link-color": FilterFlags.color_fn(function (value) {
 				this.link_color = value;
-			}._w(407)),
+			}._w(408)),
 			"link-underline": FilterFlags.color_fn(function (value) {
 				this.link_underline = value;
-			}._w(408)),
+			}._w(409)),
 			"link-background": FilterFlags.color_fn(function (value) {
 				this.link_background = value;
-			}._w(409)),
+			}._w(410)),
 
 			"no-colors": function (value, state) {
 				state.color = true;
@@ -6105,7 +6108,7 @@
 				this.link_color = value;
 				this.link_underline = value;
 				this.link_background = value;
-			}._w(410),
+			}._w(411),
 
 			"tag": "tags",
 
@@ -6156,7 +6159,7 @@
 					fn.call(this, flags_obj[k], state);
 				}
 			}
-		}._w(411);
+		}._w(412);
 		FilterFlags.prototype.split = function (text) {
 			var array, i, ii;
 
@@ -6169,22 +6172,22 @@
 			}
 
 			return array;
-		}._w(412);
+		}._w(413);
 		var Match = function (start, end, filter) {
 			this.start = start;
 			this.end = end;
 			this.filter = filter;
-		}._w(413);
+		}._w(414);
 		var MatchSegment = function (start, end, data) {
 			this.start = start;
 			this.end = end;
 			this.data = data;
-		}._w(414);
+		}._w(415);
 		var MatchInfo = function () {
 			this.matches = [];
 			this.any = false;
 			this.bad = false;
-		}._w(415);
+		}._w(416);
 
 		var create_regex = function (pattern, flags) {
 			if (flags.indexOf("g") < 0) flags += "g";
@@ -6195,7 +6198,7 @@
 			catch (e) {
 				return null;
 			}
-		}._w(416);
+		}._w(417);
 		var create_flags = function (text) {
 			var flaglist = text.split(";"),
 				flags = {},
@@ -6213,7 +6216,7 @@
 			f = new FilterFlags();
 			f.setup(flags);
 			return f;
-		}._w(417);
+		}._w(418);
 		var matches_to_segments = function (text, matches) {
 			var segments = [ new MatchSegment(0, text.length, []) ],
 				hit, m, s, i, ii, j, jj;
@@ -6241,7 +6244,7 @@
 			}
 
 			return segments;
-		}._w(418);
+		}._w(419);
 		var update_segments = function (segments, pos, match, segment) {
 			var data = segment.data.slice(0),
 				s1, s2;
@@ -6279,7 +6282,7 @@
 			}
 
 			return pos;
-		}._w(419);
+		}._w(420);
 		var apply_styles = function (node, styles) {
 			var color = null,
 				background = null,
@@ -6307,7 +6310,7 @@
 			}
 
 			apply_styling(node, color, background, underline);
-		}._w(420);
+		}._w(421);
 		var apply_styling = function (node, color, background, underline) {
 			if (color !== null) {
 				node.style.setProperty("color", color, "important");
@@ -6318,12 +6321,12 @@
 			if (underline !== null) {
 				node.style.setProperty("border-bottom", "0.125em solid " + underline, "important");
 			}
-		}._w(421);
+		}._w(422);
 		var append_match_datas = function (matchinfo, target) {
 			for (var i = 0, ii = matchinfo.matches.length; i < ii; ++i) {
 				target.push(matchinfo.matches[i].filter);
 			}
-		}._w(422);
+		}._w(423);
 		var remove_non_bad = function (list) {
 			for (var i = 0; i < list.length; ) {
 				if (!list[i].bad) {
@@ -6332,7 +6335,7 @@
 				}
 				++i;
 			}
-		}._w(423);
+		}._w(424);
 		var check_multiple = function (type, text, filters, category, site_type) {
 			var info = new MatchInfo(),
 				filter, match, i, ii;
@@ -6354,7 +6357,7 @@
 			}
 
 			return info;
-		}._w(424);
+		}._w(425);
 		var check_single = function (text, filter, category, site_type) {
 			// return null if no match
 			// return a new Match if a match was found
@@ -6384,7 +6387,7 @@
 			// Text filter
 			m = filter.regex.exec(text);
 			return (m === null) ? null : new Match(m.index, m.index + m[0].length, filter);
-		}._w(425);
+		}._w(426);
 		var hl_return = function (bad, node) {
 			if (bad) {
 				node.classList.add("xl-filter-bad");
@@ -6394,10 +6397,10 @@
 				node.classList.add("xl-filter-good");
 				return Status.Good;
 			}
-		}._w(426);
+		}._w(427);
 		var init_filters = function () {
 			active_filters = config.filter.enabled ? parse(config.filter.filters, 0) : [];
-		}._w(427);
+		}._w(428);
 
 		// Public
 		var parse = function (input, start_priority) {
@@ -6448,7 +6451,7 @@
 			}
 
 			return filters;
-		}._w(428);
+		}._w(429);
 		var highlight = function (type, node, data, input_state, results, extras) {
 			if (active_filters === null) init_filters();
 
@@ -6552,7 +6555,7 @@
 				c[text] = [ info, node ];
 			}
 			return hl_return(bad, node);
-		}._w(429);
+		}._w(430);
 		var highlight_tag = function (node, link, filter_data) {
 			if (filter_data[0] === Status.Bad) {
 				node.classList.add("xl-filter-bad");
@@ -6591,7 +6594,7 @@
 						p3 = p;
 					}
 				}
-			}._w(431);
+			}._w(432);
 
 			get_style(filter_data[1].uploader);
 			get_style(filter_data[1].title);
@@ -6611,7 +6614,7 @@
 				$.add(node, n1);
 				apply_styling(n1, color, background, underline);
 			}
-		}._w(430);
+		}._w(431);
 		var check = function (titlenode, data, extras) {
 			if (active_filters === null) init_filters();
 
@@ -6664,7 +6667,7 @@
 					// Remove dups
 					result.tags = result.tags.filter(function (item, pos, self) {
 						return (self.indexOf(item) === pos);
-					}._w(433));
+					}._w(434));
 				}
 			}
 
@@ -6680,7 +6683,7 @@
 			}
 
 			return [ status , (status === Status.None ? null : result) ];
-		}._w(432);
+		}._w(433);
 
 		// Export
 		return {
@@ -6693,7 +6696,7 @@
 			highlight_tag: highlight_tag
 		};
 
-	}._w(390))();
+	}._w(391))();
 	var Theme = (function () {
 
 		// Private
@@ -6704,7 +6707,7 @@
 			n = n.toString(16);
 			if (n.length < 2) n = "0" + n;
 			return n;
-		}._w(435);
+		}._w(436);
 		var detect = function () {
 			var doc_el = d.documentElement,
 				body = d.body,
@@ -6750,7 +6753,7 @@
 				(color[0] + color[1] + color[2] < 384) ? "dark" : "light",
 				"#" + to_hex2(colors[1][0]) + to_hex2(colors[1][1]) + to_hex2(colors[1][2])
 			];
-		}._w(436);
+		}._w(437);
 		var update = function (change_nodes) {
 			var new_theme = detect();
 			if (new_theme !== null) {
@@ -6766,7 +6769,7 @@
 				return true;
 			}
 			return false;
-		}._w(437);
+		}._w(438);
 		var update_nodes = function (new_theme) {
 			var nodes = $$(".xl-theme"),
 				ii = nodes.length,
@@ -6783,14 +6786,14 @@
 					nodes[i].classList.add(cls);
 				}
 			}
-		}._w(438);
+		}._w(439);
 		var update_nodes_bg = function () {
 			var nodes = $$(".xl-theme-post-bg"),
 				i, ii;
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				nodes[i].style.backgroundColor = post_bg;
 			}
-		}._w(439);
+		}._w(440);
 
 		var on_head_mutate = function (records) {
 			var nodes, node, tag, i, ii, j, jj;
@@ -6817,7 +6820,7 @@
 					}
 				}
 			}
-		}._w(440);
+		}._w(441);
 
 		// Public
 		var ready = function () {
@@ -6826,11 +6829,11 @@
 			if (MutationObserver !== null && d.head) {
 				new MutationObserver(on_head_mutate).observe(d.head, { childList: true });
 			}
-		}._w(441);
+		}._w(442);
 		var bg = function (node) {
 			node.classList.add("xl-theme-post-bg");
 			node.style.backgroundColor = post_bg;
-		}._w(442);
+		}._w(443);
 		var apply = function (node) {
 			if (current !== "light") {
 				var nodes = $$(".xl-theme", node),
@@ -6844,7 +6847,7 @@
 					node.classList.add("xl-theme-dark");
 				}
 			}
-		}._w(443);
+		}._w(444);
 		var get_computed_style = function (node) {
 			try {
 				// Don't use window.getComputedStyle: https://code.google.com/p/chromium/issues/detail?id=538650
@@ -6853,7 +6856,7 @@
 			catch (e) {
 				return node.style || {};
 			}
-		}._w(444);
+		}._w(445);
 		var parse_css_color = function (color) {
 			if (color && color !== "transparent") {
 				var m;
@@ -6886,7 +6889,7 @@
 			}
 
 			return [ 0 , 0 , 0 , 0 ];
-		}._w(445);
+		}._w(446);
 
 		// Exports
 		var Module =  {
@@ -6900,7 +6903,7 @@
 
 		return Module;
 
-	}._w(434))();
+	}._w(435))();
 	var EasyList = (function () {
 
 		var Entry = function (domain, site, gid) {
@@ -6908,7 +6911,7 @@
 			this.namespace = site;
 			this.id = gid;
 			this.node = null;
-		}._w(447);
+		}._w(448);
 
 		// Private
 		var settings_key = "xlinks-easylist-settings",
@@ -6954,7 +6957,7 @@
 
 		var settings_save = function () {
 			Config.storage.setItem(settings_key, JSON.stringify(settings));
-		}._w(448);
+		}._w(449);
 		var settings_load = function () {
 			// Load
 			var value = get_saved_settings(),
@@ -6974,7 +6977,7 @@
 
 			// Load filters
 			load_filters();
-		}._w(449);
+		}._w(450);
 		var create = function () {
 			popup = Popup.create("easylist", function (container) {
 				var theme = Theme.classes,
@@ -7014,13 +7017,13 @@
 				$.add(container, contents[content_current].container);
 
 				content_container = container;
-			}._w(451));
+			}._w(452));
 
 			$.on(popup, "click", on_overlay_click);
 
 			// Setup
 			update_display_mode(true);
-		}._w(450);
+		}._w(451);
 		var create_options = function (theme) {
 			var fn, n1, n2, n3, n4, n5;
 
@@ -7049,7 +7052,7 @@
 				$.on(n2, "change", on_option_change.sort_by);
 
 				return n1;
-			}._w(453);
+			}._w(454);
 			$.add(n4, fn("thread", "Appearance in thread"));
 			$.add(n4, fn("upload", "Upload date"));
 			$.add(n4, fn("rating", "Rating"));
@@ -7073,7 +7076,7 @@
 				$.on(n2, "change", change_fn);
 
 				return n1;
-			}._w(454);
+			}._w(455);
 			$.add(n4, fn(settings.group_by_filters, "Filters", on_option_change.group_by_filters));
 			$.add(n4, fn(settings.group_by_category, "Category", on_option_change.group_by_category));
 
@@ -7099,7 +7102,7 @@
 				$.on(n2, "change", on_option_change.display_mode);
 
 				return n1;
-			}._w(455);
+			}._w(456);
 			$.add(n4, fn(0, "Full"));
 			$.add(n4, fn(1, "Compact"));
 			$.add(n4, fn(2, "Minimal"));
@@ -7126,7 +7129,7 @@
 				$.on(n2, "change", on_option_change.filter_visibility);
 
 				return n1;
-			}._w(456);
+			}._w(457);
 			$.add(n4, fn(0, "Show all"));
 			$.add(n4, fn(1, "Hide bad"));
 			$.add(n4, fn(2, "Only show matches"));
@@ -7165,7 +7168,7 @@
 			$.add(n1, $.node("div", "xl-easylist-title-line"));
 
 			return n1;
-		}._w(452);
+		}._w(453);
 		var create_gallery_nodes = function (data, index, domain) {
 			var url = CreateURL.to_gallery(data, domain),
 				theme = Theme.classes,
@@ -7207,7 +7210,7 @@
 							par.style.height = "100%";
 						}
 					}
-				}._w(458), n7));
+				}._w(459), n7));
 			}
 			else {
 				n6.style.width = "100%";
@@ -7286,7 +7289,7 @@
 			update_filters(n1, data, true, false);
 
 			return n1;
-		}._w(457);
+		}._w(458);
 		var create_full_tags = function (domain, data, theme) {
 			var n1 = $.node("div", "xl-easylist-item-tag-table" + theme),
 				domain_type = domain_info[domain].type,
@@ -7330,7 +7333,7 @@
 			}
 
 			return [ n1, namespace !== "" ];
-		}._w(459);
+		}._w(460);
 		var add_gallery_update_timer = null;
 		var add_gallery = function (content_index, entry, index, force_reorder) {
 			var data = API.get_data(entry.namespace, entry.id),
@@ -7360,14 +7363,14 @@
 						if (add_gallery_update_timer !== null) clearTimeout(add_gallery_update_timer);
 						add_gallery_update_timer = setTimeout(function () {
 							update_ordering();
-						}._w(461), 1);
+						}._w(462), 1);
 					}
 					else {
 						set_empty(contents[content_index].visible === 0);
 					}
 				}
 			}
-		}._w(460);
+		}._w(461);
 		var set_empty = function (empty) {
 			if (empty_notification !== null) {
 				var cls = "xl-easylist-empty-notification-visible";
@@ -7375,10 +7378,10 @@
 					empty_notification.classList.toggle(cls);
 				}
 			}
-		}._w(462);
+		}._w(463);
 		var get_options_visible = function () {
 			return options_container.classList.contains("xl-easylist-options-visible");
-		}._w(463);
+		}._w(464);
 		var set_options_visible = function (visible) {
 			var n = $(".xl-easylist-control-link-options", popup),
 				cl, cls;
@@ -7392,25 +7395,25 @@
 			cl = options_container.classList;
 			cls = "xl-easylist-options-visible";
 			if (cl.contains(cls) !== visible) cl.toggle(cls);
-		}._w(464);
+		}._w(465);
 
 		var get_node_filter_group = function (node) {
 			var v = get_node_filters_bad(node);
 			return (v > 0) ? -v : get_node_filters_good(node);
-		}._w(465);
+		}._w(466);
 		var get_node_filters_good = function (node) {
 			return (parseInt(node.getAttribute("data-xl-filter-matches-title"), 10) || 0) +
 				(parseInt(node.getAttribute("data-xl-filter-matches-uploader"), 10) || 0) +
 				(parseInt(node.getAttribute("data-xl-filter-matches-tags"), 10) || 0);
-		}._w(466);
+		}._w(467);
 		var get_node_filters_bad = function (node) {
 			return (parseInt(node.getAttribute("data-xl-filter-matches-title-bad"), 10) || 0) +
 				(parseInt(node.getAttribute("data-xl-filter-matches-uploader-bad"), 10) || 0) +
 				(parseInt(node.getAttribute("data-xl-filter-matches-tags-bad"), 10) || 0);
-		}._w(467);
+		}._w(468);
 		var get_node_category_group = function (node) {
 			return API.get_category_sort_rank(node.getAttribute("data-xl-category"));
-		}._w(468);
+		}._w(469);
 		var update_display_mode = function (first) {
 			var mode = display_mode_names[settings.display_mode] || "",
 				cl = content_container.classList,
@@ -7423,7 +7426,7 @@
 			}
 
 			cl.add("xl-easylist-" + mode);
-		}._w(469);
+		}._w(470);
 		var update_ordering = function () {
 			var items = [],
 				mode = settings.sort_by,
@@ -7440,24 +7443,24 @@
 				if (settings.group_by_category) {
 					base_array = function (node) {
 						return [ get_node_category_group(node), get_node_filter_group(node) ];
-					}._w(471);
+					}._w(472);
 					ordering = [ 1, -1 ];
 				}
 				else {
 					base_array = function (node) {
 						return [ get_node_filter_group(node) ];
-					}._w(472);
+					}._w(473);
 					ordering = [ -1 ];
 				}
 			}
 			else if (settings.group_by_category) {
 				base_array = function (node) {
 					return [ get_node_category_group(node) ];
-				}._w(473);
+				}._w(474);
 				ordering = [ 1 ];
 			}
 			else {
-				base_array = function () { return []; }._w(474);
+				base_array = function () { return []; }._w(475);
 				ordering = [];
 			}
 
@@ -7490,7 +7493,7 @@
 					if (x > y) return ordering[i];
 				}
 				return 0;
-			}._w(475));
+			}._w(476));
 
 			// Re-insert
 			// Maybe eventually add labels
@@ -7524,12 +7527,12 @@
 
 			contents[content_index].visible = current_visible_count;
 			set_empty(current_visible_count === 0);
-		}._w(470);
+		}._w(471);
 		var reset_filter_state = function (node, content_node) {
 			content_node.textContent = node.getAttribute("data-xl-original") || "";
 			node.classList.remove("xl-filter-good");
 			node.classList.remove("xl-filter-bad");
-		}._w(476);
+		}._w(477);
 		var update_filters_targets = [
 			[ ".xl-easylist-item-title-link,.xl-easylist-item-title-jp", "title" ],
 			[ ".xl-easylist-item-uploader", "uploader" ],
@@ -7571,7 +7574,7 @@
 					}
 				}
 			}
-		}._w(477);
+		}._w(478);
 		var update_all_filters = function () {
 			var content_index = content_current,
 				entries = contents[content_index].entries,
@@ -7589,10 +7592,10 @@
 			if (settings.group_by_filters || settings.filter_visibility !== 0) {
 				update_ordering();
 			}
-		}._w(478);
+		}._w(479);
 		var load_filters = function () {
 			custom_filters = Filter.parse(settings.custom_filters, undefined);
-		}._w(479);
+		}._w(480);
 		var add_links = function (links) {
 			var info, key, entry, i, ii;
 
@@ -7611,7 +7614,7 @@
 			if (queue.length > 0 && queue_timer === null) {
 				on_timer();
 			}
-		}._w(480);
+		}._w(481);
 
 		var set_content_index = function (content_index) {
 			if (content_index === content_current) return;
@@ -7631,7 +7634,7 @@
 				update_all_filters();
 				update_ordering();
 			}
-		}._w(481);
+		}._w(482);
 
 		var enable_custom_links = function (text) {
 			custom_links = [];
@@ -7647,7 +7650,7 @@
 				set_content_index(1);
 				parse_custom_urls(text);
 			}
-		}._w(482);
+		}._w(483);
 		var parse_custom_urls = function (text) {
 			var urls = Linkifier.parse_text_for_urls(text),
 				info, i, ii;
@@ -7658,7 +7661,7 @@
 					parse_custom_url_info(i, info);
 				}
 			}
-		}._w(483);
+		}._w(484);
 		var parse_custom_url_info = function (index, info) {
 			API.get_data_from_url_info(info, function (err, data) {
 				if (err === null) {
@@ -7671,35 +7674,35 @@
 						add_gallery(1, entry, index, true);
 					}
 				}
-			}._w(485));
-		}._w(484);
+			}._w(486));
+		}._w(485);
 
 		var on_option_change = {
 			sort_by: function () {
 				settings.sort_by = this.value;
 				settings_save();
 				update_ordering();
-			}._w(486),
+			}._w(487),
 			group_by_category: function () {
 				settings.group_by_category = this.checked;
 				settings_save();
 				update_ordering();
-			}._w(487),
+			}._w(488),
 			group_by_filters: function () {
 				settings.group_by_filters = this.checked;
 				settings_save();
 				update_ordering();
-			}._w(488),
+			}._w(489),
 			display_mode: function () {
 				settings.display_mode = parseInt(this.value, 10) || 0;
 				settings_save();
 				update_display_mode(false);
-			}._w(489),
+			}._w(490),
 			filter_visibility: function () {
 				settings.filter_visibility = parseInt(this.value, 10) || 0;
 				settings_save();
 				update_ordering();
-			}._w(490),
+			}._w(491),
 			custom_filters: function () {
 				if (settings.custom_filters !== this.value) {
 					settings.custom_filters = this.value;
@@ -7707,7 +7710,7 @@
 					load_filters();
 					update_all_filters();
 				}
-			}._w(491),
+			}._w(492),
 			custom_filters_input: function () {
 				var node = this;
 				if (on_option_change.custom_filters_input_delay_timer !== null) {
@@ -7717,17 +7720,17 @@
 					function () {
 						on_option_change.custom_filters_input_delay_timer = null;
 						on_option_change.custom_filters.call(node);
-					}._w(493),
+					}._w(494),
 					1000
 				);
-			}._w(492),
+			}._w(493),
 			custom_filters_input_delay_timer: null,
 			custom_links: function () {
 				var t = this.value.trim();
 				if (t !== custom_links_text) {
 					enable_custom_links(t);
 				}
-			}._w(494),
+			}._w(495),
 			custom_links_input: function () {
 				var node = this;
 				if (on_option_change.custom_links_input_delay_timer !== null) {
@@ -7737,10 +7740,10 @@
 					function () {
 						on_option_change.custom_links_input_delay_timer = null;
 						on_option_change.custom_links.call(node);
-					}._w(496),
+					}._w(497),
 					1000
 				);
-			}._w(495),
+			}._w(496),
 			custom_links_input_delay_timer: null
 		};
 		var on_gallery_mouseover = $.wrap_mouseenterleave_event(function () {
@@ -7768,9 +7771,9 @@
 
 						update_filters(node, data, false, true);
 					}
-				}._w(498));
+				}._w(499));
 			}
-		}._w(497));
+		}._w(498));
 		var on_thumbnail_error = function () {
 			$.off(this, "error", on_thumbnail_error);
 
@@ -7779,10 +7782,10 @@
 			par.style.width = "100%";
 			par.style.height = "100%";
 			this.style.visibility = "hidden";
-		}._w(499);
+		}._w(500);
 		var on_linkify = function (event) {
 			add_links([ event.link ]);
-		}._w(500);
+		}._w(501);
 		var on_timer = function () {
 			queue_timer = null;
 
@@ -7797,7 +7800,7 @@
 			if (queue.length > 0) {
 				queue_timer = setTimeout(on_timer, 50);
 			}
-		}._w(501);
+		}._w(502);
 		var on_open_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				open();
@@ -7805,7 +7808,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(502);
+		}._w(503);
 		var on_close_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				close();
@@ -7813,7 +7816,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(503);
+		}._w(504);
 		var on_toggle_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				if (is_open()) {
@@ -7826,7 +7829,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(504);
+		}._w(505);
 		var on_options_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				set_options_visible(!get_options_visible());
@@ -7834,7 +7837,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(505);
+		}._w(506);
 		var on_overlay_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				close();
@@ -7842,12 +7845,12 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(506);
+		}._w(507);
 
 		// Public
 		var get_saved_settings = function () {
 			return $.json_parse_safe(Config.storage.getItem(settings_key), null);
-		}._w(507);
+		}._w(508);
 		var set_saved_settings = function (data) {
 			if (data === null) {
 				Config.storage.removeItem(settings_key);
@@ -7855,7 +7858,7 @@
 			else {
 				Config.storage.setItem(settings_key, JSON.stringify(data));
 			}
-		}._w(508);
+		}._w(509);
 		var ready = function () {
 			Navigation.insert_link("normal", "Easy List", Main.homepage, " xl-nav-link-easylist", on_open_click);
 
@@ -7871,9 +7874,9 @@
 						"M 47.316173,40.278702 c -1.977441,10.244331 -5.318272,21.474541 -5.662805,29.784036 -0.242507,5.848836 2.420726,7.5586 5.348383,2.078223 5.586237,-10.45706 7.896687,-21.139251 10.839979,-32.018641 -1.376342,0.732535 -2.33581,0.805482 -3.567752,1.104816 2.20065,-1.826801 1.797963,-1.259845 4.683397,-4.356147 3.702042,-3.972588 11.505701,-7.842675 15.187296,-4.490869 4.597776,4.185917 3.4537,13.920509 -0.431829,18.735387 -1.301987,5.219157 -3.278232,10.993981 -4.691055,14.211545 1.650129,0.951997 7.1775,2.647886 8.723023,6.808838 1.818473,4.895806 0.447993,8.335081 -3.207776,12.929618 8.781279,-6.214409 9.875004,-12.24852 10.586682,-20.251062 C 85.596887,59.244915 85.615915,54.42819 83.82437,47.181873 82.032825,39.935556 77.484187,30.527275 73.806105,23.780748 70.128023,17.034221 68.465076,12.376515 60.467734,7.5782428 54.534892,4.0186364 44.006601,5.3633006 39.960199,11.716546 c -4.046402,6.353245 -2.052295,11.417199 0.339979,17.673546 -0.06795,1.969646 -1.145015,4.295256 0.105508,5.751383 1.875243,-0.914979 2.772108,-1.957655 4.421995,-2.639606 -0.01451,1.529931 0.320921,4.192236 -1.17535,5.722167 1.758316,1.116252 1.80495,1.414307 3.663842,2.054666 z"
 					);
 					$.add(svg, path);
-				}._w(510)
+				}._w(511)
 			);
-		}._w(509);
+		}._w(510);
 		var open = function () {
 			if (popup === null) {
 				settings_load();
@@ -7885,17 +7888,17 @@
 
 			Popup.open(popup);
 			$.scroll_focus(popup);
-		}._w(511);
+		}._w(512);
 		var close = function () {
 			Popup.close(popup);
 
 			set_options_visible(false);
 
 			Linkifier.off("format", on_linkify);
-		}._w(512);
+		}._w(513);
 		var is_open = function () {
 			return (popup !== null && Popup.is_open(popup));
-		}._w(513);
+		}._w(514);
 
 		// Exports
 		return {
@@ -7907,7 +7910,7 @@
 			is_open: is_open
 		};
 
-	}._w(446))();
+	}._w(447))();
 	var Popup = (function () {
 
 		// Private
@@ -7918,14 +7921,14 @@
 			if ($.is_left_mouse(event)) {
 				event.stopPropagation();
 			}
-		}._w(515);
+		}._w(516);
 		var on_overlay_event = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				event.stopPropagation();
 				return false;
 			}
-		}._w(516);
+		}._w(517);
 
 		// Public
 		var create = function (class_ns, setup) {
@@ -7986,7 +7989,7 @@
 			}
 
 			return n1;
-		}._w(517);
+		}._w(518);
 		var open = function (overlay) {
 			if (active !== null && active.parentNode !== null) {
 				$.remove(active);
@@ -7994,17 +7997,17 @@
 			d.documentElement.classList.add("xl-popup-overlaying");
 			hovering(overlay);
 			active = overlay;
-		}._w(518);
+		}._w(519);
 		var close = function (overlay) {
 			d.documentElement.classList.remove("xl-popup-overlaying");
 			if (overlay.parentNode !== null) {
 				$.remove(overlay);
 			}
 			active = null;
-		}._w(519);
+		}._w(520);
 		var is_open = function (overlay) {
 			return (overlay.parentNode !== null);
-		}._w(520);
+		}._w(521);
 		var hovering = function (node) {
 			if (hovering_container === null) {
 				hovering_container = $.node("div", "xl-hovering-elements");
@@ -8017,7 +8020,7 @@
 				}
 			}
 			$.add(hovering_container, node);
-		}._w(521);
+		}._w(522);
 
 		// Exports
 		return {
@@ -8028,7 +8031,7 @@
 			hovering: hovering
 		};
 
-	}._w(514))();
+	}._w(515))();
 	var Changelog = (function () {
 
 		// Private
@@ -8087,7 +8090,7 @@
 				error: null,
 				log_data: versions
 			};
-		}._w(523);
+		}._w(524);
 		var display = function (container, theme) {
 			var versions, authors, changes,
 				e, n1, n2, n3, n4, n5, i, ii, j, jj, k, kk;
@@ -8127,7 +8130,7 @@
 			}
 
 			$.add(container, n1);
-		}._w(524);
+		}._w(525);
 		var acquire = function (callback) {
 			HttpRequest({
 				method: "GET",
@@ -8139,15 +8142,15 @@
 					else {
 						callback.call(null, "Response error " + xhr.status, null);
 					}
-				}._w(526),
+				}._w(527),
 				onerror: function () {
 					callback.call(null, "Connection error", null);
-				}._w(527),
+				}._w(528),
 				onabort: function () {
 					callback.call(null, "Connection aborted", null);
-				}._w(528)
+				}._w(529)
 			});
-		}._w(525);
+		}._w(526);
 
 		var on_changelog_get = function (err, data) {
 			if (err !== null) {
@@ -8164,17 +8167,17 @@
 					display(n, Theme.classes);
 				}
 			}
-		}._w(529);
+		}._w(530);
 		var on_close_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				close();
 			}
-		}._w(530);
+		}._w(531);
 		var on_change_save = function () {
 			config.general.changelog_on_update = this.checked;
 			Config.save();
-		}._w(531);
+		}._w(532);
 
 		// Public
 		var open = function (message) {
@@ -8197,7 +8200,7 @@
 						}
 					}
 					$.add(container, $.link(Module.url, "xl-settings-version" + cls + theme, Main.version.join(".")));
-				}._w(533)
+				}._w(534)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -8213,25 +8216,25 @@
 					$.add(container, n1 = $.link("#", "xl-settings-button" + theme));
 					$.add(n1, $.node("span", "xl-settings-button-text", "Close"));
 					$.on(n1, "click", on_close_click);
-				}._w(534)
+				}._w(535)
 			}], {
 				body: true,
 				padding: false,
 				setup: function (container) {
 					container.classList.add("xl-changelog-content");
 					display(container, theme);
-				}._w(535)
+				}._w(536)
 			}]);
 
 			$.on(popup, "click", on_close_click);
 			Popup.open(popup);
-		}._w(532);
+		}._w(533);
 		var close = function () {
 			if (popup !== null) {
 				Popup.close(popup);
 				popup = null;
 			}
-		}._w(536);
+		}._w(537);
 
 		// Exports
 		var Module = {
@@ -8242,7 +8245,7 @@
 
 		return Module;
 
-	}._w(522))();
+	}._w(523))();
 	var HeaderBar = (function () {
 
 		// Private
@@ -8300,7 +8303,7 @@
 				}
 				n2.setAttribute("data-xl-color", color);
 			}
-		}._w(538);
+		}._w(539);
 
 		var on_header_bar_detected = function (node) {
 			header_bar = node;
@@ -8325,7 +8328,7 @@
 			if (shortcut_icons.length > 0) {
 				add_svg_icons(shortcut_icons);
 			}
-		}._w(539);
+		}._w(540);
 		var on_icon_mouseover = $.wrap_mouseenterleave_event(function () {
 			var n = $("svg", this),
 				c;
@@ -8338,13 +8341,13 @@
 				}
 				n.style.fill = c;
 			}
-		}._w(540));
+		}._w(541));
 		var on_icon_mouseout = $.wrap_mouseenterleave_event(function () {
 			var n = $("svg", this);
 			if (n !== null) {
 				n.style.fill = this.getAttribute("data-xl-color");
 			}
-		}._w(541));
+		}._w(542));
 		var on_menu_item_mouseover = $.wrap_mouseenterleave_event(function () {
 			var entries = $$(".entry", this.parent),
 				i, ii;
@@ -8352,16 +8355,16 @@
 				entries[i].classList.remove("focused");
 			}
 			this.classList.add("focused");
-		}._w(542));
+		}._w(543));
 		var on_menu_item_mouseout = $.wrap_mouseenterleave_event(function () {
 			this.classList.remove("focused");
-		}._w(543));
+		}._w(544));
 		var on_menu_item_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				d.documentElement.click();
 			}
-		}._w(544);
+		}._w(545);
 		var on_body_observe = function (records) {
 			var nodes, node, i, ii, j, jj;
 
@@ -8377,7 +8380,7 @@
 					}
 				}
 			}
-		}._w(545);
+		}._w(546);
 		var on_header_observe = function (records) {
 			var nodes, node, i, ii, j, jj;
 
@@ -8398,7 +8401,7 @@
 					}
 				}
 			}
-		}._w(546);
+		}._w(547);
 
 		// Public
 		var ready = function () {
@@ -8409,7 +8412,7 @@
 			else {
 				new MutationObserver(on_body_observe).observe(d.body, { childList: true, subtree: false });
 			}
-		}._w(547);
+		}._w(548);
 		var insert_shortcut_icon = function (namespace, title, url, on_click, svg_setup) {
 			var svgns = "http://www.w3.org/2000/svg",
 				n1, svg;
@@ -8429,7 +8432,7 @@
 			shortcut_icons.push(n1);
 
 			if (header_bar !== null) add_svg_icons([ n1 ]);
-		}._w(548);
+		}._w(549);
 		var insert_menu_link = function (menu_node) {
 			menu_node.classList.add("entry");
 			menu_node.style.order = 112;
@@ -8439,7 +8442,7 @@
 			$.on(menu_node, "click", on_menu_item_click);
 
 			menu_nodes.push(menu_node);
-		}._w(549);
+		}._w(550);
 
 		// Exports
 		return {
@@ -8448,7 +8451,7 @@
 			insert_menu_link: insert_menu_link
 		};
 
-	}._w(537))();
+	}._w(538))();
 	var Navigation = (function () {
 
 		// Private
@@ -8568,7 +8571,7 @@
 					}
 				}
 			}
-		}._w(551);
+		}._w(552);
 
 		// Public
 		var insert_link = function (mode, text, url, class_name, on_click) {
@@ -8643,7 +8646,7 @@
 			}
 
 			insert_at_locations(locations, text, url, class_name, on_click);
-		}._w(552);
+		}._w(553);
 		var update_navbotright = function (node) {
 			if (navbotright_waiting === null) return;
 			if (navbotright_waiting.length === 0) {
@@ -8679,7 +8682,7 @@
 			}
 
 			navbotright_waiting = null;
-		}._w(553);
+		}._w(554);
 
 		// Exports
 		return {
@@ -8687,7 +8690,7 @@
 			update_navbotright: update_navbotright
 		};
 
-	}._w(550))();
+	}._w(551))();
 	var Main = (function () {
 
 		// Private
@@ -8699,7 +8702,7 @@
 			all_posts_reloaded = true;
 
 			Linkifier.relinkify_posts(Post.get_all_posts(d));
-		}._w(555);
+		}._w(556);
 
 		var on_ready = function () {
 			Debug.timer("init");
@@ -8738,7 +8741,7 @@
 			}
 
 			Debug.timer_log("init.ready.full duration", "init");
-		}._w(556);
+		}._w(557);
 		var on_body_node_add = function (event) {
 			var node = event.target;
 			on_body_observe([{
@@ -8748,7 +8751,7 @@
 				nextSibling: node.nextSibling,
 				previousSibling: node.previousSibling
 			}]);
-		}._w(557);
+		}._w(558);
 		var on_body_node_remove = function (event) {
 			var node = event.target;
 			on_body_observe([{
@@ -8758,7 +8761,7 @@
 				nextSibling: node.nextSibling,
 				previousSibling: node.previousSibling
 			}]);
-		}._w(558);
+		}._w(559);
 		var on_body_observe = function (records) {
 			var post_list = [],
 				reload_all = false,
@@ -8854,7 +8857,7 @@
 			if (reload_all) {
 				reload_all_posts();
 			}
-		}._w(559);
+		}._w(560);
 		var check_removed_nodes = function (nodes) {
 			var node, ns, i, ii, j, jj;
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
@@ -8871,10 +8874,10 @@
 					}
 				}
 			}
-		}._w(560);
+		}._w(561);
 		var is_post_group_container = function (node) {
 			return node.id === "qp" || node.classList.contains("thread") || node.classList.contains("inline");
-		}._w(561);
+		}._w(562);
 
 		// Public
 		var init = function () {
@@ -8891,7 +8894,7 @@
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
 			$.ready(on_ready);
-		}._w(562);
+		}._w(563);
 		var version_compare = function (v1, v2) {
 			// Returns: -1 if v1<v2, 0 if v1==v2, 1 if v1>v2
 			var ii = Math.min(v1.length, v2.length),
@@ -8924,7 +8927,7 @@
 			}
 
 			return 0;
-		}._w(563);
+		}._w(564);
 		var insert_custom_fonts = function () {
 			if (fonts_inserted) return;
 			fonts_inserted = true;
@@ -8936,12 +8939,12 @@
 			font.type = "text/css";
 			font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
 			$.add(d.head, font);
-		}._w(564);
+		}._w(565);
 
 		// Exports
 		var Module = {
 			homepage: "https://dnsev-h.github.io/x-links/",
-			version: [1,2,0,0xDB],
+			version: [1,2,0,1,0xDB],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
@@ -8950,7 +8953,7 @@
 
 		return Module;
 
-	}._w(554))();
+	}._w(555))();
 
 	Main.init();
 	Debug.timer_log("init.full duration", timing.start);

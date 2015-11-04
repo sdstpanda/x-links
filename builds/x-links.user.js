@@ -2,7 +2,7 @@
 // @name        X-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.0
+// @version     1.2.0.1
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -2995,23 +2995,33 @@
 
 
 		// API request base code
+		var request_groups = {};
 		var RequestGroup = function () {
-			this.active = false;
+			this.active = 0;
 			this.timeout = null;
 			this.types = [];
 		};
-		var RequestType = function (count, delay_okay, delay_error, group, namespace, type) {
+		var RequestType = function (count, concurrent, delay_okay, delay_error, group_name, namespace, type) {
 			this.count = count;
+			this.concurrent = concurrent;
 			this.delay_okay = delay_okay;
 			this.delay_error = delay_error;
 			this.queue = [];
 			this.unique = {};
 
-			this.group = group;
+			this.group = request_groups[group_name];
+			if (this.group === undefined) {
+				request_groups[group_name] = this.group = new RequestGroup();
+			}
 			this.group.types.push(this);
 
 			this.namespace = namespace;
 			this.type = type;
+
+			this.retry_data = {
+				count: 0,
+				delay: 0
+			};
 
 			this.delay_modify = null;
 			this.error_mode = null;
@@ -3019,8 +3029,6 @@
 			this.set_data = null;
 			this.setup_xhr = null;
 			this.parse_response = null;
-			this.retry_fn = null;
-			this.retry_data = null;
 		};
 		var RequestData = function (id, data, callback, progress_callback) {
 			this.id = id;
@@ -3031,32 +3039,32 @@
 		};
 
 		RequestGroup.prototype.run = function (use_delay) {
-			if (this.active) return;
-
 			var type, i, ii;
 			for (i = 0, ii = this.types.length; i < ii; ++i) {
 				type = this.types[i];
-				if (type.queue.length > 0) {
-					this.active = true;
+				while (true) {
+					if (this.active >= type.concurrent) return;
+					if (type.queue.length === 0) break;
+					++this.active;
+
 					if (use_delay && type.count > 1) {
 						setTimeout(function () { type.run(); }, 1); // jshint ignore:line
 					}
 					else {
 						type.run();
 					}
-					break;
 				}
 			}
 		};
 		RequestGroup.prototype.complete = function (delay) {
 			if (delay <= 0) {
-				this.active = false;
+				--this.active;
 				this.run(false);
 			}
 			else {
 				var self = this;
 				setTimeout(function () {
-					self.active = false;
+					--self.active;
 					self.run(false);
 				}, delay);
 			}
@@ -3131,14 +3139,9 @@
 					var response = self.parse_response.call(self, xhr, entries);
 
 					if (response === null) {
-						if (self.retry_fn !== null) {
-							response = self.retry_fn.call(self, entries);
-							if (typeof(response) !== "string") return; // Retrying
-						}
-						else {
-							// Error
-							response = "Null response";
-						}
+						// Retry
+						self.retry_request(self.retry_data.delay, entries);
+						return;
 					}
 					if (typeof(response) === "string") {
 						// Error
@@ -3240,10 +3243,26 @@
 				delete this.unique[entries[i].id];
 			}
 
-			this.retry_data = null;
+			this.retry_data.count = 0;
 
 			if (this.delay_modify !== null) delay = this.delay_modify.call(this, delay, entries);
 			this.group.complete(delay);
+		};
+		RequestType.prototype.retry_request = function (delay, entries) {
+			if (delay > 0) {
+				var self = this;
+				setTimeout(function () {
+					self.run_entries(entries);
+				}, delay);
+			}
+			else {
+				this.run_entries(entries);
+			}
+		};
+		RequestType.prototype.retry = function (delay) {
+			this.retry_data.delay = delay;
+			++this.retry_data.count;
+			return null;
 		};
 
 		RequestData.ErrorMode = {
@@ -3270,20 +3289,15 @@
 
 
 		// API request specializations
-		var group_ehentai = new RequestGroup(),
-			group_ehentai_full = new RequestGroup(),
-			group_lookup = new RequestGroup(),
-			group_nhentai = new RequestGroup(),
-			group_hitomi = new RequestGroup(),
-			rt_ehentai_gallery_page = new RequestType(25, 200, 5000, group_ehentai, "ehentai", "page"),
-			rt_ehentai_gallery = new RequestType(25, 200, 5000, group_ehentai, "ehentai", "gallery"),
-			rt_ehentai_gallery_full = new RequestType(1, 200, 5000, group_ehentai_full, "ehentai", "full"),
-			rt_ehentai_gallery_page_thumb = new RequestType(1, 200, 5000, group_ehentai_full, "ehentai", "page_thumb"),
-			rt_ehentai_lookup = new RequestType(1, 3000, 5000, group_lookup, "ehentai", "lookup"),
-			rt_nhentai_gallery = new RequestType(1, 200, 5000, group_nhentai, "nhentai", "gallery"),
-			rt_nhentai_gallery_page_thumb = new RequestType(1, 200, 5000, group_nhentai, "nhentai", "page_thumb"),
-			rt_hitomi_gallery = new RequestType(1, 200, 5000, group_hitomi, "hitomi", "gallery"),
-			rt_hitomi_gallery_page_thumb = new RequestType(1, 200, 5000, group_hitomi, "hitomi", "page_thumb");
+		var rt_ehentai_gallery_page = new RequestType(25, 1, 200, 5000, "ehentai_api", "ehentai", "page"),
+			rt_ehentai_gallery = new RequestType(25, 1, 200, 5000, "ehentai_api", "ehentai", "gallery"),
+			rt_ehentai_gallery_full = new RequestType(1, 1, 200, 5000, "ehentai_full", "ehentai", "full"),
+			rt_ehentai_gallery_page_thumb = new RequestType(1, 1, 200, 5000, "ehentai_full", "ehentai", "page_thumb"),
+			rt_ehentai_lookup = new RequestType(1, 1, 3000, 5000, "ehentai_lookup", "ehentai", "lookup"),
+			rt_nhentai_gallery = new RequestType(1, 1, 200, 5000, "nhentai", "nhentai", "gallery"),
+			rt_nhentai_gallery_page_thumb = new RequestType(1, 1, 200, 5000, "nhentai", "nhentai", "page_thumb"),
+			rt_hitomi_gallery = new RequestType(1, 1, 200, 5000, "hitomi", "hitomi", "gallery"),
+			rt_hitomi_gallery_page_thumb = new RequestType(1, 1, 200, 5000, "hitomi", "hitomi", "page_thumb");
 
 		rt_ehentai_gallery.get_data = function (info) {
 			var data = get_saved_data(this.namespace, info[0]);
@@ -3402,26 +3416,16 @@
 				return [ err === null ? ehentai_parse_gallery_info(html, e.data) : ehentai_make_removed(e.data) ];
 			});
 		};
-		rt_ehentai_gallery_full.retry_fn = function (entries) {
-			if (this.retry_data.delay > 0) {
-				var self = this;
-				setTimeout(function () { self.run_entries(entries); }, this.retry_data.delay);
-			}
-			else {
-				this.run_entries(entries);
-			}
-		};
 		var ehentai_response_process_generic = function (xhr, e, retry_delay, callback) {
 			var content_type = header_string_parse(xhr.responseHeaders)["content-type"],
 				html;
 
 			if (!/^text\/html/i.test(content_type || "")) {
 				// Panda
-				if (this.retry_data === null && e.domain === domains.exhentai) {
+				if (this.retry_data.count === 0 && e.domain === domains.exhentai) {
 					// Retry
 					e.domain = domains.gehentai;
-					this.retry_data = { delay: retry_delay, count: 1};
-					return null;
+					return this.retry(retry_delay);
 				}
 				else {
 					return "Invalid response type " + content_type;
@@ -3434,23 +3438,24 @@
 				return "Invalid response";
 			}
 			if (ehentai_is_not_available(html)) {
-				if (this.retry_data === null && e.domain === domains.gehentai) {
+				if (this.retry_data.count === 0 && e.domain === domains.gehentai) {
 					// Retry
 					e.domain = domains.exhentai;
-					this.retry_data = { delay: retry_delay, count: 1 };
-					return null;
+					return this.retry(retry_delay);
 				}
+				this.retry_data.count = 0;
 				return callback.call(this, "Not available", null);
 			}
 			if (ehentai_is_content_warning(html)) {
-				if (this.retry_data === null) {
+				if (this.retry_data.count <= 1) {
 					// Retry
 					e.search = "?nw=session"; // bypass the "Content Warning"
-					this.retry_data = { delay: retry_delay, count: 1 };
-					return null;
+					return this.retry(retry_delay);
 				}
+				this.retry_data.count = 0;
 				return callback.call(this, "Content warning", null);
 			}
+			this.retry_data.count = 0;
 			return callback.call(this, null, html);
 		};
 
@@ -3535,11 +3540,10 @@
 						}
 						else if (e.page >= 1 && e.page <= total) {
 							// Wrong page
-							if (this.retry_data === null || this.retry_data.count <= 1) {
+							if (this.retry_data.count === 0) {
 								// Next
 								e.search = "?p=" + Math.floor((e.page - 1) / (end - (start - 1)));
-								this.retry_data = { delay: retry_delay, count: 2 };
-								return null;
+								return this.retry(retry_delay);
 							}
 						}
 					}
@@ -3548,7 +3552,6 @@
 				return "Thumbnail not found";
 			});
 		};
-		rt_ehentai_gallery_page_thumb.retry_fn = rt_ehentai_gallery_full.retry_fn;
 
 		rt_ehentai_lookup.error_mode = function () {
 			return RequestData.ErrorMode.None;
@@ -8779,7 +8782,7 @@
 		// Exports
 		var Module = {
 			homepage: "https://dnsev-h.github.io/x-links/",
-			version: [1,2,0],
+			version: [1,2,0,1],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,

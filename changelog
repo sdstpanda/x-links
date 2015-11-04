@@ -1,5 +1,10 @@
 ﻿master
 
+1.2.0.1
+- dnsev-h
+  + ExHentai requests can now bypass galleries that encounter both the sad panda and a content warning on E-Hentai
+  + Various tweaks to the internal request API
+
 1.2.0
 - dnsev-h
   + Renamed to X-links
