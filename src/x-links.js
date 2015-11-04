@@ -3173,20 +3173,24 @@
 						self.process_response(entries, response);
 					}
 
-					self.request_complete(entries, false);
+					self.complete_entries(entries);
+					self.complete(this.delay_okay, entries);
 				}
 				else {
 					self.process_response_error(entries, "Response error " + xhr.status);
-					self.request_complete(entries, true);
+					self.complete_entries(entries);
+					self.complete(this.delay_error, entries);
 				}
 			};
 			xhr_data.onerror = function () {
 				self.process_response_error(entries, "Connection error");
-				self.request_complete(entries, true);
+				self.complete_entries(entries);
+				self.complete(this.delay_error, entries);
 			};
 			xhr_data.onabort = function () {
 				self.process_response_error(entries, "Connection aborted");
-				self.request_complete(entries, true);
+				self.complete_entries(entries);
+				self.complete(this.delay_error, entries);
 			};
 
 			if (progress_callbacks !== null) {
@@ -3201,11 +3205,13 @@
 				xhr_data.upload = {};
 				xhr_data.upload.onerror = function () {
 					self.process_response_error(entries, "Upload connection error");
-					self.request_complete(entries, true);
+					self.complete_entries(entries);
+					self.complete(this.delay_error, entries);
 				};
 				xhr_data.upload.onabort = function () {
 					self.process_response_error(entries, "Upload connection aborted");
-					self.request_complete(entries, true);
+					self.complete_entries(entries);
+					self.complete(this.delay_error, entries);
 				};
 				if (progress_callbacks !== null) {
 					xhr_data.upload.onprogress = xhr_data.onprogress;
@@ -3257,17 +3263,15 @@
 				}
 			}
 		};
-		RequestType.prototype.request_complete = function (entries, error) {
-			var delay = error ? this.delay_error : this.delay_okay,
-				i, ii;
-			for (i = 0, ii = entries.length; i < ii; ++i) {
+		RequestType.prototype.complete_entries = function (entries) {
+			for (var i = 0, ii = entries.length; i < ii; ++i) {
 				delete this.unique[entries[i].id];
 			}
-
+		};
+		RequestType.prototype.complete = function (delay, entries) {
 			this.retry_data.count = 0;
 
-			if (this.delay_modify !== null) delay = this.delay_modify.call(this, delay, entries);
-			this.group.complete(delay);
+			this.group.complete(this.delay_modify === null ? delay : this.delay_modify.call(this, delay, entries));
 		};
 		RequestType.prototype.retry_request = function (delay, entries) {
 			if (delay > 0) {
