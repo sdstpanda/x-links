@@ -3091,6 +3091,38 @@
 			}
 		};
 
+		RequestGroup.prototype.run_async = function (use_delay) {
+			var type, i, ii;
+			for (i = 0, ii = this.types.length; i < ii; ++i) {
+				type = this.types[i];
+				while (true) {
+					if (this.active >= type.concurrent) return;
+					if (type.queue.length === 0) break;
+					++this.active;
+
+					if (use_delay && type.count > 1) {
+						setTimeout(function () { type.run_async(); }, 1); // jshint ignore:line
+					}
+					else {
+						type.run_async();
+					}
+				}
+			}
+		};
+		RequestGroup.prototype.complete_async = function (delay) {
+			if (delay <= 0) {
+				--this.active;
+				this.run_async(false);
+			}
+			else {
+				var self = this;
+				setTimeout(function () {
+					--self.active;
+					self.run_async(false);
+				}, delay);
+			}
+		};
+
 		RequestType.get_all_progress_callbacks = function (entries) {
 			var progress_callbacks = null,
 				cbs, i, ii;
@@ -3290,6 +3322,220 @@
 			return null;
 		};
 
+		RequestType.prototype.add_async = function (unique_id, info, callback, progress_callback) {
+			var self = this;
+			this.get_data.call(this, info, function (data) {
+				var err, u;
+
+				if (data !== null) {
+					callback.call(null, null, data);
+					return;
+				}
+
+				err = get_saved_error([ self.namespace, self.type, unique_id ]);
+				if (err !== null) {
+					callback.call(null, err, null);
+					return;
+				}
+
+				// Add
+				u = self.unique[unique_id];
+				if (u === undefined) {
+					u = new RequestData(unique_id, info, callback, progress_callback);
+					self.unique[unique_id] = u;
+					self.queue.push(u);
+				}
+				else {
+					u.callbacks.push(callback);
+					if (progress_callback !== undefined) u.progress_callbacks.push(progress_callback);
+				}
+
+				// Run (if not already running)
+				self.group.run_async(true);
+			});
+		};
+		RequestType.prototype.run_async = function () {
+			var entries = this.queue.splice(0, this.count);
+			this.run_entries_async(entries);
+		};
+		RequestType.prototype.run_entries_async = function (entries) {
+			var self = this;
+			this.setup_xhr.call(this, entries, function (xhr_data) {
+				var progress_callbacks = RequestType.get_all_progress_callbacks(entries),
+					i, ii;
+
+				var error_cb = function () {
+					self.complete_async(this.delay_error, entries);
+				};
+
+				xhr_data.onload = function (xhr) {
+					if (xhr.status === 200) {
+						self.parse_response.call(self, xhr, entries, function (response) {
+							if (response === null) {
+								// Retry
+								self.retry_request_async(self.retry_data.delay, entries);
+								return;
+							}
+
+							self.complete_entries(entries);
+
+							if (typeof(response) === "string") {
+								// Error
+								self.process_response_error_async(entries, response, error_cb);
+							}
+							else {
+								// Valid
+								self.process_response_async(entries, response, function () {
+									self.complete_async(this.delay_okay, entries);
+								});
+							}
+						});
+					}
+					else {
+						self.complete_entries(entries);
+						self.process_response_error_async(entries, "Response error " + xhr.status, error_cb);
+					}
+				};
+				xhr_data.onerror = function () {
+					self.complete_entries(entries);
+					self.process_response_error_async(entries, "Connection error", error_cb);
+				};
+				xhr_data.onabort = function () {
+					self.complete_entries(entries);
+					self.process_response_error_async(entries, "Connection aborted", error_cb);
+				};
+
+				if (progress_callbacks !== null) {
+					xhr_data.onprogress = function (xhr) {
+						for (var i = 0, ii = progress_callbacks.length; i < ii; ++i) {
+							progress_callbacks[i].call(null, "progress", xhr.lengthComputable, xhr.loaded, xhr.total);
+						}
+					};
+				}
+
+				if (xhr_data.data !== undefined) {
+					xhr_data.upload = {};
+					xhr_data.upload.onerror = function () {
+						self.complete_entries(entries);
+						self.process_response_error_async(entries, "Upload connection error", error_cb);
+					};
+					xhr_data.upload.onabort = function () {
+						self.complete_entries(entries);
+						self.process_response_error_async(entries, "Upload connection aborted", error_cb);
+					};
+					if (progress_callbacks !== null) {
+						xhr_data.upload.onprogress = xhr_data.onprogress;
+						xhr_data.upload.onload = function () {
+							for (var i = 0, ii = progress_callbacks.length; i < ii; ++i) {
+								progress_callbacks[i].call(null, "download");
+							}
+						};
+					}
+				}
+
+				if (progress_callbacks !== null) {
+					for (i = 0, ii = progress_callbacks.length; i < ii; ++i) {
+						progress_callbacks[i].call(null, "upload");
+					}
+				}
+
+				HttpRequest(xhr_data);
+			});
+		};
+		RequestType.prototype.process_response_error_async = function (entries, error, callback) {
+			var self = this,
+				done = 0,
+				total = entries.length,
+				i;
+
+			var cb = function () {
+				if (++done === total) callback.call(self);
+			};
+			var err_mode_check = function (default_mode, entry, callback) {
+				if (self.error_mode === null) {
+					callback.call(self, default_mode, entry);
+				}
+				else {
+					self.error_mode.call(self, null, error, function (err_mode) {
+						callback.call(self, err_mode, entry);
+					});
+				}
+			};
+			var err_mode_cb = function (err_mode, entry) {
+				entry.run_callbacks_async(error, null, err_mode, self, cb);
+			};
+
+			for (i = 0; i < total; ++i) {
+				err_mode_check(RequestData.ErrorMode.NoCache, entries[i], err_mode_cb);
+			}
+		};
+		RequestType.prototype.process_response_async = function (entries, datas, callback) {
+			var self = this,
+				i = 0,
+				done = 0,
+				total = entries.length,
+				ii = Math.min(datas.length, total),
+				data, err;
+
+			var cb = function () {
+				if (++done === total) callback.call(self);
+			};
+			var err_mode_check = function (default_mode, entry, data, err, callback) {
+				if (self.error_mode === null) {
+					callback.call(self, err, default_mode, entry);
+				}
+				else {
+					self.error_mode.call(self, data, err, function (err_mode) {
+						callback.call(self, err, err_mode, entry);
+					});
+				}
+			};
+			var err_mode_cb = function (err, err_mode, entry) {
+				entry.run_callbacks_async(err, null, err_mode, self, cb);
+			};
+
+			for (; i < ii; ++i) {
+				data = datas[i];
+				if ((err = data.error) !== undefined) {
+					err_mode_check(RequestData.ErrorMode.Save, entries[i], data, err, err_mode_cb);
+				}
+				else {
+					entries[i].run_callbacks_async(null, data, RequestData.ErrorMode.None, this, cb);
+				}
+			}
+
+			if (i < total) {
+				err = "Data not found";
+				for (; i < total; ++i) {
+					err_mode_check(RequestData.ErrorMode.NoCache, entries[i], null, err, err_mode_cb);
+				}
+			}
+		};
+		RequestType.prototype.complete_async = function (delay, entries) {
+			this.retry_data.count = 0;
+
+			if (this.delay_modify === null) {
+				this.group.complete_async(delay);
+			}
+			else {
+				var self = this;
+				this.delay_modify.call(this, delay, entries, function (delay) {
+					self.group.complete_async(delay);
+				});
+			}
+		};
+		RequestType.prototype.retry_request_async = function (delay, entries) {
+			if (delay > 0) {
+				var self = this;
+				setTimeout(function () {
+					self.run_entries_async(entries);
+				}, delay);
+			}
+			else {
+				this.run_entries_async(entries);
+			}
+		};
+
 		RequestData.ErrorMode = {
 			None: 0,
 			NoCache: 1,
@@ -3308,6 +3554,29 @@
 			var i, ii;
 			for (i = 0, ii = this.callbacks.length; i < ii; ++i) {
 				this.callbacks[i].call(null, err, data);
+			}
+		};
+
+		RequestData.prototype.run_callbacks_async = function (err, data, err_cache_mode, request_type, callback) {
+			var self = this;
+			var cb = function () {
+				// Callbacks
+				var i, ii;
+				for (i = 0, ii = self.callbacks.length; i < ii; ++i) {
+					self.callbacks[i].call(null, err, data);
+				}
+				callback.call(self);
+			};
+
+			// Cache
+			if (err === null) {
+				request_type.set_data.call(request_type, data, this.data, cb);
+			}
+			else {
+				if (err_cache_mode !== RequestData.ErrorMode.None) {
+					set_saved_error([ request_type.namespace, request_type.type, this.id ], err, (err_cache_mode === RequestData.ErrorMode.Save));
+				}
+				cb();
 			}
 		};
 
