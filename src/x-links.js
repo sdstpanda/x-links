@@ -6688,7 +6688,7 @@
 		var ready = function () {
 			update(false);
 
-			if (MutationObserver !== null && d.head) {
+			if (d.head) {
 				new MutationObserver(on_head_mutate).observe(d.head, { childList: true });
 			}
 		};
@@ -8624,14 +8624,8 @@
 			Linkifier.queue_posts(Post.get_all_posts(d), Linkifier.queue_posts.Flags.UseDelay);
 
 			if (Config.dynamic) {
-				if (MutationObserver !== null) {
-					updater = new MutationObserver(on_body_observe);
-					updater.observe(d.body, { childList: true, subtree: true });
-				}
-				else {
-					$.on(d.body, "DOMNodeInserted", on_body_node_add);
-					$.on(d.body, "DOMNodeRemoved", on_body_node_remove);
-				}
+				updater = new MutationObserver(on_body_observe);
+				updater.observe(d.body, { childList: true, subtree: true });
 			}
 
 			HeaderBar.ready();
@@ -8641,26 +8635,6 @@
 			}
 
 			Debug.timer_log("init.ready.full duration", "init");
-		};
-		var on_body_node_add = function (event) {
-			var node = event.target;
-			on_body_observe([{
-				target: node.parentNode,
-				addedNodes: [ node ],
-				removedNodes: [],
-				nextSibling: node.nextSibling,
-				previousSibling: node.previousSibling
-			}]);
-		};
-		var on_body_node_remove = function (event) {
-			var node = event.target;
-			on_body_observe([{
-				target: node.parentNode,
-				addedNodes: [],
-				removedNodes: [ node ],
-				nextSibling: node.nextSibling,
-				previousSibling: node.previousSibling
-			}]);
 		};
 		var on_body_observe = function (records) {
 			var post_list = [],
