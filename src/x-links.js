@@ -3028,6 +3028,7 @@
 			this.delay_okay = delay_okay;
 			this.delay_error = delay_error;
 			this.queue = [];
+			this.queue_infos = [];
 			this.unique = {};
 
 			this.group = request_groups[group_name];
@@ -3058,7 +3059,7 @@
 			this.progress_callbacks = [];
 			if (progress_callback !== undefined) this.progress_callbacks.push(progress_callback);
 		};
-		RequestErrorMode = {
+		var RequestErrorMode = {
 			None: 0,
 			NoCache: 1,
 			Save: 2
@@ -3171,6 +3172,7 @@
 				u = new RequestData(unique_id, info, callback, progress_callback);
 				this.unique[unique_id] = u;
 				this.queue.push(u);
+				this.queue_infos.push(info);
 			}
 			else {
 				u.callbacks.push(callback);
@@ -3182,10 +3184,11 @@
 			return false;
 		};
 		RequestType.prototype.run = function () {
-			var entries = this.queue.splice(0, this.count);
-			this.run_entries(entries);
+			var entries = this.queue.splice(0, this.count),
+				infos = this.queue_infos.splice(0, this.count);
+			this.run_entries(entries, infos);
 		};
-		RequestType.prototype.run_entries = function (entries) {
+		RequestType.prototype.run_entries = function (entries, infos) {
 			var self = this,
 				progress_callbacks = RequestType.get_all_progress_callbacks(entries),
 				xhr_data, i, ii;
@@ -3365,10 +3368,11 @@
 			});
 		};
 		RequestType.prototype.run_async = function () {
-			var entries = this.queue.splice(0, this.count);
-			this.run_entries_async(entries);
+			var entries = this.queue.splice(0, this.count),
+				infos = this.queue_infos.splice(0, this.count);
+			this.run_entries_async(entries, infos);
 		};
-		RequestType.prototype.run_entries_async = function (entries) {
+		RequestType.prototype.run_entries_async = function (entries, infos) {
 			var self = this;
 			this.setup_xhr.call(this, entries, function (xhr_data) {
 				var progress_callbacks = RequestType.get_all_progress_callbacks(entries),
