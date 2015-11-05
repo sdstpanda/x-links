@@ -3905,7 +3905,7 @@
 		};
 
 		rt_nhentai_gallery.get_data = function (info) {
-			return get_saved_data(this.namespace, info[0]);
+			return get_saved_data(this.namespace, info.gid);
 		};
 		rt_nhentai_gallery.set_data = function (data) {
 			set_saved_data(data);
@@ -3913,7 +3913,7 @@
 		rt_nhentai_gallery.setup_xhr = function (infos) {
 			return {
 				method: "GET",
-				url: "http://" + domains.nhentai + "/g/" + infos[0][0] + "/",
+				url: "http://" + domains.nhentai + "/g/" + infos[0].gid + "/",
 			};
 		};
 		rt_nhentai_gallery.parse_response = function (xhr) {
@@ -4133,7 +4133,7 @@
 			}, callback);
 		};
 		var get_nhentai_gallery = function (gid, callback) {
-			return rt_nhentai_gallery.add("" + gid, [ gid ], callback);
+			return rt_nhentai_gallery.add("" + gid, { gid: gid }, callback);
 		};
 		var get_nhentai_gallery_page_thumb = function (gid, page, callback) {
 			rt_nhentai_gallery_page_thumb.add(gid + "-" + page, {
