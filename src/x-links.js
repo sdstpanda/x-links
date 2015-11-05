@@ -3861,22 +3861,22 @@
 			return RequestErrorMode.None;
 		};
 		rt_ehentai_lookup.delay_modify = function (delay, infos) {
-			return (infos[0][0] ? delay : 0);
+			return (infos[0].similar ? delay : 0);
 		};
 		rt_ehentai_lookup.get_data = function (info) {
-			return (info[1] === null ? null : lookup_get_results(info[1]));
+			return (info.sha1 === null ? null : lookup_get_results(info.sha1));
 		};
 		rt_ehentai_lookup.set_data = function (data) {
 			lookup_set_results(data);
 		};
 		rt_ehentai_lookup.setup_xhr = function (infos) {
 			var info = infos[0];
-			if (info[0]) {
-				var blob = info[2],
+			if (info.similar) {
+				var blob = info.blob,
 					form_data = new FormData(),
 					ext = (blob.type || "").split("/");
 
-				info[2] = null;
+				info.blob = null;
 
 				ext = "." + ext[ext.length - 1];
 
@@ -3895,13 +3895,13 @@
 			else {
 				return {
 					method: "GET",
-					url: ehentai_create_lookup_url(info[1])
+					url: ehentai_create_lookup_url(info.sha1)
 				};
 			}
 		};
 		rt_ehentai_lookup.parse_response = function (xhr, infos) {
 			var info = infos[0];
-			return [ ehentai_parse_lookup_results(xhr, info[0], info[1], info[3], info[4]) ];
+			return [ ehentai_parse_lookup_results(xhr, info.similar, info.sha1, info.url, info.md5) ];
 		};
 
 		rt_nhentai_gallery.get_data = function (info) {
@@ -4234,7 +4234,13 @@
 				var sha1, results;
 				if (
 					(sha1 = get_sha1_hash(url, md5)) !== null &&
-					(results = rt_ehentai_lookup.add(url, [ true, sha1, null, url, md5 ])) !== null
+					(results = rt_ehentai_lookup.add(url, {
+						similar: true,
+						blob: null,
+						url: url,
+						md5: md5,
+						sha1: sha1
+					})) !== null
 				) {
 					// Already exists
 					callback.call(null, null, results);
@@ -4248,7 +4254,13 @@
 						if (err === null) {
 							var blob = new Blob([ data.subarray(0, data_length) ], { type: mime_type });
 
-							rt_ehentai_lookup.add(url, [ true, sha1, blob, url, md5 ], callback, progress_callback);
+							rt_ehentai_lookup.add(url, {
+								similar: true,
+								blob: blob,
+								url: url,
+								md5: md5,
+								sha1: sha1
+							}, callback, progress_callback);
 						}
 						else {
 							callback.call(null, err, null);
@@ -4263,7 +4275,13 @@
 					}
 
 					if (err === null) {
-						rt_ehentai_lookup.add(url, [ false, sha1, null, url, md5 ], callback, progress_callback);
+						rt_ehentai_lookup.add(url, {
+							similar: false,
+							blob: null,
+							url: url,
+							md5: md5,
+							sha1: sha1
+						}, callback, progress_callback);
 					}
 					else {
 						callback.call(null, err, null);
