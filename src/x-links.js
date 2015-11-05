@@ -3193,15 +3193,15 @@
 				progress_callbacks = RequestType.get_all_progress_callbacks(entries),
 				xhr_data, i, ii;
 
-			xhr_data = this.setup_xhr.call(this, entries);
+			xhr_data = this.setup_xhr.call(this, infos);
 
 			xhr_data.onload = function (xhr) {
 				if (xhr.status === 200) {
-					var response = self.parse_response.call(self, xhr, entries);
+					var response = self.parse_response.call(self, xhr, infos);
 
 					if (response === null) {
 						// Retry
-						self.retry_request(self.retry_data.delay, entries);
+						self.retry_request(self.retry_data.delay, entries, infos);
 						return;
 					}
 					if (typeof(response) === "string") {
@@ -3214,23 +3214,23 @@
 					}
 
 					self.complete_entries(entries);
-					self.complete(this.delay_okay, entries);
+					self.complete(this.delay_okay, infos);
 				}
 				else {
 					self.process_response_error(entries, "Response error " + xhr.status);
 					self.complete_entries(entries);
-					self.complete(this.delay_error, entries);
+					self.complete(this.delay_error, infos);
 				}
 			};
 			xhr_data.onerror = function () {
 				self.process_response_error(entries, "Connection error");
 				self.complete_entries(entries);
-				self.complete(this.delay_error, entries);
+				self.complete(this.delay_error, infos);
 			};
 			xhr_data.onabort = function () {
 				self.process_response_error(entries, "Connection aborted");
 				self.complete_entries(entries);
-				self.complete(this.delay_error, entries);
+				self.complete(this.delay_error, infos);
 			};
 
 			if (progress_callbacks !== null) {
@@ -3246,12 +3246,12 @@
 				xhr_data.upload.onerror = function () {
 					self.process_response_error(entries, "Upload connection error");
 					self.complete_entries(entries);
-					self.complete(this.delay_error, entries);
+					self.complete(this.delay_error, infos);
 				};
 				xhr_data.upload.onabort = function () {
 					self.process_response_error(entries, "Upload connection aborted");
 					self.complete_entries(entries);
-					self.complete(this.delay_error, entries);
+					self.complete(this.delay_error, infos);
 				};
 				if (progress_callbacks !== null) {
 					xhr_data.upload.onprogress = xhr_data.onprogress;
@@ -3308,20 +3308,20 @@
 				delete this.unique[entries[i].id];
 			}
 		};
-		RequestType.prototype.complete = function (delay, entries) {
+		RequestType.prototype.complete = function (delay, infos) {
 			this.retry_data.count = 0;
 
-			this.group.complete(this.delay_modify === null ? delay : this.delay_modify.call(this, delay, entries));
+			this.group.complete(this.delay_modify === null ? delay : this.delay_modify.call(this, delay, infos));
 		};
-		RequestType.prototype.retry_request = function (delay, entries) {
+		RequestType.prototype.retry_request = function (delay, entries, infos) {
 			if (delay > 0) {
 				var self = this;
 				setTimeout(function () {
-					self.run_entries(entries);
+					self.run_entries(entries, infos);
 				}, delay);
 			}
 			else {
-				this.run_entries(entries);
+				this.run_entries(entries, infos);
 			}
 		};
 		RequestType.prototype.retry = function (delay) {
@@ -3374,20 +3374,20 @@
 		};
 		RequestType.prototype.run_entries_async = function (entries, infos) {
 			var self = this;
-			this.setup_xhr.call(this, entries, function (xhr_data) {
+			this.setup_xhr.call(this, infos, function (xhr_data) {
 				var progress_callbacks = RequestType.get_all_progress_callbacks(entries),
 					i, ii;
 
 				var error_cb = function () {
-					self.complete_async(this.delay_error, entries);
+					self.complete_async(this.delay_error, infos);
 				};
 
 				xhr_data.onload = function (xhr) {
 					if (xhr.status === 200) {
-						self.parse_response.call(self, xhr, entries, function (response) {
+						self.parse_response.call(self, xhr, infos, function (response) {
 							if (response === null) {
 								// Retry
-								self.retry_request_async(self.retry_data.delay, entries);
+								self.retry_request_async(self.retry_data.delay, entries, infos);
 								return;
 							}
 
@@ -3400,7 +3400,7 @@
 							else {
 								// Valid
 								self.process_response_async(entries, response, function () {
-									self.complete_async(this.delay_okay, entries);
+									self.complete_async(this.delay_okay, infos);
 								});
 							}
 						});
@@ -3525,7 +3525,7 @@
 				}
 			}
 		};
-		RequestType.prototype.complete_async = function (delay, entries) {
+		RequestType.prototype.complete_async = function (delay, infos) {
 			this.retry_data.count = 0;
 
 			if (this.delay_modify === null) {
@@ -3533,20 +3533,20 @@
 			}
 			else {
 				var self = this;
-				this.delay_modify.call(this, delay, entries, function (delay) {
+				this.delay_modify.call(this, delay, infos, function (delay) {
 					self.group.complete_async(delay);
 				});
 			}
 		};
-		RequestType.prototype.retry_request_async = function (delay, entries) {
+		RequestType.prototype.retry_request_async = function (delay, entries, infos) {
 			if (delay > 0) {
 				var self = this;
 				setTimeout(function () {
-					self.run_entries_async(entries);
+					self.run_entries_async(entries, infos);
 				}, delay);
 			}
 			else {
-				this.run_entries_async(entries);
+				this.run_entries_async(entries, infos);
 			}
 		};
 
