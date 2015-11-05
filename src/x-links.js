@@ -3058,6 +3058,11 @@
 			this.progress_callbacks = [];
 			if (progress_callback !== undefined) this.progress_callbacks.push(progress_callback);
 		};
+		RequestErrorMode = {
+			None: 0,
+			NoCache: 1,
+			Save: 2
+		};
 
 		RequestGroup.prototype.run = function (use_delay) {
 			var type, i, ii;
@@ -3266,7 +3271,7 @@
 		RequestType.prototype.process_response_error = function (entries, error) {
 			var err_mode, i, ii;
 			for (i = 0, ii = entries.length; i < ii; ++i) {
-				err_mode = (this.error_mode !== null) ? this.error_mode.call(this, null, error) : RequestData.ErrorMode.NoCache;
+				err_mode = (this.error_mode !== null) ? this.error_mode.call(this, null, error) : RequestErrorMode.NoCache;
 				entries[i].run_callbacks(error, null, err_mode, this);
 			}
 		};
@@ -3278,11 +3283,11 @@
 			for (; i < ii; ++i) {
 				data = datas[i];
 				if ((err = data.error) !== undefined) {
-					err_mode = (this.error_mode !== null) ? this.error_mode.call(this, data, err) : RequestData.ErrorMode.Save;
+					err_mode = (this.error_mode !== null) ? this.error_mode.call(this, data, err) : RequestErrorMode.Save;
 					entries[i].run_callbacks(err, null, err_mode, this);
 				}
 				else {
-					entries[i].run_callbacks(null, data, RequestData.ErrorMode.None, this);
+					entries[i].run_callbacks(null, data, RequestErrorMode.None, this);
 				}
 			}
 
@@ -3290,7 +3295,7 @@
 			if (i < ii) {
 				err = "Data not found";
 				for (; i < ii; ++i) {
-					err_mode = (this.error_mode !== null) ? this.error_mode.call(this, null, err) : RequestData.ErrorMode.NoCache;
+					err_mode = (this.error_mode !== null) ? this.error_mode.call(this, null, err) : RequestErrorMode.NoCache;
 					entries[i].run_callbacks(err, null, err_mode, this);
 				}
 			}
@@ -3471,7 +3476,7 @@
 			};
 
 			for (i = 0; i < total; ++i) {
-				err_mode_check(RequestData.ErrorMode.NoCache, entries[i], err_mode_cb);
+				err_mode_check(RequestErrorMode.NoCache, entries[i], err_mode_cb);
 			}
 		};
 		RequestType.prototype.process_response_async = function (entries, datas, callback) {
@@ -3502,17 +3507,17 @@
 			for (; i < ii; ++i) {
 				data = datas[i];
 				if ((err = data.error) !== undefined) {
-					err_mode_check(RequestData.ErrorMode.Save, entries[i], data, err, err_mode_cb);
+					err_mode_check(RequestErrorMode.Save, entries[i], data, err, err_mode_cb);
 				}
 				else {
-					entries[i].run_callbacks_async(null, data, RequestData.ErrorMode.None, this, cb);
+					entries[i].run_callbacks_async(null, data, RequestErrorMode.None, this, cb);
 				}
 			}
 
 			if (i < total) {
 				err = "Data not found";
 				for (; i < total; ++i) {
-					err_mode_check(RequestData.ErrorMode.NoCache, entries[i], null, err, err_mode_cb);
+					err_mode_check(RequestErrorMode.NoCache, entries[i], null, err, err_mode_cb);
 				}
 			}
 		};
@@ -3541,18 +3546,13 @@
 			}
 		};
 
-		RequestData.ErrorMode = {
-			None: 0,
-			NoCache: 1,
-			Save: 2
-		};
 		RequestData.prototype.run_callbacks = function (err, data, err_cache_mode, request_type) {
 			// Cache
 			if (err === null) {
 				request_type.set_data.call(request_type, data, this.data);
 			}
-			else if (err_cache_mode !== RequestData.ErrorMode.None) {
-				set_saved_error([ request_type.namespace, request_type.type, this.id ], err, (err_cache_mode === RequestData.ErrorMode.Save));
+			else if (err_cache_mode !== RequestErrorMode.None) {
+				set_saved_error([ request_type.namespace, request_type.type, this.id ], err, (err_cache_mode === RequestErrorMode.Save));
 			}
 
 			// Callbacks
@@ -3578,8 +3578,8 @@
 				request_type.set_data.call(request_type, data, this.data, cb);
 			}
 			else {
-				if (err_cache_mode !== RequestData.ErrorMode.None) {
-					set_saved_error([ request_type.namespace, request_type.type, this.id ], err, (err_cache_mode === RequestData.ErrorMode.Save));
+				if (err_cache_mode !== RequestErrorMode.None) {
+					set_saved_error([ request_type.namespace, request_type.type, this.id ], err, (err_cache_mode === RequestErrorMode.Save));
 				}
 				cb();
 			}
@@ -3853,7 +3853,7 @@
 		};
 
 		rt_ehentai_lookup.error_mode = function () {
-			return RequestData.ErrorMode.None;
+			return RequestErrorMode.None;
 		};
 		rt_ehentai_lookup.delay_modify = function (delay, entries) {
 			return (entries[0].data[0] ? delay : 0);
