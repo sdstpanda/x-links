@@ -3357,6 +3357,7 @@
 					u = new RequestData(unique_id, info, callback, progress_callback);
 					self.unique[unique_id] = u;
 					self.queue.push(u);
+					self.queue_infos.push(info);
 				}
 				else {
 					u.callbacks.push(callback);
@@ -9085,7 +9086,7 @@
 		};
 
 		AddonAPI.handlers_init = {
-			start: function (data) {
+			start: function () {
 				var reply_data = null,
 					reply_key, i;
 
