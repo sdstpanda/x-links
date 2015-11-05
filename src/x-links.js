@@ -4277,6 +4277,7 @@
 		// Exports
 		return {
 			Flags: Flags,
+			RequestType: RequestType,
 			get_url_info: get_url_info,
 			get_ehentai_gallery: get_ehentai_gallery,
 			get_ehentai_gallery_page: get_ehentai_gallery_page,
@@ -8892,6 +8893,320 @@
 		};
 
 	})();
+	var AddonAPI = (function () {
+
+		// Private
+		var random_string_alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+		var random_string = function (count) {
+			var alpha_len = random_string_alphabet.length,
+				s = "",
+				i;
+			for (i = 0; i < count; ++i) {
+				s += random_string_alphabet[Math.floor(Math.random() * alpha_len)];
+			}
+			return s;
+		};
+
+		var is_object = function (obj) {
+			return (obj !== null && typeof(obj) === "object");
+		};
+
+		var api = null;
+		var AddonAPI = function () {
+			this.origin = window.location.protocol + "//" + window.location.host;
+			this.timeout_delay = 1000;
+
+			this.api_name = null;
+			this.api_key = null;
+			this.action = null;
+			this.reply_id = null;
+			this.reply_callbacks = {};
+
+			this.registration = null;
+			this.registrations = {};
+			this.request_apis = {};
+
+			var self = this;
+			this.on_window_message_bind = function (event) {
+				return self.on_window_message(event);
+			};
+			window.addEventListener("message", this.on_window_message_bind, false);
+		};
+		AddonAPI.prototype.on_window_message = function (event) {
+			var data = event.data,
+				handlers, action_data, reply_id, fn;
+
+			if (
+				event.origin === this.origin &&
+				is_object(data) &&
+				typeof((this.action = data.xlinks_action)) === "string" &&
+				data.extension === true &&
+				typeof((this.api_key = data.key)) === "string" &&
+				typeof((this.api_name = data.name)) === "string" &&
+				(action_data = data.data) !== undefined
+			) {
+				this.registration = this.registrations[this.api_key];
+				if (this.registration === undefined || this.registration.name !== this.api_name) {
+					this.registration = null;
+					handlers = AddonAPI.handlers_init;
+				}
+				else {
+					handlers = AddonAPI.handlers;
+				}
+				this.reply_id = data.id;
+
+				if (typeof((reply_id = data.reply)) === "string") {
+					if (typeof((fn = this.reply_callbacks[reply_id])) === "function") {
+						delete this.reply_callbacks[reply_id];
+						fn.call(this, null, action_data);
+					}
+				}
+				else {
+					if (typeof((fn = handlers[this.action])) === "function") {
+						fn.call(this, action_data);
+					}
+					else if (this.reply_id !== null) {
+						this.send(this.action, { err: "Invalid call" }, this.reply_id);
+					}
+				}
+
+				this.registration = null;
+				this.reply_id = null;
+			}
+
+			this.action = null;
+			this.api_key = null;
+			this.api_name = null;
+		};
+		AddonAPI.prototype.send = function (action, data, reply_to, on_reply) {
+			var self = this,
+				id = null,
+				timeout, cb, i;
+
+			if (on_reply !== undefined) {
+				for (i = 0; i < 10; ++i) {
+					id = random_string(32);
+					if (!Object.prototype.hasOwnProperty.call(this.reply_callbacks)) break;
+				}
+
+				cb = function () {
+					if (timeout !== null) {
+						clearTimeout(timeout);
+						timeout = null;
+					}
+
+					on_reply.apply(this, arguments);
+				};
+
+				this.reply_callbacks[id] = cb;
+				cb = null;
+
+				timeout = setTimeout(function () {
+					timeout = null;
+					delete self.reply_callbacks[id];
+					on_reply.call(self, "Response timeout");
+				}, this.timeout_delay);
+			}
+
+			window.postMessage({
+				xlinks_action: action,
+				extension: false,
+				id: id,
+				reply: reply_to || null,
+				key: this.api_key,
+				name: this.api_name,
+				data: data
+			}, this.origin);
+		};
+		AddonAPI.prototype.req_api_fn = function (fn_id) {
+			var self = this,
+				api_name = this.api_name,
+				api_key = this.api_key;
+
+			return function () {
+				var callback = arguments[arguments.length - 1],
+					args = Array.prototype.splice.call(arguments, 0, arguments.length - 1);
+
+				self.api_name = api_name;
+				self.api_key = api_key;
+				self.send("api_function", {
+					id: fn_id,
+					args: args
+				}, null, function (err, data) {
+					if (err !== null || !is_object(data)) {
+						// TOOD
+						callback.call(null, null);
+					}
+					else {
+						callback.call(null, data.return_value);
+					}
+				});
+				self.api_name = null;
+				self.api_key = null;
+			};
+		};
+
+		AddonAPI.request_api_functions_required = [
+			"set_data",
+			"get_data",
+			"setup_xhr",
+			"parse_response"
+		];
+		AddonAPI.request_api_functions = {
+			get_data: "get_data",
+			set_data: "set_data",
+			setup_xhr: "setup_xhr",
+			parse_response: "parse_response",
+			delay_modify: "delay_modify",
+			error_mode: "error_mode"
+		};
+
+		AddonAPI.handlers_init = {
+			start: function (data) {
+				var reply_data = null,
+					reply_key, i;
+
+				for (i = 0; i < 10; ++i) {
+					reply_key = random_string(64);
+					if (!Object.prototype.hasOwnProperty.call(this.registrations, reply_key)) {
+						this.registrations[reply_key] = {
+							name: this.api_name,
+							key: reply_key,
+							apis: []
+						};
+						reply_data = { key: reply_key };
+						break;
+					}
+				}
+
+				this.send(this.action, reply_data, this.reply_id);
+			},
+		};
+		AddonAPI.handlers = {
+			register: function (data) {
+				if (!is_object(data)) {
+					// Failure
+					this.send(this.action, {
+						err: "Invalid data"
+					}, this.reply_id);
+					return;
+				}
+
+				// Register
+				var response = {
+						settings: {},
+						request_apis: []
+					},
+					req, fns, fn_id, a, o, o2, v, i, ii, j, jj, k;
+
+				// Request APIs
+				if (Array.isArray((o = data.request_apis))) {
+					for (i = 0, ii = o.length; i < ii; ++i) {
+						a = o[i];
+						if (is_object(a)) {
+							var req_group = "other",
+								req_namespace = "other",
+								req_type = "other",
+								req_count = 1,
+								req_concurrent = 1,
+								req_delay_okay = 200,
+								req_delay_error = 5000,
+								req_functions = {},
+								req_function_ids = {};
+
+							// Settings
+							if (typeof((v = a.group)) === "string") req_group = v;
+							if (typeof((v = a.namespace)) === "string") req_namespace = v;
+							if (typeof((v = a.type)) === "string") req_type = v;
+							if (typeof((v = a.count)) === "number") req_count = Math.max(1, v);
+							if (typeof((v = a.concurrent)) === "number") req_concurrent = Math.max(1, v);
+							if (typeof((v = a.delay_okay)) === "number") req_delay_okay = Math.max(0, v);
+							if (typeof((v = a.delay_error)) === "number") req_delay_error = Math.max(0, v);
+
+							// Functions
+							if (Array.isArray((fns = a.functions))) {
+								for (j = 0, jj = fns.length; j < jj; ++j) {
+									v = fns[j];
+									if (Object.prototype.hasOwnProperty.call(AddonAPI.request_api_functions, v)) {
+										fn_id = random_string(32);
+										req_functions[AddonAPI.request_api_functions[v]] = this.req_api_fn(fn_id, v);
+										req_function_ids[v] = fn_id;
+									}
+								}
+							}
+
+							// Validate
+							for (j = 0, jj = AddonAPI.request_api_functions_required.length; j < jj; ++j) {
+								if (!Object.prototype.hasOwnProperty.call(req_functions, AddonAPI.request_api_functions_required[j])) break;
+							}
+							if (j < jj) {
+								response.request_apis.push([ "Missing functions" ]);
+							}
+							else {
+								// Check to see if the namespace/type is unique
+								if (
+									(o2 = this.request_apis[req_namespace]) !== undefined &&
+									o2[req_type] !== undefined
+								) {
+									response.request_apis.push([ "Already exists" ]);
+								}
+								else {
+									req = new API.RequestType(req_count, req_concurrent, req_delay_okay, req_delay_error, req_group, req_namespace, req_type);
+									for (k in req_functions) {
+										req[k] = req_functions[k];
+									}
+
+									if (o2 === undefined) {
+										this.request_apis[req_namespace] = o2 = {};
+									}
+									o2[req_type] = req;
+
+									response.request_apis.push([ null, req_function_ids ]);
+								}
+							}
+						}
+						else {
+							response.request_apis.push([ "Invalid" ]);
+						}
+					}
+				}
+
+				// Okay
+				this.send(this.action, {
+					err: null,
+					response: response
+				}, this.reply_id);
+			}
+		};
+
+
+		// Public
+		var init = function () {
+			if (api === null) api = new AddonAPI();
+		};
+
+		var request = function (namespace, type, id, info, callback) {
+			var req;
+			if (
+				api === null ||
+				(req = api.request_apis[namespace]) === undefined ||
+				(req = req[type]) === undefined
+			) {
+				callback.call(null, "Invalid API", null);
+				return;
+			}
+
+			return req.add_async(id, info, callback);
+		};
+
+
+		// Exports
+		return {
+			init: init,
+			request: request
+		};
+
+	})();
 	var Main = (function () {
 
 		// Private
@@ -9052,6 +9367,7 @@
 			API.init();
 			UI.init();
 			Sauce.init();
+			AddonAPI.init();
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
 			$.ready(on_ready);
