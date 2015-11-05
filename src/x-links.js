@@ -3965,7 +3965,7 @@
 		};
 
 		rt_hitomi_gallery.get_data = function (info) {
-			return get_saved_data(this.namespace, info[0]);
+			return get_saved_data(this.namespace, info.gid);
 		};
 		rt_hitomi_gallery.set_data = function (data) {
 			set_saved_data(data);
@@ -3973,7 +3973,7 @@
 		rt_hitomi_gallery.setup_xhr = function (infos) {
 			return {
 				method: "GET",
-				url: "https://" + domains.hitomi + "/galleries/" + infos[0][0] + ".html",
+				url: "https://" + domains.hitomi + "/galleries/" + infos[0].gid + ".html",
 			};
 		};
 		rt_hitomi_gallery.parse_response = function (xhr) {
@@ -4142,7 +4142,7 @@
 			}, callback);
 		};
 		var get_hitomi_gallery = function (gid, callback) {
-			return rt_hitomi_gallery.add("" + gid, [ gid ], callback);
+			return rt_hitomi_gallery.add("" + gid, { gid: gid }, callback);
 		};
 		var get_hitomi_gallery_page_thumb = function (gid, page, callback) {
 			rt_hitomi_gallery_page_thumb.add(gid + "-" + page, {
