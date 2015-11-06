@@ -3625,19 +3625,31 @@
 		};
 
 		var Request = function (type, entries, id) {
+			var self = this,
+				delay_modify = type.delay_modify,
+				cbs, i, ii;
+
 			this.id = id;
 			this.type = type;
 			this.retry_count = 0;
 			this.delay = 0;
 			this.entries = entries;
 			this.infos = [];
+			this.progress_callbacks = null;
 
-			for (var i = 0, ii = entries.length; i < ii; ++i) {
+			for (i = 0, ii = entries.length; i < ii; ++i) {
 				this.infos.push(entries[i].data);
-			}
 
-			var self = this,
-				delay_modify = type.delay_modify;
+				cbs = entries[i].progress_callbacks;
+				if (cbs.length > 0) {
+					if (this.progress_callbacks === null) {
+						this.progress_callbacks = cbs.slice(0);
+					}
+					else {
+						$.push_many(this.progress_callbacks, cbs);
+					}
+				}
+			}
 
 			this.complete = (delay_modify === null) ?
 				function () {
