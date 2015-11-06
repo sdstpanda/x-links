@@ -3155,7 +3155,7 @@
 			data = this.get_data.call(this, info);
 			if (data !== null) {
 				if (callback === undefined) return data;
-				if (progress_callback !== undefined) progress_callback.call(null, "start", this);
+				if (progress_callback !== undefined) progress_callback.call(null, "start");
 				callback.call(null, null, data);
 				return true;
 			}
@@ -3164,7 +3164,7 @@
 
 			err = get_saved_error([ this.namespace, this.type, unique_id ]);
 			if (err !== null) {
-				if (progress_callback !== undefined) progress_callback.call(null, "start", this);
+				if (progress_callback !== undefined) progress_callback.call(null, "start");
 				callback.call(null, err, null);
 				return true;
 			}
@@ -3199,7 +3199,7 @@
 			if (progress_callbacks !== null) {
 				ev = (this.retry_data.count === 0) ? "start" : "retry";
 				for (i = 0, ii = progress_callbacks.length; i < ii; ++i) {
-					progress_callbacks[i].call(null, ev, this);
+					progress_callbacks[i].call(null, ev);
 				}
 			}
 
@@ -3346,7 +3346,7 @@
 				var u;
 
 				if (data !== null) {
-					if (progress_callback !== undefined) progress_callback.call(null, "start", this);
+					if (progress_callback !== undefined) progress_callback.call(null, "start");
 					callback.call(null, null, data);
 					return;
 				}
@@ -3359,7 +3359,7 @@
 					err !== null ||
 					(err = get_saved_error([ self.namespace, self.type, unique_id ])) !== null
 				) {
-					if (progress_callback !== undefined) progress_callback.call(null, "start", this);
+					if (progress_callback !== undefined) progress_callback.call(null, "start");
 					callback.call(null, err, null);
 					return;
 				}
@@ -3394,7 +3394,7 @@
 			if (progress_callbacks !== null) {
 				ev = (this.retry_data.count === 0) ? "start" : "retry";
 				for (i = 0, ii = progress_callbacks.length; i < ii; ++i) {
-					progress_callbacks[i].call(null, ev, this);
+					progress_callbacks[i].call(null, ev);
 				}
 			}
 
@@ -3402,7 +3402,7 @@
 				var i, ii;
 
 				var error_cb = function () {
-					self.complete_async(this.delay_error, infos);
+					self.complete_async(self.delay_error, infos);
 				};
 
 				if (err !== null) {
@@ -3430,7 +3430,7 @@
 								else {
 									// Valid
 									self.process_response_async(entries, response, function () {
-										self.complete_async(this.delay_okay, infos);
+										self.complete_async(self.delay_okay, infos);
 									});
 								}
 							}
@@ -9319,7 +9319,7 @@
 					api.api_name = null;
 					api.api_key = null;
 				},
-				function (state, req) {
+				function (state) {
 					if (state === "start") {
 						api.api_name = req_data.api_name;
 						api.api_key = req_data.api_key;
