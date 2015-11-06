@@ -3130,6 +3130,43 @@
 			}
 		};
 
+		RequestGroup.prototype.run2_delay = function (type) {
+			setTimeout(function () {
+				type.run2();
+			}, 1);
+		};
+		RequestGroup.prototype.run2 = function (use_delay) {
+			var type, i, ii;
+			for (i = 0, ii = this.types.length; i < ii; ++i) {
+				type = this.types[i];
+				while (true) {
+					if (this.active >= type.concurrent) return;
+					if (type.queue.length === 0) break;
+					++this.active;
+
+					if (use_delay && type.count > 1) {
+						this.run2_delay(type);
+					}
+					else {
+						type.run2();
+					}
+				}
+			}
+		};
+		RequestGroup.prototype.complete2 = function (delay) {
+			if (delay > 0) {
+				var self = this;
+				setTimeout(function () {
+					--self.active;
+					self.run2(false);
+				}, delay);
+			}
+			else {
+				--this.active;
+				this.run2(false);
+			}
+		};
+
 		RequestType.get_all_progress_callbacks = function (entries) {
 			var progress_callbacks = null,
 				cbs, i, ii;
@@ -3653,11 +3690,11 @@
 
 			this.complete = (delay_modify === null) ?
 				function () {
-					type.group.complete_async(self.delay);
+					type.group.complete2(self.delay);
 				} :
 				function () {
 					delay_modify.call(self, function () {
-						type.group.complete_async(self.delay);
+						type.group.complete2(self.delay);
 					});
 				};
 		};
@@ -3770,7 +3807,7 @@
 			// Load handler
 			xhr_data.onload = function (xhr) {
 				if (xhr.status === 200) {
-					self.parse_response.call(self, xhr, function (err, response) {
+					self.type.parse_response.call(self, xhr, function (err, response) {
 						self.on_response_parse(err, response);
 					});
 				}
@@ -3844,6 +3881,49 @@
 				this.complete_entries();
 				this.process_response("Data not found", response);
 			}
+		};
+
+		RequestType.prototype.add2 = function (unique_id, info, quick, callback, progress_callback) {
+			var self = this;
+			this.get_data.call(this, info, function (err, data) {
+				var u;
+
+				if (data !== null) {
+					if (progress_callback !== undefined) progress_callback.call(null, "start");
+					callback.call(null, null, data);
+					return;
+				}
+
+				if (quick) err = "Not found";
+
+				if (
+					err !== null ||
+					(err = get_saved_error([ self.namespace, self.type, unique_id ])) !== null
+				) {
+					if (progress_callback !== undefined) progress_callback.call(null, "start");
+					callback.call(null, err, null);
+					return;
+				}
+
+				// Add
+				u = self.unique[unique_id];
+				if (u === undefined) {
+					u = new RequestData(unique_id, info, callback, progress_callback);
+					self.unique[unique_id] = u;
+					self.queue.push(u);
+				}
+				else {
+					u.callbacks.push(callback);
+					if (progress_callback !== undefined) u.progress_callbacks.push(progress_callback);
+				}
+
+				// Run (if not already running)
+				self.group.run2(true);
+			});
+		};
+		RequestType.prototype.run2 = function () {
+			var req = new Request(this, this.queue.splice(0, this.count), null);
+			req.run();
 		};
 
 
@@ -4160,24 +4240,27 @@
 			return [ ehentai_parse_lookup_results(xhr, info.similar, info.sha1, info.url, info.md5) ];
 		};
 
-		rt_nhentai_gallery.get_data = function (info) {
-			return get_saved_data(this.namespace, info.gid);
+		rt_nhentai_gallery.get_data = function (info, callback) {
+			callback(null, get_saved_data(this.namespace, info.gid));
 		};
-		rt_nhentai_gallery.set_data = function (data) {
+		rt_nhentai_gallery.set_data = function (data, info, callback) {
 			set_saved_data(data);
+			callback(null);
 		};
-		rt_nhentai_gallery.setup_xhr = function (infos) {
-			return {
+		rt_nhentai_gallery.setup_xhr = function (callback) {
+			callback(null, {
 				method: "GET",
-				url: "http://" + domains.nhentai + "/g/" + infos[0].gid + "/",
-			};
+				url: "http://" + domains.nhentai + "/g/" + this.infos[0].gid + "/",
+			});
 		};
-		rt_nhentai_gallery.parse_response = function (xhr) {
+		rt_nhentai_gallery.parse_response = function (xhr, callback) {
 			var html = $.html_parse_safe(xhr.responseText, null);
-			if (html !== null) {
-				return [ nhentai_parse_info(html, xhr.finalUrl) ];
+			if (html === null) {
+				callback("Invalid response");
 			}
-			return "Invalid response";
+			else {
+				callback(null, [ nhentai_parse_info(html, xhr.finalUrl) ]);
+			}
 		};
 
 		rt_nhentai_gallery_page_thumb.get_data = function (info) {
@@ -4389,7 +4472,7 @@
 			}, callback);
 		};
 		var get_nhentai_gallery = function (gid, callback) {
-			return rt_nhentai_gallery.add("" + gid, { gid: gid }, callback);
+			rt_nhentai_gallery.add2("" + gid, { gid: gid }, false, callback);
 		};
 		var get_nhentai_gallery_page_thumb = function (gid, page, callback) {
 			rt_nhentai_gallery_page_thumb.add(gid + "-" + page, {
