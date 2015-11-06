@@ -3030,7 +3030,6 @@
 			this.queue = [];
 			this.queue_infos = [];
 			this.unique = {};
-			this.id = null;
 
 			this.group = request_groups[group_name];
 			if (this.group === undefined) {
@@ -3059,6 +3058,18 @@
 			this.callbacks = [ callback ];
 			this.progress_callbacks = [];
 			if (progress_callback !== undefined) this.progress_callbacks.push(progress_callback);
+		};
+		var Request = function (type, entries, id) {
+			this.id = id;
+			this.type = type;
+			this.retry_count = 0;
+			this.retry_delay = 0;
+			this.entries = entries;
+			this.infos = [];
+
+			for (var i = 0, ii = entries.length; i < ii; ++i) {
+				this.infos.push(entries[i].data);
+			}
 		};
 		var RequestErrorMode = {
 			None: 0,
@@ -3108,6 +3119,7 @@
 					++this.active;
 
 					if (use_delay && type.count > 1) {
+						// TODO : fix this
 						setTimeout(function () { type.run_async(); }, 1); // jshint ignore:line
 					}
 					else {
