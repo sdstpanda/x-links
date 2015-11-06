@@ -3059,18 +3059,6 @@
 			this.progress_callbacks = [];
 			if (progress_callback !== undefined) this.progress_callbacks.push(progress_callback);
 		};
-		var Request = function (type, entries, id) {
-			this.id = id;
-			this.type = type;
-			this.retry_count = 0;
-			this.retry_delay = 0;
-			this.entries = entries;
-			this.infos = [];
-
-			for (var i = 0, ii = entries.length; i < ii; ++i) {
-				this.infos.push(entries[i].data);
-			}
-		};
 		var RequestErrorMode = {
 			None: 0,
 			NoCache: 1,
@@ -3636,6 +3624,215 @@
 			}
 		};
 
+		var Request = function (type, entries, id) {
+			this.id = id;
+			this.type = type;
+			this.retry_count = 0;
+			this.delay = 0;
+			this.entries = entries;
+			this.infos = [];
+
+			for (var i = 0, ii = entries.length; i < ii; ++i) {
+				this.infos.push(entries[i].data);
+			}
+
+			var self = this,
+				delay_modify = type.delay_modify;
+
+			this.complete = (delay_modify === null) ?
+				function () {
+					type.group.complete_async(self.delay);
+				} :
+				function () {
+					delay_modify.call(self, function () {
+						type.group.complete_async(self.delay);
+					});
+				};
+		};
+		Request.prototype.run = function () {
+			var i, ii, ev;
+
+			if (this.progress_callbacks !== null) {
+				ev = (this.retry_data.count === 0) ? "start" : "retry";
+				for (i = 0, ii = this.progress_callbacks.length; i < ii; ++i) {
+					this.progress_callbacks[i].call(null, ev);
+				}
+			}
+
+			this.type.setup_xhr.call(this, $.bind(this.on_xhr_setup, this));
+		};
+		Request.prototype.process_response = function (err, response) {
+			var self = this,
+				total = this.infos.length,
+				responses = Math.min(response.length, total),
+				error_mode = this.type.error_mode,
+				set_data = this.type.set_data,
+				complete = 0,
+				default_mode = RequestErrorMode.NoCache,
+				data = null,
+				entry, i;
+
+			// Save
+			var save_callback = function () {
+				for (var i = 0, ii = entry.callbacks.length; i < ii; ++i) {
+					entry.callbacks[i].call(null, err, data);
+				}
+
+				if (++complete >= total) self.complete();
+			};
+
+			// Error saving
+			var save_error = (error_mode === null) ?
+				function () {
+					set_saved_error(
+						[ self.type.namespace, self.type.type, entry.id ],
+						err,
+						(default_mode === RequestErrorMode.Save)
+					);
+
+					save_callback();
+				} :
+				function () {
+					error_mode.call(self, function (err2, mode) {
+						if (err2 !== null) mode = default_mode;
+
+						set_saved_error(
+							[ self.type.namespace, self.type.type, entry.id ],
+							err,
+							(mode === RequestErrorMode.Save)
+						);
+
+						save_callback();
+					});
+				};
+
+			// Save errors
+			for (i = responses; i < total; ++i) {
+				entry = this.entries[i];
+				save_error();
+			}
+
+			// Save datas
+			default_mode = RequestErrorMode.Save;
+			for (i = 0; i < responses; ++i) {
+				data = response[i];
+				entry = this.entries[i];
+				if ((err = data.error) !== undefined) {
+					save_error();
+				}
+				else {
+					err = null;
+					if (set_data !== null) {
+						set_data.call(this, data, entry.data, save_callback);
+					}
+					else {
+						save_callback();
+					}
+				}
+			}
+		};
+		Request.prototype.complete_entries = function () {
+			var unique = this.type.unique;
+			for (var i = 0, ii = this.entries.length; i < ii; ++i) {
+				delete unique[this.entries[i].id];
+			}
+		};
+		Request.prototype.xhr_error = function (err) {
+			var self = this;
+			return function () {
+				self.delay = self.type.delay_error;
+				self.complete_entries();
+				self.process_response(err, []);
+			};
+		};
+		Request.prototype.on_xhr_setup = function (err, xhr_data) {
+			var self = this,
+				i, ii, ev;
+
+			// Error
+			if (err !== null) {
+				this.xhr_error(err)();
+				return;
+			}
+
+			// Load handler
+			xhr_data.onload = function (xhr) {
+				if (xhr.status === 200) {
+					self.parse_response.call(self, xhr, function (err, response) {
+						self.on_response_parse(err, response);
+					});
+				}
+				else {
+					this.xhr_error("Response error " + xhr.status)();
+				}
+			};
+
+			// Error handlers
+			xhr_data.onerror = this.xhr_error("Connection error");
+			xhr_data.onabort = this.xhr_error("Connection aborted");
+
+			if (xhr_data.data !== undefined) {
+				xhr_data.upload = {
+					onerror: this.xhr_error("Upload connection error"),
+					onabort: this.xhr_error("Upload connection aborted")
+				};
+			}
+
+			// Progress handlers
+			if (this.progress_callbacks !== null) {
+				xhr_data.onprogress = function (xhr) {
+					for (var i = 0, ii = self.progress_callbacks.length; i < ii; ++i) {
+						self.progress_callbacks[i].call(null, "progress", xhr.lengthComputable, xhr.loaded, xhr.total);
+					}
+				};
+
+				if (xhr_data.data !== undefined) {
+					ev = "upload";
+					xhr_data.upload.onprogress = xhr_data.onprogress;
+					xhr_data.upload.onload = function () {
+						for (var i = 0, ii = self.progress_callbacks.length; i < ii; ++i) {
+							self.progress_callbacks[i].call(null, "download");
+						}
+					};
+				}
+				else {
+					ev = "download";
+				}
+
+				for (i = 0, ii = this.progress_callbacks.length; i < ii; ++i) {
+					this.progress_callbacks[i].call(null, ev);
+				}
+				ev = null;
+			}
+
+			// Start
+			HttpRequest(xhr_data);
+			xhr_data = null;
+		};
+		Request.prototype.on_response_parse = function (err, response, delay) {
+			if (err !== null) {
+				// Error
+				this.delay = this.type.delay_error;
+				this.complete_entries();
+				this.process_response(err, []);
+			}
+			else if (response === null) {
+				// Retry
+				if (delay > 0) {
+					var self = this;
+					setTimeout(function () { self.run(); }, delay);
+				}
+				else {
+					this.run();
+				}
+			}
+			else {
+				// Process
+				this.delay = this.type.delay_okay;
+				this.complete_entries();
+				this.process_response("Data not found", response);
+			}
+		};
 
 
 		// API request specializations
