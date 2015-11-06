@@ -4263,25 +4263,27 @@
 			}
 		};
 
-		rt_nhentai_gallery_page_thumb.get_data = function (info) {
-			return get_saved_thumbnail("nhentai", info.gid, info.page);
+		rt_nhentai_gallery_page_thumb.get_data = function (info, callback) {
+			callback(null, get_saved_thumbnail("nhentai", info.gid, info.page));
 		};
-		rt_nhentai_gallery_page_thumb.set_data = function (data, info) {
+		rt_nhentai_gallery_page_thumb.set_data = function (data, info, callback) {
 			set_saved_thumbnail("nhentai", info.gid, info.page, data);
+			callback(null);
 		};
-		rt_nhentai_gallery_page_thumb.setup_xhr = function (infos) {
-			var info = infos[0];
-			return {
+		rt_nhentai_gallery_page_thumb.setup_xhr = function (callback) {
+			var info = this.infos[0];
+			callback(null, {
 				method: "GET",
 				url: "http://" + domains.nhentai + "/g/" + info.gid + "/" + info.page + "/"
-			};
+			});
 		};
-		rt_nhentai_gallery_page_thumb.parse_response = function (xhr) {
+		rt_nhentai_gallery_page_thumb.parse_response = function (xhr, callback) {
 			var html = $.html_parse_safe(xhr.responseText, null),
 				n1, url;
 
 			if (html === null) {
-				return "Invalid response";
+				callback("Invalid response");
+				return;
 			}
 
 			n1 = $("#image-container img[src]", html);
@@ -4290,78 +4292,85 @@
 				url = url.replace(/\/\/i\./i, "//t.");
 				url = url.replace(/\.\w+$/, "t$&");
 				url = $.resolve(url, xhr.finalUrl);
-				return [ {
+				callback(null, [{
 					url: url,
 					left: 0,
 					top: 0,
 					width: -1,
 					height: -1,
 					flags: Flags.None
-				} ];
+				}]);
 			}
-
-			return "Thumbnail not found";
+			else {
+				callback("Thumbnail not found");
+			}
 		};
 
-		rt_hitomi_gallery.get_data = function (info) {
-			return get_saved_data(this.namespace, info.gid);
+		rt_hitomi_gallery.get_data = function (info, callback) {
+			callback(null, get_saved_data(this.namespace, info.gid));
 		};
-		rt_hitomi_gallery.set_data = function (data) {
+		rt_hitomi_gallery.set_data = function (data, info, callback) {
 			set_saved_data(data);
+			callback(null);
 		};
-		rt_hitomi_gallery.setup_xhr = function (infos) {
-			return {
+		rt_hitomi_gallery.setup_xhr = function (callback) {
+			callback(null, {
 				method: "GET",
-				url: "https://" + domains.hitomi + "/galleries/" + infos[0].gid + ".html",
-			};
+				url: "https://" + domains.hitomi + "/galleries/" + this.infos[0].gid + ".html",
+			});
 		};
-		rt_hitomi_gallery.parse_response = function (xhr) {
+		rt_hitomi_gallery.parse_response = function (xhr, callback) {
 			var html = $.html_parse_safe(xhr.responseText, null);
-			if (html !== null) {
-				return [ hitomi_parse_info(html, xhr.finalUrl) ];
+			if (html === null) {
+				callback("Invalid response");
 			}
-			return "Invalid response";
+			else {
+				callback(null, [ hitomi_parse_info(html, xhr.finalUrl) ]);
+			}
 		};
 
-		rt_hitomi_gallery_page_thumb.get_data = function (info) {
-			return get_saved_thumbnail("hitomi", info.gid, info.page);
+		rt_hitomi_gallery_page_thumb.get_data = function (info, callback) {
+			callback(null, get_saved_thumbnail("hitomi", info.gid, info.page));
 		};
-		rt_hitomi_gallery_page_thumb.set_data = function (data, info) {
+		rt_hitomi_gallery_page_thumb.set_data = function (data, info, callback) {
 			set_saved_thumbnail("hitomi", info.gid, info.page, data);
+			callback(null);
 		};
-		rt_hitomi_gallery_page_thumb.setup_xhr = function (infos) {
-			return {
+		rt_hitomi_gallery_page_thumb.setup_xhr = function (callback) {
+			callback(null, {
 				method: "GET",
-				url: "https://" + domains.hitomi + "/reader/" + infos[0].gid + ".html"
-			};
+				url: "https://" + domains.hitomi + "/reader/" + this.infos[0].gid + ".html"
+			});
 		};
-		rt_hitomi_gallery_page_thumb.parse_response = function (xhr, infos) {
+		rt_hitomi_gallery_page_thumb.parse_response = function (xhr, callback) {
 			var html = $.html_parse_safe(xhr.responseText, null),
 				n1, url;
 
 			if (html === null) {
-				return "Invalid response";
+				callback("Invalid response");
+				return;
 			}
 
 			n1 = $$(".img-url", html);
-			n1 = n1[infos[0].page - 1];
+			n1 = n1[this.infos[0].page - 1];
 			if (n1 !== undefined) {
 				url = n1.textContent;
 				url = url.replace(/\/\/g\./i, "//tn.");
 				url = url.replace(/galleries/i, "smalltn");
 				url += ".jpg";
 				url = $.resolve(url, xhr.finalUrl);
-				return [ {
+				callback(null, [{
 					url: url,
 					left: 0,
 					top: 0,
 					width: -1,
 					height: -1,
 					flags: Flags.ThumbnailNoLeech
-				} ];
+				}]);
 			}
-
-			return "Thumbnail not found";
+			else {
+				callback("Thumbnail not found");
+			}
 		};
 
 
@@ -4475,19 +4484,19 @@
 			rt_nhentai_gallery.add2("" + gid, { gid: gid }, false, callback);
 		};
 		var get_nhentai_gallery_page_thumb = function (gid, page, callback) {
-			rt_nhentai_gallery_page_thumb.add(gid + "-" + page, {
+			rt_nhentai_gallery_page_thumb.add2(gid + "-" + page, {
 				gid: gid,
 				page: page
-			}, callback);
+			}, false, callback);
 		};
 		var get_hitomi_gallery = function (gid, callback) {
-			return rt_hitomi_gallery.add("" + gid, { gid: gid }, callback);
+			rt_hitomi_gallery.add2("" + gid, { gid: gid }, false, callback);
 		};
 		var get_hitomi_gallery_page_thumb = function (gid, page, callback) {
-			rt_hitomi_gallery_page_thumb.add(gid + "-" + page, {
+			rt_hitomi_gallery_page_thumb.add2(gid + "-" + page, {
 				gid: gid,
 				page: page
-			}, callback);
+			}, false, callback);
 		};
 
 		var get_data = function (site, gid) {
