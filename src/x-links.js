@@ -3332,8 +3332,8 @@
 
 		RequestType.prototype.add_async = function (unique_id, info, callback, progress_callback, no_fetch) {
 			var self = this;
-			this.get_data.call(this, info, function (data) {
-				var err, u;
+			this.get_data.call(this, info, function (err, data) {
+				var u;
 
 				if (data !== null) {
 					callback.call(null, null, data);
@@ -3345,8 +3345,10 @@
 					return;
 				}
 
-				err = get_saved_error([ self.namespace, self.type, unique_id ]);
-				if (err !== null) {
+				if (
+					err !== null ||
+					(err = get_saved_error([ self.namespace, self.type, unique_id ])) !== null
+				) {
 					callback.call(null, err, null);
 					return;
 				}
@@ -3375,34 +3377,47 @@
 		};
 		RequestType.prototype.run_entries_async = function (entries, infos) {
 			var self = this;
-			this.setup_xhr.call(this, infos, function (xhr_data) {
-				var progress_callbacks = RequestType.get_all_progress_callbacks(entries),
-					i, ii;
+			this.setup_xhr.call(this, infos, function (err, xhr_data) {
+				var progress_callbacks, i, ii;
 
 				var error_cb = function () {
 					self.complete_async(this.delay_error, infos);
 				};
 
+				if (err !== null) {
+					self.complete_entries(entries);
+					self.process_response_error_async(entries, "Setup error: " + err, error_cb);
+					return;
+				}
+
+				progress_callbacks = RequestType.get_all_progress_callbacks(entries);
+
 				xhr_data.onload = function (xhr) {
 					if (xhr.status === 200) {
-						self.parse_response.call(self, xhr, infos, function (response) {
-							if (response === null) {
-								// Retry
-								self.retry_request_async(self.retry_data.delay, entries, infos);
-								return;
-							}
+						self.parse_response.call(self, xhr, infos, function (err, response) {
+							if (err === null) {
+								if (response === null) {
+									// Retry
+									self.retry_request_async(self.retry_data.delay, entries, infos);
+									return;
+								}
 
-							self.complete_entries(entries);
+								self.complete_entries(entries);
 
-							if (typeof(response) === "string") {
-								// Error
-								self.process_response_error_async(entries, response, error_cb);
+								if (typeof(response) === "string") {
+									// Error
+									self.process_response_error_async(entries, response, error_cb);
+								}
+								else {
+									// Valid
+									self.process_response_async(entries, response, function () {
+										self.complete_async(this.delay_okay, infos);
+									});
+								}
 							}
 							else {
-								// Valid
-								self.process_response_async(entries, response, function () {
-									self.complete_async(this.delay_okay, infos);
-								});
+								// Error
+								self.process_response_error_async(entries, err, error_cb);
 							}
 						});
 					}
@@ -3471,8 +3486,8 @@
 					callback.call(self, default_mode, entry);
 				}
 				else {
-					self.error_mode.call(self, null, error, function (err_mode) {
-						callback.call(self, err_mode, entry);
+					self.error_mode.call(self, null, error, function (err, err_mode) {
+						callback.call(self, err === null ? err_mode : default_mode, entry);
 					});
 				}
 			};
@@ -3500,8 +3515,8 @@
 					callback.call(self, err, default_mode, entry);
 				}
 				else {
-					self.error_mode.call(self, data, err, function (err_mode) {
-						callback.call(self, err, err_mode, entry);
+					self.error_mode.call(self, data, err, function (err2, err_mode) {
+						callback.call(self, err, err2 === null ? err_mode : default_mode, entry);
 					});
 				}
 			};
@@ -3534,8 +3549,8 @@
 			}
 			else {
 				var self = this;
-				this.delay_modify.call(this, delay, infos, function (delay) {
-					self.group.complete_async(delay);
+				this.delay_modify.call(this, delay, infos, function (err, delay_new) {
+					self.group.complete_async(err === null ? delay_new : delay);
 				});
 			}
 		};
@@ -9058,16 +9073,18 @@
 					args: args
 				}, null, function (err, data) {
 					var val;
-					if (err !== null || !is_object(data)) {
-						// TODO
-						callback.call(null, null);
+					if (err !== null) {
+						callback.call(null, err, null);
+					}
+					else if (!is_object(data)) {
+						callback.call(null, "Invalid response", null);
 					}
 					else {
 						val = data.return_value;
 						if (val !== undefined) {
 							val = JSON.parse(JSON.stringify(val));
 						}
-						callback.call(null, val);
+						callback.call(null, null, val);
 					}
 				});
 				self.api_name = null;
