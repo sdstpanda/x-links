@@ -9222,7 +9222,46 @@
 					err: null,
 					response: response
 				}, this.reply_id);
-			}
+			},
+			request: function (data) {
+				var self = this,
+					action = this.action,
+					reply_id = this.reply_id,
+					api_key = this.api_key,
+					api_name = this.api_name,
+					namespace, type, unique_id, info;
+
+				if (
+					!is_object(data) ||
+					typeof((namespace = data.namespace)) !== "string" ||
+					typeof((type = data.type)) !== "string" ||
+					typeof((unique_id = data.id)) !== "string" ||
+					(info = data.info) === undefined
+				) {
+					// Failure
+					this.send(this.action, {
+						err: "Invalid data"
+					}, this.reply_id);
+					return;
+				}
+
+				request(namespace, type, unique_id, info, function (err, data) {
+					self.api_key = api_key;
+					self.api_name = api_name;
+
+					if (err !== null) {
+						data = null;
+					}
+
+					self.send(action, {
+						err: err,
+						data: data
+					}, reply_id);
+
+					self.api_key = null;
+					self.api_name = null;
+				});
+			},
 		};
 
 
@@ -9231,7 +9270,7 @@
 			if (api === null) api = new AddonAPI();
 		};
 
-		var request = function (namespace, type, id, info, callback) {
+		var request = function (namespace, type, unique_id, info, callback) {
 			var req;
 			if (
 				api === null ||
@@ -9242,7 +9281,7 @@
 				return;
 			}
 
-			return req.add_async(id, info, callback);
+			return req.add_async(unique_id, info, callback);
 		};
 
 
