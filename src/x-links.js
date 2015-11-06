@@ -9057,12 +9057,17 @@
 					id: fn_id,
 					args: args
 				}, null, function (err, data) {
+					var val;
 					if (err !== null || !is_object(data)) {
-						// TOOD
+						// TODO
 						callback.call(null, null);
 					}
 					else {
-						callback.call(null, data.return_value);
+						val = data.return_value;
+						if (val !== undefined) {
+							val = JSON.parse(JSON.stringify(val));
+						}
+						callback.call(null, val);
 					}
 				});
 				self.api_name = null;
