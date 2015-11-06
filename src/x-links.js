@@ -3191,7 +3191,14 @@
 		RequestType.prototype.run_entries = function (entries, infos) {
 			var self = this,
 				progress_callbacks = RequestType.get_all_progress_callbacks(entries),
-				xhr_data, i, ii;
+				xhr_data, i, ii, ev;
+
+			if (progress_callbacks !== null) {
+				ev = (this.retry_data.count === 0) ? "start" : "retry";
+				for (i = 0, ii = progress_callbacks.length; i < ii; ++i) {
+					progress_callbacks[i].call(null, ev);
+				}
+			}
 
 			xhr_data = this.setup_xhr.call(this, infos);
 
@@ -3376,9 +3383,19 @@
 			this.run_entries_async(entries, infos);
 		};
 		RequestType.prototype.run_entries_async = function (entries, infos) {
-			var self = this;
+			var self = this,
+				progress_callbacks = RequestType.get_all_progress_callbacks(entries),
+				i, ii, ev;
+
+			if (progress_callbacks !== null) {
+				ev = (this.retry_data.count === 0) ? "start" : "retry";
+				for (i = 0, ii = progress_callbacks.length; i < ii; ++i) {
+					progress_callbacks[i].call(null, ev);
+				}
+			}
+
 			this.setup_xhr.call(this, infos, function (err, xhr_data) {
-				var progress_callbacks, i, ii;
+				var i, ii;
 
 				var error_cb = function () {
 					self.complete_async(this.delay_error, infos);
@@ -3389,8 +3406,6 @@
 					self.process_response_error_async(entries, "Setup error: " + err, error_cb);
 					return;
 				}
-
-				progress_callbacks = RequestType.get_all_progress_callbacks(entries);
 
 				xhr_data.onload = function (xhr) {
 					if (xhr.status === 200) {
@@ -9057,7 +9072,7 @@
 				data: data
 			}, this.origin);
 		};
-		AddonAPI.prototype.req_api_fn = function (fn_id) {
+		AddonAPI.prototype.request_api_fn = function (fn_id) {
 			var self = this,
 				api_name = this.api_name,
 				api_key = this.api_key;
@@ -9071,24 +9086,27 @@
 				self.send("api_function", {
 					id: fn_id,
 					args: args
-				}, null, function (err, data) {
-					var val;
-					if (err !== null) {
-						callback.call(null, err, null);
-					}
-					else if (!is_object(data)) {
-						callback.call(null, "Invalid response", null);
-					}
-					else {
-						val = data.return_value;
-						if (val !== undefined) {
-							val = JSON.parse(JSON.stringify(val));
-						}
-						callback.call(null, null, val);
-					}
-				});
+				}, null, self.request_api_fn_callback(callback));
 				self.api_name = null;
 				self.api_key = null;
+			};
+		};
+		AddonAPI.prototype.request_api_fn_callback = function (callback) {
+			return function (err, data) {
+				var val;
+				if (err !== null) {
+					callback.call(null, err, null);
+				}
+				else if (!is_object(data)) {
+					callback.call(null, "Invalid response", null);
+				}
+				else {
+					val = data.return_value;
+					if (val !== undefined) {
+						val = JSON.parse(JSON.stringify(val));
+					}
+					callback.call(null, null, val);
+				}
 			};
 		};
 
@@ -9175,7 +9193,7 @@
 									v = fns[j];
 									if (Object.prototype.hasOwnProperty.call(AddonAPI.request_api_functions, v)) {
 										fn_id = random_string(32);
-										req_functions[AddonAPI.request_api_functions[v]] = this.req_api_fn(fn_id, v);
+										req_functions[AddonAPI.request_api_functions[v]] = this.request_api_fn(fn_id, v);
 										req_function_ids[v] = fn_id;
 									}
 								}
