@@ -3196,7 +3196,7 @@
 			if (progress_callbacks !== null) {
 				ev = (this.retry_data.count === 0) ? "start" : "retry";
 				for (i = 0, ii = progress_callbacks.length; i < ii; ++i) {
-					progress_callbacks[i].call(null, ev);
+					progress_callbacks[i].call(null, ev, this);
 				}
 			}
 
@@ -3390,7 +3390,7 @@
 			if (progress_callbacks !== null) {
 				ev = (this.retry_data.count === 0) ? "start" : "retry";
 				for (i = 0, ii = progress_callbacks.length; i < ii; ++i) {
-					progress_callbacks[i].call(null, ev);
+					progress_callbacks[i].call(null, ev, this);
 				}
 			}
 
@@ -9223,7 +9223,11 @@
 									if (o2 === undefined) {
 										this.request_apis[req_namespace] = o2 = {};
 									}
-									o2[req_type] = req;
+									o2[req_type] = {
+										req: req,
+										api_name: this.api_name,
+										api_key: this.api_key
+									}
 
 									response.request_apis.push([ null, req_function_ids ]);
 								}
@@ -9289,17 +9293,38 @@
 		};
 
 		var request = function (namespace, type, unique_id, info, callback) {
-			var req;
+			var req_data;
 			if (
 				api === null ||
-				(req = api.request_apis[namespace]) === undefined ||
-				(req = req[type]) === undefined
+				(req_data = api.request_apis[namespace]) === undefined ||
+				(req_data = req_data[type]) === undefined
 			) {
 				callback.call(null, "Invalid API", null);
 				return;
 			}
 
-			return req.add_async(unique_id, info, callback);
+			var request_id = random_string(32);
+			return req_data.req.add_async(
+				unique_id,
+				info,
+				function (err, data) {
+					api.api_name = req_data.api_name;
+					api.api_key = req_data.api_key;
+					callback.call(err, data);
+					api.send("request_end", { id: request_id });
+					api.api_name = null;
+					api.api_key = null;
+				},
+				function (state, req) {
+					if (state === "start") {
+						api.api_name = req_data.api_name;
+						api.api_key = req_data.api_key;
+						api.send("request_start", { id: request_id });
+						api.api_name = null;
+						api.api_key = null;
+					}
+				}
+			);
 		};
 
 
