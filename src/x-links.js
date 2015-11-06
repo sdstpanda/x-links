@@ -3030,6 +3030,7 @@
 			this.queue = [];
 			this.queue_infos = [];
 			this.unique = {};
+			this.id = null;
 
 			this.group = request_groups[group_name];
 			if (this.group === undefined) {
@@ -3154,6 +3155,7 @@
 			data = this.get_data.call(this, info);
 			if (data !== null) {
 				if (callback === undefined) return data;
+				if (progress_callback !== undefined) progress_callback.call(null, "start", this);
 				callback.call(null, null, data);
 				return true;
 			}
@@ -3162,6 +3164,7 @@
 
 			err = get_saved_error([ this.namespace, this.type, unique_id ]);
 			if (err !== null) {
+				if (progress_callback !== undefined) progress_callback.call(null, "start", this);
 				callback.call(null, err, null);
 				return true;
 			}
@@ -3343,19 +3346,20 @@
 				var u;
 
 				if (data !== null) {
+					if (progress_callback !== undefined) progress_callback.call(null, "start", this);
 					callback.call(null, null, data);
 					return;
 				}
 
 				if (no_fetch) {
-					callback.call(null, "Not found", null);
-					return;
+					err = "Not found";
 				}
 
 				if (
 					err !== null ||
 					(err = get_saved_error([ self.namespace, self.type, unique_id ])) !== null
 				) {
+					if (progress_callback !== undefined) progress_callback.call(null, "start", this);
 					callback.call(null, err, null);
 					return;
 				}
@@ -9227,7 +9231,7 @@
 										req: req,
 										api_name: this.api_name,
 										api_key: this.api_key
-									}
+									};
 
 									response.request_apis.push([ null, req_function_ids ]);
 								}
