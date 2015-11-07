@@ -3446,9 +3446,6 @@
 				callback(null, null);
 			}
 		};
-		rt_ehentai_gallery_page.set_data = function (data, info, callback) {
-			callback(null);
-		};
 		rt_ehentai_gallery_page.setup_xhr = function (callback) {
 			var pagelist = [],
 				i, ii;
