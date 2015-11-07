@@ -3867,6 +3867,7 @@
 			}
 			else if (response === null) {
 				// Retry
+				++this.retry_count;
 				if (delay > 0) {
 					var self = this;
 					setTimeout(function () { self.run(); }, delay);
@@ -4035,82 +4036,94 @@
 			return "Invalid response";
 		};
 
-		rt_ehentai_gallery_full.get_data = function (info) {
+		rt_ehentai_gallery_full.get_data = function (info, callback) {
 			var data = get_saved_data(this.namespace, info[0]);
-			return (data !== null && data.token === info[1] && data.full) ? data : null;
+			callback(null, (data !== null && data.token === info[1] && data.full) ? data : null);
 		};
-		rt_ehentai_gallery_full.set_data = function (data) {
+		rt_ehentai_gallery_full.set_data = function (data, info, callback) {
 			set_saved_data(data);
+			callback(null);
 		};
-		rt_ehentai_gallery_full.setup_xhr = function (infos) {
-			var info = infos[0];
-			return {
+		rt_ehentai_gallery_full.setup_xhr = function (callback) {
+			var info = this.infos[0];
+			callback(null, {
 				method: "GET",
 				url: "http://" + info.domain + "/g/" + info.gid + "/" + info.token + "/" + info.search,
-			};
-		};
-		rt_ehentai_gallery_full.parse_response = function (xhr, infos) {
-			var info = infos[0];
-			return ehentai_response_process_generic.call(this, xhr, info, this.delay_okay, function (err, html) {
-				return [ err === null ? ehentai_parse_gallery_info(html, info.data) : ehentai_make_removed(info.data) ];
 			});
 		};
-		var ehentai_response_process_generic = function (xhr, info, retry_delay, callback) {
+		rt_ehentai_gallery_full.parse_response = function (xhr, callback) {
+			var info = this.infos[0];
+			ehentai_response_process_generic.call(this, xhr, info, this.delay_okay, callback, function (err, html) {
+				callback(null, [ err === null ? ehentai_parse_gallery_info(html, info.data) : ehentai_make_removed(info.data) ]);
+			});
+		};
+		var ehentai_response_process_generic = function (xhr, info, retry_delay, callback, process_callback) {
 			var content_type = header_string_parse(xhr.responseHeaders)["content-type"],
 				html;
 
 			if (!/^text\/html/i.test(content_type || "")) {
 				// Panda
-				if (this.retry_data.count === 0 && info.domain === domains.exhentai) {
+				if (this.retry_count === 0 && info.domain === domains.exhentai) {
 					// Retry
 					info.domain = domains.gehentai;
-					return this.retry(retry_delay);
+					callback(null, null, retry_delay);
 				}
 				else {
-					return "Invalid response type " + content_type;
+					callback("Invalid response type " + content_type);
 				}
+				return;
 			}
 
 			// Parse
 			html = $.html_parse_safe(xhr.responseText, null);
 			if (html === null) {
-				return "Invalid response";
+				callback("Invalid response");
 			}
-			if (ehentai_is_not_available(html)) {
-				if (this.retry_data.count === 0 && info.domain === domains.gehentai) {
+			else if (ehentai_is_not_available(html)) {
+				if (this.retry_count === 0 && info.domain === domains.gehentai) {
 					// Retry
 					info.domain = domains.exhentai;
-					return this.retry(retry_delay);
+					callback(null, null, retry_delay);
 				}
-				this.retry_data.count = 0;
-				return callback.call(this, "Not available", null);
+				else {
+					this.retry_count = 0;
+					process_callback.call(this, "Not available", null);
+				}
 			}
-			if (ehentai_is_content_warning(html)) {
-				if (this.retry_data.count <= 1) {
+			else if (ehentai_is_content_warning(html)) {
+				if (this.retry_count <= 1) {
 					// Retry
 					info.search = "?nw=session"; // bypass the "Content Warning"
-					return this.retry(retry_delay);
+					callback(null, null, retry_delay);
 				}
-				this.retry_data.count = 0;
-				return callback.call(this, "Content warning", null);
+				else {
+					this.retry_count = 0;
+					process_callback.call(this, "Content warning", null);
+				}
 			}
-			this.retry_data.count = 0;
-			return callback.call(this, null, html);
+			else {
+				this.retry_count = 0;
+				process_callback.call(this, null, html);
+			}
 		};
 
-		rt_ehentai_gallery_page_thumb.get_data = function (info) {
-			return get_saved_thumbnail("ehentai", info.gid, info.page);
+		rt_ehentai_gallery_page_thumb.get_data = function (info, callback) {
+			callback(null, get_saved_thumbnail("ehentai", info.gid, info.page));
 		};
-		rt_ehentai_gallery_page_thumb.set_data = function (data, info) {
+		rt_ehentai_gallery_page_thumb.set_data = function (data, info, callback) {
 			set_saved_thumbnail("ehentai", info.gid, info.page, data);
+			callback(null);
 		};
 		rt_ehentai_gallery_page_thumb.setup_xhr = rt_ehentai_gallery_full.setup_xhr;
-		rt_ehentai_gallery_page_thumb.parse_response = function (xhr, infos) {
-			var info = infos[0],
-				retry_delay = 0; // this.delay_okay
+		rt_ehentai_gallery_page_thumb.parse_response = function (xhr, callback) {
+			var info = this.infos[0],
+				retry_delay = 0; // this.type.delay_okay
 
-			return ehentai_response_process_generic.call(this, xhr, info, retry_delay, function (err, html) {
-				if (err !== null) return err;
+			ehentai_response_process_generic.call(this, xhr, info, retry_delay, callback, function (err, html) {
+				if (err !== null) {
+					callback(err);
+					return;
+				}
 
 				var n1 = $(".gtb>.gpc", html),
 					small = false,
@@ -4148,14 +4161,15 @@
 											];
 											if (m[0] !== null && m[1] !== null && m[2] !== null) {
 												url = m[0][1];
-												return [ {
+												callback(null, [{
 													url: $.resolve(url, xhr.finalUrl),
 													left: parseInt(m[0][2], 10),
 													top: 0,
 													width: parseInt(m[1][1], 10),
 													height: parseInt(m[2][1], 10),
 													flags: Flags.None
-												} ];
+												}]);
+												return;
 											}
 										}
 									}
@@ -4165,14 +4179,15 @@
 											(url = n2.getAttribute("src"))
 										) {
 											// Full image
-											return [ {
+											callback(null, [{
 												url: $.resolve(url, xhr.finalUrl),
 												left: 0,
 												top: 0,
 												width: -1,
 												height: -1,
 												flags: Flags.None
-											} ];
+											}]);
+											return;
 										}
 									}
 								}
@@ -4180,16 +4195,17 @@
 						}
 						else if (info.page >= 1 && info.page <= total) {
 							// Wrong page
-							if (this.retry_data.count === 0) {
+							if (this.retry_count === 0) {
 								// Next
 								info.search = "?p=" + Math.floor((info.page - 1) / (end - (start - 1)));
-								return this.retry(retry_delay);
+								callback(null, null, retry_delay);
+								return;
 							}
 						}
 					}
 				}
 
-				return "Thumbnail not found";
+				callback("Thumbnail not found");
 			});
 		};
 
@@ -4460,26 +4476,26 @@
 			var di = domain_info[domain];
 			domain = (di === undefined) ? domains.exhentai : di.g_domain;
 
-			return rt_ehentai_gallery_page_thumb.add(gid + "-" + page, {
+			return rt_ehentai_gallery_page_thumb.add2(gid + "-" + page, {
 				domain: domain,
 				gid: gid,
 				token: token,
 				page: page,
 				page_token: page_token,
 				search: ""
-			}, callback);
+			}, false, callback);
 		};
 		var get_ehentai_gallery_full = function (domain, data, callback) {
 			var di = domain_info[domain];
 			domain = (di === undefined) ? domains.exhentai : di.g_domain;
 
-			return rt_ehentai_gallery_full.add("" + data.gid, {
+			return rt_ehentai_gallery_full.add2("" + data.gid, {
 				domain: domain,
 				gid: data.gid,
 				token: data.token,
 				search: "",
 				data: data
-			}, callback);
+			}, false, callback);
 		};
 		var get_nhentai_gallery = function (gid, callback) {
 			rt_nhentai_gallery.add2("" + gid, { gid: gid }, false, callback);
@@ -4580,8 +4596,7 @@
 		var lookup_on_ehentai = function (url, md5, use_similar, callback, progress_callback) {
 			if (use_similar) {
 				// Fast mode
-				var sha1 = get_sha1_hash(url, md5),
-					results = null;
+				var sha1 = get_sha1_hash(url, md5);
 
 				var get_image_callback = function (err, data, data_length, mime_type, url) {
 					if (progress_callback !== undefined) {
