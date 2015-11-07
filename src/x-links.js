@@ -9108,9 +9108,10 @@
 			}
 
 			var request_id = random_string(32);
-			return req_data.req.add_async(
+			return req_data.req.add(
 				unique_id,
 				info,
+				false,
 				function (err, data) {
 					api.api_name = req_data.api_name;
 					api.api_key = req_data.api_key;
