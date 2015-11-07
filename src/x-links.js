@@ -3327,7 +3327,7 @@
 
 		RequestType.prototype.add2 = function (unique_id, info, quick, callback, progress_callback) {
 			var self = this;
-			this.get_data.call(this, info, function (err, data) {
+			this.get_data.call(null, info, function (err, data) {
 				var u;
 
 				if (data !== null) {
@@ -3381,7 +3381,7 @@
 			rt_hitomi_gallery_page_thumb = new RequestType(1, 1, 200, 5000, "hitomi", "hitomi", "page_thumb");
 
 		rt_ehentai_gallery.get_data = function (info, callback) {
-			var data = get_saved_data(this.namespace, info[0]);
+			var data = get_saved_data("ehentai", info[0]);
 			callback(null, (data !== null && data.token === info[1]) ? data : null);
 		};
 		rt_ehentai_gallery.set_data = function (data, info, callback) {
@@ -3435,7 +3435,7 @@
 		};
 
 		rt_ehentai_gallery_page.get_data = function (info, callback) {
-			var data = get_saved_data(this.namespace, info[0]);
+			var data = get_saved_data("ehentai", info[0]);
 			if (data !== null) {
 				callback(null, {
 					gid: data.gid,
@@ -3491,7 +3491,7 @@
 		};
 
 		rt_ehentai_gallery_full.get_data = function (info, callback) {
-			var data = get_saved_data(this.namespace, info[0]);
+			var data = get_saved_data("ehentai", info[0]);
 			callback(null, (data !== null && data.token === info[1] && data.full) ? data : null);
 		};
 		rt_ehentai_gallery_full.set_data = function (data, info, callback) {
@@ -3712,7 +3712,7 @@
 		};
 
 		rt_nhentai_gallery.get_data = function (info, callback) {
-			callback(null, get_saved_data(this.namespace, info.gid));
+			callback(null, get_saved_data("nhentai", info.gid));
 		};
 		rt_nhentai_gallery.set_data = function (data, info, callback) {
 			set_saved_data(data);
@@ -3778,7 +3778,7 @@
 		};
 
 		rt_hitomi_gallery.get_data = function (info, callback) {
-			callback(null, get_saved_data(this.namespace, info.gid));
+			callback(null, get_saved_data("hitomi", info.gid));
 		};
 		rt_hitomi_gallery.set_data = function (data, info, callback) {
 			set_saved_data(data);
@@ -3920,17 +3920,17 @@
 
 		var get_ehentai_gallery = function (gid, token, callback) {
 			var info = [ gid, token ];
-			return rt_ehentai_gallery.add2(info.join("_"), info, false, callback);
+			rt_ehentai_gallery.add2(info.join("_"), info, false, callback);
 		};
 		var get_ehentai_gallery_page = function (gid, page_token, page, callback) {
 			var info = [ gid, page_token, page ];
-			return rt_ehentai_gallery_page.add2("" + gid, info, false, callback);
+			rt_ehentai_gallery_page.add2("" + gid, info, false, callback);
 		};
 		var get_ehentai_gallery_page_thumb = function (domain, gid, token, page_token, page, callback) {
 			var di = domain_info[domain];
 			domain = (di === undefined) ? domains.exhentai : di.g_domain;
 
-			return rt_ehentai_gallery_page_thumb.add2(gid + "-" + page, {
+			rt_ehentai_gallery_page_thumb.add2(gid + "-" + page, {
 				domain: domain,
 				gid: gid,
 				token: token,
@@ -3943,7 +3943,7 @@
 			var di = domain_info[domain];
 			domain = (di === undefined) ? domains.exhentai : di.g_domain;
 
-			return rt_ehentai_gallery_full.add2("" + data.gid, {
+			rt_ehentai_gallery_full.add2("" + data.gid, {
 				domain: domain,
 				gid: data.gid,
 				token: data.token,
@@ -7192,7 +7192,6 @@
 			n1 = $.node("div", "xl-easylist-item" + theme);
 			n1.setAttribute("data-xl-index", index);
 			n1.setAttribute("data-xl-gid", data.gid);
-			if (data.token !== null) n1.setAttribute("data-xl-token", data.token);
 			n1.setAttribute("data-xl-rating", data.rating);
 			n1.setAttribute("data-xl-date-uploaded", data.upload_date);
 			n1.setAttribute("data-xl-category", data.category);
@@ -7765,13 +7764,12 @@
 			$.off(this, "mouseover", on_gallery_mouseover);
 
 			var node = this,
-				gid, token, data, domain;
+				gid, domain, data;
 
 			if (
 				(gid = this.getAttribute("data-xl-gid")) &&
-				(token = this.getAttribute("data-xl-token")) &&
-				(data = API.get_ehentai_gallery(gid, token)) !== null &&
-				(domain = this.getAttribute("data-xl-domain"))
+				(domain = this.getAttribute("data-xl-domain")) &&
+				(data = API.get_data("ehentai", gid)) !== null
 			) {
 				API.get_ehentai_gallery_full(domain, data, function (err, data) {
 					var tags_container, n;
