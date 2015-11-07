@@ -3095,8 +3095,8 @@
 					type.group.complete(self.delay);
 				} :
 				function () {
-					delay_modify.call(self, function () {
-						type.group.complete(self.delay);
+					delay_modify.call(self, function (err, delay) {
+						type.group.complete(err === null ? delay : self.delay);
 					});
 				};
 		};
@@ -8915,8 +8915,6 @@
 		};
 
 		ExtensionAPI.request_api_functions_required = [
-			"set_data",
-			"get_data",
 			"setup_xhr",
 			"parse_response"
 		];
