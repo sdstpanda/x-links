@@ -3327,7 +3327,8 @@
 
 		RequestType.prototype.add2 = function (unique_id, info, quick, callback, progress_callback) {
 			var self = this;
-			this.get_data.call(null, info, function (err, data) {
+
+			var get_data_callback = function (err, data) {
 				var u;
 
 				if (data !== null) {
@@ -3361,7 +3362,14 @@
 
 				// Run (if not already running)
 				self.group.run2(true);
-			});
+			};
+
+			if (this.get_data === null) {
+				get_data_callback(null, null);
+			}
+			else {
+				this.get_data.call(null, info, get_data_callback);
+			}
 		};
 		RequestType.prototype.run2 = function () {
 			var req = new Request(this, this.queue.splice(0, this.count), null);
