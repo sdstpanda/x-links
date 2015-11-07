@@ -1197,21 +1197,39 @@
 					(info = Linkifier.get_node_url_info(this)) === null ||
 					(data = API.get_data(info.site, info.gid)) === null
 				) {
-					Debug.log("Invalid link", this, info, data);
+					Debug.log("Invalid link", { link: this, info: info, data: data });
 					return;
 				}
 
 				if (details === undefined) {
 					if (!((domain = $.get_domain(this.href)) in domain_info)) {
-						Debug.log("Invalid link (domain)", this, domain);
+						Debug.log("Invalid link", { link: this, domain: domain });
 						return;
 					}
 
 					details = create_details(data, domain);
 					details_nodes[full_id] = details;
 				}
-				if (!details.parentNode) {
-					Debug.log("Invalid details", this, details.parentNode, details, full_id);
+				if (Debug.enabled) {
+					var i = 1,
+						n = details;
+					while (n.parentNode !== document) {
+						if (!n.parentNode) {
+							Debug.log(
+								"Invalid details: parent[" + i + "] failed;",
+								{
+									link: this,
+									node: n,
+									parent: n.parentNode,
+									details: details,
+									full_id: full_id
+								}
+							);
+							break;
+						}
+						n = n.parentNode;
+						++i;
+					}
 				}
 
 				details.classList.remove("xl-details-hidden");
@@ -3050,6 +3068,7 @@
 			};
 
 			this.request_init = null;
+			this.request_complete = null;
 
 			this.delay_modify = null;
 			this.error_mode = null;
@@ -3094,10 +3113,16 @@
 
 			this.complete = (delay_modify === null) ?
 				function () {
+					if (type.request_complete !== null) {
+						type.request_complete.call(type, self);
+					}
 					type.group.complete(self.delay);
 				} :
 				function () {
 					delay_modify.call(self, function (err, delay) {
+						if (type.request_complete !== null) {
+							type.request_complete.call(type, self);
+						}
 						type.group.complete(err === null ? delay : self.delay);
 					});
 				};
@@ -9049,6 +9074,7 @@
 										req[k] = req_functions[k];
 									}
 									req.request_init = api_request_init_fn;
+									req.request_complete = create_api_request_complete_fn(this.api_name, this.api_key);
 
 									if (o2 === undefined) {
 										this.request_apis[req_namespace] = o2 = {};
@@ -9122,6 +9148,15 @@
 				sent: false
 			};
 		};
+		var create_api_request_complete_fn = function (api_name, api_key) {
+			return function (req) {
+				api.api_name = api_name;
+				api.api_key = api_key;
+				api.send("request_end", { id: req.data.id });
+				api.api_name = null;
+				api.api_key = null;
+			};
+		};
 
 
 		// Public
@@ -9140,21 +9175,7 @@
 				return;
 			}
 
-			return req_data.req.add(
-				unique_id,
-				info,
-				false,
-				function (err, data) {
-					api.api_name = req_data.api_name;
-					api.api_key = req_data.api_key;
-					callback.call(null, err, data);
-					api.api_name = req_data.api_name;
-					api.api_key = req_data.api_key;
-					api.send("request_end", { id: this.data.id });
-					api.api_name = null;
-					api.api_key = null;
-				}
-			);
+			return req_data.req.add(unique_id, info, false, callback);
 		};
 
 
