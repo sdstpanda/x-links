@@ -2,7 +2,7 @@
 // @name        X-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.0.1
+// @version     1.2.1
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -232,7 +232,60 @@
 	};
 	var config = { version: null, settings_version: 1 };
 
-	var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver || null;
+	var MutationObserver = (function () {
+
+		var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver || null;
+
+		if (MutationObserver === null) {
+			// Partial polyfill
+			var on_body_node_add = function (event) {
+				var node = event.target;
+				this.callback.call(this, [{
+					target: node.parentNode,
+					addedNodes: [ node ],
+					removedNodes: [],
+					nextSibling: node.nextSibling,
+					previousSibling: node.previousSibling
+				}]);
+			};
+			var on_body_node_remove = function (event) {
+				var node = event.target;
+				this.callback.call(this, [{
+					target: node.parentNode,
+					addedNodes: [],
+					removedNodes: [ node ],
+					nextSibling: node.nextSibling,
+					previousSibling: node.previousSibling
+				}]);
+			};
+
+			MutationObserver = function (callback) {
+				this.on_body_node_add = $.bind(on_body_node_add, this);
+				this.on_body_node_remove = $.bind(on_body_node_remove, this);
+				this.callback = callback;
+				this.nodes = [];
+			};
+			MutationObserver.prototype.observe = function (node, data) {
+				this.nodes.push(node);
+				if (data.childList) {
+					$.on(node, "DOMNodeInserted", this.on_body_node_add);
+					$.on(node, "DOMNodeRemoved", this.on_body_node_remove);
+				}
+			};
+			MutationObserver.prototype.disconnect = function () {
+				var node, i, ii;
+				for (i = 0, ii = this.nodes.length; i < ii; ++i) {
+					node = this.nodes[i];
+					$.off(node, "DOMNodeInserted", this.on_body_node_add);
+					$.off(node, "DOMNodeRemoved", this.on_body_node_remove);
+				}
+				this.nodes = [];
+			};
+		}
+
+		return MutationObserver;
+
+	})();
 	var $$ = function (selector, root) {
 		return (root || d).querySelectorAll(selector);
 	};
@@ -1154,8 +1207,7 @@
 			actions_nodes_active = {},
 			actions_nodes_active_count = 0,
 			actions_nodes_index = 0,
-			actions_close_timeout = null,
-			re_fjord = /abortion|bestiality|incest|lolicon|shotacon|toddlercon/;
+			actions_close_timeout = null;
 
 		var gallery_link_events_data = {
 			link: null,
@@ -1173,16 +1225,39 @@
 					(info = Linkifier.get_node_url_info(this)) === null ||
 					(data = API.get_data(info.site, info.gid)) === null
 				) {
+					Debug.log("Invalid link", { link: this, info: info, data: data });
 					return;
 				}
 
 				if (details === undefined) {
 					if (!((domain = $.get_domain(this.href)) in domain_info)) {
+						Debug.log("Invalid link", { link: this, domain: domain });
 						return;
 					}
 
 					details = create_details(data, domain);
 					details_nodes[full_id] = details;
+				}
+				if (Debug.enabled) {
+					var i = 1,
+						n = details;
+					while (n.parentNode !== document) {
+						if (!n.parentNode) {
+							Debug.log(
+								"Invalid details: parent[" + i + "] failed;",
+								{
+									link: this,
+									node: n,
+									parent: n.parentNode,
+									details: details,
+									full_id: full_id
+								}
+							);
+							break;
+						}
+						n = n.parentNode;
+						++i;
+					}
 				}
 
 				details.classList.remove("xl-details-hidden");
@@ -1908,18 +1983,15 @@
 				domain, fjord, ex, hl, c, n;
 
 			// Smart links
-			if (config.general.rewrite_links === "smart") {
-				domain = $.get_domain(link.href);
-				ex = (domain === domains.exhentai);
-				if (ex || domain === domains.ehentai) {
-					fjord = re_fjord.test(data.tags.join(","));
-					if (fjord !== ex) {
-						domain = fjord ? domains.exhentai : domains.ehentai;
-						link.href = $.change_url_domain(link.href, domain_info[domain].g_domain);
-						if (button !== null) {
-							button.href = link.href;
-							update_button_text(button, domain);
-						}
+			if (config.general.rewrite_links === "smart" && data.type === "ehentai") {
+				ex = ($.get_domain(link.href) === domains.exhentai);
+				fjord = API.is_fjording(data);
+				if (fjord !== ex) {
+					domain = fjord ? domains.exhentai : domains.ehentai;
+					link.href = $.change_url_domain(link.href, domain_info[domain].g_domain);
+					if (button !== null) {
+						button.href = link.href;
+						update_button_text(button, domain);
 					}
 				}
 			}
@@ -3023,6 +3095,9 @@
 				delay: 0
 			};
 
+			this.request_init = null;
+			this.request_complete = null;
+
 			this.delay_modify = null;
 			this.error_mode = null;
 			this.get_data = null;
@@ -3030,14 +3105,67 @@
 			this.setup_xhr = null;
 			this.parse_response = null;
 		};
-		var RequestData = function (id, data, callback, progress_callback) {
+		var RequestData = function (id, info, callback, progress_callback) {
 			this.id = id;
-			this.data = data;
+			this.info = info;
 			this.callbacks = [ callback ];
 			this.progress_callbacks = [];
 			if (progress_callback !== undefined) this.progress_callbacks.push(progress_callback);
 		};
+		var Request = function (type, entries) {
+			var self = this,
+				delay_modify = type.delay_modify,
+				cbs, i, ii;
 
+			this.data = null;
+			this.type = type;
+			this.retry_count = 0;
+			this.delay = 0;
+			this.entries = entries;
+			this.infos = [];
+			this.progress_callbacks = null;
+
+			for (i = 0, ii = entries.length; i < ii; ++i) {
+				this.infos.push(entries[i].info);
+
+				cbs = entries[i].progress_callbacks;
+				if (cbs.length > 0) {
+					if (this.progress_callbacks === null) {
+						this.progress_callbacks = cbs.slice(0);
+					}
+					else {
+						$.push_many(this.progress_callbacks, cbs);
+					}
+				}
+			}
+
+			this.complete = (delay_modify === null) ?
+				function () {
+					if (type.request_complete !== null) {
+						type.request_complete.call(type, self);
+					}
+					type.group.complete(self.delay);
+				} :
+				function () {
+					delay_modify.call(self, function (err, delay) {
+						if (type.request_complete !== null) {
+							type.request_complete.call(type, self);
+						}
+						type.group.complete(err === null ? delay : self.delay);
+					});
+				};
+		};
+		var RequestErrorMode = {
+			None: 0,
+			NoCache: 1,
+			Save: 2
+		};
+
+		RequestGroup.prototype.run_delay = function (type) {
+			setTimeout(function () {
+				type.run();
+			}, 1);
+		};
 		RequestGroup.prototype.run = function (use_delay) {
 			var type, i, ii;
 			for (i = 0, ii = this.types.length; i < ii; ++i) {
@@ -3048,7 +3176,7 @@
 					++this.active;
 
 					if (use_delay && type.count > 1) {
-						setTimeout(function () { type.run(); }, 1); // jshint ignore:line
+						this.run_delay(type);
 					}
 					else {
 						type.run();
@@ -3057,235 +3185,258 @@
 			}
 		};
 		RequestGroup.prototype.complete = function (delay) {
-			if (delay <= 0) {
-				--this.active;
-				this.run(false);
-			}
-			else {
+			if (delay > 0) {
 				var self = this;
 				setTimeout(function () {
 					--self.active;
 					self.run(false);
 				}, delay);
 			}
-		};
-
-		RequestType.get_all_progress_callbacks = function (entries) {
-			var progress_callbacks = null,
-				cbs, i, ii;
-
-			for (i = 0, ii = entries.length; i < ii; ++i) {
-				cbs = entries[i].progress_callbacks;
-				if (cbs.length > 0) {
-					if (progress_callbacks === null) {
-						progress_callbacks = cbs.slice(0);
-					}
-					else {
-						$.push_many(progress_callbacks, cbs);
-					}
-				}
-			}
-
-			return progress_callbacks;
-		};
-		RequestType.prototype.add = function (unique_id, info, callback, progress_callback) {
-			// Check if data already exists
-			var data, err, u;
-
-			data = this.get_data.call(this, info);
-			if (data !== null) {
-				if (callback === undefined) return data;
-				callback.call(null, null, data);
-				return true;
-			}
-
-			if (callback === undefined) return null;
-
-			err = get_saved_error([ this.namespace, this.type, unique_id ]);
-			if (err !== null) {
-				callback.call(null, err, null);
-				return true;
-			}
-
-			// Add
-			u = this.unique[unique_id];
-			if (u === undefined) {
-				u = new RequestData(unique_id, info, callback, progress_callback);
-				this.unique[unique_id] = u;
-				this.queue.push(u);
-			}
 			else {
-				u.callbacks.push(callback);
-				if (progress_callback !== undefined) u.progress_callbacks.push(progress_callback);
+				--this.active;
+				this.run(false);
 			}
-
-			// Run (if not already running)
-			this.group.run(true);
-			return false;
 		};
-		RequestType.prototype.run = function () {
-			var entries = this.queue.splice(0, this.count);
-			this.run_entries(entries);
-		};
-		RequestType.prototype.run_entries = function (entries) {
-			var self = this,
-				progress_callbacks = RequestType.get_all_progress_callbacks(entries),
-				xhr_data, i, ii;
 
-			xhr_data = this.setup_xhr.call(this, entries);
+		RequestType.prototype.add = function (unique_id, info, quick, callback, progress_callback) {
+			var self = this;
 
-			xhr_data.onload = function (xhr) {
-				if (xhr.status === 200) {
-					var response = self.parse_response.call(self, xhr, entries);
+			var get_data_callback = function (err, data) {
+				var u;
 
-					if (response === null) {
-						// Retry
-						self.retry_request(self.retry_data.delay, entries);
-						return;
-					}
-					if (typeof(response) === "string") {
-						// Error
-						self.process_response_error(entries, response);
-					}
-					else {
-						// Valid
-						self.process_response(entries, response);
-					}
+				if (data !== null) {
+					if (progress_callback !== undefined) progress_callback.call(null, "start");
+					callback.call(null, null, data);
+					return;
+				}
 
-					self.request_complete(entries, false);
+				if (quick) err = "Not found";
+
+				if (
+					err !== null ||
+					(err = get_saved_error([ self.namespace, self.type, unique_id ])) !== null
+				) {
+					if (progress_callback !== undefined) progress_callback.call(null, "start");
+					callback.call(null, err, null);
+					return;
+				}
+
+				// Add
+				u = self.unique[unique_id];
+				if (u === undefined) {
+					u = new RequestData(unique_id, info, callback, progress_callback);
+					self.unique[unique_id] = u;
+					self.queue.push(u);
 				}
 				else {
-					self.process_response_error(entries, "Response error " + xhr.status);
-					self.request_complete(entries, true);
+					u.callbacks.push(callback);
+					if (progress_callback !== undefined) u.progress_callbacks.push(progress_callback);
 				}
-			};
-			xhr_data.onerror = function () {
-				self.process_response_error(entries, "Connection error");
-				self.request_complete(entries, true);
-			};
-			xhr_data.onabort = function () {
-				self.process_response_error(entries, "Connection aborted");
-				self.request_complete(entries, true);
+
+				// Run (if not already running)
+				self.group.run(true);
 			};
 
-			if (progress_callbacks !== null) {
-				xhr_data.onprogress = function (xhr) {
-					for (var i = 0, ii = progress_callbacks.length; i < ii; ++i) {
-						progress_callbacks[i].call(null, "progress", xhr.lengthComputable, xhr.loaded, xhr.total);
+			if (this.get_data === null) {
+				get_data_callback(null, null);
+			}
+			else {
+				this.get_data.call(null, info, get_data_callback);
+			}
+		};
+		RequestType.prototype.run = function () {
+			var req = new Request(this, this.queue.splice(0, this.count));
+			if (this.request_init !== null) {
+				this.request_init.call(this, req);
+			}
+			req.run();
+		};
+
+		Request.prototype.run = function () {
+			var i, ii, ev;
+
+			if (this.progress_callbacks !== null) {
+				ev = (this.retry_count === 0) ? "start" : "retry";
+				for (i = 0, ii = this.progress_callbacks.length; i < ii; ++i) {
+					this.progress_callbacks[i].call(this, ev);
+				}
+			}
+
+			this.type.setup_xhr.call(this, $.bind(this.on_xhr_setup, this));
+		};
+		Request.prototype.process_response = function (err, response) {
+			var self = this,
+				total = this.infos.length,
+				responses = Math.min(response.length, total),
+				error_mode = this.type.error_mode,
+				set_data = this.type.set_data,
+				complete = 0,
+				default_mode = RequestErrorMode.NoCache,
+				data = null,
+				entry, i;
+
+			// Save
+			var save_callback = function () {
+				for (var i = 0, ii = entry.callbacks.length; i < ii; ++i) {
+					entry.callbacks[i].call(self, err, data);
+				}
+
+				if (++complete >= total) self.complete();
+			};
+
+			// Error saving
+			var save_error = (error_mode === null) ?
+				function () {
+					set_saved_error(
+						[ self.type.namespace, self.type.type, entry.id ],
+						err,
+						(default_mode === RequestErrorMode.Save)
+					);
+
+					save_callback();
+				} :
+				function () {
+					error_mode.call(self, function (err2, mode) {
+						if (err2 !== null) mode = default_mode;
+
+						set_saved_error(
+							[ self.type.namespace, self.type.type, entry.id ],
+							err,
+							(mode === RequestErrorMode.Save)
+						);
+
+						save_callback();
+					});
+				};
+
+			// Save errors
+			for (i = responses; i < total; ++i) {
+				entry = this.entries[i];
+				save_error();
+			}
+
+			// Save datas
+			default_mode = RequestErrorMode.Save;
+			for (i = 0; i < responses; ++i) {
+				data = response[i];
+				entry = this.entries[i];
+				if ((err = data.error) !== undefined) {
+					save_error();
+				}
+				else {
+					err = null;
+					if (set_data !== null) {
+						set_data.call(this, data, entry.info, save_callback);
 					}
+					else {
+						save_callback();
+					}
+				}
+			}
+		};
+		Request.prototype.complete_entries = function () {
+			var unique = this.type.unique;
+			for (var i = 0, ii = this.entries.length; i < ii; ++i) {
+				delete unique[this.entries[i].id];
+			}
+		};
+		Request.prototype.xhr_error = function (err) {
+			var self = this;
+			return function () {
+				self.delay = self.type.delay_error;
+				self.complete_entries();
+				self.process_response(err, []);
+			};
+		};
+		Request.prototype.on_xhr_setup = function (err, xhr_data) {
+			var self = this,
+				i, ii, ev;
+
+			// Error
+			if (err !== null) {
+				this.xhr_error(err)();
+				return;
+			}
+
+			// Load handler
+			xhr_data.onload = function (xhr) {
+				if (xhr.status === 200) {
+					self.type.parse_response.call(self, xhr, function (err, response) {
+						self.on_response_parse(err, response);
+					});
+				}
+				else {
+					self.xhr_error("Response error " + xhr.status)();
+				}
+			};
+
+			// Error handlers
+			xhr_data.onerror = this.xhr_error("Connection error");
+			xhr_data.onabort = this.xhr_error("Connection aborted");
+
+			if (xhr_data.data !== undefined) {
+				xhr_data.upload = {
+					onerror: this.xhr_error("Upload connection error"),
+					onabort: this.xhr_error("Upload connection aborted")
 				};
 			}
 
-			if (xhr_data.data !== undefined) {
-				xhr_data.upload = {};
-				xhr_data.upload.onerror = function () {
-					self.process_response_error(entries, "Upload connection error");
-					self.request_complete(entries, true);
+			// Progress handlers
+			if (this.progress_callbacks !== null) {
+				xhr_data.onprogress = function (xhr) {
+					for (var i = 0, ii = self.progress_callbacks.length; i < ii; ++i) {
+						self.progress_callbacks[i].call(self, "progress", xhr.lengthComputable, xhr.loaded, xhr.total);
+					}
 				};
-				xhr_data.upload.onabort = function () {
-					self.process_response_error(entries, "Upload connection aborted");
-					self.request_complete(entries, true);
-				};
-				if (progress_callbacks !== null) {
+
+				if (xhr_data.data !== undefined) {
+					ev = "upload";
 					xhr_data.upload.onprogress = xhr_data.onprogress;
 					xhr_data.upload.onload = function () {
-						for (var i = 0, ii = progress_callbacks.length; i < ii; ++i) {
-							progress_callbacks[i].call(null, "download");
+						for (var i = 0, ii = self.progress_callbacks.length; i < ii; ++i) {
+							self.progress_callbacks[i].call(self, "download");
 						}
 					};
 				}
-			}
-
-			if (progress_callbacks !== null) {
-				for (i = 0, ii = progress_callbacks.length; i < ii; ++i) {
-					progress_callbacks[i].call(null, "upload");
+				else {
+					ev = "download";
 				}
+
+				for (i = 0, ii = this.progress_callbacks.length; i < ii; ++i) {
+					this.progress_callbacks[i].call(this, ev);
+				}
+				ev = null;
 			}
 
+			// Start
 			HttpRequest(xhr_data);
+			xhr_data = null;
 		};
-		RequestType.prototype.process_response_error = function (entries, error) {
-			var err_mode, i, ii;
-			for (i = 0, ii = entries.length; i < ii; ++i) {
-				err_mode = (this.error_mode !== null) ? this.error_mode.call(this, null, error) : RequestData.ErrorMode.NoCache;
-				entries[i].run_callbacks(error, null, err_mode, this);
+		Request.prototype.on_response_parse = function (err, response, delay) {
+			if (err !== null) {
+				// Error
+				this.delay = this.type.delay_error;
+				this.complete_entries();
+				this.process_response(err, []);
 			}
-		};
-		RequestType.prototype.process_response = function (entries, datas) {
-			var i = 0,
-				ii = Math.min(datas.length, entries.length),
-				data, err, err_mode;
-
-			for (; i < ii; ++i) {
-				data = datas[i];
-				if ((err = data.error) !== undefined) {
-					err_mode = (this.error_mode !== null) ? this.error_mode.call(this, data, err) : RequestData.ErrorMode.Save;
-					entries[i].run_callbacks(err, null, err_mode, this);
+			else if (response === null) {
+				// Retry
+				++this.retry_count;
+				if (delay > 0) {
+					var self = this;
+					setTimeout(function () { self.run(); }, delay);
 				}
 				else {
-					entries[i].run_callbacks(null, data, RequestData.ErrorMode.None, this);
+					this.run();
 				}
-			}
-
-			ii = entries.length;
-			if (i < ii) {
-				err = "Data not found";
-				for (; i < ii; ++i) {
-					err_mode = (this.error_mode !== null) ? this.error_mode.call(this, null, err) : RequestData.ErrorMode.NoCache;
-					entries[i].run_callbacks(err, null, err_mode, this);
-				}
-			}
-		};
-		RequestType.prototype.request_complete = function (entries, error) {
-			var delay = error ? this.delay_error : this.delay_okay,
-				i, ii;
-			for (i = 0, ii = entries.length; i < ii; ++i) {
-				delete this.unique[entries[i].id];
-			}
-
-			this.retry_data.count = 0;
-
-			if (this.delay_modify !== null) delay = this.delay_modify.call(this, delay, entries);
-			this.group.complete(delay);
-		};
-		RequestType.prototype.retry_request = function (delay, entries) {
-			if (delay > 0) {
-				var self = this;
-				setTimeout(function () {
-					self.run_entries(entries);
-				}, delay);
 			}
 			else {
-				this.run_entries(entries);
+				// Process
+				this.delay = this.type.delay_okay;
+				this.complete_entries();
+				this.process_response("Data not found", response);
 			}
 		};
-		RequestType.prototype.retry = function (delay) {
-			this.retry_data.delay = delay;
-			++this.retry_data.count;
-			return null;
-		};
-
-		RequestData.ErrorMode = {
-			None: 0,
-			NoCache: 1,
-			Save: 2
-		};
-		RequestData.prototype.run_callbacks = function (err, data, err_cache_mode, request_type) {
-			// Cache
-			if (err === null) {
-				request_type.set_data.call(request_type, data, this.data);
-			}
-			else if (err_cache_mode !== RequestData.ErrorMode.None) {
-				set_saved_error([ request_type.namespace, request_type.type, this.id ], err, (err_cache_mode === RequestData.ErrorMode.Save));
-			}
-
-			// Callbacks
-			var i, ii;
-			for (i = 0, ii = this.callbacks.length; i < ii; ++i) {
-				this.callbacks[i].call(null, err, data);
-			}
-		};
-
 
 
 		// API request specializations
@@ -3299,22 +3450,23 @@
 			rt_hitomi_gallery = new RequestType(1, 1, 200, 5000, "hitomi", "hitomi", "gallery"),
 			rt_hitomi_gallery_page_thumb = new RequestType(1, 1, 200, 5000, "hitomi", "hitomi", "page_thumb");
 
-		rt_ehentai_gallery.get_data = function (info) {
-			var data = get_saved_data(this.namespace, info[0]);
-			return (data !== null && data.token === info[1]) ? data : null;
+		rt_ehentai_gallery.get_data = function (info, callback) {
+			var data = get_saved_data("ehentai", info[0]);
+			callback(null, (data !== null && data.token === info[1]) ? data : null);
 		};
-		rt_ehentai_gallery.set_data = function (data) {
+		rt_ehentai_gallery.set_data = function (data, info, callback) {
 			set_saved_data(data);
+			callback(null);
 		};
-		rt_ehentai_gallery.setup_xhr = function (entries) {
+		rt_ehentai_gallery.setup_xhr = function (callback) {
 			var gidlist = [],
 				i, ii;
 
-			for (i = 0, ii = entries.length; i < ii; ++i) {
-				gidlist.push(entries[i].data);
+			for (i = 0, ii = this.infos.length; i < ii; ++i) {
+				gidlist.push(this.infos[i]);
 			}
 
-			return {
+			callback(null, {
 				method: "POST",
 				url: "http://" + domains.gehentai + "/api.php",
 				headers: { "Content-Type": "application/json" },
@@ -3322,15 +3474,17 @@
 					method: "gdata",
 					gidlist: gidlist
 				})
-			};
+			});
 		};
-		rt_ehentai_gallery.parse_response = function (xhr) {
+		rt_ehentai_gallery.parse_response = function (xhr, callback) {
 			var response = $.json_parse_safe(xhr.responseText, null),
 				datas, i, ii;
+
 			if (response !== null) {
 				if (typeof(response) === "object") {
 					if (typeof(response.error) === "string") {
-						return response.error;
+						callback(response.error);
+						return;
 					}
 					else if (Array.isArray(response.gmetadata)) {
 						response = response.gmetadata;
@@ -3338,37 +3492,39 @@
 						for (i = 0, ii = response.length; i < ii; ++i) {
 							datas.push(ehentai_normalize_info(response[i]));
 						}
-						return datas;
+						callback(null, datas);
+						return;
 					}
 				}
 				else if (typeof(response) === "string") {
-					return response;
+					callback(response);
+					return;
 				}
 			}
 			return "Invalid response";
 		};
 
-		rt_ehentai_gallery_page.get_data = function (info) {
-			var data = get_saved_data(this.namespace, info[0]);
+		rt_ehentai_gallery_page.get_data = function (info, callback) {
+			var data = get_saved_data("ehentai", info[0]);
 			if (data !== null) {
-				return {
+				callback(null, {
 					gid: data.gid,
 					token: data.token
-				};
+				});
 			}
-			return null;
+			else {
+				callback(null, null);
+			}
 		};
-		rt_ehentai_gallery_page.set_data = function () {
-		};
-		rt_ehentai_gallery_page.setup_xhr = function (entries) {
+		rt_ehentai_gallery_page.setup_xhr = function (callback) {
 			var pagelist = [],
 				i, ii;
 
-			for (i = 0, ii = entries.length; i < ii; ++i) {
-				pagelist.push(entries[i].data);
+			for (i = 0, ii = this.infos.length; i < ii; ++i) {
+				pagelist.push(this.infos[i]);
 			}
 
-			return {
+			callback(null, {
 				method: "POST",
 				url: "http://" + domains.gehentai + "/api.php",
 				headers: { "Content-Type": "application/json" },
@@ -3376,101 +3532,119 @@
 					method: "gtoken",
 					pagelist: pagelist
 				})
-			};
+			});
 		};
-		rt_ehentai_gallery_page.parse_response = function (xhr) {
+		rt_ehentai_gallery_page.parse_response = function (xhr, callback) {
 			var response = $.json_parse_safe(xhr.responseText, null);
+
 			if (response !== null) {
 				if (typeof(response) === "object") {
 					if (typeof(response.error) === "string") {
-						return response.error;
+						callback(response.error);
+						return;
 					}
 					else if (Array.isArray(response.tokenlist)) {
-						return response.tokenlist;
+						callback(null, response.tokenlist);
+						return;
 					}
 				}
 				else if (typeof(response) === "string") {
-					return response;
+					callback(response);
+					return;
 				}
 			}
-			return "Invalid response";
+
+			callback("Invalid response");
 		};
 
-		rt_ehentai_gallery_full.get_data = function (info) {
-			var data = get_saved_data(this.namespace, info[0]);
-			return (data !== null && data.token === info[1] && data.full) ? data : null;
+		rt_ehentai_gallery_full.get_data = function (info, callback) {
+			var data = get_saved_data("ehentai", info[0]);
+			callback(null, (data !== null && data.token === info[1] && data.full) ? data : null);
 		};
-		rt_ehentai_gallery_full.set_data = function (data) {
+		rt_ehentai_gallery_full.set_data = function (data, info, callback) {
 			set_saved_data(data);
+			callback(null);
 		};
-		rt_ehentai_gallery_full.setup_xhr = function (entries) {
-			var e = entries[0].data;
-			return {
+		rt_ehentai_gallery_full.setup_xhr = function (callback) {
+			var info = this.infos[0];
+			callback(null, {
 				method: "GET",
-				url: "http://" + e.domain + "/g/" + e.gid + "/" + e.token + "/" + e.search,
-			};
-		};
-		rt_ehentai_gallery_full.parse_response = function (xhr, entries) {
-			var e = entries[0].data;
-			return ehentai_response_process_generic.call(this, xhr, e, this.delay_okay, function (err, html) {
-				return [ err === null ? ehentai_parse_gallery_info(html, e.data) : ehentai_make_removed(e.data) ];
+				url: "http://" + info.domain + "/g/" + info.gid + "/" + info.token + "/" + info.search,
 			});
 		};
-		var ehentai_response_process_generic = function (xhr, e, retry_delay, callback) {
+		rt_ehentai_gallery_full.parse_response = function (xhr, callback) {
+			var info = this.infos[0];
+			ehentai_response_process_generic.call(this, xhr, info, this.delay_okay, callback, function (err, html) {
+				callback(null, [ err === null ? ehentai_parse_gallery_info(html, info.data) : ehentai_make_removed(info.data) ]);
+			});
+		};
+		var ehentai_response_process_generic = function (xhr, info, retry_delay, callback, process_callback) {
 			var content_type = header_string_parse(xhr.responseHeaders)["content-type"],
 				html;
 
 			if (!/^text\/html/i.test(content_type || "")) {
 				// Panda
-				if (this.retry_data.count === 0 && e.domain === domains.exhentai) {
+				if (this.retry_count === 0 && info.domain === domains.exhentai) {
 					// Retry
-					e.domain = domains.gehentai;
-					return this.retry(retry_delay);
+					info.domain = domains.gehentai;
+					callback(null, null, retry_delay);
 				}
 				else {
-					return "Invalid response type " + content_type;
+					callback("Invalid response type " + content_type);
 				}
+				return;
 			}
 
 			// Parse
 			html = $.html_parse_safe(xhr.responseText, null);
 			if (html === null) {
-				return "Invalid response";
+				callback("Invalid response");
 			}
-			if (ehentai_is_not_available(html)) {
-				if (this.retry_data.count === 0 && e.domain === domains.gehentai) {
+			else if (ehentai_is_not_available(html)) {
+				if (this.retry_count === 0 && info.domain === domains.gehentai) {
 					// Retry
-					e.domain = domains.exhentai;
-					return this.retry(retry_delay);
+					info.domain = domains.exhentai;
+					callback(null, null, retry_delay);
 				}
-				this.retry_data.count = 0;
-				return callback.call(this, "Not available", null);
+				else {
+					this.retry_count = 0;
+					process_callback.call(this, "Not available", null);
+				}
 			}
-			if (ehentai_is_content_warning(html)) {
-				if (this.retry_data.count <= 1) {
+			else if (ehentai_is_content_warning(html)) {
+				if (this.retry_count <= 1) {
 					// Retry
-					e.search = "?nw=session"; // bypass the "Content Warning"
-					return this.retry(retry_delay);
+					info.search = "?nw=session"; // bypass the "Content Warning"
+					callback(null, null, retry_delay);
 				}
-				this.retry_data.count = 0;
-				return callback.call(this, "Content warning", null);
+				else {
+					this.retry_count = 0;
+					process_callback.call(this, "Content warning", null);
+				}
 			}
-			this.retry_data.count = 0;
-			return callback.call(this, null, html);
+			else {
+				this.retry_count = 0;
+				process_callback.call(this, null, html);
+			}
 		};
 
-		rt_ehentai_gallery_page_thumb.get_data = function (info) {
-			return get_saved_thumbnail("ehentai", info.gid, info.page);
+		rt_ehentai_gallery_page_thumb.get_data = function (info, callback) {
+			callback(null, get_saved_thumbnail("ehentai", info.gid, info.page));
 		};
-		rt_ehentai_gallery_page_thumb.set_data = function (data, info) {
+		rt_ehentai_gallery_page_thumb.set_data = function (data, info, callback) {
 			set_saved_thumbnail("ehentai", info.gid, info.page, data);
+			callback(null);
 		};
 		rt_ehentai_gallery_page_thumb.setup_xhr = rt_ehentai_gallery_full.setup_xhr;
-		rt_ehentai_gallery_page_thumb.parse_response = function (xhr, entries) {
-			var e = entries[0].data,
-				retry_delay = 0; // this.delay_okay
-			return ehentai_response_process_generic.call(this, xhr, e, retry_delay, function (err, html) {
-				if (err !== null) return err;
+		rt_ehentai_gallery_page_thumb.parse_response = function (xhr, callback) {
+			var info = this.infos[0],
+				retry_delay = 0; // this.type.delay_okay
+
+			ehentai_response_process_generic.call(this, xhr, info, retry_delay, callback, function (err, html) {
+				if (err !== null) {
+					callback(err);
+					return;
+				}
 
 				var n1 = $(".gtb>.gpc", html),
 					small = false,
@@ -3483,7 +3657,7 @@
 						end = parseInt(m[2], 10);
 						total = parseInt(m[3], 10);
 
-						if (e.page >= start && e.page <= end) {
+						if (info.page >= start && info.page <= end) {
 							n1 = $("#gdt", html);
 							if (n1 !== null) {
 								n2 = $$(".gdtl", n1);
@@ -3492,7 +3666,7 @@
 									small = true;
 								}
 
-								n1 = n2[e.page - start];
+								n1 = n2[info.page - start];
 								if (n1 !== undefined) {
 									// Check for image
 									if (small) {
@@ -3508,14 +3682,15 @@
 											];
 											if (m[0] !== null && m[1] !== null && m[2] !== null) {
 												url = m[0][1];
-												return [ {
+												callback(null, [{
 													url: $.resolve(url, xhr.finalUrl),
 													left: parseInt(m[0][2], 10),
 													top: 0,
 													width: parseInt(m[1][1], 10),
 													height: parseInt(m[2][1], 10),
 													flags: Flags.None
-												} ];
+												}]);
+												return;
 											}
 										}
 									}
@@ -3525,54 +3700,57 @@
 											(url = n2.getAttribute("src"))
 										) {
 											// Full image
-											return [ {
+											callback(null, [{
 												url: $.resolve(url, xhr.finalUrl),
 												left: 0,
 												top: 0,
 												width: -1,
 												height: -1,
 												flags: Flags.None
-											} ];
+											}]);
+											return;
 										}
 									}
 								}
 							}
 						}
-						else if (e.page >= 1 && e.page <= total) {
+						else if (info.page >= 1 && info.page <= total) {
 							// Wrong page
-							if (this.retry_data.count === 0) {
+							if (this.retry_count === 0) {
 								// Next
-								e.search = "?p=" + Math.floor((e.page - 1) / (end - (start - 1)));
-								return this.retry(retry_delay);
+								info.search = "?p=" + Math.floor((info.page - 1) / (end - (start - 1)));
+								callback(null, null, retry_delay);
+								return;
 							}
 						}
 					}
 				}
 
-				return "Thumbnail not found";
+				callback("Thumbnail not found");
 			});
 		};
 
-		rt_ehentai_lookup.error_mode = function () {
-			return RequestData.ErrorMode.None;
+		rt_ehentai_lookup.error_mode = function (callback) {
+			callback(null, RequestErrorMode.None);
 		};
-		rt_ehentai_lookup.delay_modify = function (delay, entries) {
-			return (entries[0].data[0] ? delay : 0);
+		rt_ehentai_lookup.delay_modify = function (callback) {
+			callback(null, this.infos[0].similar ? this.delay : 0);
 		};
-		rt_ehentai_lookup.get_data = function (info) {
-			return (info[1] === null ? null : lookup_get_results(info[1]));
+		rt_ehentai_lookup.get_data = function (info, callback) {
+			callback(null, info.sha1 === null ? null : lookup_get_results(info.sha1));
 		};
-		rt_ehentai_lookup.set_data = function (data) {
+		rt_ehentai_lookup.set_data = function (data, info, callback) {
 			lookup_set_results(data);
+			callback(null);
 		};
-		rt_ehentai_lookup.setup_xhr = function (entries) {
-			var e = entries[0].data;
-			if (e[0]) {
-				var blob = e[2],
+		rt_ehentai_lookup.setup_xhr = function (callback) {
+			var info = this.infos[0];
+			if (info.similar) {
+				var blob = info.blob,
 					form_data = new FormData(),
 					ext = (blob.type || "").split("/");
 
-				e[2] = null;
+				info.blob = null;
 
 				ext = "." + ext[ext.length - 1];
 
@@ -3582,63 +3760,68 @@
 					form_data.append("fs_exp", "on");
 				}
 
-				return {
+				callback(null, {
 					method: "POST",
 					url: "http://ul." + config.sauce.lookup_domain + "/image_lookup.php",
 					data: form_data
-				};
+				});
 			}
 			else {
-				return {
+				callback(null, {
 					method: "GET",
-					url: ehentai_create_lookup_url(e[1])
-				};
+					url: ehentai_create_lookup_url(info.sha1)
+				});
 			}
 		};
-		rt_ehentai_lookup.parse_response = function (xhr, entries) {
-			var data = entries[0].data;
-			return [ ehentai_parse_lookup_results(xhr, data[0], data[1], data[3], data[4]) ];
+		rt_ehentai_lookup.parse_response = function (xhr, callback) {
+			var info = this.infos[0];
+			callback(null, [ ehentai_parse_lookup_results(xhr, info.similar, info.sha1, info.url, info.md5) ]);
 		};
 
-		rt_nhentai_gallery.get_data = function (info) {
-			return get_saved_data(this.namespace, info[0]);
+		rt_nhentai_gallery.get_data = function (info, callback) {
+			callback(null, get_saved_data("nhentai", info.gid));
 		};
-		rt_nhentai_gallery.set_data = function (data) {
+		rt_nhentai_gallery.set_data = function (data, info, callback) {
 			set_saved_data(data);
+			callback(null);
 		};
-		rt_nhentai_gallery.setup_xhr = function (entries) {
-			return {
+		rt_nhentai_gallery.setup_xhr = function (callback) {
+			callback(null, {
 				method: "GET",
-				url: "http://" + domains.nhentai + "/g/" + entries[0].data[0] + "/",
-			};
+				url: "http://" + domains.nhentai + "/g/" + this.infos[0].gid + "/",
+			});
 		};
-		rt_nhentai_gallery.parse_response = function (xhr) {
+		rt_nhentai_gallery.parse_response = function (xhr, callback) {
 			var html = $.html_parse_safe(xhr.responseText, null);
-			if (html !== null) {
-				return [ nhentai_parse_info(html, xhr.finalUrl) ];
+			if (html === null) {
+				callback("Invalid response");
 			}
-			return "Invalid response";
+			else {
+				callback(null, [ nhentai_parse_info(html, xhr.finalUrl) ]);
+			}
 		};
 
-		rt_nhentai_gallery_page_thumb.get_data = function (info) {
-			return get_saved_thumbnail("nhentai", info.gid, info.page);
+		rt_nhentai_gallery_page_thumb.get_data = function (info, callback) {
+			callback(null, get_saved_thumbnail("nhentai", info.gid, info.page));
 		};
-		rt_nhentai_gallery_page_thumb.set_data = function (data, info) {
+		rt_nhentai_gallery_page_thumb.set_data = function (data, info, callback) {
 			set_saved_thumbnail("nhentai", info.gid, info.page, data);
+			callback(null);
 		};
-		rt_nhentai_gallery_page_thumb.setup_xhr = function (entries) {
-			var e = entries[0].data;
-			return {
+		rt_nhentai_gallery_page_thumb.setup_xhr = function (callback) {
+			var info = this.infos[0];
+			callback(null, {
 				method: "GET",
-				url: "http://" + domains.nhentai + "/g/" + e.gid + "/" + e.page + "/"
-			};
+				url: "http://" + domains.nhentai + "/g/" + info.gid + "/" + info.page + "/"
+			});
 		};
-		rt_nhentai_gallery_page_thumb.parse_response = function (xhr) {
+		rt_nhentai_gallery_page_thumb.parse_response = function (xhr, callback) {
 			var html = $.html_parse_safe(xhr.responseText, null),
 				n1, url;
 
 			if (html === null) {
-				return "Invalid response";
+				callback("Invalid response");
+				return;
 			}
 
 			n1 = $("#image-container img[src]", html);
@@ -3647,78 +3830,93 @@
 				url = url.replace(/\/\/i\./i, "//t.");
 				url = url.replace(/\.\w+$/, "t$&");
 				url = $.resolve(url, xhr.finalUrl);
-				return [ {
+				callback(null, [{
 					url: url,
 					left: 0,
 					top: 0,
 					width: -1,
 					height: -1,
 					flags: Flags.None
-				} ];
+				}]);
 			}
-
-			return "Thumbnail not found";
+			else {
+				callback("Thumbnail not found");
+			}
 		};
 
-		rt_hitomi_gallery.get_data = function (info) {
-			return get_saved_data(this.namespace, info[0]);
+		rt_hitomi_gallery.get_data = function (info, callback) {
+			callback(null, get_saved_data("hitomi", info.gid));
 		};
-		rt_hitomi_gallery.set_data = function (data) {
+		rt_hitomi_gallery.set_data = function (data, info, callback) {
 			set_saved_data(data);
+			callback(null);
 		};
-		rt_hitomi_gallery.setup_xhr = function (entries) {
-			return {
+		rt_hitomi_gallery.setup_xhr = function (callback) {
+			callback(null, {
 				method: "GET",
-				url: "https://" + domains.hitomi + "/galleries/" + entries[0].data[0] + ".html",
-			};
+				url: "https://" + domains.hitomi + "/galleries/" + this.infos[0].gid + ".html",
+			});
 		};
-		rt_hitomi_gallery.parse_response = function (xhr) {
+		rt_hitomi_gallery.parse_response = function (xhr, callback) {
 			var html = $.html_parse_safe(xhr.responseText, null);
-			if (html !== null) {
-				return [ hitomi_parse_info(html, xhr.finalUrl) ];
+			if (html === null) {
+				callback("Invalid response");
 			}
-			return "Invalid response";
+			else {
+				callback(null, [ hitomi_parse_info(html, xhr.finalUrl) ]);
+			}
 		};
 
-		rt_hitomi_gallery_page_thumb.get_data = function (info) {
-			return get_saved_thumbnail("hitomi", info.gid, info.page);
+		rt_hitomi_gallery_page_thumb.get_data = function (info, callback) {
+			callback(null, get_saved_thumbnail("hitomi", info.gid, info.page));
 		};
-		rt_hitomi_gallery_page_thumb.set_data = function (data, info) {
+		rt_hitomi_gallery_page_thumb.set_data = function (data, info, callback) {
 			set_saved_thumbnail("hitomi", info.gid, info.page, data);
+			callback(null);
 		};
-		rt_hitomi_gallery_page_thumb.setup_xhr = function (entries) {
-			return {
+		rt_hitomi_gallery_page_thumb.setup_xhr = function (callback) {
+			callback(null, {
 				method: "GET",
-				url: "https://" + domains.hitomi + "/reader/" + entries[0].data.gid + ".html"
-			};
+				url: "https://" + domains.hitomi + "/reader/" + this.infos[0].gid + ".html"
+			});
 		};
-		rt_hitomi_gallery_page_thumb.parse_response = function (xhr, entries) {
+		rt_hitomi_gallery_page_thumb.parse_response = function (xhr, callback) {
 			var html = $.html_parse_safe(xhr.responseText, null),
 				n1, url;
 
 			if (html === null) {
-				return "Invalid response";
+				callback("Invalid response");
+				return;
 			}
 
 			n1 = $$(".img-url", html);
-			n1 = n1[entries[0].data.page - 1];
+			n1 = n1[this.infos[0].page - 1];
 			if (n1 !== undefined) {
 				url = n1.textContent;
 				url = url.replace(/\/\/g\./i, "//tn.");
 				url = url.replace(/galleries/i, "smalltn");
 				url += ".jpg";
 				url = $.resolve(url, xhr.finalUrl);
-				return [ {
+				callback(null, [{
 					url: url,
 					left: 0,
 					top: 0,
 					width: -1,
 					height: -1,
 					flags: Flags.ThumbnailNoLeech
-				} ];
+				}]);
 			}
+			else {
+				callback("Thumbnail not found");
+			}
+		};
 
-			return "Thumbnail not found";
+
+
+		// Fjord test
+		var re_fjord = /abortion|bestiality|incest|lolicon|shotacon|toddlercon/;
+		var is_fjording = function (data) {
+			return re_fjord.test(data.tags.join(","));
 		};
 
 
@@ -3789,54 +3987,54 @@
 
 		var get_ehentai_gallery = function (gid, token, callback) {
 			var info = [ gid, token ];
-			return rt_ehentai_gallery.add(info.join("_"), info, callback);
+			rt_ehentai_gallery.add(info.join("_"), info, false, callback);
 		};
 		var get_ehentai_gallery_page = function (gid, page_token, page, callback) {
 			var info = [ gid, page_token, page ];
-			return rt_ehentai_gallery_page.add("" + gid, info, callback);
+			rt_ehentai_gallery_page.add("" + gid, info, false, callback);
 		};
 		var get_ehentai_gallery_page_thumb = function (domain, gid, token, page_token, page, callback) {
 			var di = domain_info[domain];
 			domain = (di === undefined) ? domains.exhentai : di.g_domain;
 
-			return rt_ehentai_gallery_page_thumb.add(gid + "-" + page, {
+			rt_ehentai_gallery_page_thumb.add(gid + "-" + page, {
 				domain: domain,
 				gid: gid,
 				token: token,
 				page: page,
 				page_token: page_token,
 				search: ""
-			}, callback);
+			}, false, callback);
 		};
 		var get_ehentai_gallery_full = function (domain, data, callback) {
 			var di = domain_info[domain];
 			domain = (di === undefined) ? domains.exhentai : di.g_domain;
 
-			return rt_ehentai_gallery_full.add("" + data.gid, {
+			rt_ehentai_gallery_full.add("" + data.gid, {
 				domain: domain,
 				gid: data.gid,
 				token: data.token,
 				search: "",
 				data: data
-			}, callback);
+			}, false, callback);
 		};
 		var get_nhentai_gallery = function (gid, callback) {
-			return rt_nhentai_gallery.add("" + gid, [ gid ], callback);
+			rt_nhentai_gallery.add("" + gid, { gid: gid }, false, callback);
 		};
 		var get_nhentai_gallery_page_thumb = function (gid, page, callback) {
 			rt_nhentai_gallery_page_thumb.add(gid + "-" + page, {
 				gid: gid,
 				page: page
-			}, callback);
+			}, false, callback);
 		};
 		var get_hitomi_gallery = function (gid, callback) {
-			return rt_hitomi_gallery.add("" + gid, [ gid ], callback);
+			rt_hitomi_gallery.add("" + gid, { gid: gid }, false, callback);
 		};
 		var get_hitomi_gallery_page_thumb = function (gid, page, callback) {
 			rt_hitomi_gallery_page_thumb.add(gid + "-" + page, {
 				gid: gid,
 				page: page
-			}, callback);
+			}, false, callback);
 		};
 
 		var get_data = function (site, gid) {
@@ -3919,29 +4117,50 @@
 		var lookup_on_ehentai = function (url, md5, use_similar, callback, progress_callback) {
 			if (use_similar) {
 				// Fast mode
-				var sha1, results;
-				if (
-					(sha1 = get_sha1_hash(url, md5)) !== null &&
-					(results = rt_ehentai_lookup.add(url, [ true, sha1, null, url, md5 ])) !== null
-				) {
-					// Already exists
-					callback.call(null, null, results);
-				}
-				else {
-					get_image(url, function (err, data, data_length, mime_type, url) {
-						if (progress_callback !== undefined) {
-							progress_callback.call(null, "image");
-						}
+				var sha1 = get_sha1_hash(url, md5);
 
+				var get_image_callback = function (err, data, data_length, mime_type, url) {
+					if (progress_callback !== undefined) {
+						progress_callback.call(null, "image");
+					}
+
+					if (err === null) {
+						var blob = new Blob([ data.subarray(0, data_length) ], { type: mime_type });
+
+						rt_ehentai_lookup.add(url, {
+							similar: true,
+							blob: blob,
+							url: url,
+							md5: md5,
+							sha1: sha1
+						}, false, callback, progress_callback);
+					}
+					else {
+						callback.call(null, err, null);
+					}
+				};
+
+				if (sha1 !== null) {
+					rt_ehentai_lookup.add(url, {
+						similar: true,
+						blob: null,
+						url: url,
+						md5: md5,
+						sha1: sha1
+					}, true, function (err, results) {
 						if (err === null) {
-							var blob = new Blob([ data.subarray(0, data_length) ], { type: mime_type });
-
-							rt_ehentai_lookup.add(url, [ true, sha1, blob, url, md5 ], callback, progress_callback);
+							// Already exists
+							callback.call(null, null, results);
 						}
 						else {
-							callback.call(null, err, null);
+							// Load image
+							get_image(url, get_image_callback, progress_callback);
 						}
-					}, progress_callback);
+					});
+				}
+				else {
+					// Load image
+					get_image(url, get_image_callback, progress_callback);
 				}
 			}
 			else {
@@ -3951,7 +4170,13 @@
 					}
 
 					if (err === null) {
-						rt_ehentai_lookup.add(url, [ false, sha1, null, url, md5 ], callback, progress_callback);
+						rt_ehentai_lookup.add(url, {
+							similar: false,
+							blob: null,
+							url: url,
+							md5: md5,
+							sha1: sha1
+						}, false, callback, progress_callback);
 					}
 					else {
 						callback.call(null, err, null);
@@ -3970,6 +4195,7 @@
 		// Exports
 		return {
 			Flags: Flags,
+			RequestType: RequestType,
 			get_url_info: get_url_info,
 			get_ehentai_gallery: get_ehentai_gallery,
 			get_ehentai_gallery_page: get_ehentai_gallery_page,
@@ -3986,6 +4212,7 @@
 			cache_clear: cache_clear,
 			get_category: get_category,
 			get_category_sort_rank: get_category_sort_rank,
+			is_fjording: is_fjording,
 			init: init
 		};
 
@@ -5190,8 +5417,8 @@
 			export_url = null,
 			popup = null;
 
-		var html_options = function () {
-			return '<div class="xl-settings-heading"><div><span class="xl-settings-heading-cell xl-settings-heading-title">General</span> <span class="xl-settings-heading-cell xl-settings-heading-subtitle">Note: you must reload the page after saving for some changes to take effect</span></div></div><div class="xl-settings-group xl-settings-group-general xl-theme"></div><div class="xl-settings-heading"><div><span class="xl-settings-heading-cell xl-settings-heading-title">Sites</span></div></div><div class="xl-settings-group xl-settings-group-sites xl-theme"></div><div class="xl-settings-heading"><div><span class="xl-settings-heading-cell xl-settings-heading-title">Gallery Details</span></div></div><div class="xl-settings-group xl-settings-group-details xl-theme"></div><div class="xl-settings-heading"><div><span class="xl-settings-heading-cell xl-settings-heading-title">Gallery Actions</span></div></div><div class="xl-settings-group xl-settings-group-actions xl-theme"></div><div class="xl-settings-heading"><div><span class="xl-settings-heading-cell xl-settings-heading-title">ExSauce</span></div></div><div class="xl-settings-group xl-settings-group-sauce xl-theme"></div><div class="xl-settings-heading"><div><span class="xl-settings-heading-cell xl-settings-heading-title">Filtering</span> <span class="xl-settings-heading-cell xl-settings-heading-subtitle"><a class="xl-settings-filter-guide-toggle">Click here to toggle the guide</a></span></div></div><div class="xl-settings-filter-guide xl-settings-group xl-theme">Lines starting with <code>/</code> will be treated as <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions" target="_blank" rel="noreferrer nofollow">regular expressions</a>. <span style="opacity: 0.75">(This is very similar to 4chan-x style filtering)</span><br>Lines starting with <code>#</code> are comments and will be ignored.<br>Lines starting with neither <code>#</code> nor <code>/</code> will be treated as a case-insensitive string to match anywhere.<br>For example, <code>/touhou/i</code> will highlight entries containing the string `<code>touhou</code>`, case-insensitive.<br><br>The lower a filter appears in this list, the greater its priority will be.<br><br>You can use these additional settings with each regular expression, separating them with semicolons:<br><ul><li><strong>Apply the filter to different scopes:</strong><br><code>tags;</code>, <code>title;</code> or <code>uploader;</code>. By default the scope is <code>title;tags;</code><br></li><li><strong>Force a gallery to not be highlighted:</strong> <span style="opacity: 0.75">If omitted, the gallery will be highlighted as normal</span><br><code>bad:no;</code>, <code>bad:yes;</code>, or just <code>bad;</code></li><li><strong>Only apply the filter to certain categories:</strong><br><code>only:doujinshi,manga;</code>.<div style="font-size: 0.9em; margin-top: 0.1em; opacity: 0.75">Categories: <span>artistcg, asianporn, cosplay, doujinshi, gamecg, imageset, manga, misc, <span style="white-space: nowrap">non-h</span>, private, western</span></div></li><li><strong>Only apply the filter if it <em>is not</em> a certain category:</strong><br><code>not:western,non-h;</code>.</li><li><strong>Only apply the filter to certain sites:</strong><br><code>only:ehentai;</code>.<div style="font-size: 0.9em; margin-top: 0.1em; opacity: 0.75">Sites: <span>ehentai, nhentai, hitomi</span></div></li><li><strong>Apply a colored decoration to the matched text:</strong><br><code>color:red;</code>, <code>underline:#0080f0;</code>, or <code>background:rgba(0,255,0,0.5);</code></li><li><strong>Apply a colored decoration to the [Ex] or [EH] tag:</strong><br><code>link-color:blue;</code>, <code>link-underline:#bf48b5;</code>, or <code>link-background:rgba(220,200,20,0.5);</code></li><li><strong>Apply a colored decoration to <em>BOTH</em> the matched text and tag:</strong><br><code>colors:blue;</code>, <code>underlines:#bf48b5;</code>, or <code>backgrounds:rgba(220,200,20,0.5);</code></li><li><strong>Disable any coloring, including the default:</strong><br><code>no-colors;</code> or <code>nocolor;</code></li></ul>Additionally, some settings have aliases. If multiple are used, only the main one will be used.<br><ul><li><code>tags: tag</code></li><li><code>only: category, cat</code></li><li class="xl-settings-li-no-space"><code>not: no</code></li><li class="xl-settings-li-no-space"><code>site: sites</code></li><li><code>colors: cs</code></li><li class="xl-settings-li-no-space"><code>underlines: us</code></li><li class="xl-settings-li-no-space"><code>backgrounds: bgs</code></li><li><code>color: c</code></li><li class="xl-settings-li-no-space"><code>underline: u</code></li><li class="xl-settings-li-no-space"><code>background: bg</code></li><li><code>link-color: link-c, lc</code></li><li class="xl-settings-li-no-space"><code>link-underline: link-u, lu</code></li><li class="xl-settings-li-no-space"><code>link-background: link-bg, lbg</code></li><li><code>no-colors: no-color, nocolors, nocolor</code></li></ul>For easy <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value#Color_keywords" target="_blank" rel="noreferrer nofollow">HTML color</a> selection, you can use the following helper to select a color:<br><br><div><input type="color" value="#808080" class="xl-settings-color-input"><input type="text" value="#808080" class="xl-settings-color-input" readonly="readonly"><input type="text" value="rgba(128,128,128,1)" class="xl-settings-color-input" readonly="readonly"></div></div><div class="xl-settings-group xl-settings-group-filter xl-theme"></div><div class="xl-settings-heading"><div><span class="xl-settings-heading-cell xl-settings-heading-title">Debugging</span></div></div><div class="xl-settings-group xl-settings-group-debug xl-theme"></div>';
+		var html_filter_guide = function () {
+			return '<div class="xl-settings-group xl-settings-filter-guide xl-theme">Lines starting with <code>/</code> will be treated as <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions" target="_blank" rel="noreferrer nofollow">regular expressions</a>. <span style="opacity: 0.75">(This is very similar to 4chan-x style filtering)</span><br>Lines starting with <code>#</code> are comments and will be ignored.<br>Lines starting with neither <code>#</code> nor <code>/</code> will be treated as a case-insensitive string to match anywhere.<br>For example, <code>/touhou/i</code> will highlight entries containing the string `<code>touhou</code>`, case-insensitive.<br><br>The lower a filter appears in this list, the greater its priority will be.<br><br>You can use these additional settings with each regular expression, separating them with semicolons:<br><ul><li><strong>Apply the filter to different scopes:</strong><br><code>tags;</code>, <code>title;</code> or <code>uploader;</code>. By default the scope is <code>title;tags;</code><br></li><li><strong>Force a gallery to not be highlighted:</strong> <span style="opacity: 0.75">If omitted, the gallery will be highlighted as normal</span><br><code>bad:no;</code>, <code>bad:yes;</code>, or just <code>bad;</code></li><li><strong>Only apply the filter to certain categories:</strong><br><code>only:doujinshi,manga;</code>.<div style="font-size: 0.9em; margin-top: 0.1em; opacity: 0.75">Categories: <span>artistcg, asianporn, cosplay, doujinshi, gamecg, imageset, manga, misc, <span style="white-space: nowrap">non-h</span>, private, western</span></div></li><li><strong>Only apply the filter if it <em>is not</em> a certain category:</strong><br><code>not:western,non-h;</code>.</li><li><strong>Only apply the filter to certain sites:</strong><br><code>only:ehentai;</code>.<div style="font-size: 0.9em; margin-top: 0.1em; opacity: 0.75">Sites: <span>ehentai, nhentai, hitomi</span></div></li><li><strong>Apply a colored decoration to the matched text:</strong><br><code>color:red;</code>, <code>underline:#0080f0;</code>, or <code>background:rgba(0,255,0,0.5);</code></li><li><strong>Apply a colored decoration to the [Ex] or [EH] tag:</strong><br><code>link-color:blue;</code>, <code>link-underline:#bf48b5;</code>, or <code>link-background:rgba(220,200,20,0.5);</code></li><li><strong>Apply a colored decoration to <em>BOTH</em> the matched text and tag:</strong><br><code>colors:blue;</code>, <code>underlines:#bf48b5;</code>, or <code>backgrounds:rgba(220,200,20,0.5);</code></li><li><strong>Disable any coloring, including the default:</strong><br><code>no-colors;</code> or <code>nocolor;</code></li></ul>Additionally, some settings have aliases. If multiple are used, only the main one will be used.<br><ul><li><code>tags: tag</code></li><li><code>only: category, cat</code></li><li class="xl-settings-li-no-space"><code>not: no</code></li><li class="xl-settings-li-no-space"><code>site: sites</code></li><li><code>colors: cs</code></li><li class="xl-settings-li-no-space"><code>underlines: us</code></li><li class="xl-settings-li-no-space"><code>backgrounds: bgs</code></li><li><code>color: c</code></li><li class="xl-settings-li-no-space"><code>underline: u</code></li><li class="xl-settings-li-no-space"><code>background: bg</code></li><li><code>link-color: link-c, lc</code></li><li class="xl-settings-li-no-space"><code>link-underline: link-u, lu</code></li><li class="xl-settings-li-no-space"><code>link-background: link-bg, lbg</code></li><li><code>no-colors: no-color, nocolors, nocolor</code></li></ul>For easy <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value#Color_keywords" target="_blank" rel="noreferrer nofollow">HTML color</a> selection, you can use the following helper to select a color:<br><br><div><input type="color" value="#808080" class="xl-settings-color-input"><input type="text" value="#808080" class="xl-settings-color-input" readonly="readonly"><input type="text" value="rgba(128,128,128,1)" class="xl-settings-color-input" readonly="readonly"></div></div>';
 		};
 		var create_export_data = function () {
 			return {
@@ -5210,14 +5437,28 @@
 				EasyList.set_saved_settings(v);
 			}
 		};
-		var gen = function (container, theme, option_type) {
+		var gen = function (container, option_type, title, message, pre) {
 			var config_scope = config_temp[option_type],
+				theme = Theme.classes,
 				entry, table, row, cell, label, input, event,
-				args, values, id, name, desc, type, value, obj, label_text, ext, i, ii, j, jj, n, v;
+				args, values, id, name, desc, type, value, obj, label_text, ext, i, ii, j, jj, n, n2, n3, v;
 
 			// [ name, default, label, description, old_name, formatter, info? ]
 			args = options[option_type];
-			if (arguments.length > 3) args = Array.prototype.concat.call(args, Array.prototype.slice.call(arguments, 3));
+			if (arguments.length > 5) args = Array.prototype.concat.call(args, Array.prototype.slice.call(arguments, 5));
+
+			n = $.node("div", "xl-settings-heading" + theme);
+			$.add(n, n2 = $.node("div", "xl-settings-heading-inner" + theme));
+			$.add(n2, $.node("div", "xl-settings-heading-cell xl-settings-heading-title" + theme, title));
+			if (message !== undefined) {
+				$.add(n2, n3 = $.node("div", "xl-settings-heading-cell xl-settings-heading-subtitle" + theme));
+				$.add(n3, message);
+			}
+
+			$.add(container, n);
+			if (pre !== undefined) $.add(container, pre);
+
+			n = $.node("div", "xl-settings-group xl-settings-group-" + option_type + theme);
 
 			for (i = 0, ii = args.length; i < ii; ++i) {
 				obj = args[i];
@@ -5230,7 +5471,7 @@
 				id = "xl-settings-" + option_type + "-" + i;
 				event = "change";
 
-				$.add(container, entry = $.node("div", "xl-settings-entry" + theme));
+				$.add(n, entry = $.node("div", "xl-settings-entry" + theme));
 				$.add(entry, table = $.node("div", "xl-settings-entry-table"));
 				$.add(table, row = $.node("div", "xl-settings-entry-row"));
 
@@ -5239,9 +5480,9 @@
 				label.htmlFor = id;
 				$.add(label, $.node("strong", "xl-settings-entry-label-name", label_text + ":"));
 				if (desc.length > 0) {
-					n = $.node("span", "xl-settings-entry-label-description");
-					n.innerHTML = " " + desc;
-					$.add(label, n);
+					n2 = $.node("span", "xl-settings-entry-label-description");
+					n2.innerHTML = " " + desc;
+					$.add(label, n2);
 				}
 
 				if (type === "checkbox") {
@@ -5258,10 +5499,10 @@
 					values = ext.options;
 					for (j = 0, jj = values.length; j < jj; ++j) {
 						v = values[j];
-						$.add(input, n = $.node("option", "xl-settings-entry-input-option", v[1]));
-						n.value = v[0];
-						n.selected = (v[0] === value);
-						if (v.length > 2) n.title = v[2];
+						$.add(input, n2 = $.node("option", "xl-settings-entry-input-option", v[1]));
+						n2.value = v[0];
+						n2.selected = (v[0] === value);
+						if (v.length > 2) n2.title = v[2];
 					}
 				}
 				else if (type === "textbox") {
@@ -5288,6 +5529,8 @@
 
 				$.on(input, event, $.bind(on_change, input, type, option_type, name, ext));
 			}
+
+			$.add(container, n);
 		};
 
 		var on_change = function (option_type, scope, name, extra, event) {
@@ -5398,7 +5641,7 @@
 		};
 		var open = function () {
 			var theme = Theme.classes,
-				n;
+				content_container, n, n2;
 
 			// Config
 			config_temp = JSON.parse(JSON.stringify(config));
@@ -5438,21 +5681,24 @@
 			}], {
 				body: true,
 				setup: function (container) {
-					var n = $.frag(html_options());
-					Theme.apply(n);
-
-					$.add(container, n);
+					content_container = container;
 				}
 			}]);
 
 			// Settings
-			gen($(".xl-settings-group-general", popup), theme, "general");
-			gen($(".xl-settings-group-sites", popup), theme, "sites");
-			gen($(".xl-settings-group-details", popup), theme, "details");
-			gen($(".xl-settings-group-actions", popup), theme, "actions");
-			gen($(".xl-settings-group-sauce", popup), theme, "sauce");
-			gen($(".xl-settings-group-filter", popup), theme, "filter");
-			gen($(".xl-settings-group-debug", popup), theme, "debug",
+			n = $.tnode("Note: you must reload the page after saving for some changes to take effect");
+			gen(content_container, "general", "General", n);
+			gen(content_container, "sites", "Sites");
+			gen(content_container, "details", "Gallery Details");
+			gen(content_container, "actions", "Gallery Actions");
+			gen(content_container, "sauce", "ExSauce");
+			n = $.link("#", "xl-settings-filter-guide-toggle", "Click here to toggle the guide");
+			n2 = $.frag(html_filter_guide());
+			$.on(n, "click", on_toggle_filter_guide);
+			$.on($("input.xl-settings-color-input[type=color]", n2), "change", on_color_helper_change);
+			Theme.apply(n2);
+			gen(content_container, "filter", "Filtering", n, n2);
+			gen(content_container, "debug", "Debugging", undefined, undefined,
 				[ null, null,
 					"Clear cache data", "Clear all cached gallery data",
 					null,
@@ -5462,8 +5708,6 @@
 
 			// Events
 			$.on(popup, "click", on_cancel_click);
-			$.on($("input.xl-settings-color-input[type=color]", popup), "change", on_color_helper_change);
-			$.on($(".xl-settings-filter-guide-toggle", popup), "click", on_toggle_filter_guide);
 
 			// Add to body
 			Popup.open(popup);
@@ -6664,7 +6908,7 @@
 		var ready = function () {
 			update(false);
 
-			if (MutationObserver !== null && d.head) {
+			if (d.head) {
 				new MutationObserver(on_head_mutate).observe(d.head, { childList: true });
 			}
 		};
@@ -7015,7 +7259,6 @@
 			n1 = $.node("div", "xl-easylist-item" + theme);
 			n1.setAttribute("data-xl-index", index);
 			n1.setAttribute("data-xl-gid", data.gid);
-			if (data.token !== null) n1.setAttribute("data-xl-token", data.token);
 			n1.setAttribute("data-xl-rating", data.rating);
 			n1.setAttribute("data-xl-date-uploaded", data.upload_date);
 			n1.setAttribute("data-xl-category", data.category);
@@ -7588,13 +7831,12 @@
 			$.off(this, "mouseover", on_gallery_mouseover);
 
 			var node = this,
-				gid, token, data, domain;
+				gid, domain, data;
 
 			if (
 				(gid = this.getAttribute("data-xl-gid")) &&
-				(token = this.getAttribute("data-xl-token")) &&
-				(data = API.get_ehentai_gallery(gid, token)) !== null &&
-				(domain = this.getAttribute("data-xl-domain"))
+				(domain = this.getAttribute("data-xl-domain")) &&
+				(data = API.get_data("ehentai", gid)) !== null
 			) {
 				API.get_ehentai_gallery_full(domain, data, function (err, data) {
 					var tags_container, n;
@@ -8293,7 +8535,10 @@
 	var Navigation = (function () {
 
 		// Private
-		var navbotright_waiting = [];
+		var waiting = {},
+			waiting_count = 0,
+			waiting_observer = null;
+
 		var Flags = {
 			None: 0x0,
 			Prepend: 0x1,
@@ -8306,17 +8551,113 @@
 			LowerCase: 0x80
 		};
 
-		var insert_at_locations = function (locations, text, url, class_name, on_click) {
+		var cleanup_functions = {
+			"#navbotright": function (node) {
+				var links = $$(".xl-nav-link", node),
+					link, n, i, ii;
+
+				// Remove bad copies
+				for (i = 0, ii = links.length; i < ii; ++i) {
+					link = links[i];
+					if ((n = link.previousSibling) !== null) {
+						$.remove(n);
+					}
+					if ((n = link.nextSibling) !== null && n.nodeType === Node.TEXT_NODE) {
+						n.nodeValue = n.nodeValue.replace(/^\s*\]\s*/, "");
+					}
+					$.remove(link);
+				}
+			}
+		};
+
+		var on_observe_all = function (records) {
+			var nodes, node, list, fn, i, ii, j, jj, k, m, mm;
+
+			for (i = 0, ii = records.length; i < ii; ++i) {
+				nodes = records[i].addedNodes;
+				if (nodes && (jj = nodes.length) > 0) {
+					// Added nodes
+					for (k in waiting) {
+						for (j = 0; j < jj; ++j) {
+							// Selector matches
+							node = nodes[j];
+							if (
+								node.nodeType === Node.ELEMENT_NODE &&
+								($.test(node, k) || (node = $(k, node)) !== null)
+							) {
+								fn = cleanup_functions[k];
+								if (fn !== undefined) {
+									fn.call(null, node);
+								}
+
+								list = waiting[k];
+								for (m = 0, mm = list.length; m < mm; m += 3) {
+									list[m].nodes = [ node, list[m + 1], list[m + 2] ];
+									list[m].insert();
+								}
+
+								--waiting_count;
+								delete waiting[k];
+								break;
+							}
+						}
+					}
+				}
+			}
+
+			if (waiting_count === 0) {
+				this.disconnect();
+				waiting_observer = null;
+			}
+		};
+
+		var LocationData = function (text, url, class_name, on_click) {
+			this.nodes = [];
+			this.text = text;
+			this.url = url;
+			this.class_name = class_name;
+			this.on_click = on_click;
+		};
+		LocationData.prototype.add = function (selector, flags, separator) {
+			var node = $(selector);
+			if (node !== null) {
+				this.nodes.push(node, flags, separator);
+			}
+			else {
+				var k = waiting[selector];
+				if (k === undefined) {
+					waiting[selector] = k = [];
+					++waiting_count;
+				}
+				k.push(this, flags, separator);
+				if (waiting_observer === null) {
+					waiting_observer = new MutationObserver(on_observe_all);
+					waiting_observer.observe(d.body, { childList: true, subtree: true });
+				}
+			}
+		};
+		LocationData.prototype.add_node = function (node, flags, separator) {
+			this.nodes.push(node, flags, separator);
+		};
+		LocationData.prototype.add_all = function (selector, flags, separator) {
+			var nodes = $$(selector),
+				i, ii;
+
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				this.nodes.push(nodes[i], flags, separator);
+			}
+		};
+		LocationData.prototype.insert = function () {
 			var first_mobile = true,
 				container, flags, node, par, pre, next, sep, i, ii, n1, t, t2, t_opt;
 
-			for (i = 0, ii = locations.length; i < ii; i += 3) {
-				node = locations[i];
-				flags = locations[i + 1];
-				sep = locations[i + 2];
+			for (i = 0, ii = this.nodes.length; i < ii; i += 3) {
+				node = this.nodes[i];
+				flags = this.nodes[i + 1];
+				sep = this.nodes[i + 2];
 
 				// Text
-				t = text;
+				t = this.text;
 				if ((flags & Flags.InnerSpace) !== 0) t = " " + t + " ";
 
 				// Create
@@ -8327,8 +8668,8 @@
 						container = $.node("div", "mobile xl-nav-extras-mobile");
 					}
 
-					$.add(container, n1 = $.node("span", "mobileib button xl-nav-button" + class_name));
-					$.add(n1, $.link(url, "xl-nav-button-inner" + class_name, t));
+					$.add(container, n1 = $.node("span", "mobileib button xl-nav-button" + this.class_name));
+					$.add(n1, $.link(this.url, "xl-nav-button-inner" + this.class_name, t));
 
 					if (first_mobile) {
 						$.before(par, node, container);
@@ -8340,9 +8681,9 @@
 					node = container;
 				}
 				else {
-					n1 = $.link(url, "xl-nav-link" + class_name, t);
+					n1 = $.link(this.url, "xl-nav-link" + this.class_name, t);
 				}
-				$.on(n1, "click", on_click);
+				$.on(n1, "click", this.on_click);
 
 				// Case
 				if ((flags & Flags.LowerCase) !== 0) {
@@ -8382,7 +8723,7 @@
 				}
 				if (t !== null) {
 					if (next !== null) {
-						if (sep !== null) t = ((flags & Flags.OuterSpace) !== 0 ? " " : "") + sep + t;
+						if (sep !== undefined) t = ((flags & Flags.OuterSpace) !== 0 ? " " : "") + sep + t;
 						if (next.nodeType === Node.TEXT_NODE) {
 							next.nodeValue = t + next.nodeValue.replace(/^\s*/, "");
 						}
@@ -8396,7 +8737,7 @@
 
 					pre = n1.previousSibling;
 					if (pre !== null) {
-						if (sep !== null) t += sep + ((flags & Flags.OuterSpace) !== 0 ? " " : "");
+						if (sep !== undefined) t += sep + ((flags & Flags.OuterSpace) !== 0 ? " " : "");
 						if (pre.nodeType === Node.TEXT_NODE) {
 							pre.nodeValue = pre.nodeValue.replace(/\s*$/, "") + t2;
 						}
@@ -8409,29 +8750,21 @@
 					}
 				}
 			}
+
+			this.nodes = null;
 		};
 
 		// Public
 		var insert_link = function (mode, text, url, class_name, on_click) {
-			var locations = [],
+			var locations = new LocationData(text, url, class_name, on_click),
 				nodes, node, cl, i, ii;
 
 			if (Config.is_4chan) {
 				if (mode === "main") {
-					if ((node = $("#navtopright")) !== null) {
-						locations.push(node, Flags.OuterSpace | Flags.Brackets | Flags.Prepend, null);
-					}
-					if ((node = $("#navbotright")) !== null) {
-						locations.push(node, Flags.OuterSpace | Flags.Brackets | Flags.Prepend, null);
-						if (navbotright_waiting !== null) update_navbotright(node);
-					}
-					else if (navbotright_waiting !== null) {
-						navbotright_waiting.push([ text, url, class_name, on_click ]);
-					}
-					nodes = $$("#settingsWindowLinkMobile");
-					for (i = 0, ii = nodes.length; i < ii; ++i) {
-						locations.push(nodes[i], Flags.Before, null);
-					}
+					locations.add("#navtopright", Flags.OuterSpace | Flags.Brackets | Flags.Prepend);
+					locations.add("#navbotright", Flags.OuterSpace | Flags.Brackets | Flags.Prepend);
+					locations.add("#settingsWindowLinkMobile", Flags.Before);
+					locations.add("#settingsWindowLinkClassic", Flags.Before);
 				}
 				else {
 					cl = d.documentElement.classList;
@@ -8443,89 +8776,441 @@
 						nodes = $$("#ctrl-top,.navLinks");
 						for (i = 0, ii = nodes.length; i < ii; ++i) {
 							node = nodes[i];
-							locations.push(
+							locations.add_node(
 								node,
-								(node.classList.contains("mobile") ? Flags.Mobile : (Flags.OuterSpace | Flags.Brackets)),
-								null
+								(node.classList.contains("mobile") ? Flags.Mobile : (Flags.OuterSpace | Flags.Brackets))
 							);
 						}
 					}
 				}
 			}
 			else if (Config.is_foolz) {
-				nodes = $$(".letters");
-				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					locations.push(nodes[i], Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets, null);
-				}
+				locations.add_all(".letters", Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets);
 			}
 			else if (Config.is_fuuka) {
-				node = $("body>div:first-child");
-				if (node !== null) {
-					locations.push(node, Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets, null);
-				}
+				locations.add("body>div:first-child", Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets);
 			}
 			else if (Config.is_tinyboard) {
-				nodes = $$(".boardlist");
-				for (i = 0, ii = nodes.length; i < ii; ++i) {
-					locations.push(nodes[i], Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets | Flags.LowerCase, null);
-				}
+				locations.add_all(".boardlist", Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets | Flags.LowerCase);
 			}
 			else if (Config.is_ipb) {
-				node = $("#livechat");
-				if (node !== null) {
-					locations.push(node, Flags.Prepend | Flags.OuterSpace, null);
-				}
+				locations.add("#livechat", Flags.Prepend | Flags.OuterSpace);
 			}
 			else if (Config.is_ipb_lofi) {
-				node = $(".ipbnavsmall");
-				if (node !== null) {
-					locations.push(node, Flags.Prepend | Flags.OuterSpace, "-");
-				}
+				locations.add(".ipbnavsmall", Flags.Prepend | Flags.OuterSpace, "-");
 			}
 
-			insert_at_locations(locations, text, url, class_name, on_click);
-		};
-		var update_navbotright = function (node) {
-			if (navbotright_waiting === null) return;
-			if (navbotright_waiting.length === 0) {
-				navbotright_waiting = null;
-				return;
-			}
-
-			var links = $$(".xl-nav-link", node),
-				link, entry, n, i, ii;
-
-			// Remove bad copies
-			for (i = 0, ii = links.length; i < ii; ++i) {
-				link = links[i];
-				if ((n = link.previousSibling) !== null) {
-					$.remove(n);
-				}
-				if ((n = link.nextSibling) !== null && n.nodeType === Node.TEXT_NODE) {
-					n.nodeValue = n.nodeValue.replace(/^\s*\]\s*/, "");
-				}
-				$.remove(link);
-			}
-
-			// Add
-			for (i = 0, ii = navbotright_waiting.length; i < ii; ++i) {
-				entry = navbotright_waiting[i];
-				insert_at_locations(
-					[ node, Flags.OuterSpace | Flags.Brackets | Flags.Prepend, null ],
-					entry[0],
-					entry[1],
-					entry[2],
-					entry[3]
-				);
-			}
-
-			navbotright_waiting = null;
+			locations.insert();
 		};
 
 		// Exports
 		return {
-			insert_link: insert_link,
-			update_navbotright: update_navbotright
+			insert_link: insert_link
+		};
+
+	})();
+	var ExtensionAPI = (function () {
+
+		// Private
+		var random_string_alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+		var random_string = function (count) {
+			var alpha_len = random_string_alphabet.length,
+				s = "",
+				i;
+			for (i = 0; i < count; ++i) {
+				s += random_string_alphabet[Math.floor(Math.random() * alpha_len)];
+			}
+			return s;
+		};
+
+		var is_object = function (obj) {
+			return (obj !== null && typeof(obj) === "object");
+		};
+
+		var api = null;
+		var ExtensionAPI = function () {
+			this.origin = window.location.protocol + "//" + window.location.host;
+			this.timeout_delay = 1000;
+
+			this.api_name = null;
+			this.api_key = null;
+			this.action = null;
+			this.reply_id = null;
+			this.reply_callbacks = {};
+
+			this.registration = null;
+			this.registrations = {};
+			this.request_apis = {};
+
+			var self = this;
+			this.on_window_message_bind = function (event) {
+				return self.on_window_message(event);
+			};
+			window.addEventListener("message", this.on_window_message_bind, false);
+		};
+		ExtensionAPI.prototype.on_window_message = function (event) {
+			var data = event.data,
+				handlers, action_data, reply_id, fn;
+
+			if (
+				event.origin === this.origin &&
+				is_object(data) &&
+				typeof((this.action = data.xlinks_action)) === "string" &&
+				data.extension === true &&
+				typeof((this.api_key = data.key)) === "string" &&
+				typeof((this.api_name = data.name)) === "string" &&
+				(action_data = data.data) !== undefined
+			) {
+				this.registration = this.registrations[this.api_key];
+				if (this.registration === undefined || this.registration.name !== this.api_name) {
+					this.registration = null;
+					handlers = ExtensionAPI.handlers_init;
+				}
+				else {
+					handlers = ExtensionAPI.handlers;
+				}
+				this.reply_id = data.id;
+
+				if (typeof((reply_id = data.reply)) === "string") {
+					if (typeof((fn = this.reply_callbacks[reply_id])) === "function") {
+						delete this.reply_callbacks[reply_id];
+						fn.call(this, null, action_data);
+					}
+				}
+				else {
+					if (typeof((fn = handlers[this.action])) === "function") {
+						fn.call(this, action_data);
+					}
+					else if (this.reply_id !== null) {
+						this.send(this.action, { err: "Invalid call" }, this.reply_id);
+					}
+				}
+
+				this.registration = null;
+				this.reply_id = null;
+			}
+
+			this.action = null;
+			this.api_key = null;
+			this.api_name = null;
+		};
+		ExtensionAPI.prototype.send = function (action, data, reply_to, on_reply) {
+			var self = this,
+				id = null,
+				timeout, cb, i;
+
+			if (on_reply !== undefined) {
+				for (i = 0; i < 10; ++i) {
+					id = random_string(32);
+					if (!Object.prototype.hasOwnProperty.call(this.reply_callbacks)) break;
+				}
+
+				cb = function () {
+					if (timeout !== null) {
+						clearTimeout(timeout);
+						timeout = null;
+					}
+
+					on_reply.apply(this, arguments);
+				};
+
+				this.reply_callbacks[id] = cb;
+				cb = null;
+
+				if (this.timeout_delay >= 0) {
+					timeout = setTimeout(function () {
+						timeout = null;
+						delete self.reply_callbacks[id];
+						on_reply.call(self, "Response timeout");
+					}, this.timeout_delay);
+				}
+			}
+
+			window.postMessage({
+				xlinks_action: action,
+				extension: false,
+				id: id,
+				reply: reply_to || null,
+				key: this.api_key,
+				name: this.api_name,
+				data: data
+			}, this.origin);
+		};
+		ExtensionAPI.prototype.request_api_fn = function (fn_id) {
+			var self = this,
+				api_name = this.api_name,
+				api_key = this.api_key;
+
+			return function () {
+				var callback = arguments[arguments.length - 1],
+					args = Array.prototype.splice.call(arguments, 0, arguments.length - 1),
+					state = null;
+
+				if (this !== null) {
+					state = {
+						id: this.data.id,
+						retry_count: this.retry_count,
+						delay: this.delay
+					};
+
+					if (!this.data.sent) {
+						this.data.sent = true;
+						state.infos = this.infos;
+					}
+				}
+
+				self.api_name = api_name;
+				self.api_key = api_key;
+				self.send("api_function", {
+					id: fn_id,
+					args: args,
+					state: state
+				}, null, self.request_api_fn_callback(callback));
+				self.api_name = null;
+				self.api_key = null;
+			};
+		};
+		ExtensionAPI.prototype.request_api_fn_callback = function (callback) {
+			return function (err, data) {
+				var args;
+				if (err !== null) {
+					callback.call(null, err, null);
+				}
+				else if (!is_object(data) || !Array.isArray((args = data.args))) {
+					callback.call(null, "Invalid response", null);
+				}
+				else {
+					args = JSON.parse(JSON.stringify(args));
+					callback.apply(null, args);
+				}
+			};
+		};
+
+		ExtensionAPI.request_api_functions_required = [
+			"setup_xhr",
+			"parse_response"
+		];
+		ExtensionAPI.request_api_functions = {
+			get_data: "get_data",
+			set_data: "set_data",
+			setup_xhr: "setup_xhr",
+			parse_response: "parse_response",
+			delay_modify: "delay_modify",
+			error_mode: "error_mode"
+		};
+
+		ExtensionAPI.handlers_init = {
+			start: function () {
+				var reply_data = null,
+					reply_key, i;
+
+				for (i = 0; i < 10; ++i) {
+					reply_key = random_string(64);
+					if (!Object.prototype.hasOwnProperty.call(this.registrations, reply_key)) {
+						this.registrations[reply_key] = {
+							name: this.api_name,
+							key: reply_key,
+							apis: []
+						};
+						reply_data = { key: reply_key };
+						break;
+					}
+				}
+
+				this.send(this.action, reply_data, this.reply_id);
+			},
+		};
+		ExtensionAPI.handlers = {
+			register: function (data) {
+				if (!is_object(data)) {
+					// Failure
+					this.send(this.action, {
+						err: "Invalid data"
+					}, this.reply_id);
+					return;
+				}
+
+				// Register
+				var response = {
+						settings: {},
+						request_apis: []
+					},
+					req, fns, fn_id, a, o, o2, v, i, ii, j, jj, k;
+
+				// Request APIs
+				if (Array.isArray((o = data.request_apis))) {
+					for (i = 0, ii = o.length; i < ii; ++i) {
+						a = o[i];
+						if (is_object(a)) {
+							var req_group = "other",
+								req_namespace = "other",
+								req_type = "other",
+								req_count = 1,
+								req_concurrent = 1,
+								req_delay_okay = 200,
+								req_delay_error = 5000,
+								req_functions = {},
+								req_function_ids = {};
+
+							// Settings
+							if (typeof((v = a.group)) === "string") req_group = v;
+							if (typeof((v = a.namespace)) === "string") req_namespace = v;
+							if (typeof((v = a.type)) === "string") req_type = v;
+							if (typeof((v = a.count)) === "number") req_count = Math.max(1, v);
+							if (typeof((v = a.concurrent)) === "number") req_concurrent = Math.max(1, v);
+							if (typeof((v = a.delay_okay)) === "number") req_delay_okay = Math.max(0, v);
+							if (typeof((v = a.delay_error)) === "number") req_delay_error = Math.max(0, v);
+
+							// Functions
+							if (Array.isArray((fns = a.functions))) {
+								for (j = 0, jj = fns.length; j < jj; ++j) {
+									v = fns[j];
+									if (Object.prototype.hasOwnProperty.call(ExtensionAPI.request_api_functions, v)) {
+										fn_id = random_string(32);
+										req_functions[ExtensionAPI.request_api_functions[v]] = this.request_api_fn(fn_id, v);
+										req_function_ids[v] = fn_id;
+									}
+								}
+							}
+
+							// Validate
+							for (j = 0, jj = ExtensionAPI.request_api_functions_required.length; j < jj; ++j) {
+								if (!Object.prototype.hasOwnProperty.call(req_functions, ExtensionAPI.request_api_functions_required[j])) break;
+							}
+							if (j < jj) {
+								response.request_apis.push([ "Missing functions" ]);
+							}
+							else {
+								// Check to see if the namespace/type is unique
+								if (
+									(o2 = this.request_apis[req_namespace]) !== undefined &&
+									o2[req_type] !== undefined
+								) {
+									response.request_apis.push([ "Already exists" ]);
+								}
+								else {
+									req = new API.RequestType(
+										req_count,
+										req_concurrent,
+										req_delay_okay,
+										req_delay_error,
+										req_group,
+										req_namespace,
+										req_type
+									);
+									for (k in req_functions) {
+										req[k] = req_functions[k];
+									}
+									req.request_init = api_request_init_fn;
+									req.request_complete = create_api_request_complete_fn(this.api_name, this.api_key);
+
+									if (o2 === undefined) {
+										this.request_apis[req_namespace] = o2 = {};
+									}
+									o2[req_type] = {
+										req: req,
+										api_name: this.api_name,
+										api_key: this.api_key
+									};
+
+									response.request_apis.push([ null, req_function_ids ]);
+								}
+							}
+						}
+						else {
+							response.request_apis.push([ "Invalid" ]);
+						}
+					}
+				}
+
+				// Okay
+				this.send(this.action, {
+					err: null,
+					response: response
+				}, this.reply_id);
+			},
+			request: function (data) {
+				var self = this,
+					action = this.action,
+					reply_id = this.reply_id,
+					api_key = this.api_key,
+					api_name = this.api_name,
+					namespace, type, unique_id, info;
+
+				if (
+					!is_object(data) ||
+					typeof((namespace = data.namespace)) !== "string" ||
+					typeof((type = data.type)) !== "string" ||
+					typeof((unique_id = data.id)) !== "string" ||
+					(info = data.info) === undefined
+				) {
+					// Failure
+					this.send(this.action, {
+						err: "Invalid data"
+					}, this.reply_id);
+					return;
+				}
+
+				request(namespace, type, unique_id, info, function (err, data) {
+					self.api_key = api_key;
+					self.api_name = api_name;
+
+					if (err !== null) {
+						data = null;
+					}
+
+					self.send(action, {
+						err: err,
+						data: data
+					}, reply_id);
+
+					self.api_key = null;
+					self.api_name = null;
+				});
+			},
+		};
+
+		var api_request_init_fn = function (req) {
+			req.data = {
+				id: random_string(32),
+				sent: false
+			};
+		};
+		var create_api_request_complete_fn = function (api_name, api_key) {
+			return function (req) {
+				api.api_name = api_name;
+				api.api_key = api_key;
+				api.send("request_end", { id: req.data.id });
+				api.api_name = null;
+				api.api_key = null;
+			};
+		};
+
+
+		// Public
+		var init = function () {
+			if (api === null) api = new ExtensionAPI();
+		};
+
+		var request = function (namespace, type, unique_id, info, callback) {
+			var req_data, req;
+			if (
+				api === null ||
+				(req_data = api.request_apis[namespace]) === undefined ||
+				(req_data = req_data[type]) === undefined
+			) {
+				callback.call(null, "Invalid API", null);
+				return;
+			}
+
+			return req_data.req.add(unique_id, info, false, callback);
+		};
+
+
+		// Exports
+		return {
+			init: init,
+			request: request
 		};
 
 	})();
@@ -8562,14 +9247,8 @@
 			Linkifier.queue_posts(Post.get_all_posts(d), Linkifier.queue_posts.Flags.UseDelay);
 
 			if (Config.dynamic) {
-				if (MutationObserver !== null) {
-					updater = new MutationObserver(on_body_observe);
-					updater.observe(d.body, { childList: true, subtree: true });
-				}
-				else {
-					$.on(d.body, "DOMNodeInserted", on_body_node_add);
-					$.on(d.body, "DOMNodeRemoved", on_body_node_remove);
-				}
+				updater = new MutationObserver(on_body_observe);
+				updater.observe(d.body, { childList: true, subtree: true });
 			}
 
 			HeaderBar.ready();
@@ -8579,26 +9258,6 @@
 			}
 
 			Debug.timer_log("init.ready.full duration", "init");
-		};
-		var on_body_node_add = function (event) {
-			var node = event.target;
-			on_body_observe([{
-				target: node.parentNode,
-				addedNodes: [ node ],
-				removedNodes: [],
-				nextSibling: node.nextSibling,
-				previousSibling: node.previousSibling
-			}]);
-		};
-		var on_body_node_remove = function (event) {
-			var node = event.target;
-			on_body_observe([{
-				target: node.parentNode,
-				addedNodes: [],
-				removedNodes: [ node ],
-				nextSibling: node.nextSibling,
-				previousSibling: node.previousSibling
-			}]);
 		};
 		var on_body_observe = function (records) {
 			var post_list = [],
@@ -8672,20 +9331,6 @@
 							}
 						}
 					}
-
-					// Check for navbotright
-					if (e.target === d.body) {
-						for (j = 0, jj = nodes.length; j < jj; ++j) {
-							node = nodes[j];
-							if (
-								node.id === "boardNavDesktopFoot" &&
-								(node = $("#navbotright", node)) !== null
-							) {
-								Navigation.update_navbotright(node);
-								break;
-							}
-						}
-					}
 				}
 			}
 
@@ -8729,6 +9374,7 @@
 			API.init();
 			UI.init();
 			Sauce.init();
+			ExtensionAPI.init();
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
 			$.ready(on_ready);
@@ -8782,7 +9428,7 @@
 		// Exports
 		var Module = {
 			homepage: "https://dnsev-h.github.io/x-links/",
-			version: [1,2,0,1],
+			version: [1,2,1],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
