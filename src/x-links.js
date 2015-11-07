@@ -3049,6 +3049,8 @@
 				delay: 0
 			};
 
+			this.request_init = null;
+
 			this.delay_modify = null;
 			this.error_mode = null;
 			this.get_data = null;
@@ -3063,12 +3065,12 @@
 			this.progress_callbacks = [];
 			if (progress_callback !== undefined) this.progress_callbacks.push(progress_callback);
 		};
-		var Request = function (type, entries, id) {
+		var Request = function (type, entries) {
 			var self = this,
 				delay_modify = type.delay_modify,
 				cbs, i, ii;
 
-			this.id = id;
+			this.data = null;
 			this.type = type;
 			this.retry_count = 0;
 			this.delay = 0;
@@ -3190,7 +3192,10 @@
 			}
 		};
 		RequestType.prototype.run = function () {
-			var req = new Request(this, this.queue.splice(0, this.count), null);
+			var req = new Request(this, this.queue.splice(0, this.count));
+			if (this.request_init !== null) {
+				this.request_init.call(this, req);
+			}
 			req.run();
 		};
 
@@ -3200,7 +3205,7 @@
 			if (this.progress_callbacks !== null) {
 				ev = (this.retry_count === 0) ? "start" : "retry";
 				for (i = 0, ii = this.progress_callbacks.length; i < ii; ++i) {
-					this.progress_callbacks[i].call(null, ev);
+					this.progress_callbacks[i].call(this, ev);
 				}
 			}
 
@@ -3220,7 +3225,7 @@
 			// Save
 			var save_callback = function () {
 				for (var i = 0, ii = entry.callbacks.length; i < ii; ++i) {
-					entry.callbacks[i].call(null, err, data);
+					entry.callbacks[i].call(self, err, data);
 				}
 
 				if (++complete >= total) self.complete();
@@ -3327,7 +3332,7 @@
 			if (this.progress_callbacks !== null) {
 				xhr_data.onprogress = function (xhr) {
 					for (var i = 0, ii = self.progress_callbacks.length; i < ii; ++i) {
-						self.progress_callbacks[i].call(null, "progress", xhr.lengthComputable, xhr.loaded, xhr.total);
+						self.progress_callbacks[i].call(self, "progress", xhr.lengthComputable, xhr.loaded, xhr.total);
 					}
 				};
 
@@ -3336,7 +3341,7 @@
 					xhr_data.upload.onprogress = xhr_data.onprogress;
 					xhr_data.upload.onload = function () {
 						for (var i = 0, ii = self.progress_callbacks.length; i < ii; ++i) {
-							self.progress_callbacks[i].call(null, "download");
+							self.progress_callbacks[i].call(self, "download");
 						}
 					};
 				}
@@ -3345,7 +3350,7 @@
 				}
 
 				for (i = 0, ii = this.progress_callbacks.length; i < ii; ++i) {
-					this.progress_callbacks[i].call(null, ev);
+					this.progress_callbacks[i].call(this, ev);
 				}
 				ev = null;
 			}
@@ -8859,11 +8864,13 @@
 				this.reply_callbacks[id] = cb;
 				cb = null;
 
-				timeout = setTimeout(function () {
-					timeout = null;
-					delete self.reply_callbacks[id];
-					on_reply.call(self, "Response timeout");
-				}, this.timeout_delay);
+				if (this.timeout_delay >= 0) {
+					timeout = setTimeout(function () {
+						timeout = null;
+						delete self.reply_callbacks[id];
+						on_reply.call(self, "Response timeout");
+					}, this.timeout_delay);
+				}
 			}
 
 			window.postMessage({
@@ -8883,13 +8890,28 @@
 
 			return function () {
 				var callback = arguments[arguments.length - 1],
-					args = Array.prototype.splice.call(arguments, 0, arguments.length - 1);
+					args = Array.prototype.splice.call(arguments, 0, arguments.length - 1),
+					state = null;
+
+				if (this !== null) {
+					state = {
+						id: this.data.id,
+						retry_count: this.retry_count,
+						delay: this.delay
+					};
+
+					if (!this.data.sent) {
+						this.data.sent = true;
+						state.infos = this.infos;
+					}
+				}
 
 				self.api_name = api_name;
 				self.api_key = api_key;
 				self.send("api_function", {
 					id: fn_id,
-					args: args
+					args: args,
+					state: state
 				}, null, self.request_api_fn_callback(callback));
 				self.api_name = null;
 				self.api_key = null;
@@ -8897,19 +8919,16 @@
 		};
 		ExtensionAPI.prototype.request_api_fn_callback = function (callback) {
 			return function (err, data) {
-				var val;
+				var args;
 				if (err !== null) {
 					callback.call(null, err, null);
 				}
-				else if (!is_object(data)) {
+				else if (!is_object(data) || !Array.isArray((args = data.args))) {
 					callback.call(null, "Invalid response", null);
 				}
 				else {
-					val = data.return_value;
-					if (val !== undefined) {
-						val = JSON.parse(JSON.stringify(val));
-					}
-					callback.call(null, null, val);
+					args = JSON.parse(JSON.stringify(args));
+					callback.apply(null, args);
 				}
 			};
 		};
@@ -9017,10 +9036,19 @@
 									response.request_apis.push([ "Already exists" ]);
 								}
 								else {
-									req = new API.RequestType(req_count, req_concurrent, req_delay_okay, req_delay_error, req_group, req_namespace, req_type);
+									req = new API.RequestType(
+										req_count,
+										req_concurrent,
+										req_delay_okay,
+										req_delay_error,
+										req_group,
+										req_namespace,
+										req_type
+									);
 									for (k in req_functions) {
 										req[k] = req_functions[k];
 									}
+									req.request_init = api_request_init_fn;
 
 									if (o2 === undefined) {
 										this.request_apis[req_namespace] = o2 = {};
@@ -9088,6 +9116,13 @@
 			},
 		};
 
+		var api_request_init_fn = function (req) {
+			req.data = {
+				id: random_string(32),
+				sent: false
+			};
+		};
+
 
 		// Public
 		var init = function () {
@@ -9095,7 +9130,7 @@
 		};
 
 		var request = function (namespace, type, unique_id, info, callback) {
-			var req_data;
+			var req_data, req;
 			if (
 				api === null ||
 				(req_data = api.request_apis[namespace]) === undefined ||
@@ -9105,7 +9140,6 @@
 				return;
 			}
 
-			var request_id = random_string(32);
 			return req_data.req.add(
 				unique_id,
 				info,
@@ -9113,19 +9147,12 @@
 				function (err, data) {
 					api.api_name = req_data.api_name;
 					api.api_key = req_data.api_key;
-					callback.call(err, data);
-					api.send("request_end", { id: request_id });
+					callback.call(null, err, data);
+					api.api_name = req_data.api_name;
+					api.api_key = req_data.api_key;
+					api.send("request_end", { id: this.data.id });
 					api.api_name = null;
 					api.api_key = null;
-				},
-				function (state) {
-					if (state === "start") {
-						api.api_name = req_data.api_name;
-						api.api_key = req_data.api_key;
-						api.send("request_start", { id: request_id });
-						api.api_name = null;
-						api.api_key = null;
-					}
 				}
 			);
 		};
