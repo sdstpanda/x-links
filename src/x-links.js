@@ -8751,7 +8751,7 @@
 		};
 
 	})();
-	var AddonAPI = (function () {
+	var ExtensionAPI = (function () {
 
 		// Private
 		var random_string_alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -8770,7 +8770,7 @@
 		};
 
 		var api = null;
-		var AddonAPI = function () {
+		var ExtensionAPI = function () {
 			this.origin = window.location.protocol + "//" + window.location.host;
 			this.timeout_delay = 1000;
 
@@ -8790,7 +8790,7 @@
 			};
 			window.addEventListener("message", this.on_window_message_bind, false);
 		};
-		AddonAPI.prototype.on_window_message = function (event) {
+		ExtensionAPI.prototype.on_window_message = function (event) {
 			var data = event.data,
 				handlers, action_data, reply_id, fn;
 
@@ -8806,10 +8806,10 @@
 				this.registration = this.registrations[this.api_key];
 				if (this.registration === undefined || this.registration.name !== this.api_name) {
 					this.registration = null;
-					handlers = AddonAPI.handlers_init;
+					handlers = ExtensionAPI.handlers_init;
 				}
 				else {
-					handlers = AddonAPI.handlers;
+					handlers = ExtensionAPI.handlers;
 				}
 				this.reply_id = data.id;
 
@@ -8836,7 +8836,7 @@
 			this.api_key = null;
 			this.api_name = null;
 		};
-		AddonAPI.prototype.send = function (action, data, reply_to, on_reply) {
+		ExtensionAPI.prototype.send = function (action, data, reply_to, on_reply) {
 			var self = this,
 				id = null,
 				timeout, cb, i;
@@ -8876,7 +8876,7 @@
 				data: data
 			}, this.origin);
 		};
-		AddonAPI.prototype.request_api_fn = function (fn_id) {
+		ExtensionAPI.prototype.request_api_fn = function (fn_id) {
 			var self = this,
 				api_name = this.api_name,
 				api_key = this.api_key;
@@ -8895,7 +8895,7 @@
 				self.api_key = null;
 			};
 		};
-		AddonAPI.prototype.request_api_fn_callback = function (callback) {
+		ExtensionAPI.prototype.request_api_fn_callback = function (callback) {
 			return function (err, data) {
 				var val;
 				if (err !== null) {
@@ -8914,13 +8914,13 @@
 			};
 		};
 
-		AddonAPI.request_api_functions_required = [
+		ExtensionAPI.request_api_functions_required = [
 			"set_data",
 			"get_data",
 			"setup_xhr",
 			"parse_response"
 		];
-		AddonAPI.request_api_functions = {
+		ExtensionAPI.request_api_functions = {
 			get_data: "get_data",
 			set_data: "set_data",
 			setup_xhr: "setup_xhr",
@@ -8929,7 +8929,7 @@
 			error_mode: "error_mode"
 		};
 
-		AddonAPI.handlers_init = {
+		ExtensionAPI.handlers_init = {
 			start: function () {
 				var reply_data = null,
 					reply_key, i;
@@ -8950,7 +8950,7 @@
 				this.send(this.action, reply_data, this.reply_id);
 			},
 		};
-		AddonAPI.handlers = {
+		ExtensionAPI.handlers = {
 			register: function (data) {
 				if (!is_object(data)) {
 					// Failure
@@ -8995,17 +8995,17 @@
 							if (Array.isArray((fns = a.functions))) {
 								for (j = 0, jj = fns.length; j < jj; ++j) {
 									v = fns[j];
-									if (Object.prototype.hasOwnProperty.call(AddonAPI.request_api_functions, v)) {
+									if (Object.prototype.hasOwnProperty.call(ExtensionAPI.request_api_functions, v)) {
 										fn_id = random_string(32);
-										req_functions[AddonAPI.request_api_functions[v]] = this.request_api_fn(fn_id, v);
+										req_functions[ExtensionAPI.request_api_functions[v]] = this.request_api_fn(fn_id, v);
 										req_function_ids[v] = fn_id;
 									}
 								}
 							}
 
 							// Validate
-							for (j = 0, jj = AddonAPI.request_api_functions_required.length; j < jj; ++j) {
-								if (!Object.prototype.hasOwnProperty.call(req_functions, AddonAPI.request_api_functions_required[j])) break;
+							for (j = 0, jj = ExtensionAPI.request_api_functions_required.length; j < jj; ++j) {
+								if (!Object.prototype.hasOwnProperty.call(req_functions, ExtensionAPI.request_api_functions_required[j])) break;
 							}
 							if (j < jj) {
 								response.request_apis.push([ "Missing functions" ]);
@@ -9093,7 +9093,7 @@
 
 		// Public
 		var init = function () {
-			if (api === null) api = new AddonAPI();
+			if (api === null) api = new ExtensionAPI();
 		};
 
 		var request = function (namespace, type, unique_id, info, callback) {
@@ -9299,7 +9299,7 @@
 			API.init();
 			UI.init();
 			Sauce.init();
-			AddonAPI.init();
+			ExtensionAPI.init();
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
 			$.ready(on_ready);
