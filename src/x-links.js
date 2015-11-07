@@ -1197,16 +1197,21 @@
 					(info = Linkifier.get_node_url_info(this)) === null ||
 					(data = API.get_data(info.site, info.gid)) === null
 				) {
+					Debug.log("Invalid link", this, info, data);
 					return;
 				}
 
 				if (details === undefined) {
 					if (!((domain = $.get_domain(this.href)) in domain_info)) {
+						Debug.log("Invalid link (domain)", this, domain);
 						return;
 					}
 
 					details = create_details(data, domain);
 					details_nodes[full_id] = details;
+				}
+				if (!details.parentNode) {
+					Debug.log("Invalid details", this, details.parentNode, details, full_id);
 				}
 
 				details.classList.remove("xl-details-hidden");
@@ -3253,7 +3258,7 @@
 					});
 				}
 				else {
-					this.xhr_error("Response error " + xhr.status)();
+					self.xhr_error("Response error " + xhr.status)();
 				}
 			};
 
