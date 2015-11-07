@@ -3033,7 +3033,6 @@
 			this.delay_okay = delay_okay;
 			this.delay_error = delay_error;
 			this.queue = [];
-			this.queue_infos = [];
 			this.unique = {};
 
 			this.group = request_groups[group_name];
@@ -3057,56 +3056,13 @@
 			this.setup_xhr = null;
 			this.parse_response = null;
 		};
-		var RequestData = function (id, data, callback, progress_callback) {
+		var RequestData = function (id, info, callback, progress_callback) {
 			this.id = id;
-			this.data = data;
+			this.info = info;
 			this.callbacks = [ callback ];
 			this.progress_callbacks = [];
 			if (progress_callback !== undefined) this.progress_callbacks.push(progress_callback);
 		};
-		var RequestErrorMode = {
-			None: 0,
-			NoCache: 1,
-			Save: 2
-		};
-
-		RequestGroup.prototype.run2_delay = function (type) {
-			setTimeout(function () {
-				type.run2();
-			}, 1);
-		};
-		RequestGroup.prototype.run2 = function (use_delay) {
-			var type, i, ii;
-			for (i = 0, ii = this.types.length; i < ii; ++i) {
-				type = this.types[i];
-				while (true) {
-					if (this.active >= type.concurrent) return;
-					if (type.queue.length === 0) break;
-					++this.active;
-
-					if (use_delay && type.count > 1) {
-						this.run2_delay(type);
-					}
-					else {
-						type.run2();
-					}
-				}
-			}
-		};
-		RequestGroup.prototype.complete2 = function (delay) {
-			if (delay > 0) {
-				var self = this;
-				setTimeout(function () {
-					--self.active;
-					self.run2(false);
-				}, delay);
-			}
-			else {
-				--this.active;
-				this.run2(false);
-			}
-		};
-
 		var Request = function (type, entries, id) {
 			var self = this,
 				delay_modify = type.delay_modify,
@@ -3121,7 +3077,7 @@
 			this.progress_callbacks = null;
 
 			for (i = 0, ii = entries.length; i < ii; ++i) {
-				this.infos.push(entries[i].data);
+				this.infos.push(entries[i].info);
 
 				cbs = entries[i].progress_callbacks;
 				if (cbs.length > 0) {
@@ -3136,14 +3092,108 @@
 
 			this.complete = (delay_modify === null) ?
 				function () {
-					type.group.complete2(self.delay);
+					type.group.complete(self.delay);
 				} :
 				function () {
 					delay_modify.call(self, function () {
-						type.group.complete2(self.delay);
+						type.group.complete(self.delay);
 					});
 				};
 		};
+		var RequestErrorMode = {
+			None: 0,
+			NoCache: 1,
+			Save: 2
+		};
+
+		RequestGroup.prototype.run_delay = function (type) {
+			setTimeout(function () {
+				type.run();
+			}, 1);
+		};
+		RequestGroup.prototype.run = function (use_delay) {
+			var type, i, ii;
+			for (i = 0, ii = this.types.length; i < ii; ++i) {
+				type = this.types[i];
+				while (true) {
+					if (this.active >= type.concurrent) return;
+					if (type.queue.length === 0) break;
+					++this.active;
+
+					if (use_delay && type.count > 1) {
+						this.run_delay(type);
+					}
+					else {
+						type.run();
+					}
+				}
+			}
+		};
+		RequestGroup.prototype.complete = function (delay) {
+			if (delay > 0) {
+				var self = this;
+				setTimeout(function () {
+					--self.active;
+					self.run(false);
+				}, delay);
+			}
+			else {
+				--this.active;
+				this.run(false);
+			}
+		};
+
+		RequestType.prototype.add = function (unique_id, info, quick, callback, progress_callback) {
+			var self = this;
+
+			var get_data_callback = function (err, data) {
+				var u;
+
+				if (data !== null) {
+					if (progress_callback !== undefined) progress_callback.call(null, "start");
+					callback.call(null, null, data);
+					return;
+				}
+
+				if (quick) err = "Not found";
+
+				if (
+					err !== null ||
+					(err = get_saved_error([ self.namespace, self.type, unique_id ])) !== null
+				) {
+					if (progress_callback !== undefined) progress_callback.call(null, "start");
+					callback.call(null, err, null);
+					return;
+				}
+
+				// Add
+				u = self.unique[unique_id];
+				if (u === undefined) {
+					u = new RequestData(unique_id, info, callback, progress_callback);
+					self.unique[unique_id] = u;
+					self.queue.push(u);
+				}
+				else {
+					u.callbacks.push(callback);
+					if (progress_callback !== undefined) u.progress_callbacks.push(progress_callback);
+				}
+
+				// Run (if not already running)
+				self.group.run(true);
+			};
+
+			if (this.get_data === null) {
+				get_data_callback(null, null);
+			}
+			else {
+				this.get_data.call(null, info, get_data_callback);
+			}
+		};
+		RequestType.prototype.run = function () {
+			var req = new Request(this, this.queue.splice(0, this.count), null);
+			req.run();
+		};
+
 		Request.prototype.run = function () {
 			var i, ii, ev;
 
@@ -3218,7 +3268,7 @@
 				else {
 					err = null;
 					if (set_data !== null) {
-						set_data.call(this, data, entry.data, save_callback);
+						set_data.call(this, data, entry.info, save_callback);
 					}
 					else {
 						save_callback();
@@ -3328,57 +3378,6 @@
 				this.complete_entries();
 				this.process_response("Data not found", response);
 			}
-		};
-
-		RequestType.prototype.add2 = function (unique_id, info, quick, callback, progress_callback) {
-			var self = this;
-
-			var get_data_callback = function (err, data) {
-				var u;
-
-				if (data !== null) {
-					if (progress_callback !== undefined) progress_callback.call(null, "start");
-					callback.call(null, null, data);
-					return;
-				}
-
-				if (quick) err = "Not found";
-
-				if (
-					err !== null ||
-					(err = get_saved_error([ self.namespace, self.type, unique_id ])) !== null
-				) {
-					if (progress_callback !== undefined) progress_callback.call(null, "start");
-					callback.call(null, err, null);
-					return;
-				}
-
-				// Add
-				u = self.unique[unique_id];
-				if (u === undefined) {
-					u = new RequestData(unique_id, info, callback, progress_callback);
-					self.unique[unique_id] = u;
-					self.queue.push(u);
-				}
-				else {
-					u.callbacks.push(callback);
-					if (progress_callback !== undefined) u.progress_callbacks.push(progress_callback);
-				}
-
-				// Run (if not already running)
-				self.group.run2(true);
-			};
-
-			if (this.get_data === null) {
-				get_data_callback(null, null);
-			}
-			else {
-				this.get_data.call(null, info, get_data_callback);
-			}
-		};
-		RequestType.prototype.run2 = function () {
-			var req = new Request(this, this.queue.splice(0, this.count), null);
-			req.run();
 		};
 
 
@@ -3930,17 +3929,17 @@
 
 		var get_ehentai_gallery = function (gid, token, callback) {
 			var info = [ gid, token ];
-			rt_ehentai_gallery.add2(info.join("_"), info, false, callback);
+			rt_ehentai_gallery.add(info.join("_"), info, false, callback);
 		};
 		var get_ehentai_gallery_page = function (gid, page_token, page, callback) {
 			var info = [ gid, page_token, page ];
-			rt_ehentai_gallery_page.add2("" + gid, info, false, callback);
+			rt_ehentai_gallery_page.add("" + gid, info, false, callback);
 		};
 		var get_ehentai_gallery_page_thumb = function (domain, gid, token, page_token, page, callback) {
 			var di = domain_info[domain];
 			domain = (di === undefined) ? domains.exhentai : di.g_domain;
 
-			rt_ehentai_gallery_page_thumb.add2(gid + "-" + page, {
+			rt_ehentai_gallery_page_thumb.add(gid + "-" + page, {
 				domain: domain,
 				gid: gid,
 				token: token,
@@ -3953,7 +3952,7 @@
 			var di = domain_info[domain];
 			domain = (di === undefined) ? domains.exhentai : di.g_domain;
 
-			rt_ehentai_gallery_full.add2("" + data.gid, {
+			rt_ehentai_gallery_full.add("" + data.gid, {
 				domain: domain,
 				gid: data.gid,
 				token: data.token,
@@ -3962,19 +3961,19 @@
 			}, false, callback);
 		};
 		var get_nhentai_gallery = function (gid, callback) {
-			rt_nhentai_gallery.add2("" + gid, { gid: gid }, false, callback);
+			rt_nhentai_gallery.add("" + gid, { gid: gid }, false, callback);
 		};
 		var get_nhentai_gallery_page_thumb = function (gid, page, callback) {
-			rt_nhentai_gallery_page_thumb.add2(gid + "-" + page, {
+			rt_nhentai_gallery_page_thumb.add(gid + "-" + page, {
 				gid: gid,
 				page: page
 			}, false, callback);
 		};
 		var get_hitomi_gallery = function (gid, callback) {
-			rt_hitomi_gallery.add2("" + gid, { gid: gid }, false, callback);
+			rt_hitomi_gallery.add("" + gid, { gid: gid }, false, callback);
 		};
 		var get_hitomi_gallery_page_thumb = function (gid, page, callback) {
-			rt_hitomi_gallery_page_thumb.add2(gid + "-" + page, {
+			rt_hitomi_gallery_page_thumb.add(gid + "-" + page, {
 				gid: gid,
 				page: page
 			}, false, callback);
@@ -4070,7 +4069,7 @@
 					if (err === null) {
 						var blob = new Blob([ data.subarray(0, data_length) ], { type: mime_type });
 
-						rt_ehentai_lookup.add2(url, {
+						rt_ehentai_lookup.add(url, {
 							similar: true,
 							blob: blob,
 							url: url,
@@ -4084,7 +4083,7 @@
 				};
 
 				if (sha1 !== null) {
-					rt_ehentai_lookup.add2(url, {
+					rt_ehentai_lookup.add(url, {
 						similar: true,
 						blob: null,
 						url: url,
@@ -4113,7 +4112,7 @@
 					}
 
 					if (err === null) {
-						rt_ehentai_lookup.add2(url, {
+						rt_ehentai_lookup.add(url, {
 							similar: false,
 							blob: null,
 							url: url,
