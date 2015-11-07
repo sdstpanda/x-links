@@ -53,7 +53,9 @@
 
 		var format_stack = function (stack) {
 			var output = "",
+				line_number = 0,
 				line, i, ii, p;
+
 			stack = stack.trim().replace(/\r\n/g, "\n").split("\n");
 			for (i = 0, ii = stack.length; i < ii; ++i) {
 				line = stack[i];
@@ -61,9 +63,13 @@
 					++p;
 					line = line.substr(0, p) + line.substr(p).replace(/[\w\-]+:(?:[\w\W]*?)([^\/]+?\.js)/ig, "$1");
 				}
-				if (i > 0) output += "\n";
-				output += line;
+
+				if (!/^\s*Function\.prototype\._w/.test(line)) {
+					if (line_number++ > 0) output += "\n";
+					output += line;
+				}
 			}
+
 			return output;
 		};
 		var log = function (exception) {
