@@ -2252,7 +2252,7 @@
 
 		var get_saved_data = function (namespace, gid) {
 			var id_full = namespace + "-" + gid,
-				data = saved_data[gid];
+				data = saved_data[id_full];
 
 			if (data !== undefined) return data;
 
@@ -3530,8 +3530,8 @@
 		};
 
 		rt_ehentai_gallery_full.get_data = function (info, callback) {
-			var data = get_saved_data("ehentai", info[0]);
-			callback(null, (data !== null && data.token === info[1] && data.full) ? data : null);
+			var data = get_saved_data("ehentai", info.gid);
+			callback(null, (data !== null && data.token === info.token && data.full) ? data : null);
 		};
 		rt_ehentai_gallery_full.set_data = function (data, info, callback) {
 			set_saved_data(data);
