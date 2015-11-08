@@ -3061,15 +3061,9 @@
 			this.namespace = namespace;
 			this.type = type;
 
-			this.retry_data = {
-				count: 0,
-				delay: 0
-			};
-
 			this.request_init = null;
 			this.request_complete = null;
 
-			this.delay_modify = null;
 			this.error_mode = null;
 			this.get_data = null;
 			this.set_data = null;
@@ -3084,14 +3078,11 @@
 			if (progress_callback !== undefined) this.progress_callbacks.push(progress_callback);
 		};
 		var Request = function (type, entries) {
-			var self = this,
-				delay_modify = type.delay_modify,
-				cbs, i, ii;
+			var cbs, i, ii;
 
 			this.data = null;
 			this.type = type;
 			this.retry_count = 0;
-			this.delay = 0;
 			this.entries = entries;
 			this.infos = [];
 			this.progress_callbacks = null;
@@ -3109,22 +3100,6 @@
 					}
 				}
 			}
-
-			this.complete = (delay_modify === null) ?
-				function () {
-					if (type.request_complete !== null) {
-						type.request_complete.call(type, self);
-					}
-					type.group.complete(self.delay);
-				} :
-				function () {
-					delay_modify.call(self, function (err, delay) {
-						if (type.request_complete !== null) {
-							type.request_complete.call(type, self);
-						}
-						type.group.complete(err === null ? delay : self.delay);
-					});
-				};
 		};
 		var RequestErrorMode = {
 			None: 0,
@@ -3235,7 +3210,7 @@
 
 			this.type.setup_xhr.call(this, $.bind(this.on_xhr_setup, this));
 		};
-		Request.prototype.process_response = function (err, response) {
+		Request.prototype.process_response = function (err, response, delay) {
 			var self = this,
 				total = this.infos.length,
 				responses = Math.min(response.length, total),
@@ -3252,7 +3227,7 @@
 					entry.callbacks[i].call(self, err, data);
 				}
 
-				if (++complete >= total) self.complete();
+				if (++complete >= total) self.complete(delay);
 			};
 
 			// Error saving
@@ -3311,12 +3286,17 @@
 				delete unique[this.entries[i].id];
 			}
 		};
+		Request.prototype.complete = function (delay) {
+			if (this.type.request_complete !== null) {
+				this.type.request_complete.call(this.type, this);
+			}
+			this.type.group.complete(delay);
+		};
 		Request.prototype.xhr_error = function (err) {
 			var self = this;
 			return function () {
-				self.delay = self.type.delay_error;
 				self.complete_entries();
-				self.process_response(err, []);
+				self.process_response(err, [], self.type.delay_error);
 			};
 		};
 		Request.prototype.on_xhr_setup = function (err, xhr_data) {
@@ -3386,13 +3366,14 @@
 		Request.prototype.on_response_parse = function (err, response, delay) {
 			if (err !== null) {
 				// Error
-				this.delay = this.type.delay_error;
+				if (typeof(delay) !== "number") delay = this.type.delay_error;
 				this.complete_entries();
-				this.process_response(err, []);
+				this.process_response(err, [], delay);
 			}
 			else if (response === null) {
 				// Retry
 				++this.retry_count;
+				if (typeof(delay) !== "number") delay = 0;
 				if (delay > 0) {
 					var self = this;
 					setTimeout(function () { self.run(); }, delay);
@@ -3403,9 +3384,9 @@
 			}
 			else {
 				// Process
-				this.delay = this.type.delay_okay;
+				if (typeof(delay) !== "number") delay = this.type.delay_error;
 				this.complete_entries();
-				this.process_response("Data not found", response);
+				this.process_response("Data not found", response, delay);
 			}
 		};
 
@@ -3545,7 +3526,7 @@
 		};
 		rt_ehentai_gallery_full.parse_response = function (xhr, callback) {
 			var info = this.infos[0];
-			ehentai_response_process_generic.call(this, xhr, info, this.delay_okay, callback, function (err, html) {
+			ehentai_response_process_generic.call(this, xhr, info, this.type.delay_okay, callback, function (err, html) {
 				callback(null, [ err === null ? ehentai_parse_gallery_info(html, info.data) : ehentai_make_removed(info.data) ]);
 			});
 		};
@@ -3704,9 +3685,6 @@
 		rt_ehentai_lookup.error_mode = function (callback) {
 			callback(null, RequestErrorMode.None);
 		};
-		rt_ehentai_lookup.delay_modify = function (callback) {
-			callback(null, this.infos[0].similar ? this.delay : 0);
-		};
 		rt_ehentai_lookup.get_data = function (info, callback) {
 			callback(null, info.sha1 === null ? null : lookup_get_results(info.sha1));
 		};
@@ -3746,7 +3724,7 @@
 		};
 		rt_ehentai_lookup.parse_response = function (xhr, callback) {
 			var info = this.infos[0];
-			callback(null, [ ehentai_parse_lookup_results(xhr, info.similar, info.sha1, info.url, info.md5) ]);
+			callback(null, [ ehentai_parse_lookup_results(xhr, info.similar, info.sha1, info.url, info.md5) ], info.similar ? this.type.delay_okay : 0);
 		};
 
 		rt_nhentai_gallery.get_data = function (info, callback) {
@@ -8920,8 +8898,7 @@
 				if (this !== null) {
 					state = {
 						id: this.data.id,
-						retry_count: this.retry_count,
-						delay: this.delay
+						retry_count: this.retry_count
 					};
 
 					if (!this.data.sent) {
@@ -8966,7 +8943,6 @@
 			set_data: "set_data",
 			setup_xhr: "setup_xhr",
 			parse_response: "parse_response",
-			delay_modify: "delay_modify",
 			error_mode: "error_mode"
 		};
 
