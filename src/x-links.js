@@ -2614,7 +2614,7 @@
 					}
 				}
 
-				if (err !== null) return { error: err };
+				if (err !== null) return { error: err, error_mode: RequestErrorMode.None };
 
 				// Save hash
 				if (md5 === null) {
@@ -3064,7 +3064,6 @@
 			this.request_init = null;
 			this.request_complete = null;
 
-			this.error_mode = null;
 			this.get_data = null;
 			this.set_data = null;
 			this.setup_xhr = null;
@@ -3214,12 +3213,10 @@
 			var self = this,
 				total = this.infos.length,
 				responses = Math.min(response.length, total),
-				error_mode = this.type.error_mode,
 				set_data = this.type.set_data,
 				complete = 0,
-				default_mode = RequestErrorMode.NoCache,
 				data = null,
-				entry, i;
+				entry, err_mode, i;
 
 			// Save
 			var save_callback = function () {
@@ -3230,44 +3227,21 @@
 				if (++complete >= total) self.complete(delay);
 			};
 
-			// Error saving
-			var save_error = (error_mode === null) ?
-				function () {
-					set_saved_error(
-						[ self.type.namespace, self.type.type, entry.id ],
-						err,
-						(default_mode === RequestErrorMode.Save)
-					);
-
-					save_callback();
-				} :
-				function () {
-					error_mode.call(self, function (err2, mode) {
-						if (err2 !== null) mode = default_mode;
-
-						set_saved_error(
-							[ self.type.namespace, self.type.type, entry.id ],
-							err,
-							(mode === RequestErrorMode.Save)
-						);
-
-						save_callback();
-					});
-				};
-
 			// Save errors
 			for (i = responses; i < total; ++i) {
 				entry = this.entries[i];
-				save_error();
+				set_saved_error([ this.type.namespace, this.type.type, entry.id ], err, false);
+				save_callback();
 			}
 
 			// Save datas
-			default_mode = RequestErrorMode.Save;
 			for (i = 0; i < responses; ++i) {
 				data = response[i];
 				entry = this.entries[i];
-				if ((err = data.error) !== undefined) {
-					save_error();
+				if (typeof((err = data.error)) === "string") {
+					if (typeof((err_mode = data.error_mode)) !== "number") err_mode = RequestErrorMode.Save;
+					set_saved_error([ this.type.namespace, this.type.type, entry.id ], err, (err_mode === RequestErrorMode.Save));
+					save_callback();
 				}
 				else {
 					err = null;
@@ -3384,7 +3358,7 @@
 			}
 			else {
 				// Process
-				if (typeof(delay) !== "number") delay = this.type.delay_error;
+				if (typeof(delay) !== "number") delay = this.type.delay_okay;
 				this.complete_entries();
 				this.process_response("Data not found", response, delay);
 			}
@@ -3682,9 +3656,6 @@
 			});
 		};
 
-		rt_ehentai_lookup.error_mode = function (callback) {
-			callback(null, RequestErrorMode.None);
-		};
 		rt_ehentai_lookup.get_data = function (info, callback) {
 			callback(null, info.sha1 === null ? null : lookup_get_results(info.sha1));
 		};
@@ -8942,8 +8913,7 @@
 			get_data: "get_data",
 			set_data: "set_data",
 			setup_xhr: "setup_xhr",
-			parse_response: "parse_response",
-			error_mode: "error_mode"
+			parse_response: "parse_response"
 		};
 
 		ExtensionAPI.handlers_init = {
