@@ -4,11 +4,21 @@
 
 	var fs = require("fs"),
 		path = require("path"),
-		child_process = require("child_process"),
-		html_minifier = require("html-minifier"),
-		// uglyify_js = require("uglify-js"),
-		CleanCSS = require("clean-css"),
+		child_process = require("child_process");
+
+	var html_minifier, CleanCSS, debug_wrap;
+
+	try {
+		html_minifier = require("html-minifier");
+		CleanCSS = require("clean-css");
 		debug_wrap = require("./src/debug_wrap");
+	}
+	catch (e) {
+		process.stderr.write("Dependencies not installed\n");
+		console.log(e);
+		process.exit(-1);
+		return -1;
+	}
 
 
 	var SCRIPT_SOURCE = "./src/x-links.js",
