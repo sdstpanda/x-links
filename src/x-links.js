@@ -2256,7 +2256,7 @@
 
 			if (data !== undefined) return data;
 
-			data = cache_get(namespace + "_data-" + gid);
+			data = cache_get("data-" + id_full);
 			if (data !== null) {
 				saved_data[id_full] = data;
 				return data;
@@ -2267,7 +2267,7 @@
 		var set_saved_data = function (data) {
 			var id_full = data.type + "-" + data.gid;
 			saved_data[id_full] = data;
-			cache_set(data.type + "_data-" + data.gid, data, ttl_1_hour * (data.upload_date >= Date.now() - ttl_1_day ? 1 : 12));
+			cache_set("data-" + id_full, data, ttl_1_hour * (data.upload_date >= Date.now() - ttl_1_day ? 1 : 12));
 		};
 		var set_saved_error = function (id_list, error, cache) {
 			var id = id_list.join("-");
@@ -2287,13 +2287,12 @@
 			return (value !== undefined) ? value.data : null;
 		};
 		var get_saved_thumbnail = function (namespace, gid, page) {
-			var id = gid + "-" + page,
-				id_full = namespace + "-" + id,
+			var id_full = namespace + "-" + gid + "-" + page,
 				data = saved_thumbnails[id_full];
 
 			if (data !== undefined) return data;
 
-			data = cache_get(namespace + "_thumb-" + id);
+			data = cache_get("thumb-" + id_full);
 			if (data !== null) {
 				saved_thumbnails[id_full] = data;
 				return data;
@@ -2302,9 +2301,9 @@
 			return null;
 		};
 		var set_saved_thumbnail = function (namespace, gid, page, data) {
-			var id = gid + "-" + page;
-			saved_thumbnails[namespace + "-" + id] = data;
-			cache_set(namespace + "_thumb-" + id, data, ttl_1_hour * 6);
+			var id_full = namespace + "-" + gid + "-" + page;
+			saved_thumbnails[id_full] = data;
+			cache_set("thumb-" + id_full, data, ttl_1_hour * 6);
 		};
 
 		var hash_get_sha1_from_md5 = function (md5) {
