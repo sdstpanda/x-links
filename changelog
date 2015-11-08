@@ -1,5 +1,10 @@
 ﻿master
 
+1.2.1.1
+- dnsev-h
+  + Fixed some bugs related to data caching
+  + Updated build dependencies
+
 1.2.1
 - dnsev-h
   + Made the settings link appear on the 4chan-inline extension's header bar when displaying full board links

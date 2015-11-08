@@ -2,7 +2,7 @@
 // @name        X-links (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.1.0xDB
+// @version     1.2.1.1.0xDB
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -2448,11 +2448,11 @@
 
 		var get_saved_data = function (namespace, gid) {
 			var id_full = namespace + "-" + gid,
-				data = saved_data[gid];
+				data = saved_data[id_full];
 
 			if (data !== undefined) return data;
 
-			data = cache_get(namespace + "_data-" + gid);
+			data = cache_get("data-" + id_full);
 			if (data !== null) {
 				saved_data[id_full] = data;
 				return data;
@@ -2463,7 +2463,7 @@
 		var set_saved_data = function (data) {
 			var id_full = data.type + "-" + data.gid;
 			saved_data[id_full] = data;
-			cache_set(data.type + "_data-" + data.gid, data, ttl_1_hour * (data.upload_date >= Date.now() - ttl_1_day ? 1 : 12));
+			cache_set("data-" + id_full, data, ttl_1_hour * (data.upload_date >= Date.now() - ttl_1_day ? 1 : 12));
 		}._w(175);
 		var set_saved_error = function (id_list, error, cache) {
 			var id = id_list.join("-");
@@ -2483,13 +2483,12 @@
 			return (value !== undefined) ? value.data : null;
 		}._w(177);
 		var get_saved_thumbnail = function (namespace, gid, page) {
-			var id = gid + "-" + page,
-				id_full = namespace + "-" + id,
+			var id_full = namespace + "-" + gid + "-" + page,
 				data = saved_thumbnails[id_full];
 
 			if (data !== undefined) return data;
 
-			data = cache_get(namespace + "_thumb-" + id);
+			data = cache_get("thumb-" + id_full);
 			if (data !== null) {
 				saved_thumbnails[id_full] = data;
 				return data;
@@ -2498,9 +2497,9 @@
 			return null;
 		}._w(178);
 		var set_saved_thumbnail = function (namespace, gid, page, data) {
-			var id = gid + "-" + page;
-			saved_thumbnails[namespace + "-" + id] = data;
-			cache_set(namespace + "_thumb-" + id, data, ttl_1_hour * 6);
+			var id_full = namespace + "-" + gid + "-" + page;
+			saved_thumbnails[id_full] = data;
+			cache_set("thumb-" + id_full, data, ttl_1_hour * 6);
 		}._w(179);
 
 		var hash_get_sha1_from_md5 = function (md5) {
@@ -3726,8 +3725,8 @@
 		}._w(248);
 
 		rt_ehentai_gallery_full.get_data = function (info, callback) {
-			var data = get_saved_data("ehentai", info[0]);
-			callback(null, (data !== null && data.token === info[1] && data.full) ? data : null);
+			var data = get_saved_data("ehentai", info.gid);
+			callback(null, (data !== null && data.token === info.token && data.full) ? data : null);
 		}._w(249);
 		rt_ehentai_gallery_full.set_data = function (data, info, callback) {
 			set_saved_data(data);
@@ -9596,7 +9595,7 @@
 		// Exports
 		var Module = {
 			homepage: "https://dnsev-h.github.io/x-links/",
-			version: [1,2,1,0xDB],
+			version: [1,2,1,1,0xDB],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
