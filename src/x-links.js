@@ -4878,73 +4878,72 @@
 
 		})();
 
-		var linkify = function (container, result_nodes, result_urls) {
-			deep_dom_wrap(
-				container,
-				function (text, pos) {
+		var linkify_groups = [{
+			regex: re_url,
+			prefix_index: 1,
+			prefix: "http://",
+			prefix_replace: [ /^\/+/, "" ],
+			tag: "a",
+			match: null
+		}];
+		var linkify_groups_required = [];
+		var linkify = function (container, result_nodes, result_urls, all) {
+			var groups = all ? linkify_groups : linkify_groups_required,
+				match_fn, node_setup;
+
+			if (linkify_groups.length === 1) {
+				// Normal
+				match_fn = function (text, pos) {
 					re_url.lastIndex = pos;
 					var m = re_url.exec(text);
 					if (m === null) return null;
 					return [ m.index , m.index + m[0].length, "a", m ];
-				},
-				linkify_element_checker,
-				function (node, match) {
+				};
+				node_setup = function (node, match) {
 					var url = match[3][0];
 					if (match[3][1] === undefined) url = "http://" + url.replace(/^\/+/, "");
 					result_nodes.push(node);
 					result_urls.push(url);
-				},
-				false
-			);
-		};
-		var linkify_multi = function (container, result_nodes, result_urls) {
-			var matchers = [{
-				regex: re_url,
-				prefix_index: 1,
-				prefix: "http://",
-				prefix_replace: [ /^\/+/, "" ],
-				tag: "a",
-				match: null
-			}];
-
-			deep_dom_wrap(
-				container,
-				function (text, pos) {
+				};
+			}
+			else {
+				// Multiple
+				match_fn = function (text, pos) {
 					var res = null,
-						matcher, i, ii, m;
+						group, i, ii, m;
 
-					for (i = 0, ii = matchers.length; i < ii; ++i) {
-						matcher = matchers[i];
-						if ((m = matcher.match) === null || m.index < pos) {
-							matcher.regex.lastIndex = pos;
-							matcher.match = m = matcher.regex.exec(text);
+					for (i = 0, ii = groups.length; i < ii; ++i) {
+						group = groups[i];
+						if ((m = group.match) === null || m.index < pos) {
+							group.regex.lastIndex = pos;
+							group.match = m = group.regex.exec(text);
 						}
 						if (m !== null && (res === null || res[0] > m.index)) {
-							res = [ m.index , m.index + m[0].length, matcher.tag, m, matcher ];
+							res = [ m.index , m.index + m[0].length, group.tag, m, group ];
 						}
 					}
 
 					return res;
-				},
-				linkify_element_checker,
-				function (node, match) {
+				};
+				node_setup = function (node, match) {
 					var url = match[3][0],
-						matcher = match[4],
-						prefix_id = matcher.prefix_index,
+						group = match[4],
+						prefix_id = group.prefix_index,
 						re;
 
 					if (match[3][prefix_id] === undefined) {
-						if ((re = matcher.prefix_replace) !== null) {
+						if ((re = group.prefix_replace) !== null) {
 							url = url.replace(re[0], re[1]);
 						}
-						url = matcher.prefix + url;
+						url = group.prefix + url;
 					}
 
 					result_nodes.push(node);
 					result_urls.push(url);
-				},
-				false
-			);
+				};
+			}
+
+			deep_dom_wrap(container, match_fn, linkify_element_checker, node_setup, false);
 		};
 		var linkify_element_checker = function (node) {
 			if (node.tagName === "BR" || node.tagName === "A") {
@@ -4960,6 +4959,14 @@
 				return deep_dom_wrap.EL_TYPE_LINE_BREAK;
 			}
 			return deep_dom_wrap.EL_TYPE_PARSE;
+		};
+		var linkify_check_required = function (node) {
+			var html = node.innerHTML,
+				i, ii;
+			for (i = 0, ii = linkify_groups.length; i < ii; ++i) {
+				if (linkify_groups[i].regex.test(html)) return true;
+			}
+			return false;
 		};
 
 		var parse_text_for_urls = function (text) {
@@ -5135,7 +5142,7 @@
 				if (
 					!Config.linkify ||
 					post_links.length > 0 ||
-					re_url.test(post_body.innerHTML)
+					linkify_check_required(post_body)
 				) {
 					link_nodes = [];
 					link_urls = [];
@@ -5158,8 +5165,8 @@
 					}
 
 					j = link_nodes.length;
-					if (Config.linkify) {
-						linkify(post_body, link_nodes, link_urls);
+					if (Config.linkify || linkify_groups_required.length > 0) {
+						linkify(post_body, link_nodes, link_urls, Config.linkify);
 					}
 
 					for (i = 0, ii = link_nodes.length; i < ii; ++i) {
