@@ -3952,6 +3952,9 @@
 			callback(null, null);
 			immediate = false;
 		};
+		var register_url_info_function = function (check_fn) {
+			get_url_info_registrations.push(check_fn);
+		};
 
 		var get_ehentai_gallery = function (gid, token, callback) {
 			var info = [ gid, token ];
@@ -4181,6 +4184,7 @@
 			get_category: get_category,
 			get_category_sort_rank: get_category_sort_rank,
 			is_fjording: is_fjording,
+			register_url_info_function: register_url_info_function,
 			init: init
 		};
 
