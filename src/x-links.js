@@ -570,6 +570,14 @@
 			return url;
 		};
 
+		Module.create_regex_safe = function (text, flags) {
+			try {
+				return new RegExp(text, flags);
+			}
+			catch (e) {
+				return null;
+			}
+		};
 		Module.regex_escape = function (text) {
 			return text.replace(/[\$\(\)\*\+\-\.\/\?\[\\\]\^\{\|\}]/g, "\\$&");
 		};
@@ -3365,6 +3373,7 @@
 		};
 
 
+
 		// API request specializations
 		var rt_ehentai_gallery_page = new RequestType(25, 1, 200, 5000, "ehentai_api", "ehentai", "page"),
 			rt_ehentai_gallery = new RequestType(25, 1, 200, 5000, "ehentai_api", "ehentai", "gallery"),
@@ -4975,6 +4984,22 @@
 			}
 			return null;
 		};
+		var linkify_register = function (regex, prefix_group, prefix, prefix_replace_regex, prefix_replace_with) {
+			var prefix_replace = null;
+
+			if (prefix_replace_regex !== null && typeof(prefix_replace_with) === "string") {
+				prefix_replace = [ prefix_replace_regex, prefix_replace_with ];
+			}
+
+			linkify_groups.push({
+				regex: regex,
+				prefix_index: prefix_group,
+				prefix: prefix,
+				prefix_replace: prefix_replace,
+				tag: "a",
+				match: null
+			});
+		};
 
 		var parse_text_for_urls = function (text) {
 			var urls = [],
@@ -5387,6 +5412,7 @@
 			get_node_url_info: get_node_url_info,
 			relinkify_posts: relinkify_posts,
 			fix_broken_4chanx_linkification: fix_broken_4chanx_linkification,
+			linkify_register: linkify_register,
 			on: on,
 			off: off
 		};
