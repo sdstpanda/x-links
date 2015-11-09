@@ -3928,13 +3928,11 @@
 				if (err === null && data !== null) {
 					callback(null, data);
 				}
+				else if (immediate) {
+					immediate = false;
+				}
 				else {
-					if (immediate) {
-						immediate = false;
-					}
-					else {
-						get_url_info_custom(i + 1, url, callback);
-					}
+					get_url_info_custom(i + 1, url, callback);
 				}
 			};
 
@@ -3950,7 +3948,6 @@
 			}
 
 			callback(null, null);
-			immediate = false;
 		};
 		var register_url_info_function = function (check_fn) {
 			get_url_info_registrations.push(check_fn);
