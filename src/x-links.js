@@ -4886,10 +4886,8 @@
 			tag: "a",
 			match: null
 		}];
-		var linkify_groups_required = [];
-		var linkify = function (container, result_nodes, result_urls, all) {
-			var groups = all ? linkify_groups : linkify_groups_required,
-				match_fn, node_setup;
+		var linkify = function (container, result_nodes, result_urls) {
+			var match_fn, node_setup;
 
 			if (linkify_groups.length === 1) {
 				// Normal
@@ -4912,8 +4910,8 @@
 					var res = null,
 						group, i, ii, m;
 
-					for (i = 0, ii = groups.length; i < ii; ++i) {
-						group = groups[i];
+					for (i = 0, ii = linkify_groups.length; i < ii; ++i) {
+						group = linkify_groups[i];
 						if ((m = group.match) === null || m.index < pos) {
 							group.regex.lastIndex = pos;
 							group.match = m = group.regex.exec(text);
@@ -4928,10 +4926,9 @@
 				node_setup = function (node, match) {
 					var url = match[3][0],
 						group = match[4],
-						prefix_id = group.prefix_index,
 						re;
 
-					if (match[3][prefix_id] === undefined) {
+					if (match[3][group.prefix_index] === undefined) {
 						if ((re = group.prefix_replace) !== null) {
 							url = url.replace(re[0], re[1]);
 						}
@@ -4960,13 +4957,23 @@
 			}
 			return deep_dom_wrap.EL_TYPE_PARSE;
 		};
-		var linkify_check_required = function (node) {
-			var html = node.innerHTML,
-				i, ii;
+		var linkify_test = function (text) {
+			var group, re, i, ii, m;
 			for (i = 0, ii = linkify_groups.length; i < ii; ++i) {
-				if (linkify_groups[i].regex.test(html)) return true;
+				group = linkify_groups[i];
+				re = group.regex;
+				re.lastIndex = 0;
+				if ((m = re.exec(text)) !== null) {
+					if (m[group.prefix_index] === undefined) {
+						if ((re = group.prefix_replace) !== null) {
+							text = text.replace(re[0], re[1]);
+						}
+						text = group.prefix + text;
+					}
+					return text;
+				}
 			}
-			return false;
+			return null;
 		};
 
 		var parse_text_for_urls = function (text) {
@@ -5128,51 +5135,51 @@
 		};
 		var parse_post = function (post) {
 			var auto_load_links = config.general.automatic_processing,
-				post_body, post_links, link_nodes, link_urls, link, url, i, ii, j;
+				post_body, post_links, link_nodes, link_urls, link, url, i, ii;
 
 			// Exsauce
 			if (config.sauce.enabled && !browser.is_opera) {
 				setup_post_exsauce(post);
 			}
 
+			// Linkify
 			if ((post_body = Post.get_text_body(post)) !== null) {
-				// Content
-				re_url.lastIndex = 0;
+				link_nodes = [];
+				link_urls = [];
+
+				// Existing links
 				post_links = Post.get_body_links(post_body);
-				if (
-					!Config.linkify ||
-					post_links.length > 0 ||
-					linkify_check_required(post_body)
-				) {
-					link_nodes = [];
-					link_urls = [];
-					for (i = 0, ii = post_links.length; i < ii; ++i) {
-						link = post_links[i];
-						if (link.classList.contains("xl-site-tag")) {
-							$.remove(link);
-						}
-						else {
-							re_url.lastIndex = 0;
-							url = link.href;
-							if (link.classList.contains("linkified") && re_deferrer.test(url)) {
-								url = link.textContent.trim();
-							}
-							if (re_url.test(url)) {
-								link_nodes.push(link);
-								link_urls.push(url);
-							}
-						}
+				for (i = 0, ii = post_links.length; i < ii; ++i) {
+					link = post_links[i];
+					if (link.classList.contains("xl-site-tag")) {
+						$.remove(link);
 					}
-
-					j = link_nodes.length;
-					if (Config.linkify || linkify_groups_required.length > 0) {
-						linkify(post_body, link_nodes, link_urls, Config.linkify);
-					}
-
-					for (i = 0, ii = link_nodes.length; i < ii; ++i) {
-						preprocess_link(link_nodes[i], link_urls[i], (i >= j), auto_load_links);
+					else {
+						url = link.href;
+						if (link.classList.contains("linkified") && re_deferrer.test(url)) {
+							url = link.textContent.trim();
+						}
+						url = linkify_test(url);
+						if (url !== null) {
+							link_nodes.push(link);
+							link_urls.push(url);
+						}
 					}
 				}
+
+				// Linkify links
+				ii = link_nodes.length;
+				linkify(post_body, link_nodes, link_urls);
+
+				// Process
+				for (i = 0; i < ii; ++i) {
+					preprocess_link(link_nodes[i], link_urls[i], false, auto_load_links);
+				}
+				for (ii = link_nodes.length; i < ii; ++i) {
+					preprocess_link(link_nodes[i], link_urls[i], true, auto_load_links);
+				}
+
+				// Mark
 				post.classList.add("xl-post-linkified");
 			}
 		};
