@@ -3851,6 +3851,7 @@
 
 
 		// Public
+		var get_url_info_registrations = [];
 		var get_url_info = function (url, callback) {
 			var match = /^(https?):\/*((?:[\w-]+\.)*)([\w-]+\.[\w]+)((?:[\/\?\#][\w\W]*)?)/.exec(url),
 				data = null,
@@ -3911,7 +3912,45 @@
 				}
 			}
 
+			if (data === null && get_url_info_registrations.length > 0) {
+				get_url_info_custom(0, url, callback);
+				return;
+			}
+
 			callback(null, data);
+		};
+		var get_url_info_custom = function (i, url, callback) {
+			// This should avoid stack overflowing when using a callback chain with many synchronous functions
+			var ii = get_url_info_registrations.length,
+				immediate;
+
+			var fn_cb = function (err, data) {
+				if (err === null && data !== null) {
+					callback(null, data);
+				}
+				else {
+					if (immediate) {
+						immediate = false;
+					}
+					else {
+						get_url_info_custom(i + 1, url, callback);
+					}
+				}
+			};
+
+			for (; i < ii; ++i) {
+				immediate = true;
+
+				get_url_info_registrations[i](url, fn_cb);
+
+				if (immediate) {
+					immediate = false;
+					return;
+				}
+			}
+
+			callback(null, null);
+			immediate = false;
 		};
 
 		var get_ehentai_gallery = function (gid, token, callback) {
