@@ -3842,9 +3842,10 @@
 
 
 		// Public
-		var get_url_info = function (url) {
+		var get_url_info = function (url, callback) {
 			var match = /^(https?):\/*((?:[\w-]+\.)*)([\w-]+\.[\w]+)((?:[\/\?\#][\w\W]*)?)/.exec(url),
-				domain, remaining, m, data;
+				data = null,
+				domain, remaining, m;
 
 			if (match === null) return null;
 
@@ -3854,7 +3855,7 @@
 			if (domain === domains.exhentai || domain === domains.ehentai) {
 				m = /^\/g\/(\d+)\/([0-9a-f]+)/.exec(remaining);
 				if (m !== null) {
-					return {
+					data = {
 						site: "ehentai",
 						type: "gallery",
 						gid: parseInt(m[1], 10),
@@ -3862,17 +3863,18 @@
 						domain: domain
 					};
 				}
-
-				m = /^\/s\/([0-9a-f]+)\/(\d+)\-(\d+)/.exec(remaining);
-				if (m !== null) {
-					return {
-						site: "ehentai",
-						type: "page",
-						gid: parseInt(m[2], 10),
-						page: parseInt(m[3], 10),
-						page_token: m[1],
-						domain: domain
-					};
+				else {
+					m = /^\/s\/([0-9a-f]+)\/(\d+)\-(\d+)/.exec(remaining);
+					if (m !== null) {
+						data = {
+							site: "ehentai",
+							type: "page",
+							gid: parseInt(m[2], 10),
+							page: parseInt(m[3], 10),
+							page_token: m[1],
+							domain: domain
+						};
+					}
 				}
 			}
 			else if (domain === domains.nhentai) {
@@ -3885,7 +3887,6 @@
 						domain: domain
 					};
 					if (m[2] !== undefined) data.page = parseInt(m[2], 10);
-					return data;
 				}
 			}
 			else if (domain === domains.hitomi) {
@@ -3898,11 +3899,10 @@
 						domain: domain
 					};
 					if (m[1] === "reader" && m[3] !== undefined) data.page = parseInt(m[3], 10);
-					return data;
 				}
 			}
 
-			return null;
+			callback(null, data);
 		};
 
 		var get_ehentai_gallery = function (gid, token, callback) {
@@ -5000,44 +5000,42 @@
 			return link;
 		};
 		var preprocess_link = function (node, url, update_on_fail, auto_load) {
-			var info, rewrite;
+			if (node.parentNode === null) return;
 
-			if (
-				node.parentNode === null ||
-				(info = API.get_url_info(url)) === null ||
-				!config.sites[info.site]
-			) {
-				if (update_on_fail) {
-					node.href = url;
-					node.target = "_blank";
-					node.rel = "noreferrer";
-					node.classList.add("xl-linkified");
+			API.get_url_info(url, function (err, info) {
+				if (info === null || !config.sites[info.site]) {
+					if (update_on_fail) {
+						node.href = url;
+						node.target = "_blank";
+						node.rel = "noreferrer";
+						node.classList.add("xl-linkified");
+					}
+					return;
 				}
-				return;
-			}
 
-			if (info.site === "ehentai") {
-				rewrite = config.general.rewrite_links;
-				if (
-					(rewrite === domains.exhentai || rewrite === domains.ehentai) &&
-					info.domain !== rewrite
-				) {
-					info.domain = rewrite;
-					url = $.change_url_domain(url, domain_info[rewrite].g_domain);
+				if (info.site === "ehentai") {
+					var rewrite = config.general.rewrite_links;
+					if (
+						(rewrite === domains.exhentai || rewrite === domains.ehentai) &&
+						info.domain !== rewrite
+					) {
+						info.domain = rewrite;
+						url = $.change_url_domain(url, domain_info[rewrite].g_domain);
+					}
 				}
-			}
 
-			node.href = url;
-			node.target = "_blank";
-			node.rel = "noreferrer";
+				node.href = url;
+				node.target = "_blank";
+				node.rel = "noreferrer";
 
-			node.classList.add("xl-link");
-			node.classList.add("xl-linkified");
+				node.classList.add("xl-link");
+				node.classList.add("xl-linkified");
 
-			set_node_url_info(node, info);
-			UI.setup_link(node, url, info);
+				set_node_url_info(node, info);
+				UI.setup_link(node, url, info);
 
-			if (auto_load) load_link(node, info);
+				if (auto_load) load_link(node, info);
+			});
 		};
 		var load_link = function (link, info) {
 			API.get_data_from_url_info(info, function (err, data) {
@@ -7720,11 +7718,14 @@
 			var urls = Linkifier.parse_text_for_urls(text),
 				info, i, ii;
 
-			for (i = 0, ii = urls.length; i < ii; ++i) {
-				info = API.get_url_info(urls[i]);
+			var cb = function (i, err, info) {
 				if (info !== null) {
 					parse_custom_url_info(i, info);
 				}
+			};
+
+			for (i = 0, ii = urls.length; i < ii; ++i) {
+				info = API.get_url_info(urls[i], $.bind(cb, null, i));
 			}
 		};
 		var parse_custom_url_info = function (index, info) {
