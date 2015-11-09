@@ -4605,14 +4605,14 @@
 
 
 			// Main function
-			var deep_dom_wrap = function (container, tag, matcher, element_checker, setup_function, quick) {
+			var deep_dom_wrap = function (container, matcher, element_checker, setup_function, quick) {
 				var text = "",
 					offsets = [],
 					d = document,
 					count = 0,
 					match_pos = 0,
 					node, par, next, check, match,
-					pos_start, pos_end, offset_start, offset_end,
+					pos_start, pos_end, offset_start, offset_end, tag,
 					prefix, suffix, link_base, link_node, relative_node, relative_par, clone, i, n1, n2, len, offset_current, offset_node;
 
 
@@ -4680,6 +4680,7 @@
 					// Find the beginning and ending text nodes
 					pos_start = match[0];
 					pos_end = match[1];
+					tag = match[2];
 
 					for (offset_start = 1; offset_start < offsets.length; ++offset_start) {
 						if (offsets[offset_start].text_offset > pos_start) break;
@@ -4695,7 +4696,7 @@
 					// Vars to create the link
 					prefix = text.substr(offsets[offset_start].text_offset, pos_start - offsets[offset_start].text_offset);
 					suffix = text.substr(pos_end, offsets[offset_end].text_offset + offsets[offset_end].node_text_length - pos_end);
-					link_base = d.createElement(tag);
+					link_base = (tag !== null) ? d.createElement(tag) : d.createDocumentFragment();
 					link_node = link_base;
 					relative_node = null;
 
@@ -4880,17 +4881,65 @@
 		var linkify = function (container, result_nodes, result_urls) {
 			deep_dom_wrap(
 				container,
-				"a",
 				function (text, pos) {
 					re_url.lastIndex = pos;
 					var m = re_url.exec(text);
 					if (m === null) return null;
-					return [ m.index , m.index + m[0].length, m ];
+					return [ m.index , m.index + m[0].length, "a", m ];
 				},
 				linkify_element_checker,
 				function (node, match) {
-					var url = match[2][0];
-					if (match[2][1] === undefined) url = "http://" + url.replace(/^\/+/, "");
+					var url = match[3][0];
+					if (match[3][1] === undefined) url = "http://" + url.replace(/^\/+/, "");
+					result_nodes.push(node);
+					result_urls.push(url);
+				},
+				false
+			);
+		};
+		var linkify_multi = function (container, result_nodes, result_urls) {
+			var matchers = [{
+				regex: re_url,
+				prefix_index: 1,
+				prefix: "http://",
+				prefix_replace: [ /^\/+/, "" ],
+				tag: "a",
+				match: null
+			}];
+
+			deep_dom_wrap(
+				container,
+				function (text, pos) {
+					var res = null,
+						matcher, i, ii, m;
+
+					for (i = 0, ii = matchers.length; i < ii; ++i) {
+						matcher = matchers[i];
+						if ((m = matcher.match) === null || m.index < pos) {
+							matcher.regex.lastIndex = pos;
+							matcher.match = m = matcher.regex.exec(text);
+						}
+						if (m !== null && (res === null || res[0] > m.index)) {
+							res = [ m.index , m.index + m[0].length, matcher.tag, m, matcher ];
+						}
+					}
+
+					return res;
+				},
+				linkify_element_checker,
+				function (node, match) {
+					var url = match[3][0],
+						matcher = match[4],
+						prefix_id = matcher.prefix_index,
+						re;
+
+					if (match[3][prefix_id] === undefined) {
+						if ((re = matcher.prefix_replace) !== null) {
+							url = url.replace(re[0], re[1]);
+						}
+						url = matcher.prefix + url;
+					}
+
 					result_nodes.push(node);
 					result_urls.push(url);
 				},
