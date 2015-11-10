@@ -1576,7 +1576,7 @@
 				gen_sep(n2);
 
 				gen_entry(n2, "Download:", "http://" + domain + "/gallerytorrents.php?gid=" + gid + "&t=" + token, "Torrent (" + data.torrent_count + ")");
-				gen_entry(n2, null, "http://" + domain + "/archiver.php?gid=" + gid + "&t=" + token + "&or=" + data.archiver_key, "Archiver");
+				gen_entry(n2, null, "http://" + domains.gehentai + "/archiver.php?gid=" + gid + "&token=" + token + "&or=" + data.archiver_key, "Archiver");
 				n3 = gen_entry(n2, null, "http://" + domain + "/hathdler.php?gid=" + gid + "&t=" + token, "via H@H");
 				n3.removeAttribute("target");
 
@@ -9245,7 +9245,7 @@
 		};
 
 		var request = function (namespace, type, unique_id, info, callback) {
-			var req_data, req;
+			var req_data;
 			if (
 				api === null ||
 				(req_data = api.request_apis[namespace]) === undefined ||
