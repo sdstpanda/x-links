@@ -31,12 +31,6 @@
 		nhentai: "nhentai.net",
 		hitomi: "hitomi.la"
 	};
-	var domain_info = {
-		"exhentai.org": { tag: "Ex", g_domain: "exhentai.org", type: "ehentai" },
-		"e-hentai.org": { tag: "EH", g_domain: "g.e-hentai.org", type: "ehentai" },
-		"nhentai.net": { tag: "n", g_domain: "nhentai.net", type: "nhentai" },
-		"hitomi.la": { tag: "Hi", g_domain: "hitomi.la", type: "hitomi" }
-	};
 	var options = {
 		general: [
 			// [ name, default, label, description, old_name, info? ]
@@ -64,7 +58,7 @@
 					options: [ // [ value, label_text, description? ]
 						[ "none", "Disabled" ],
 						[ "smart", "Smart", "All links lead to " + domains.gehentai + " unless they have fjording tags" ],
-						[ domains.ehentai, domains.gehentai ],
+						[ domains.gehentai, domains.gehentai ],
 						[ domains.exhentai, domains.exhentai ]
 					]
 				}
@@ -136,7 +130,7 @@
 				{
 					type: "select",
 					options: [ // [ value, label_text, description? ]
-						[ domains.ehentai, domains.gehentai ],
+						[ domains.gehentai, domains.gehentai ],
 						[ domains.exhentai, domains.exhentai ]
 					]
 				}
@@ -1008,7 +1002,7 @@
 		// Private
 		var to_gallery = {
 			ehentai: function (data, domain) {
-				return "http://" + domain_info[domain].g_domain + "/g/" + data.gid + "/" + data.token + "/";
+				return "http://" + domain + "/g/" + data.gid + "/" + data.token + "/";
 			},
 			nhentai: function (data) {
 				return "http://" + domains.nhentai + "/g/" + data.gid + "/";
@@ -1019,7 +1013,7 @@
 		};
 		var to_uploader = {
 			ehentai: function (data, domain) {
-				return "http://" + domain_info[domain].g_domain + "/uploader/" + (data.uploader || "Unknown").replace(/\s+/g, "+");
+				return "http://" + domain + "/uploader/" + (data.uploader || "Unknown").replace(/\s+/g, "+");
 			},
 			nhentai: function () {
 				return "http://" + domains.nhentai + "/";
@@ -1030,7 +1024,7 @@
 		};
 		var to_category = {
 			ehentai: function (data, domain) {
-				return "http://" + domain_info[domain].g_domain + "/" + API.get_category(data.category).short_name;
+				return "http://" + domain + "/" + API.get_category(data.category).short_name;
 			},
 			nhentai: function (data) {
 				return "http://" + domains.nhentai + "/category/" + data.category.toLowerCase() + "/";
@@ -1040,39 +1034,39 @@
 			}
 		};
 		var to_tag = {
-			ehentai: function (tag, full_domain) {
-				return "http://" + full_domain + "/tag/" + tag.replace(/\s+/g, "+");
+			ehentai: function (tag, domain) {
+				return "http://" + domain + "/tag/" + tag.replace(/\s+/g, "+");
 			},
-			nhentai: function (tag, full_domain) {
-				return "http://" + full_domain + "/tag/" + tag.replace(/\s+/g, "-") + "/";
+			nhentai: function (tag, domain) {
+				return "http://" + domain + "/tag/" + tag.replace(/\s+/g, "-") + "/";
 			},
-			hitomi: function (tag, full_domain) {
-				return "https://" + full_domain + "/tag/" + tag + "-all-1.html";
+			hitomi: function (tag, domain) {
+				return "https://" + domain + "/tag/" + tag + "-all-1.html";
 			}
 		};
 		var to_tag_ns = {
-			ehentai: function (tag, namespace, full_domain) {
-				return "http://" + full_domain + "/tag/" + namespace + ":" + tag.replace(/\s+/g, "+");
+			ehentai: function (tag, namespace, domain) {
+				return "http://" + domain + "/tag/" + namespace + ":" + tag.replace(/\s+/g, "+");
 			},
-			nhentai: function (tag, namespace, full_domain) {
+			nhentai: function (tag, namespace, domain) {
 				if (namespace === "tags") namespace = "tag";
-				return "http://" + full_domain + "/" + namespace + "/" + tag.replace(/\s+/g, "-") + "/";
+				return "http://" + domain + "/" + namespace + "/" + tag.replace(/\s+/g, "-") + "/";
 			},
-			hitomi: function (tag, namespace, full_domain) {
+			hitomi: function (tag, namespace, domain) {
 				if (namespace === "male" || namespace === "female") {
-					return "https://" + full_domain + "/tag/" + namespace + ":" + tag + "-all-1.html";
+					return "https://" + domain + "/tag/" + namespace + ":" + tag + "-all-1.html";
 				}
 				else if (namespace === "artist") {
-					return "https://" + full_domain + "/artist/" + tag + "-all-1.html";
+					return "https://" + domain + "/artist/" + tag + "-all-1.html";
 				}
 				else if (namespace === "parody") {
-					return "https://" + full_domain + "/series/" + tag + "-all-1.html";
+					return "https://" + domain + "/series/" + tag + "-all-1.html";
 				}
 				else if (namespace === "language") {
-					return "https://" + full_domain + "/index-" + tag + "-1.html";
+					return "https://" + domain + "/index-" + tag + "-1.html";
 				}
 				else {
-					return "https://" + full_domain + "/tag/" + tag + "-all-1.html";
+					return "https://" + domain + "/tag/" + tag + "-all-1.html";
 				}
 			}
 		};
@@ -1088,11 +1082,11 @@
 			to_category: function (data, domain) {
 				return to_category[data.type].call(null, data, domain);
 			},
-			to_tag: function (tag, domain_type, full_domain) {
-				return to_tag[domain_type].call(null, tag, full_domain);
+			to_tag: function (tag, domain_type, domain) {
+				return to_tag[domain_type].call(null, tag, domain);
 			},
-			to_tag_ns: function (tag, namespace, domain_type, full_domain) {
-				return to_tag_ns[domain_type].call(null, tag, namespace, full_domain);
+			to_tag_ns: function (tag, namespace, domain_type, domain) {
+				return to_tag_ns[domain_type].call(null, tag, namespace, domain);
 			}
 		};
 
@@ -1441,10 +1435,7 @@
 			var category = API.get_category(data.category),
 				theme = Theme.classes,
 				file_size = (data.total_size / 1024 / 1024).toFixed(2),
-				g_domain = domain_info[info.domain],
 				content, n1, n2, n3;
-
-			g_domain = g_domain ? g_domain.g_domain : domains.exhentai;
 
 			// Body
 			content = $.node("div", "xl-details xl-hover-shadow" + theme);
@@ -1521,7 +1512,7 @@
 			$.add(content, n1 = $.node("div", "xl-details-tag-block" + theme));
 			$.add(n1, $.node("strong", "xl-details-tag-block-label", "Tags:"));
 			$.add(n1, n2 = $.node("span", "xl-details-tags"));
-			$.add(n2, create_tags(g_domain, data));
+			$.add(n2, create_tags(data, info.domain));
 
 			// End
 			$.add(content, $.node("div", "xl-details-clear"));
@@ -1549,10 +1540,8 @@
 				token = data.token,
 				type = data.type,
 				actions = $.node("div", "xl-actions xl-hover-shadow" + theme),
-				g_domain = domain_info[info.domain],
+				domain = info.domain,
 				n1, n2, n3;
-
-			g_domain = g_domain ? g_domain.g_domain : domains.exhentai;
 
 			$.add(actions, n1 = $.node("div", "xl-actions-inner" + theme));
 			$.add(n1, n2 = $.node("div", "xl-actions-table" + theme));
@@ -1575,32 +1564,32 @@
 			};
 
 			if (type === "ehentai") {
-				gen_entry(n2, "View on:", CreateURL.to_gallery(data, domains.ehentai), "E-Hentai");
+				gen_entry(n2, "View on:", CreateURL.to_gallery(data, domains.gehentai), "E-Hentai");
 				gen_entry(n2, null, CreateURL.to_gallery(data, domains.exhentai), "ExHentai");
 
 				gen_sep(n2);
 
-				n3 = gen_entry(n2, "Uploader:", CreateURL.to_uploader(data, info.domain), data.uploader);
+				n3 = gen_entry(n2, "Uploader:", CreateURL.to_uploader(data, domain), data.uploader);
 				n3.classList.add("xl-actions-uploader");
 				Filter.highlight("uploader", n3, data, Filter.None);
 
 				gen_sep(n2);
 
-				gen_entry(n2, "Download:", "http://" + g_domain + "/gallerytorrents.php?gid=" + gid + "&t=" + token, "Torrent (" + data.torrent_count + ")");
-				gen_entry(n2, null, "http://" + g_domain + "/archiver.php?gid=" + gid + "&t=" + token + "&or=" + data.archiver_key, "Archiver");
-				n3 = gen_entry(n2, null, "http://" + g_domain + "/hathdler.php?gid=" + gid + "&t=" + token, "via H@H");
+				gen_entry(n2, "Download:", "http://" + domain + "/gallerytorrents.php?gid=" + gid + "&t=" + token, "Torrent (" + data.torrent_count + ")");
+				gen_entry(n2, null, "http://" + domain + "/archiver.php?gid=" + gid + "&t=" + token + "&or=" + data.archiver_key, "Archiver");
+				n3 = gen_entry(n2, null, "http://" + domain + "/hathdler.php?gid=" + gid + "&t=" + token, "via H@H");
 				n3.removeAttribute("target");
 
 				gen_sep(n2);
 
-				gen_entry(n2, "Other:", "http://" + g_domain + "/gallerypopups.php?gid=" + gid + "&t=" + token + "&act=addfav", "Favorite");
+				gen_entry(n2, "Other:", "http://" + domain + "/gallerypopups.php?gid=" + gid + "&t=" + token + "&act=addfav", "Favorite");
 				gen_entry(n2, null, "http://" + domains.gehentai + "/stats.php?gid=" + gid + "&t=" + token, "Stats");
 			}
 			else if (type === "nhentai") {
-				gen_entry(n2, "View on:", CreateURL.to_gallery(data, info.domain), "nhentai.net");
+				gen_entry(n2, "View on:", CreateURL.to_gallery(data, domain), "nhentai.net");
 			}
 			else if (type === "hitomi") {
-				gen_entry(n2, "View on:", CreateURL.to_gallery(data, info.domain), "hitomi.la");
+				gen_entry(n2, "View on:", CreateURL.to_gallery(data, domain), "hitomi.la");
 			}
 
 			// Prepare
@@ -1611,9 +1600,9 @@
 			// Done
 			return actions;
 		};
-		var create_tags = function (site, data) {
+		var create_tags = function (data, domain) {
 			var tagfrag = d.createDocumentFragment(),
-				domain = data.type,
+				site = data.type,
 				tags_ns = data.tags_ns,
 				theme = Theme.classes,
 				tag = null,
@@ -1625,7 +1614,7 @@
 				tags = data.tags;
 				for (i = 0, ii = tags.length; i < ii; ++i) {
 					tag = $.node("span", "xl-tag-block" + theme);
-					link = $.link(CreateURL.to_tag(tags[i], domain, site), "xl-tag", tags[i]);
+					link = $.link(CreateURL.to_tag(tags[i], site, domain), "xl-tag", tags[i]);
 
 					Filter.highlight("tags", link, data, Filter.None);
 
@@ -1653,7 +1642,7 @@
 
 					for (i = 0; i < ii; ++i) {
 						tag = $.node("span", "xl-tag-block" + namespace_style);
-						link = $.link(CreateURL.to_tag_ns(tags[i], namespace, domain, site), "xl-tag", tags[i]);
+						link = $.link(CreateURL.to_tag_ns(tags[i], namespace, site, domain), "xl-tag", tags[i]);
 
 						Filter.highlight("tags", link, data, Filter.None);
 
@@ -1703,7 +1692,7 @@
 				data.tags_ns !== null &&
 				(n = $(".xl-details-tags", details)) !== null
 			) {
-				tagfrag = create_tags(domain, data);
+				tagfrag = create_tags(data, domain);
 				n.innerHTML = "";
 				$.add(n, tagfrag);
 			}
@@ -1956,8 +1945,9 @@
 				ex = ($.get_domain(link.href) === domains.exhentai);
 				fjord = API.is_fjording(data);
 				if (fjord !== ex) {
-					info.domain = fjord ? domains.exhentai : domains.ehentai;
-					link.href = $.change_url_domain(link.href, domain_info[info.domain].g_domain);
+					info.domain = fjord ? domains.exhentai : domains.gehentai;
+					info.tag = fjord ? "Ex" : "EH";
+					link.href = $.change_url_domain(link.href, info.domain);
 					if (button !== null) {
 						button.href = link.href;
 						update_button_text(button, info);
@@ -2644,9 +2634,8 @@
 			};
 		};
 		var ehentai_create_lookup_url = function (sha1) {
-			var url = "http://",
-				di = domain_info[config.sauce.lookup_domain];
-			url += (di === undefined ? "" : di.g_domain);
+			var url = "http://";
+			url += config.sauce.lookup_domain;
 			url += "/?f_doujinshi=1&f_manga=1&f_artistcg=1&f_gamecg=1&f_western=1&f_non-h=1&f_imageset=1&f_cosplay=1&f_asianporn=1&f_misc=1&f_search=Search+Keywords&f_apply=Apply+Filter&f_shash=";
 			url += sha1;
 			url += "&fs_similar=0";
@@ -3666,7 +3655,8 @@
 			if (info.similar) {
 				var blob = info.blob,
 					form_data = new FormData(),
-					ext = (blob.type || "").split("/");
+					ext = (blob.type || "").split("/"),
+					domain = (config.sauce.lookup_domain === domains.exhentai ? domains.exhentai : domains.ehentai);
 
 				info.blob = null;
 
@@ -3680,7 +3670,7 @@
 
 				callback(null, {
 					method: "POST",
-					url: "http://ul." + config.sauce.lookup_domain + "/image_lookup.php",
+					url: "http://ul." + domain + "/image_lookup.php",
 					data: form_data
 				});
 			}
@@ -3848,10 +3838,10 @@
 
 			if (match === null) return null;
 
-			domain = match[3].toLowerCase();
+			domain = (match[2] + match[3]).toLowerCase();
 			remaining = match[4];
 
-			if ((is_ex = (domain === domains.exhentai)) || domain === domains.ehentai) {
+			if ((is_ex = (domain === domains.exhentai)) || domain === domains.gehentai) {
 				m = /^\/g\/(\d+)\/([0-9a-f]+)/.exec(remaining);
 				if (m !== null) {
 					data = {
@@ -3955,9 +3945,6 @@
 			rt_ehentai_gallery_page.add("" + gid, info, false, callback);
 		};
 		var get_ehentai_gallery_page_thumb = function (domain, gid, token, page_token, page, callback) {
-			var di = domain_info[domain];
-			domain = (di === undefined) ? domains.exhentai : di.g_domain;
-
 			rt_ehentai_gallery_page_thumb.add(gid + "-" + page, {
 				domain: domain,
 				gid: gid,
@@ -3968,9 +3955,6 @@
 			}, false, callback);
 		};
 		var get_ehentai_gallery_full = function (domain, data, callback) {
-			var di = domain_info[domain];
-			domain = (di === undefined) ? domains.exhentai : di.g_domain;
-
 			rt_ehentai_gallery_full.add("" + data.gid, {
 				domain: domain,
 				gid: data.gid,
@@ -5074,11 +5058,12 @@
 				if (info.site === "ehentai") {
 					var rewrite = config.general.rewrite_links;
 					if (
-						(rewrite === domains.exhentai || rewrite === domains.ehentai) &&
+						(rewrite === domains.exhentai || rewrite === domains.gehentai) &&
 						info.domain !== rewrite
 					) {
 						info.domain = rewrite;
-						url = $.change_url_domain(url, domain_info[rewrite].g_domain);
+						info.tag = (rewrite === domains.exhentai) ? "Ex" : "EH";
+						url = $.change_url_domain(url, rewrite);
 					}
 				}
 
@@ -7415,11 +7400,8 @@
 				n1 = $.node("div", "xl-easylist-item-tag-table" + theme),
 				domain_type = data.type,
 				domain = info.domain,
-				full_domain = domain_info[domain],
 				namespace_style = "",
 				all_tags, namespace, tags, n2, n3, n4, i, ii;
-
-			full_domain = full_domain ? full_domain.g_domain : domains.exhentai;
 
 			if (data.tags_ns !== null) {
 				all_tags = data.tags_ns;
@@ -7446,7 +7428,7 @@
 
 				for (i = 0, ii = tags.length; i < ii; ++i) {
 					$.add(n2, n3 = $.node("span", "xl-tag-block" + namespace_style));
-					$.add(n3, n4 = $.link(CreateURL.to_tag(tags[i], domain_type, full_domain),
+					$.add(n3, n4 = $.link(CreateURL.to_tag(tags[i], domain_type, domain),
 						"xl-tag xl-tag-color-inherit xl-easylist-item-tag",
 						tags[i]
 					));
