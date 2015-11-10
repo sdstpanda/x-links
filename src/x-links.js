@@ -7303,12 +7303,11 @@
 				n1, n2, n3, n4, n5, n6, n7, i, t;
 
 			n1 = $.node("div", "xl-easylist-item" + theme);
+			n1.setAttribute("data-xl-id", info.site + "_" + info.gid);
 			n1.setAttribute("data-xl-index", index);
-			n1.setAttribute("data-xl-gid", data.gid);
 			n1.setAttribute("data-xl-rating", data.rating);
 			n1.setAttribute("data-xl-date-uploaded", data.upload_date);
 			n1.setAttribute("data-xl-category", data.category);
-			n1.setAttribute("data-xl-domain", domain);
 
 			$.add(n1, n2 = $.node("div", "xl-easylist-item-table-container" + theme));
 			$.add(n2, n3 = $.node("div", "xl-easylist-item-table" + theme));
@@ -7374,9 +7373,9 @@
 
 			$.add(n4, n5 = $.node("div", "xl-easylist-item-tags" + theme));
 
-			n6 = create_full_tags(domain, data, theme);
-			$.add(n5, n6[0]);
-			if (!n6[1]) {
+			n6 = create_full_tags(data, info);
+			$.add(n5, n6);
+			if (!data.full && data.type === "ehentai") {
 				$.on(n1, "mouseover", on_gallery_mouseover);
 			}
 
@@ -7417,12 +7416,16 @@
 
 			return n1;
 		};
-		var create_full_tags = function (domain, data, theme) {
-			var n1 = $.node("div", "xl-easylist-item-tag-table" + theme),
+		var create_full_tags = function (data, info) {
+			var theme = Theme.classes,
+				n1 = $.node("div", "xl-easylist-item-tag-table" + theme),
 				domain_type = data.type,
-				full_domain = domain_info[domain].g_domain,
+				domain = info.domain,
+				full_domain = domain_info[domain],
 				namespace_style = "",
 				all_tags, namespace, tags, n2, n3, n4, i, ii;
+
+			full_domain = full_domain ? full_domain.g_domain : domains.exhentai;
 
 			if (data.tags_ns !== null) {
 				all_tags = data.tags_ns;
@@ -7459,7 +7462,7 @@
 				}
 			}
 
-			return [ n1, namespace !== "" ];
+			return n1;
 		};
 		var add_gallery_update_timer = null;
 		var add_gallery = function (content_index, entry, index, force_reorder) {
@@ -7881,23 +7884,23 @@
 			$.off(this, "mouseover", on_gallery_mouseover);
 
 			var node = this,
-				gid, domain, data;
+				id, entry, data;
 
 			if (
-				(gid = this.getAttribute("data-xl-gid")) &&
-				(domain = this.getAttribute("data-xl-domain")) &&
-				(data = API.get_data("ehentai", gid)) !== null
+				(id = this.getAttribute("data-xl-id")) &&
+				(entry = data_map[id]) !== undefined &&
+				(data = API.get_data(entry.info.site, entry.info.gid)) !== null
 			) {
-				API.get_ehentai_gallery_full(domain, data, function (err, data) {
+				API.get_ehentai_gallery_full(entry.info.domain, data, function (err, data) {
 					var tags_container, n;
 
 					if (
 						err === null &&
 						(tags_container = $(".xl-easylist-item-tags", node)) !== null
 					) {
-						n = create_full_tags(domain, data, Theme.classes);
+						n = create_full_tags(data, entry.info);
 						tags_container.textContent = "";
-						$.add(tags_container, n[0]);
+						$.add(tags_container, n);
 
 						update_filters(node, data, false, true);
 					}
