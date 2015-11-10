@@ -1193,7 +1193,7 @@
 					info, data, thumb_state, thumb_cb;
 
 				if (
-					(info = Linkifier.get_node_url_info(this)) === null ||
+					(info = API.get_url_info_saved(this.href)) === null ||
 					(data = API.get_data(info.site, info.gid)) === null
 				) {
 					Debug.log("Invalid link", { link: this, info: info, data: data });
@@ -1350,7 +1350,7 @@
 						// Create
 						if (
 							(link = get_link_from_tag_button(this)) !== null &&
-							(info = Linkifier.get_node_url_info(link)) !== null &&
+							(info = API.get_url_info_saved(link.href)) !== null &&
 							(data = API.get_data(info.site, info.gid)) !== null
 						) {
 							actions = create_actions(data, info, index);
@@ -1384,7 +1384,7 @@
 
 				if (
 					(link = get_link_from_tag_button(this)) !== null &&
-					(info = Linkifier.get_node_url_info(link)) !== null
+					(info = API.get_url_info_saved(link.href)) !== null
 				) {
 					Linkifier.load_link(link, info);
 				}
@@ -3912,6 +3912,11 @@
 
 			callback(null, data);
 		};
+		var get_url_info_saved = function (url) {
+			url = url.replace(re_remove_protocol, "");
+			var data = url_info_saved[url];
+			return (data !== undefined) ? data : null;
+		};
 		var get_url_info_custom = function (i, url, save_key, callback) {
 			// This should avoid stack overflowing when using a callback chain with many synchronous functions
 			var ii = url_info_registrations.length,
@@ -4164,6 +4169,7 @@
 			Flags: Flags,
 			RequestType: RequestType,
 			get_url_info: get_url_info,
+			get_url_info_saved: get_url_info_saved,
 			get_tag_from_domain: get_tag_from_domain,
 			get_ehentai_gallery: get_ehentai_gallery,
 			get_ehentai_gallery_page: get_ehentai_gallery_page,
@@ -5097,7 +5103,6 @@
 				node.classList.add("xl-link");
 				node.classList.add("xl-linkified");
 
-				set_node_url_info(node, info);
 				UI.setup_link(node, url, info);
 
 				if (auto_load) load_link(node, info);
@@ -5343,13 +5348,6 @@
 			return $$("a.xl-link.xl-link-formatted", parent);
 		};
 
-		var set_node_url_info = function (node, info) {
-			node.setAttribute("data-xl-info", JSON.stringify(info));
-		};
-		var get_node_url_info = function (node) {
-			return $.json_parse_safe(node.getAttribute("data-xl-info"), null);
-		};
-
 		// Events
 		var event_listeners = {
 			format: []
@@ -5450,7 +5448,6 @@
 			change_link_events: change_link_events,
 			register_link_events: register_link_events,
 			get_links_formatted: get_links_formatted,
-			get_node_url_info: get_node_url_info,
 			relinkify_posts: relinkify_posts,
 			fix_broken_4chanx_linkification: fix_broken_4chanx_linkification,
 			linkify_register: linkify_register,
@@ -7730,7 +7727,7 @@
 			var info, key, entry, i, ii;
 
 			for (i = 0, ii = links.length; i < ii; ++i) {
-				info = Linkifier.get_node_url_info(links[i]);
+				info = API.get_url_info_saved(links[i].href);
 				if (info !== null) {
 					key = info.site + "_" + info.gid;
 					if (data_map[key] === undefined) {
