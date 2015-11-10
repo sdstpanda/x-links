@@ -1506,7 +1506,7 @@
 			$.add(n1, n2 = $.node("strong", "xl-details-uploader", data.uploader));
 			Filter.highlight("uploader", n2, data, Filter.None);
 			$.add(n1, $.tnode("on"));
-			$.add(n1, $.node("strong", "xl-details-upload-date", format_date(new Date(data.upload_date))));
+			$.add(n1, $.node("strong", "xl-details-upload-date", format_date(data.date_created)));
 
 			// Tags
 			$.add(content, n1 = $.node("div", "xl-details-tag-block" + theme));
@@ -1915,7 +1915,8 @@
 		var button_text = function (info) {
 			return "[" + (info.tag || "?") + "]";
 		};
-		var format_date = function (d) {
+		var format_date = function (timestamp) {
+			var d = new Date(timestamp);
 			return d.getUTCFullYear() + "-" +
 				pad(d.getUTCMonth() + 1, "-") +
 				pad(d.getUTCDate(), " ") +
@@ -2254,7 +2255,7 @@
 		var set_saved_data = function (data) {
 			var id_full = data.type + "-" + data.gid;
 			saved_data[id_full] = data;
-			cache_set("data-" + id_full, data, ttl_1_hour * (data.upload_date >= Date.now() - ttl_1_day ? 1 : 12));
+			cache_set("data-" + id_full, data, ttl_1_hour * (data.date_created >= Date.now() - ttl_1_day ? 1 : 12));
 		};
 		var set_saved_error = function (id_list, error, cache) {
 			var id = id_list.join("-");
@@ -2413,7 +2414,7 @@
 				thumbnail: null,
 
 				flags: 0,
-				upload_date: 0,
+				date_created: 0,
 				file_count: 0,
 				total_size: -1,
 				favorites: -1,
@@ -2480,7 +2481,7 @@
 			data.uploader = ehentai_normalize_string(info.uploader, null);
 			data.category = normalize_category(ehentai_category_mapping, ehentai_simple_string(info.category, ""));
 			data.thumbnail = ehentai_simple_string(info.thumb, null);
-			data.upload_date = (parseInt(info.posted, 10) || 0) * 1000;
+			data.date_created = (parseInt(info.posted, 10) || 0) * 1000;
 			data.file_count = parseInt(info.filecount, 10) || 0;
 			data.total_size = parseInt(info.filesize, 10) || 0;
 			data.rating = parseFloat(info.rating) || 0.0;
@@ -2736,7 +2737,7 @@
 			if ((n = $("time[datetime]", info)) !== null) {
 				m = /^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)\.(\d{6})/i.exec(n.getAttribute("datetime") || "");
 				if (m !== null) {
-					data.upload_date = new Date(
+					data.date_created = new Date(
 						parseInt(m[1], 10),
 						parseInt(m[2], 10) - 1,
 						parseInt(m[3], 10),
@@ -2922,7 +2923,7 @@
 			if ((n = $(".date", info)) !== null) {
 				m = /^(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)/i.exec(n.textContent.trim());
 				if (m !== null) {
-					data.upload_date = new Date(
+					data.date_created = new Date(
 						parseInt(m[1], 10),
 						parseInt(m[2], 10) - 1,
 						parseInt(m[3], 10),
@@ -7070,7 +7071,7 @@
 			custom_links_text = "",
 			node_sort_order_keys = {
 				thread: [ "data-xl-index", 1 ],
-				upload: [ "data-xl-date-uploaded", -1 ],
+				upload: [ "data-xl-date-created", -1 ],
 				rating: [ "data-xl-rating", -1 ]
 			},
 			display_mode_names = [
@@ -7311,7 +7312,7 @@
 			n1.setAttribute("data-xl-id", info.site + "_" + info.gid);
 			n1.setAttribute("data-xl-index", index);
 			n1.setAttribute("data-xl-rating", data.rating);
-			n1.setAttribute("data-xl-date-uploaded", data.upload_date);
+			n1.setAttribute("data-xl-date-created", data.date_created);
 			n1.setAttribute("data-xl-category", data.category);
 
 			$.add(n1, n2 = $.node("div", "xl-easylist-item-table-container" + theme));
@@ -7374,7 +7375,7 @@
 			$.add(n5, n6 = $.link(CreateURL.to_uploader(data, domain), "xl-easylist-item-uploader" + theme, data.uploader));
 			n6.setAttribute("data-xl-original", n6.textContent);
 			$.add(n5, $.tnode(" on "));
-			$.add(n5, $.node("span", "xl-easylist-item-upload-date" + theme, UI.format_date(new Date(data.upload_date))));
+			$.add(n5, $.node("span", "xl-easylist-item-upload-date" + theme, UI.format_date(data.date_created)));
 
 			$.add(n4, n5 = $.node("div", "xl-easylist-item-tags" + theme));
 
