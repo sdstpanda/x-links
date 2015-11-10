@@ -1235,7 +1235,7 @@
 
 				update_details_position(details, this, event.clientX, event.clientY);
 
-				if (info.page !== undefined && info.page > 1) {
+				if (data.subtype === "gallery" && info.page !== undefined && info.page > 1) {
 					update_details_page_thumbnail(info.page, data, info, details, this);
 				}
 			}),
