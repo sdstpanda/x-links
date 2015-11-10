@@ -3830,16 +3830,23 @@
 
 
 		// Public
-		var get_url_info_registrations = [];
+		var re_remove_protocol = /^https?:\/*/i,
+			re_url_info = /^([\w\-]+(?:\.[\w\-]+)*)((?:[\/\?\#][\w\W]*)?)/,
+			url_info_saved = {},
+			url_info_registrations = [];
 		var get_url_info = function (url, callback) {
-			var match = /^(https?):\/*((?:[\w-]+\.)*)([\w-]+\.[\w]+)((?:[\/\?\#][\w\W]*)?)/.exec(url),
-				data = null,
-				domain, remaining, is_ex, m;
+			var url2 = url.replace(re_remove_protocol, ""),
+				match, data, domain, remaining, is_ex, m;
+
+			if ((data = url_info_saved[url2]) !== undefined) return data;
+
+			match = re_url_info.exec(url2);
 
 			if (match === null) return null;
 
-			domain = (match[2] + match[3]).toLowerCase();
-			remaining = match[4];
+			data = null;
+			domain = (match[1]).toLowerCase();
+			remaining = match[2];
 
 			if ((is_ex = (domain === domains.exhentai)) || domain === domains.gehentai) {
 				m = /^\/g\/(\d+)\/([0-9a-f]+)/.exec(remaining);
@@ -3895,7 +3902,10 @@
 				}
 			}
 
-			if (data === null && get_url_info_registrations.length > 0) {
+			if (data !== null) {
+				url_info_saved[url2] = data;
+			}
+			else if (url_info_registrations.length > 0) {
 				get_url_info_custom(0, url, callback);
 				return;
 			}
@@ -3904,7 +3914,7 @@
 		};
 		var get_url_info_custom = function (i, url, callback) {
 			// This should avoid stack overflowing when using a callback chain with many synchronous functions
-			var ii = get_url_info_registrations.length,
+			var ii = url_info_registrations.length,
 				immediate;
 
 			var fn_cb = function (err, data) {
@@ -3922,7 +3932,7 @@
 			for (; i < ii; ++i) {
 				immediate = true;
 
-				get_url_info_registrations[i](url, fn_cb);
+				url_info_registrations[i](url, fn_cb);
 
 				if (immediate) {
 					immediate = false;
@@ -3933,7 +3943,7 @@
 			callback(null, null);
 		};
 		var register_url_info_function = function (check_fn) {
-			get_url_info_registrations.push(check_fn);
+			url_info_registrations.push(check_fn);
 		};
 
 		var domain_tags = {
