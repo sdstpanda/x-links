@@ -1196,7 +1196,7 @@
 				var full_id = get_node_id_full(this),
 					details = details_nodes[full_id],
 					node = this,
-					info, data, domain, thumb_state, thumb_cb;
+					info, data, thumb_state, thumb_cb;
 
 				if (
 					(info = Linkifier.get_node_url_info(this)) === null ||
@@ -1207,12 +1207,7 @@
 				}
 
 				if (details === undefined) {
-					if (!((domain = $.get_domain(this.href)) in domain_info)) {
-						Debug.log("Invalid link", { link: this, domain: domain });
-						return;
-					}
-
-					details = create_details(data, domain);
+					details = create_details(data, info);
 					details_nodes[full_id] = details;
 				}
 				if (Debug.enabled) {
@@ -1447,12 +1442,14 @@
 			return (n < 10 ? "0" : "") + n + sep;
 		};
 
-		var create_details = function (data, domain) {
-			var g_domain = domain_info[domain].g_domain,
-				category = API.get_category(data.category),
+		var create_details = function (data, info) {
+			var category = API.get_category(data.category),
 				theme = Theme.classes,
 				file_size = (data.total_size / 1024 / 1024).toFixed(2),
+				g_domain = domain_info[info.domain],
 				content, n1, n2, n3;
+
+			g_domain = g_domain ? g_domain.g_domain : domains.exhentai;
 
 			// Body
 			content = $.node("div", "xl-details xl-hover-shadow" + theme);
@@ -1510,7 +1507,7 @@
 
 			// Title
 			$.add(content, n1 = $.node("div", "xl-details-title-container" + theme));
-			$.add(n1, n2 = $.link(CreateURL.to_gallery(data, domain), "xl-details-title" + theme, data.title));
+			$.add(n1, n2 = $.link(CreateURL.to_gallery(data, info.domain), "xl-details-title" + theme, data.title));
 			Filter.highlight("title", n2, data, Filter.None);
 			if (data.title_jpn !== null) {
 				$.add(n1, n2 = $.node("div", "xl-details-title-jp" + theme, data.title_jpn));
@@ -1536,7 +1533,7 @@
 
 			// Full info
 			if (data.type === "ehentai" && config.sites.ehentai_ext && !data.full) {
-				API.get_ehentai_gallery_full(domain, data, function (err, data) {
+				API.get_ehentai_gallery_full(info.domain, data, function (err, data) {
 					if (err === null) {
 						update_full(data);
 					}
@@ -1554,12 +1551,14 @@
 		var create_actions = function (data, link, index) {
 			var theme = Theme.classes,
 				domain = $.get_domain(link.href),
-				g_domain = domain_info[domain].g_domain,
 				gid = data.gid,
 				token = data.token,
 				type = data.type,
 				actions = $.node("div", "xl-actions xl-hover-shadow" + theme),
+				g_domain = domain_info[domain],
 				n1, n2, n3;
+
+			g_domain = g_domain ? g_domain.g_domain : domains.exhentai;
 
 			$.add(actions, n1 = $.node("div", "xl-actions-inner" + theme));
 			$.add(n1, n2 = $.node("div", "xl-actions-table" + theme));
@@ -1905,9 +1904,9 @@
 				button.textContent = button.textContent.replace(/\]\s*$/, text + "]");
 			}
 		};
-		var update_button_text = function (button, domain) {
+		var update_button_text = function (button, info) {
 			if ((button = button_get_inner(button)) !== null) {
-				button.textContent = button_text(domain);
+				button.textContent = button_text(info);
 			}
 		};
 
@@ -1930,9 +1929,8 @@
 		var button_get_inner = function (button) {
 			return ((button = button.lastChild) !== null && button.tagName === "SPAN") ? button : null;
 		};
-		var button_text = function (domain) {
-			var d = domain_info[domain];
-			return (d !== undefined ? "[" + d.tag + "]" : "[?]");
+		var button_text = function (info) {
+			return "[" + (info.tag || "?") + "]";
 		};
 		var format_date = function (d) {
 			return d.getUTCFullYear() + "-" +
@@ -1944,7 +1942,7 @@
 
 		var setup_link = function (link, url, info) {
 			var button = $.link(url, "xl-site-tag" + Theme.classes),
-				text = $.node("span", "xl-site-tag-text", button_text(info.domain));
+				text = $.node("span", "xl-site-tag-text", button_text(info));
 
 			set_node_id(link, info.site, info.gid);
 
@@ -1957,18 +1955,18 @@
 		};
 		var format_link = function (link, data, info) {
 			var button = get_tag_button_from_link(link),
-				domain, fjord, ex, hl, c, n;
+				fjord, ex, hl, c, n;
 
 			// Smart links
 			if (config.general.rewrite_links === "smart" && data.type === "ehentai") {
 				ex = ($.get_domain(link.href) === domains.exhentai);
 				fjord = API.is_fjording(data);
 				if (fjord !== ex) {
-					domain = fjord ? domains.exhentai : domains.ehentai;
-					link.href = $.change_url_domain(link.href, domain_info[domain].g_domain);
+					info.domain = fjord ? domains.exhentai : domains.ehentai;
+					link.href = $.change_url_domain(link.href, domain_info[info.domain].g_domain);
 					if (button !== null) {
 						button.href = link.href;
-						update_button_text(button, domain);
+						update_button_text(button, info);
 					}
 				}
 			}
@@ -3852,14 +3850,14 @@
 		var get_url_info = function (url, callback) {
 			var match = /^(https?):\/*((?:[\w-]+\.)*)([\w-]+\.[\w]+)((?:[\/\?\#][\w\W]*)?)/.exec(url),
 				data = null,
-				domain, remaining, m;
+				domain, remaining, is_ex, m;
 
 			if (match === null) return null;
 
 			domain = match[3].toLowerCase();
 			remaining = match[4];
 
-			if (domain === domains.exhentai || domain === domains.ehentai) {
+			if ((is_ex = (domain === domains.exhentai)) || domain === domains.ehentai) {
 				m = /^\/g\/(\d+)\/([0-9a-f]+)/.exec(remaining);
 				if (m !== null) {
 					data = {
@@ -3867,7 +3865,8 @@
 						type: "gallery",
 						gid: parseInt(m[1], 10),
 						token: m[2],
-						domain: domain
+						domain: domain,
+						tag: is_ex ? "Ex" : "EH"
 					};
 				}
 				else {
@@ -3879,7 +3878,8 @@
 							gid: parseInt(m[2], 10),
 							page: parseInt(m[3], 10),
 							page_token: m[1],
-							domain: domain
+							domain: domain,
+							tag: is_ex ? "Ex" : "EH"
 						};
 					}
 				}
@@ -3891,7 +3891,8 @@
 						site: "nhentai",
 						type: "gallery",
 						gid: parseInt(m[1], 10),
-						domain: domain
+						domain: domain,
+						tag: "n"
 					};
 					if (m[2] !== undefined) data.page = parseInt(m[2], 10);
 				}
@@ -3903,7 +3904,8 @@
 						site: "hitomi",
 						type: "gallery",
 						gid: parseInt(m[2], 10),
-						domain: domain
+						domain: domain,
+						tag: "Hi"
 					};
 					if (m[1] === "reader" && m[3] !== undefined) data.page = parseInt(m[3], 10);
 				}
@@ -7033,10 +7035,8 @@
 	})();
 	var EasyList = (function () {
 
-		var Entry = function (domain, site, gid) {
-			this.domain = domain;
-			this.namespace = site;
-			this.id = gid;
+		var Entry = function (info) {
+			this.info = info;
 			this.node = null;
 		};
 
@@ -7296,8 +7296,9 @@
 
 			return n1;
 		};
-		var create_gallery_nodes = function (data, index, domain) {
-			var url = CreateURL.to_gallery(data, domain),
+		var create_gallery_nodes = function (data, index, info) {
+			var domain = info.domain,
+				url = CreateURL.to_gallery(data, domain),
 				theme = Theme.classes,
 				n1, n2, n3, n4, n5, n6, n7, i, t;
 
@@ -7351,7 +7352,7 @@
 
 			$.add(n4, n5 = $.node("div", "xl-easylist-item-title" + theme));
 
-			t = UI.button_text(domain);
+			t = UI.button_text(info);
 			$.add(n5, n6 = $.link(url, "xl-easylist-item-title-tag-link" + theme));
 			$.add(n6, $.node("span", "xl-easylist-item-title-tag-link-text", t));
 			n6.setAttribute("data-xl-original", t);
@@ -7462,12 +7463,13 @@
 		};
 		var add_gallery_update_timer = null;
 		var add_gallery = function (content_index, entry, index, force_reorder) {
-			var data = API.get_data(entry.namespace, entry.id),
+			var info = entry.info,
+				data = API.get_data(info.site, info.gid),
 				entries, n;
 
 			if (data !== null) {
 				entries = contents[content_index].entries;
-				n = create_gallery_nodes(data, index, entry.domain);
+				n = create_gallery_nodes(data, index, info);
 				n.setAttribute("data-xl-easylist-item-parity", (contents[content_index].visible % 2) === 0 ? "odd" : "even");
 
 				Main.insert_custom_fonts();
@@ -7704,11 +7706,11 @@
 		var update_all_filters = function () {
 			var content_index = content_current,
 				entries = contents[content_index].entries,
-				entry, data, i, ii;
+				info, data, i, ii;
 
 			for (i = 0, ii = entries.length; i < ii; ++i) {
-				entry = entries[i];
-				data = API.get_data(entry.namespace, entry.id);
+				info = entries[i].info;
+				data = API.get_data(info.site, info.gid);
 				if (data !== null) {
 					update_filters(entries[i].node, data, false, false);
 				}
@@ -7730,7 +7732,7 @@
 				if (info !== null) {
 					key = info.site + "_" + info.gid;
 					if (data_map[key] === undefined) {
-						entry = new Entry(info.domain, info.site, info.gid);
+						entry = new Entry(info);
 						queue.push(entry);
 						data_map[key] = entry;
 					}
@@ -7798,7 +7800,7 @@
 						entry;
 
 					if (custom_links_map[key] === undefined) {
-						entry = new Entry(info.domain, data.type, data.gid);
+						entry = new Entry(info);
 						custom_links_map[key] = entry;
 						add_gallery(1, entry, index, true);
 					}
