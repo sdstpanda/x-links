@@ -1080,16 +1080,13 @@
 		// Exports
 		return {
 			to_gallery: function (data, domain) {
-				var type = domain_info[domain].type;
-				return to_gallery[type].call(null, data, domain);
+				return to_gallery[data.type].call(null, data, domain);
 			},
 			to_uploader: function (data, domain) {
-				var type = domain_info[domain].type;
-				return to_uploader[type].call(null, data, domain);
+				return to_uploader[data.type].call(null, data, domain);
 			},
 			to_category: function (data, domain) {
-				var type = domain_info[domain].type;
-				return to_category[type].call(null, data, domain);
+				return to_category[data.type].call(null, data, domain);
 			},
 			to_tag: function (tag, domain_type, full_domain) {
 				return to_tag[domain_type].call(null, tag, full_domain);
@@ -7421,7 +7418,7 @@
 		};
 		var create_full_tags = function (domain, data, theme) {
 			var n1 = $.node("div", "xl-easylist-item-tag-table" + theme),
-				domain_type = domain_info[domain].type,
+				domain_type = data.type,
 				full_domain = domain_info[domain].g_domain,
 				namespace_style = "",
 				all_tags, namespace, tags, n2, n3, n4, i, ii;
