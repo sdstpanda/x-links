@@ -336,6 +336,9 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 	padding: 0 0.25em 0 1em;
 	line-height: 1.325em;
 }
+.xl-actions-table-cell.xl-actions-table-cell-full>.xl-actions-table-header {
+	padding-right: 1em;
+}
 .xl-actions-option {
 	padding: 0 1em 0 0.25em;
 	line-height: 1.325em;

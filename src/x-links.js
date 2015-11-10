@@ -1440,6 +1440,7 @@
 			// Body
 			content = $.node("div", "xl-details xl-hover-shadow" + theme);
 			Theme.bg(content);
+			if (data.subtype !== "gallery") return content;
 
 			// Image
 			$.add(content, n1 = $.node("div", "xl-details-thumbnail" + theme));
@@ -1541,6 +1542,7 @@
 				type = data.type,
 				actions = $.node("div", "xl-actions xl-hover-shadow" + theme),
 				domain = info.domain,
+				created = false,
 				n1, n2, n3;
 
 			$.add(actions, n1 = $.node("div", "xl-actions-inner" + theme));
@@ -1550,10 +1552,17 @@
 				var n1, n2, n3;
 				$.add(container, n1 = $.node("div", "xl-actions-table-row" + theme));
 				$.add(n1, n2 = $.node("div", "xl-actions-table-cell" + theme));
-				if (label !== null) $.add(n2, $.node("div", "xl-actions-table-header", label));
-				$.add(n1, n2 = $.node("div", "xl-actions-table-cell" + theme));
-				$.add(n2, n3 = $.link(url, "xl-actions-option" + theme, text));
-				$.on(n3, "click", $.bind(on_actions_link_click, n3, actions, index));
+				if (label !== null) {
+					$.add(n2, $.node("div", "xl-actions-table-header", label));
+				}
+				if (text !== null) {
+					$.add(n1, n2 = $.node("div", "xl-actions-table-cell" + theme));
+					$.add(n2, n3 = $.link(url, "xl-actions-option" + theme, text));
+					$.on(n3, "click", $.bind(on_actions_link_click, n3, actions, index));
+				}
+				else {
+					n2.classList.add("xl-actions-table-cell-full");
+				}
 				return n3;
 			};
 			var gen_sep = function (container) {
@@ -1563,33 +1572,46 @@
 				$.add(n2, $.node("div", "xl-actions-table-sep"));
 			};
 
-			if (type === "ehentai") {
-				gen_entry(n2, "View on:", CreateURL.to_gallery(data, domains.gehentai), "E-Hentai");
-				gen_entry(n2, null, CreateURL.to_gallery(data, domains.exhentai), "ExHentai");
+			if (data.subtype === "gallery") {
+				if (type === "ehentai") {
+					gen_entry(n2, "View on:", CreateURL.to_gallery(data, domains.gehentai), "E-Hentai");
+					gen_entry(n2, null, CreateURL.to_gallery(data, domains.exhentai), "ExHentai");
 
-				gen_sep(n2);
+					gen_sep(n2);
 
-				n3 = gen_entry(n2, "Uploader:", CreateURL.to_uploader(data, domain), data.uploader);
-				n3.classList.add("xl-actions-uploader");
-				Filter.highlight("uploader", n3, data, Filter.None);
+					n3 = gen_entry(n2, "Uploader:", CreateURL.to_uploader(data, domain), data.uploader);
+					n3.classList.add("xl-actions-uploader");
+					Filter.highlight("uploader", n3, data, Filter.None);
 
-				gen_sep(n2);
+					gen_sep(n2);
 
-				gen_entry(n2, "Download:", "http://" + domain + "/gallerytorrents.php?gid=" + gid + "&t=" + token, "Torrent (" + data.torrent_count + ")");
-				gen_entry(n2, null, "http://" + domains.gehentai + "/archiver.php?gid=" + gid + "&token=" + token + "&or=" + data.archiver_key, "Archiver");
-				n3 = gen_entry(n2, null, "http://" + domain + "/hathdler.php?gid=" + gid + "&t=" + token, "via H@H");
-				n3.removeAttribute("target");
+					gen_entry(n2, "Download:", "http://" + domain + "/gallerytorrents.php?gid=" + gid + "&t=" + token, "Torrent (" + data.torrent_count + ")");
+					gen_entry(n2, null, "http://" + domains.gehentai + "/archiver.php?gid=" + gid + "&token=" + token + "&or=" + data.archiver_key, "Archiver");
+					n3 = gen_entry(n2, null, "http://" + domain + "/hathdler.php?gid=" + gid + "&t=" + token, "via H@H");
+					n3.removeAttribute("target");
 
-				gen_sep(n2);
+					gen_sep(n2);
 
-				gen_entry(n2, "Other:", "http://" + domain + "/gallerypopups.php?gid=" + gid + "&t=" + token + "&act=addfav", "Favorite");
-				gen_entry(n2, null, "http://" + domains.gehentai + "/stats.php?gid=" + gid + "&t=" + token, "Stats");
+					gen_entry(n2, "Other:", "http://" + domain + "/gallerypopups.php?gid=" + gid + "&t=" + token + "&act=addfav", "Favorite");
+					gen_entry(n2, null, "http://" + domains.gehentai + "/stats.php?gid=" + gid + "&t=" + token, "Stats");
+
+					created = true;
+				}
+				else if (type === "nhentai") {
+					gen_entry(n2, "View on:", CreateURL.to_gallery(data, domain), "nhentai.net");
+
+					created = true;
+				}
+				else if (type === "hitomi") {
+					gen_entry(n2, "View on:", CreateURL.to_gallery(data, domain), "hitomi.la");
+
+					created = true;
+				}
 			}
-			else if (type === "nhentai") {
-				gen_entry(n2, "View on:", CreateURL.to_gallery(data, domain), "nhentai.net");
-			}
-			else if (type === "hitomi") {
-				gen_entry(n2, "View on:", CreateURL.to_gallery(data, domain), "hitomi.la");
+
+			// Empty
+			if (!created) {
+				gen_entry(n2, "No actions available", null, null);
 			}
 
 			// Prepare
@@ -2405,6 +2427,7 @@
 		var create_empty_gallery_info = function (type) {
 			return {
 				type: type,
+				subtype: "gallery",
 				gid: 0,
 				token: null,
 				title: "",
@@ -7473,7 +7496,7 @@
 				data = API.get_data(info.site, info.gid),
 				entries, n;
 
-			if (data !== null) {
+			if (data !== null && data.subtype === "gallery") {
 				entries = contents[content_index].entries;
 				n = create_gallery_nodes(data, index, info);
 				n.setAttribute("data-xl-easylist-item-parity", (contents[content_index].visible % 2) === 0 ? "odd" : "even");
