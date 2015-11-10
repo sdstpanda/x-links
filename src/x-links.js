@@ -1946,7 +1946,7 @@
 				fjord = API.is_fjording(data);
 				if (fjord !== ex) {
 					info.domain = fjord ? domains.exhentai : domains.gehentai;
-					info.tag = fjord ? "Ex" : "EH";
+					info.tag = API.get_tag_from_domain(info.domain);
 					link.href = $.change_url_domain(link.href, info.domain);
 					if (button !== null) {
 						button.href = link.href;
@@ -3850,7 +3850,7 @@
 						gid: parseInt(m[1], 10),
 						token: m[2],
 						domain: domain,
-						tag: is_ex ? "Ex" : "EH"
+						tag: get_tag_from_domain(domain)
 					};
 				}
 				else {
@@ -3863,7 +3863,7 @@
 							page: parseInt(m[3], 10),
 							page_token: m[1],
 							domain: domain,
-							tag: is_ex ? "Ex" : "EH"
+							tag: get_tag_from_domain(domain)
 						};
 					}
 				}
@@ -3876,7 +3876,7 @@
 						type: "gallery",
 						gid: parseInt(m[1], 10),
 						domain: domain,
-						tag: "n"
+						tag: get_tag_from_domain(domain)
 					};
 					if (m[2] !== undefined) data.page = parseInt(m[2], 10);
 				}
@@ -3889,7 +3889,7 @@
 						type: "gallery",
 						gid: parseInt(m[2], 10),
 						domain: domain,
-						tag: "Hi"
+						tag: get_tag_from_domain(domain)
 					};
 					if (m[1] === "reader" && m[3] !== undefined) data.page = parseInt(m[3], 10);
 				}
@@ -3934,6 +3934,17 @@
 		};
 		var register_url_info_function = function (check_fn) {
 			get_url_info_registrations.push(check_fn);
+		};
+
+		var domain_tags = {
+			"exhentai.org": "Ex",
+			"g.e-hentai.org": "EH",
+			"nhentai.net": "n",
+			"hitomi.la": "Hi"
+		};
+		var get_tag_from_domain = function (domain) {
+			var d = domain_tags[domain];
+			return (d === undefined) ? "?" : d;
 		};
 
 		var get_ehentai_gallery = function (gid, token, callback) {
@@ -4142,6 +4153,7 @@
 			Flags: Flags,
 			RequestType: RequestType,
 			get_url_info: get_url_info,
+			get_tag_from_domain: get_tag_from_domain,
 			get_ehentai_gallery: get_ehentai_gallery,
 			get_ehentai_gallery_page: get_ehentai_gallery_page,
 			get_ehentai_gallery_full: get_ehentai_gallery_full,
@@ -5062,7 +5074,7 @@
 						info.domain !== rewrite
 					) {
 						info.domain = rewrite;
-						info.tag = (rewrite === domains.exhentai) ? "Ex" : "EH";
+						info.tag = API.get_tag_from_domain(rewrite);
 						url = $.change_url_domain(url, rewrite);
 					}
 				}
