@@ -3835,12 +3835,12 @@
 			url_info_saved = {},
 			url_info_registrations = [];
 		var get_url_info = function (url, callback) {
-			var url2 = url.replace(re_remove_protocol, ""),
+			var save_key = url.replace(re_remove_protocol, ""),
 				match, data, domain, remaining, is_ex, m;
 
-			if ((data = url_info_saved[url2]) !== undefined) return data;
+			if ((data = url_info_saved[save_key]) !== undefined) return data;
 
-			match = re_url_info.exec(url2);
+			match = re_url_info.exec(save_key);
 
 			if (match === null) return null;
 
@@ -3903,29 +3903,30 @@
 			}
 
 			if (data !== null) {
-				url_info_saved[url2] = data;
+				url_info_saved[save_key] = data;
 			}
 			else if (url_info_registrations.length > 0) {
-				get_url_info_custom(0, url, callback);
+				get_url_info_custom(0, url, save_key, callback);
 				return;
 			}
 
 			callback(null, data);
 		};
-		var get_url_info_custom = function (i, url, callback) {
+		var get_url_info_custom = function (i, url, save_key, callback) {
 			// This should avoid stack overflowing when using a callback chain with many synchronous functions
 			var ii = url_info_registrations.length,
 				immediate;
 
 			var fn_cb = function (err, data) {
 				if (err === null && data !== null) {
+					url_info_saved[save_key] = data;
 					callback(null, data);
 				}
 				else if (immediate) {
 					immediate = false;
 				}
 				else {
-					get_url_info_custom(i + 1, url, callback);
+					get_url_info_custom(i + 1, url, save_key, callback);
 				}
 			};
 
