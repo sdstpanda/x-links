@@ -1189,8 +1189,7 @@
 			mouseover: $.wrap_mouseenterleave_event(function (event) {
 				var full_id = get_node_id_full(this),
 					details = details_nodes[full_id],
-					node = this,
-					info, data, thumb_state, thumb_cb;
+					info, data;
 
 				if (
 					(info = API.get_url_info_saved(this.href)) === null ||
@@ -1237,68 +1236,7 @@
 				update_details_position(details, this, event.clientX, event.clientY);
 
 				if (info.page !== undefined && info.page > 1) {
-					// Thumbnail processing
-					thumb_state = 0;
-					thumb_cb = function (err, thumb_data) {
-						if (err === null) {
-							API.get_thumbnail(thumb_data.url, thumb_data.flags, function (err, thumb_url) {
-								if (err === null && node === gallery_link_events_data.link) {
-									var n0, n1, n2;
-									if (
-										(n0 = $(".xl-details-page-thumbnail", details)) !== null &&
-										(n1 = $(".xl-details-page-thumbnail-size", n0)) !== null &&
-										(n2 = $(".xl-details-page-thumbnail-image", n1)) !== null
-									) {
-										n2.style.backgroundImage = "url('" + thumb_url + "')";
-
-										if (thumb_data.width > 0 && thumb_data.height > 0) {
-											// Small thumbnail
-											var max_width = 140,
-												max_height = 200,
-												max_ratio = max_height / max_width,
-												scale = (thumb_data.height / thumb_data.width > max_ratio) ? max_height / thumb_data.height : max_width / thumb_data.width;
-
-											n1.style.transform = "translate(-50%,-50%) scale(" + scale + ")";
-											n1.style.left = "50%";
-											n1.style.top = "50%";
-											n1.style.width = thumb_data.width + "px";
-											n1.style.height = thumb_data.height + "px";
-											n2.style.backgroundSize = "auto";
-											n2.style.backgroundPosition = (-thumb_data.left) + "px " + (-thumb_data.top) + "px";
-										}
-										else {
-											// Large thumbnail
-											n1.style.transform = "";
-											n1.style.left = "";
-											n1.style.top = "";
-											n1.style.width = "";
-											n1.style.height = "";
-											n2.style.backgroundSize = "";
-											n2.style.backgroundPosition = "";
-										}
-
-										// Animate
-										if (thumb_state === 1) {
-											Theme.get_computed_style(n0).getPropertyValue("transform");
-										}
-										details.classList.add("xl-details-has-thumbnail-visible");
-									}
-								}
-							});
-						}
-					};
-
-					details.classList.add("xl-details-has-thumbnail");
-					if (info.site === "ehentai") {
-						API.get_ehentai_gallery_page_thumb(info.domain, data.gid, data.token, info.page_token, info.page, thumb_cb);
-					}
-					else if (info.site === "nhentai") {
-						API.get_nhentai_gallery_page_thumb(data.gid, info.page, thumb_cb);
-					}
-					else if (info.site === "hitomi") {
-						API.get_hitomi_gallery_page_thumb(data.gid, info.page, thumb_cb);
-					}
-					if (thumb_state === 0) ++thumb_state;
+					update_details_page_thumbnail(info.page, data, info, details, this);
 				}
 			}),
 			mouseout: $.wrap_mouseenterleave_event(function () {
@@ -1686,6 +1624,73 @@
 			}
 
 			return tagfrag;
+		};
+		var update_details_page_thumbnail = function (page, data, info, details, node) {
+			var thumb_state = 0;
+
+			var thumb_cb = function (err, thumb_data) {
+				if (err === null) {
+					API.get_thumbnail(thumb_data.url, thumb_data.flags, function (err, thumb_url) {
+						if (err === null && node === gallery_link_events_data.link) {
+							var n0, n1, n2;
+							if (
+								(n0 = $(".xl-details-page-thumbnail", details)) !== null &&
+								(n1 = $(".xl-details-page-thumbnail-size", n0)) !== null &&
+								(n2 = $(".xl-details-page-thumbnail-image", n1)) !== null
+							) {
+								n2.style.backgroundImage = "url('" + thumb_url + "')";
+
+								if (thumb_data.width > 0 && thumb_data.height > 0) {
+									// Small thumbnail
+									var max_width = 140,
+										max_height = 200,
+										max_ratio = max_height / max_width,
+										scale = (thumb_data.height / thumb_data.width > max_ratio) ? max_height / thumb_data.height : max_width / thumb_data.width;
+
+									n1.style.transform = "translate(-50%,-50%) scale(" + scale + ")";
+									n1.style.left = "50%";
+									n1.style.top = "50%";
+									n1.style.width = thumb_data.width + "px";
+									n1.style.height = thumb_data.height + "px";
+									n2.style.backgroundSize = "auto";
+									n2.style.backgroundPosition = (-thumb_data.left) + "px " + (-thumb_data.top) + "px";
+								}
+								else {
+									// Large thumbnail
+									n1.style.transform = "";
+									n1.style.left = "";
+									n1.style.top = "";
+									n1.style.width = "";
+									n1.style.height = "";
+									n2.style.backgroundSize = "";
+									n2.style.backgroundPosition = "";
+								}
+
+								// Animate
+								if (thumb_state === 1) {
+									Theme.get_computed_style(n0).getPropertyValue("transform");
+								}
+								details.classList.add("xl-details-has-thumbnail-visible");
+							}
+						}
+					});
+				}
+			};
+
+			details.classList.add("xl-details-has-thumbnail");
+			if (info.site === "ehentai") {
+				API.get_ehentai_gallery_page_thumb(info.domain, data.gid, data.token, info.page_token, page, thumb_cb);
+			}
+			else if (info.site === "nhentai") {
+				API.get_nhentai_gallery_page_thumb(data.gid, page, thumb_cb);
+			}
+			else if (info.site === "hitomi") {
+				API.get_hitomi_gallery_page_thumb(data.gid, page, thumb_cb);
+			}
+			else {
+				thumb_cb("Invalid", null);
+			}
+			if (thumb_state === 0) ++thumb_state;
 		};
 		var update_full = function (data) {
 			var domain = domains.exhentai,
