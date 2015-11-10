@@ -3838,11 +3838,17 @@
 			var save_key = url.replace(re_remove_protocol, ""),
 				match, data, domain, remaining, is_ex, m;
 
-			if ((data = url_info_saved[save_key]) !== undefined) return data;
+			if ((data = url_info_saved[save_key]) !== undefined) {
+				callback(null, data);
+				return;
+			}
 
 			match = re_url_info.exec(save_key);
 
-			if (match === null) return null;
+			if (match === null) {
+				callback(null, null);
+				return;
+			}
 
 			data = null;
 			domain = (match[1]).toLowerCase();
