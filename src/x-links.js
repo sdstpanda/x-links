@@ -1332,7 +1332,7 @@
 				event.preventDefault();
 
 				var index = this.getAttribute("xl-actions-index"),
-					actions, tag_bg, data, link, id;
+					actions, tag_bg, info, data, link;
 
 				if (!index) {
 					index = "" + actions_nodes_index;
@@ -1356,10 +1356,10 @@
 						// Create
 						if (
 							(link = get_link_from_tag_button(this)) !== null &&
-							(id = get_node_id(link)) !== null &&
-							(data = API.get_data(id[0], id[1])) !== null
+							(info = Linkifier.get_node_url_info(link)) !== null &&
+							(data = API.get_data(info.site, info.gid)) !== null
 						) {
-							actions = create_actions(data, link, index);
+							actions = create_actions(data, info, index);
 							actions_nodes[index] = actions;
 							activate_actions(actions, index);
 						}
@@ -1405,11 +1405,6 @@
 
 		var set_node_id = function (node, namespace, id) {
 			node.setAttribute("data-xl-id", namespace + "_" + id);
-		};
-		var get_node_id = function (node) {
-			var a = node.getAttribute("data-xl-id"),
-				i;
-			return (a && (i = a.indexOf("_")) >= 0) ? [ a.substr(0, i), a.substr(i + 1) ] : null;
 		};
 		var get_node_id_full = function (node) {
 			return node.getAttribute("data-xl-id") || "";
@@ -1548,14 +1543,13 @@
 			Popup.hovering(content);
 			return content;
 		};
-		var create_actions = function (data, link, index) {
+		var create_actions = function (data, info, index) {
 			var theme = Theme.classes,
-				domain = $.get_domain(link.href),
 				gid = data.gid,
 				token = data.token,
 				type = data.type,
 				actions = $.node("div", "xl-actions xl-hover-shadow" + theme),
-				g_domain = domain_info[domain],
+				g_domain = domain_info[info.domain],
 				n1, n2, n3;
 
 			g_domain = g_domain ? g_domain.g_domain : domains.exhentai;
@@ -1586,7 +1580,7 @@
 
 				gen_sep(n2);
 
-				n3 = gen_entry(n2, "Uploader:", CreateURL.to_uploader(data, domain), data.uploader);
+				n3 = gen_entry(n2, "Uploader:", CreateURL.to_uploader(data, info.domain), data.uploader);
 				n3.classList.add("xl-actions-uploader");
 				Filter.highlight("uploader", n3, data, Filter.None);
 
@@ -1603,10 +1597,10 @@
 				gen_entry(n2, null, "http://" + domains.gehentai + "/stats.php?gid=" + gid + "&t=" + token, "Stats");
 			}
 			else if (type === "nhentai") {
-				gen_entry(n2, "View on:", CreateURL.to_gallery(data, domain), "nhentai.net");
+				gen_entry(n2, "View on:", CreateURL.to_gallery(data, info.domain), "nhentai.net");
 			}
 			else if (type === "hitomi") {
-				gen_entry(n2, "View on:", CreateURL.to_gallery(data, domain), "hitomi.la");
+				gen_entry(n2, "View on:", CreateURL.to_gallery(data, info.domain), "hitomi.la");
 			}
 
 			// Prepare
