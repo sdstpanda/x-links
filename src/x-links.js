@@ -9229,7 +9229,25 @@
 						linkifiers: [],
 						url_info: [],
 					},
-					o, i, ii;
+					de = document.documentElement,
+					complete = false,
+					k, o, i, ii;
+
+				// Decrease register count
+				if (de) {
+					k = "data-xlinks-extensions-waiting";
+					o = de.getAttribute(k);
+					if (o) {
+						o = (parseInt(o, 10) || 0) - 1;
+						if (o > 0) {
+							de.setAttribute(k, o);
+						}
+						else {
+							de.removeAttribute(k);
+							complete = true;
+						}
+					}
+				}
 
 				// Request APIs
 				if (Array.isArray((o = data.request_apis))) {
@@ -9257,6 +9275,9 @@
 					err: null,
 					response: response
 				}, this.reply_id);
+
+				// Done
+				Main.start_processing(!complete);
 			},
 			request: function (data) {
 				var self = this,
@@ -9335,11 +9356,16 @@
 			return req_data.req.add(unique_id, info, false, callback);
 		};
 
+		var should_defer_processing = function () {
+			return document.documentElement.hasAttribute("data-xlinks-extensions-waiting");
+		};
+
 
 		// Exports
 		return {
 			init: init,
-			request: request
+			request: request,
+			should_defer_processing: should_defer_processing
 		};
 
 	})();
@@ -9347,7 +9373,9 @@
 
 		// Private
 		var fonts_inserted = false,
-			all_posts_reloaded = false;
+			all_posts_reloaded = false,
+			processing_started = false,
+			processing_start_timer = null;
 
 		var reload_all_posts = function () {
 			if (all_posts_reloaded) return;
@@ -9362,8 +9390,7 @@
 			if (!Config.ready()) return;
 			Settings.ready();
 
-			var style = $.node_simple("style"),
-				updater;
+			var style = $.node_simple("style");
 
 			style.textContent = "#STYLESHEET#";
 			$.add(d.head, style);
@@ -9373,12 +9400,7 @@
 
 			Debug.timer_log("init.ready duration", "init");
 
-			Linkifier.queue_posts(Post.get_all_posts(d), Linkifier.queue_posts.Flags.UseDelay);
-
-			if (Config.dynamic) {
-				updater = new MutationObserver(on_body_observe);
-				updater.observe(d.body, { childList: true, subtree: true });
-			}
+			start_processing(ExtensionAPI.should_defer_processing());
 
 			HeaderBar.ready();
 
@@ -9553,6 +9575,33 @@
 			font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
 			$.add(d.head, font);
 		};
+		var start_processing = function (defer) {
+			if (processing_started) return;
+
+			// Stop timer
+			if (processing_start_timer !== null) {
+				clearTimeout(processing_start_timer);
+				processing_start_timer = null;
+			}
+
+			if (defer) {
+				// Wait
+				processing_start_timer = setTimeout(function () {
+					start_processing(false);
+				}, 5000);
+			}
+			else {
+				// Start processing
+				processing_started = true;
+
+				Linkifier.queue_posts(Post.get_all_posts(d), Linkifier.queue_posts.Flags.UseDelay);
+
+				if (Config.dynamic) {
+					var updater = new MutationObserver(on_body_observe);
+					updater.observe(d.body, { childList: true, subtree: true });
+				}
+			}
+		};
 
 		// Exports
 		var Module = {
@@ -9561,7 +9610,8 @@
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
-			insert_custom_fonts: insert_custom_fonts
+			insert_custom_fonts: insert_custom_fonts,
+			start_processing: start_processing
 		};
 
 		return Module;
