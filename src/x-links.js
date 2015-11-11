@@ -3411,10 +3411,11 @@
 		};
 		rt_ehentai_gallery.setup_xhr = function (callback) {
 			var gidlist = [],
-				i, ii;
+				info, i, ii;
 
 			for (i = 0, ii = this.infos.length; i < ii; ++i) {
-				gidlist.push(this.infos[i]);
+				info = this.infos[i];
+				gidlist.push([ info.gid, info.token ]);
 			}
 
 			callback(null, {
@@ -3469,10 +3470,11 @@
 		};
 		rt_ehentai_gallery_page.setup_xhr = function (callback) {
 			var pagelist = [],
-				i, ii;
+				info, i, ii;
 
 			for (i = 0, ii = this.infos.length; i < ii; ++i) {
-				pagelist.push(this.infos[i]);
+				info = this.infos[i];
+				pagelist.push([ info.gid, info.page_token, info.page ]);
 			}
 
 			callback(null, {
@@ -3873,6 +3875,7 @@
 			url_info_saved = {},
 			url_info_registrations = [],
 			url_info_to_data_registrations = [];
+
 		var get_url_info = function (url, callback) {
 			var save_key = url.replace(re_remove_protocol, ""),
 				match, data, domain, remaining, is_ex, m;
@@ -4072,13 +4075,14 @@
 		var get_data_from_url_info = function (url_info, callback) {
 			if (url_info.site === "ehentai") {
 				if (url_info.type === "gallery") {
-					get_ehentai_gallery(url_info.gid, url_info.token, callback);
+					rt_ehentai_gallery.add("" + url_info.gid, url_info, false, callback);
 					return;
 				}
 				if (url_info.type === "page") {
-					get_ehentai_gallery_page(url_info.gid, url_info.page_token, url_info.page, function (err, data) {
+					rt_ehentai_gallery_page.add("" + url_info.gid, url_info, false, function (err, data) {
 						if (err === null) {
-							get_ehentai_gallery(data.gid, data.token, callback);
+							url_info.token = data.token;
+							rt_ehentai_gallery.add("" + url_info.gid, url_info, false, callback);
 						}
 						else {
 							callback.call(null, err, null);
@@ -4089,13 +4093,13 @@
 			}
 			else if (url_info.site === "nhentai") {
 				if (url_info.type === "gallery") {
-					get_nhentai_gallery(url_info.gid, callback);
+					rt_nhentai_gallery.add("" + url_info.gid, url_info, false, callback);
 					return;
 				}
 			}
 			else if (url_info.site === "hitomi") {
 				if (url_info.type === "gallery") {
-					get_hitomi_gallery(url_info.gid, callback);
+					rt_hitomi_gallery.add("" + url_info.gid, url_info, false, callback);
 					return;
 				}
 			}
