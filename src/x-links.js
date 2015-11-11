@@ -4023,13 +4023,14 @@
 			return (d === undefined) ? "?" : d;
 		};
 
-		var get_ehentai_gallery = function (gid, token, callback) {
-			var info = [ gid, token ];
-			rt_ehentai_gallery.add(info.join("_"), info, false, callback);
-		};
-		var get_ehentai_gallery_page = function (gid, page_token, page, callback) {
-			var info = [ gid, page_token, page ];
-			rt_ehentai_gallery_page.add("" + gid, info, false, callback);
+		var get_ehentai_gallery_full = function (domain, data, callback) {
+			rt_ehentai_gallery_full.add("" + data.gid, {
+				domain: domain,
+				gid: data.gid,
+				token: data.token,
+				search: "",
+				data: data
+			}, false, callback);
 		};
 		var get_ehentai_gallery_page_thumb = function (domain, gid, token, page_token, page, callback) {
 			rt_ehentai_gallery_page_thumb.add(gid + "-" + page, {
@@ -4041,26 +4042,11 @@
 				search: ""
 			}, false, callback);
 		};
-		var get_ehentai_gallery_full = function (domain, data, callback) {
-			rt_ehentai_gallery_full.add("" + data.gid, {
-				domain: domain,
-				gid: data.gid,
-				token: data.token,
-				search: "",
-				data: data
-			}, false, callback);
-		};
-		var get_nhentai_gallery = function (gid, callback) {
-			rt_nhentai_gallery.add("" + gid, { gid: gid }, false, callback);
-		};
 		var get_nhentai_gallery_page_thumb = function (gid, page, callback) {
 			rt_nhentai_gallery_page_thumb.add(gid + "-" + page, {
 				gid: gid,
 				page: page
 			}, false, callback);
-		};
-		var get_hitomi_gallery = function (gid, callback) {
-			rt_hitomi_gallery.add("" + gid, { gid: gid }, false, callback);
 		};
 		var get_hitomi_gallery_page_thumb = function (gid, page, callback) {
 			rt_hitomi_gallery_page_thumb.add(gid + "-" + page, {
@@ -4241,13 +4227,9 @@
 			get_url_info: get_url_info,
 			get_url_info_saved: get_url_info_saved,
 			get_tag_from_domain: get_tag_from_domain,
-			get_ehentai_gallery: get_ehentai_gallery,
-			get_ehentai_gallery_page: get_ehentai_gallery_page,
 			get_ehentai_gallery_full: get_ehentai_gallery_full,
 			get_ehentai_gallery_page_thumb: get_ehentai_gallery_page_thumb,
-			get_nhentai_gallery: get_nhentai_gallery,
 			get_nhentai_gallery_page_thumb: get_nhentai_gallery_page_thumb,
-			get_hitomi_gallery: get_hitomi_gallery,
 			get_hitomi_gallery_page_thumb: get_hitomi_gallery_page_thumb,
 			get_data: get_data,
 			get_data_from_url_info: get_data_from_url_info,
