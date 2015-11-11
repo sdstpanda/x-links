@@ -9001,7 +9001,7 @@
 						fn.call(this, action_data);
 					}
 					else if (this.reply_id !== null) {
-						this.send(this.action, { err: "Invalid call" }, this.reply_id);
+						this.send(this.action, { err: "Invalid extension call" }, this.reply_id);
 					}
 				}
 
@@ -9095,7 +9095,7 @@
 					callback.call(null, err, null);
 				}
 				else if (!is_object(data) || !Array.isArray((args = data.args))) {
-					callback.call(null, "Invalid response", null);
+					callback.call(null, "Invalid extension response", null);
 				}
 				else {
 					args = JSON.parse(JSON.stringify(args));
@@ -9239,18 +9239,17 @@
 				send_data.url = url_info;
 
 				self.send(event, send_data, null, function (err, data) {
-					if (event==="url_info_to_data")console.log("url_info_to_data",err, data);
 					if (err !== null) {
 						cb(err, null);
 					}
 					else if (!is_object(data)) {
-						cb("Invalid data", null);
+						cb("Invalid extension data", null);
 					}
 					else if ((err = data.err) !== null) {
 						cb(err, null);
 					}
 					else if (!is_object(data.data)) {
-						cb("Invalid data", null);
+						cb("Invalid extension data", null);
 					}
 					else {
 						cb(null, data.data);
@@ -9303,9 +9302,7 @@
 			register: function (data) {
 				if (!is_object(data)) {
 					// Failure
-					this.send(this.action, {
-						err: "Invalid data"
-					}, this.reply_id);
+					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
 					return;
 				}
 
@@ -9382,9 +9379,7 @@
 					(info = data.info) === undefined
 				) {
 					// Failure
-					this.send(this.action, {
-						err: "Invalid data"
-					}, this.reply_id);
+					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
 					return;
 				}
 
@@ -9436,7 +9431,7 @@
 				(req_data = api.request_apis[namespace]) === undefined ||
 				(req_data = req_data[type]) === undefined
 			) {
-				callback.call(null, "Invalid API", null);
+				callback.call(null, "Invalid extension request API", null);
 				return;
 			}
 
