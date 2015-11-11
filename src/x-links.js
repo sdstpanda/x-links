@@ -1198,7 +1198,7 @@
 
 				if (
 					(info = API.get_url_info_saved(this.href)) === null ||
-					(data = API.get_data(info.site, info.gid)) === null
+					(data = API.get_data(info)) === null
 				) {
 					Debug.log("Invalid link", { link: this, info: info, data: data });
 					return;
@@ -1294,7 +1294,7 @@
 						if (
 							(link = get_link_from_tag_button(this)) !== null &&
 							(info = API.get_url_info_saved(link.href)) !== null &&
-							(data = API.get_data(info.site, info.gid)) !== null
+							(data = API.get_data(info)) !== null
 						) {
 							actions = create_actions(data, info, index);
 							actions_nodes[index] = actions;
@@ -4068,8 +4068,8 @@
 			}, false, callback);
 		};
 
-		var get_data = function (site, gid) {
-			return get_saved_data(site, gid);
+		var get_data = function (url_info) {
+			return get_saved_data(url_info.site, url_info.gid);
 		};
 		var get_data_from_url_info = function (url_info, callback) {
 			if (url_info.site === "ehentai") {
@@ -7533,7 +7533,7 @@
 		var add_gallery_update_timer = null;
 		var add_gallery = function (content_index, entry, index, force_reorder) {
 			var info = entry.info,
-				data = API.get_data(info.site, info.gid),
+				data = API.get_data(info),
 				entries, n;
 
 			if (data !== null && data.subtype === "gallery") {
@@ -7779,7 +7779,7 @@
 
 			for (i = 0, ii = entries.length; i < ii; ++i) {
 				info = entries[i].info;
-				data = API.get_data(info.site, info.gid);
+				data = API.get_data(info);
 				if (data !== null) {
 					update_filters(entries[i].node, data, false, false);
 				}
@@ -7955,7 +7955,7 @@
 			if (
 				(id = this.getAttribute("data-xl-id")) &&
 				(entry = data_map[id]) !== undefined &&
-				(data = API.get_data(entry.info.site, entry.info.gid)) !== null
+				(data = API.get_data(entry.info)) !== null
 			) {
 				API.get_ehentai_gallery_full(entry.info.domain, data, function (err, data) {
 					var tags_container, n;
