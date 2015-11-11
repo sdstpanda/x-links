@@ -9195,37 +9195,55 @@
 			Linkifier.linkify_register(regex, prefix_group, prefix, null, null);
 			return null;
 		};
-		ExtensionAPI.prototype.register_url_info = function () {
-			var id_data = { url: null, id: random_string(32) },
-				self = this,
-				api_name = this.api_name,
-				api_key = this.api_key;
+		ExtensionAPI.prototype.register_fetcher = function (reg_info) {
+			if (!is_object(reg_info) || reg_info.url_info !== true || reg_info.to_data !== true) {
+				return "Invalid";
+			}
 
-			API.register_url_info_function(function (url, cb) {
+			var id_data = { url: null, id: random_string(32) };
+
+			API.register_url_info_function(
+				this.register_fetcher_fn("url_info", id_data, 1000),
+				this.register_fetcher_fn("url_info_to_data", id_data, -1)
+			);
+
+			return id_data;
+		};
+		ExtensionAPI.prototype.register_fetcher_fn = function (event, send_data, delay) {
+			var api_name = this.api_name,
+				api_key = this.api_key,
+				self = this;
+
+			return function (url_info, cb) {
+				var d = self.timeout_delay;
+				self.timeout_delay = delay;
 				self.api_name = api_name;
 				self.api_key = api_key;
 
-				id_data.url = url;
+				send_data.url = url_info;
 
-				self.send("url_info", id_data, null, function (err, data) {
+				self.send(event, send_data, null, function (err, data) {
 					if (err !== null) {
 						cb(err, null);
 					}
 					else if (!is_object(data)) {
 						cb("Invalid data", null);
 					}
+					else if ((err = data.err) !== null) {
+						cb(err, null);
+					}
+					else if (!is_object(data.data)) {
+						cb("Invalid data", null);
+					}
 					else {
-						cb(data.err, data.data);
+						cb(null, data.data);
 					}
 				});
 
 				self.api_name = null;
 				self.api_key = null;
-			}, function (url_info, callback) {
-				callback("TODO", null);
-			});
-
-			return id_data;
+				self.timeout_delay = d;
+			};
 		};
 
 		ExtensionAPI.request_api_functions_required = [
@@ -9275,7 +9293,7 @@
 						settings: {},
 						request_apis: [],
 						linkifiers: [],
-						url_info: [],
+						fetchers: [],
 					},
 					de = document.documentElement,
 					complete = false,
@@ -9312,9 +9330,9 @@
 				}
 
 				// URL info function
-				if (typeof((ii = data.url_info)) === "number") {
-					for (i = 0; i < ii; ++i) {
-						response.url_info.push(this.register_url_info());
+				if (Array.isArray((o = data.fetchers))) {
+					for (i = 0, ii = o.length; i < ii; ++i) {
+						response.fetchers.push(this.register_fetcher(o[i]));
 					}
 				}
 
