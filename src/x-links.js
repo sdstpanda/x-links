@@ -4976,7 +4976,7 @@
 
 		var linkify_groups = [{
 			regex: re_url,
-			prefix_index: 1,
+			prefix_group: 1,
 			prefix: "http://",
 			prefix_replace: [ /^\/+/, "" ],
 			tag: "a",
@@ -5025,7 +5025,7 @@
 						group = match[4],
 						re;
 
-					if (match[3][group.prefix_index] === undefined) {
+					if (match[3][group.prefix_group] === undefined) {
 						if ((re = group.prefix_replace) !== null) {
 							url = url.replace(re[0], re[1]);
 						}
@@ -5061,7 +5061,7 @@
 				re = group.regex;
 				re.lastIndex = 0;
 				if ((m = re.exec(text)) !== null) {
-					if (m[group.prefix_index] === undefined) {
+					if (m[group.prefix_group] === undefined) {
 						if ((re = group.prefix_replace) !== null) {
 							text = text.replace(re[0], re[1]);
 						}
@@ -5081,7 +5081,7 @@
 
 			linkify_groups.push({
 				regex: regex,
-				prefix_index: prefix_group,
+				prefix_group: prefix_group,
 				prefix: prefix,
 				prefix_replace: prefix_replace,
 				tag: "a",
@@ -5113,10 +5113,10 @@
 			return link;
 		};
 		var preprocess_link = function (node, url, update_on_fail, auto_load) {
-			if (node.parentNode === null) return;
-
 			API.get_url_info(url, function (err, info) {
-				if (info === null || !config.sites[info.site]) {
+				if (node.parentNode === null) return;
+
+				if (info === null || (config.sites[info.site] === false)) {
 					if (update_on_fail) {
 						node.href = url;
 						node.target = "_blank";
@@ -9184,6 +9184,34 @@
 			return null;
 		};
 		ExtensionAPI.prototype.register_url_info = function () {
+			var id_data = { url: null, id: random_string(32) },
+				self = this,
+				api_name = this.api_name,
+				api_key = this.api_key;
+
+			API.register_url_info_function(function (url, cb) {
+				self.api_name = api_name;
+				self.api_key = api_key;
+
+				id_data.url = url;
+
+				self.send("url_info", id_data, null, function (err, data) {
+					if (err !== null) {
+						cb(err, null);
+					}
+					else if (!is_object(data)) {
+						cb("Invalid data", null);
+					}
+					else {
+						cb(data.err, data.data);
+					}
+				});
+
+				self.api_name = null;
+				self.api_key = null;
+			});
+
+			return id_data;
 		};
 
 		ExtensionAPI.request_api_functions_required = [
