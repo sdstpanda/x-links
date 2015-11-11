@@ -5002,6 +5002,7 @@
 
 					for (i = 0, ii = linkify_groups.length; i < ii; ++i) {
 						group = linkify_groups[i];
+
 						if ((m = group.match) === null || m.index < pos) {
 							group.regex.lastIndex = pos;
 							group.match = m = group.regex.exec(text);
@@ -9145,6 +9146,36 @@
 			return req_function_ids;
 		};
 		ExtensionAPI.prototype.register_linkifier = function (reg_info) {
+			if (!is_object(reg_info)) return "Invalid";
+
+			var regex,
+				prefix_group = 0,
+				prefix = "",
+				flags, v, v2;
+
+			// Regex
+			if (
+				!Array.isArray((v = reg_info.regex)) ||
+				typeof((v2 = v[0])) !== "string"
+			) {
+				return "Invalid regex";
+			}
+			if (typeof((flags = v[1])) === "string") {
+				if (flags.indexOf("g") < 0) flags += "g";
+			}
+			else {
+				flags = "g";
+			}
+			regex = $.create_regex_safe(v2, flags);
+			if (regex === null) return "Invalid regex";
+
+			// Prefix
+			if (typeof((v = reg_info.prefix_group)) === "number") prefix_group = v;
+			if (typeof((v = reg_info.prefix)) === "string") prefix = v;
+
+			// Register
+			Linkifier.linkify_register(regex, prefix_group, prefix, null, null);
+			return null;
 		};
 		ExtensionAPI.prototype.register_url_info = function () {
 		};
