@@ -3959,7 +3959,13 @@
 
 			var fn_cb = function (err, data) {
 				if (err === null && data !== null) {
-					url_info_saved[save_key] = data;
+					var v = url_info_saved[save_key];
+					if (v === undefined) {
+						url_info_saved[save_key] = data;
+					}
+					else {
+						data = v;
+					}
 					callback(null, data);
 				}
 				else if (immediate) {
