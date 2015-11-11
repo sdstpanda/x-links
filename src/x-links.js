@@ -2209,39 +2209,7 @@
 		var cache_init = function () {
 			// Cache mode
 			if (config.debug.cache_mode === "none") {
-				cache_storage = (function () {
-					var data = {};
-
-					var fn = {
-						length: 0,
-						key: function (index) {
-							return Object.keys(data)[index];
-						},
-						getItem: function (key) {
-							if (Object.prototype.hasOwnProperty.call(data, key)) {
-								return data[key];
-							}
-							return null;
-						},
-						setItem: function (key, value) {
-							if (!Object.prototype.hasOwnProperty.call(data, key)) {
-								++fn.length;
-							}
-							data[key] = value;
-						},
-						removeItem: function (key) {
-							if (Object.prototype.hasOwnProperty.call(data, key)) {
-								delete data[key];
-								--fn.length;
-							}
-						},
-						clear: function () {
-							data = {};
-							fn.length = 0;
-						}
-					};
-					return fn;
-				})();
+				cache_storage = create_temp_storage();
 			}
 			else if (config.debug.cache_mode === "session") {
 				cache_storage = window.sessionStorage;
@@ -2260,6 +2228,41 @@
 		};
 		var cache_get_prefix = function () {
 			return cache_prefix;
+		};
+
+		var create_temp_storage = function () {
+			var data = {};
+
+			var fn = {
+				length: 0,
+				key: function (index) {
+					return Object.keys(data)[index];
+				},
+				getItem: function (key) {
+					if (Object.prototype.hasOwnProperty.call(data, key)) {
+						return data[key];
+					}
+					return null;
+				},
+				setItem: function (key, value) {
+					if (!Object.prototype.hasOwnProperty.call(data, key)) {
+						++fn.length;
+					}
+					data[key] = value;
+				},
+				removeItem: function (key) {
+					if (Object.prototype.hasOwnProperty.call(data, key)) {
+						delete data[key];
+						--fn.length;
+					}
+				},
+				clear: function () {
+					data = {};
+					fn.length = 0;
+				}
+			};
+
+			return fn;
 		};
 
 
