@@ -257,7 +257,8 @@
 	};
 	var $ = (function () {
 
-		var re_short_domain = /^(?:[\w\-]+):\/*(?:[\w\-]+\.)*([\w\-]+\.[\w\-]+)/i,
+		var re_full_domain = /^(?:[\w\-]+):\/*((?:[\w\-]+\.)+[\w\-]+)/i,
+			re_short_domain = /^(?:[\w\-]+):\/*(?:[\w\-]+\.)*([\w\-]+\.[\w\-]+)/i,
 			re_change_domain = /^([\w\-]+:\/*)([\w\-]+(?:\.[\w\-]+)*)([\w\W]*)$/i;
 
 		var Module = function (selector, root) {
@@ -593,6 +594,10 @@
 		};
 		Module.get_domain = function (url) {
 			var m = re_short_domain.exec(url);
+			return (m === null) ? "" : m[1].toLowerCase();
+		};
+		Module.get_full_domain = function (url) {
+			var m = re_full_domain.exec(url);
 			return (m === null) ? "" : m[1].toLowerCase();
 		};
 		Module.change_url_domain = function (url, new_domain) {
@@ -1335,8 +1340,8 @@
 			}
 		};
 
-		var set_node_id = function (node, namespace, id) {
-			node.setAttribute("data-xl-id", namespace + "_" + id);
+		var set_node_id = function (node, info) {
+			node.setAttribute("data-xl-id", info.site + "_" + info.gid);
 		};
 		var get_node_id_full = function (node) {
 			return node.getAttribute("data-xl-id") || "";
@@ -1460,7 +1465,7 @@
 			if (data.type === "ehentai" && config.sites.ehentai_ext && !data.full) {
 				API.get_ehentai_gallery_full(info.domain, data, function (err, data) {
 					if (err === null) {
-						update_full(data);
+						update_full(data, info);
 					}
 					else {
 						Debug.log("Error requesting full information: " + err);
@@ -1692,9 +1697,9 @@
 			}
 			if (thumb_state === 0) ++thumb_state;
 		};
-		var update_full = function (data) {
+		var update_full = function (data, info) {
 			var domain = domains.exhentai,
-				full_id = data.type + "_" + data.gid,
+				full_id = info.site + "_" + info.gid,
 				details = details_nodes[full_id],
 				tagfrag, n, n2;
 
@@ -1711,7 +1716,7 @@
 
 			// Update domain
 			if ((n = $(".xl-details-title[href]", details)) !== null) {
-				domain = $.get_domain(n.href);
+				domain = $.get_full_domain(n.href);
 			}
 
 			// Update tags
@@ -1955,7 +1960,7 @@
 			var button = $.link(url, "xl-site-tag" + Theme.classes),
 				text = $.node("span", "xl-site-tag-text", button_text(info));
 
-			set_node_id(link, info.site, info.gid);
+			set_node_id(link, info);
 
 			$.add(button, text);
 
