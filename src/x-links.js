@@ -2276,24 +2276,22 @@
 		var saved_data = {};
 		var saved_thumbnails = {};
 
-		var get_saved_data = function (namespace, gid) {
-			var id_full = namespace + "-" + gid,
-				data = saved_data[id_full];
+		var get_saved_data = function (id) {
+			var data = saved_data[id];
 
 			if (data !== undefined) return data;
 
-			data = cache_get("data-" + id_full);
+			data = cache_get("data-" + id);
 			if (data !== null) {
-				saved_data[id_full] = data;
+				saved_data[id] = data;
 				return data;
 			}
 
 			return null;
 		};
-		var set_saved_data = function (data) {
-			var id_full = data.type + "-" + data.gid;
-			saved_data[id_full] = data;
-			cache_set("data-" + id_full, data, ttl_1_hour * (data.date_created >= Date.now() - ttl_1_day ? 1 : 12));
+		var set_saved_data = function (id, data) {
+			saved_data[id] = data;
+			cache_set("data-" + id, data, ttl_1_hour * (data.date_created >= Date.now() - ttl_1_day ? 1 : 12));
 		};
 		var set_saved_error = function (id_list, error, cache) {
 			var id = id_list.join("-");
@@ -3404,11 +3402,11 @@
 			rt_hitomi_gallery_page_thumb = new RequestType(1, 1, 200, 5000, "hitomi", "hitomi", "page_thumb");
 
 		rt_ehentai_gallery.get_data = function (info, callback) {
-			var data = get_saved_data("ehentai", info[0]);
+			var data = get_saved_data(info.id);
 			callback(null, (data !== null && data.token === info[1]) ? data : null);
 		};
 		rt_ehentai_gallery.set_data = function (data, info, callback) {
-			set_saved_data(data);
+			set_saved_data(info.id, data);
 			callback(null);
 		};
 		rt_ehentai_gallery.setup_xhr = function (callback) {
@@ -3458,7 +3456,7 @@
 		};
 
 		rt_ehentai_gallery_page.get_data = function (info, callback) {
-			var data = get_saved_data("ehentai", info[0]);
+			var data = get_saved_data(info.id);
 			if (data !== null) {
 				callback(null, {
 					gid: data.gid,
@@ -3511,11 +3509,11 @@
 		};
 
 		rt_ehentai_gallery_full.get_data = function (info, callback) {
-			var data = get_saved_data("ehentai", info.gid);
+			var data = get_saved_data(info.id);
 			callback(null, (data !== null && data.token === info.token && data.full) ? data : null);
 		};
 		rt_ehentai_gallery_full.set_data = function (data, info, callback) {
-			set_saved_data(data);
+			set_saved_data(info.id, data);
 			callback(null);
 		};
 		rt_ehentai_gallery_full.setup_xhr = function (callback) {
@@ -3727,10 +3725,10 @@
 		};
 
 		rt_nhentai_gallery.get_data = function (info, callback) {
-			callback(null, get_saved_data("nhentai", info.gid));
+			callback(null, get_saved_data(info.id));
 		};
 		rt_nhentai_gallery.set_data = function (data, info, callback) {
-			set_saved_data(data);
+			set_saved_data(info.id, data);
 			callback(null);
 		};
 		rt_nhentai_gallery.setup_xhr = function (callback) {
@@ -3793,10 +3791,10 @@
 		};
 
 		rt_hitomi_gallery.get_data = function (info, callback) {
-			callback(null, get_saved_data("hitomi", info.gid));
+			callback(null, get_saved_data(info.id));
 		};
 		rt_hitomi_gallery.set_data = function (data, info, callback) {
-			set_saved_data(data);
+			set_saved_data(info.id, data);
 			callback(null);
 		};
 		rt_hitomi_gallery.setup_xhr = function (callback) {
@@ -4069,7 +4067,7 @@
 		};
 
 		var get_data = function (url_info) {
-			return get_saved_data(url_info.site, url_info.gid);
+			return get_saved_data(url_info.id);
 		};
 		var get_data_from_url_info = function (url_info, callback) {
 			if (url_info.site === "ehentai") {
