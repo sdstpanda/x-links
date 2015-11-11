@@ -257,7 +257,7 @@
 	};
 	var $ = (function () {
 
-		var re_short_domain = /^(?:[\w\-]+):\/*(?:[\w-]+\.)*([\w-]+\.[\w]+)/i,
+		var re_short_domain = /^(?:[\w\-]+):\/*(?:[\w\-]+\.)*([\w\-]+\.[\w\-]+)/i,
 			re_change_domain = /^([\w\-]+:\/*)([\w\-]+(?:\.[\w\-]+)*)([\w\W]*)$/i;
 
 		var Module = function (selector, root) {
