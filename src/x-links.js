@@ -9068,6 +9068,82 @@
 				}
 			};
 		};
+		ExtensionAPI.prototype.register_request_api = function (reg_info) {
+			if (!is_object(reg_info)) return "Invalid";
+
+			var req_group = "other",
+				req_namespace = "other",
+				req_type = "other",
+				req_count = 1,
+				req_concurrent = 1,
+				req_delay_okay = 200,
+				req_delay_error = 5000,
+				req_functions = {},
+				req_function_ids = {},
+				fns, fn_id, req, i, ii, k, o, v;
+
+			// Settings
+			if (typeof((v = reg_info.group)) === "string") req_group = v;
+			if (typeof((v = reg_info.namespace)) === "string") req_namespace = v;
+			if (typeof((v = reg_info.type)) === "string") req_type = v;
+			if (typeof((v = reg_info.count)) === "number") req_count = Math.max(1, v);
+			if (typeof((v = reg_info.concurrent)) === "number") req_concurrent = Math.max(1, v);
+			if (typeof((v = reg_info.delay_okay)) === "number") req_delay_okay = Math.max(0, v);
+			if (typeof((v = reg_info.delay_error)) === "number") req_delay_error = Math.max(0, v);
+
+			// Functions
+			if (Array.isArray((fns = reg_info.functions))) {
+				for (i = 0, ii = fns.length; i < ii; ++i) {
+					v = fns[i];
+					if (Object.prototype.hasOwnProperty.call(ExtensionAPI.request_api_functions, v)) {
+						fn_id = random_string(32);
+						req_functions[ExtensionAPI.request_api_functions[v]] = this.request_api_fn(fn_id, v);
+						req_function_ids[v] = fn_id;
+					}
+				}
+			}
+
+			// Validate
+			for (i = 0, ii = ExtensionAPI.request_api_functions_required.length; i < ii; ++i) {
+				if (!Object.prototype.hasOwnProperty.call(req_functions, ExtensionAPI.request_api_functions_required[i])) break;
+			}
+			if (i < ii) return "Missing functions";
+
+			// Check to see if the namespace/type is unique
+			if (
+				(o = this.request_apis[req_namespace]) !== undefined &&
+				o[req_type] !== undefined
+			) {
+				return "Already exists";
+			}
+
+			// Create
+			req = new API.RequestType(
+				req_count,
+				req_concurrent,
+				req_delay_okay,
+				req_delay_error,
+				req_group,
+				req_namespace,
+				req_type
+			);
+			for (k in req_functions) {
+				req[k] = req_functions[k];
+			}
+			req.request_init = api_request_init_fn;
+			req.request_complete = create_api_request_complete_fn(this.api_name, this.api_key);
+
+			if (o === undefined) {
+				this.request_apis[req_namespace] = o = {};
+			}
+			o[req_type] = {
+				req: req,
+				api_name: this.api_name,
+				api_key: this.api_key
+			};
+
+			return req_function_ids;
+		};
 
 		ExtensionAPI.request_api_functions_required = [
 			"setup_xhr",
@@ -9121,86 +9197,7 @@
 				// Request APIs
 				if (Array.isArray((o = data.request_apis))) {
 					for (i = 0, ii = o.length; i < ii; ++i) {
-						a = o[i];
-						if (is_object(a)) {
-							var req_group = "other",
-								req_namespace = "other",
-								req_type = "other",
-								req_count = 1,
-								req_concurrent = 1,
-								req_delay_okay = 200,
-								req_delay_error = 5000,
-								req_functions = {},
-								req_function_ids = {};
-
-							// Settings
-							if (typeof((v = a.group)) === "string") req_group = v;
-							if (typeof((v = a.namespace)) === "string") req_namespace = v;
-							if (typeof((v = a.type)) === "string") req_type = v;
-							if (typeof((v = a.count)) === "number") req_count = Math.max(1, v);
-							if (typeof((v = a.concurrent)) === "number") req_concurrent = Math.max(1, v);
-							if (typeof((v = a.delay_okay)) === "number") req_delay_okay = Math.max(0, v);
-							if (typeof((v = a.delay_error)) === "number") req_delay_error = Math.max(0, v);
-
-							// Functions
-							if (Array.isArray((fns = a.functions))) {
-								for (j = 0, jj = fns.length; j < jj; ++j) {
-									v = fns[j];
-									if (Object.prototype.hasOwnProperty.call(ExtensionAPI.request_api_functions, v)) {
-										fn_id = random_string(32);
-										req_functions[ExtensionAPI.request_api_functions[v]] = this.request_api_fn(fn_id, v);
-										req_function_ids[v] = fn_id;
-									}
-								}
-							}
-
-							// Validate
-							for (j = 0, jj = ExtensionAPI.request_api_functions_required.length; j < jj; ++j) {
-								if (!Object.prototype.hasOwnProperty.call(req_functions, ExtensionAPI.request_api_functions_required[j])) break;
-							}
-							if (j < jj) {
-								response.request_apis.push([ "Missing functions" ]);
-							}
-							else {
-								// Check to see if the namespace/type is unique
-								if (
-									(o2 = this.request_apis[req_namespace]) !== undefined &&
-									o2[req_type] !== undefined
-								) {
-									response.request_apis.push([ "Already exists" ]);
-								}
-								else {
-									req = new API.RequestType(
-										req_count,
-										req_concurrent,
-										req_delay_okay,
-										req_delay_error,
-										req_group,
-										req_namespace,
-										req_type
-									);
-									for (k in req_functions) {
-										req[k] = req_functions[k];
-									}
-									req.request_init = api_request_init_fn;
-									req.request_complete = create_api_request_complete_fn(this.api_name, this.api_key);
-
-									if (o2 === undefined) {
-										this.request_apis[req_namespace] = o2 = {};
-									}
-									o2[req_type] = {
-										req: req,
-										api_name: this.api_name,
-										api_key: this.api_key
-									};
-
-									response.request_apis.push([ null, req_function_ids ]);
-								}
-							}
-						}
-						else {
-							response.request_apis.push([ "Invalid" ]);
-						}
+						response.request_apis.push(this.register_request_api(o[i]));
 					}
 				}
 
