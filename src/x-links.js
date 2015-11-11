@@ -9144,6 +9144,10 @@
 
 			return req_function_ids;
 		};
+		ExtensionAPI.prototype.register_linkifier = function (reg_info) {
+		};
+		ExtensionAPI.prototype.register_url_info = function () {
+		};
 
 		ExtensionAPI.request_api_functions_required = [
 			"setup_xhr",
@@ -9190,14 +9194,30 @@
 				// Register
 				var response = {
 						settings: {},
-						request_apis: []
+						request_apis: [],
+						linkifiers: [],
+						url_info: [],
 					},
-					req, fns, fn_id, a, o, o2, v, i, ii, j, jj, k;
+					o, i, ii;
 
 				// Request APIs
 				if (Array.isArray((o = data.request_apis))) {
 					for (i = 0, ii = o.length; i < ii; ++i) {
 						response.request_apis.push(this.register_request_api(o[i]));
+					}
+				}
+
+				// Linkifiers
+				if (Array.isArray((o = data.linkifiers))) {
+					for (i = 0, ii = o.length; i < ii; ++i) {
+						response.linkifiers.push(this.register_linkifier(o[i]));
+					}
+				}
+
+				// URL info function
+				if (typeof((ii = data.url_info)) === "number") {
+					for (i = 0; i < ii; ++i) {
+						response.url_info.push(this.register_url_info());
 					}
 				}
 
