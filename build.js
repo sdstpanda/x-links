@@ -175,13 +175,18 @@
 			}
 		};
 		var settings = { interval: 250 };
+		var watch_files = [
+			SCRIPT_SOURCE,
+			RES_STYLESHEET,
+			RES_HTML_FILTER_GUIDE,
+			RES_ICON_X48,
+			RES_ICON_X64,
+			PACKAGE_JSON,
+		];
 
-		fs.watchFile(SCRIPT_SOURCE, settings, check);
-		fs.watchFile(RES_STYLESHEET, settings, check);
-		fs.watchFile(RES_HTML_FILTER_GUIDE, settings, check);
-		fs.watchFile(RES_ICON_X48, settings, check);
-		fs.watchFile(RES_ICON_X64, settings, check);
-		fs.watchFile(PACKAGE_JSON, settings, check);
+		for (var i = 0; i < watch_files.length; ++i) {
+			fs.watchFile(watch_files[i], settings, check);
+		}
 	}
 
 })();
