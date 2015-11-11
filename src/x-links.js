@@ -3862,7 +3862,8 @@
 		var re_remove_protocol = /^https?:\/*/i,
 			re_url_info = /^([\w\-]+(?:\.[\w\-]+)*)((?:[\/\?\#][\w\W]*)?)/,
 			url_info_saved = {},
-			url_info_registrations = [];
+			url_info_registrations = [],
+			url_info_to_data_registrations = [];
 		var get_url_info = function (url, callback) {
 			var save_key = url.replace(re_remove_protocol, ""),
 				match, data, domain, remaining, is_ex, m;
@@ -3961,6 +3962,7 @@
 				if (err === null && data !== null) {
 					var v = url_info_saved[save_key];
 					if (v === undefined) {
+						data._custom_id = i;
 						url_info_saved[save_key] = data;
 					}
 					else {
@@ -3989,8 +3991,9 @@
 
 			callback(null, null);
 		};
-		var register_url_info_function = function (check_fn) {
+		var register_url_info_function = function (check_fn, get_data_fn) {
 			url_info_registrations.push(check_fn);
+			url_info_to_data_registrations.push(get_data_fn);
 		};
 
 		var domain_tags = {
@@ -4057,7 +4060,7 @@
 			if (url_info.site === "ehentai") {
 				if (url_info.type === "gallery") {
 					get_ehentai_gallery(url_info.gid, url_info.token, callback);
-					return true;
+					return;
 				}
 				if (url_info.type === "page") {
 					get_ehentai_gallery_page(url_info.gid, url_info.page_token, url_info.page, function (err, data) {
@@ -4068,23 +4071,32 @@
 							callback.call(null, err, null);
 						}
 					});
-					return true;
+					return;
 				}
 			}
 			else if (url_info.site === "nhentai") {
 				if (url_info.type === "gallery") {
 					get_nhentai_gallery(url_info.gid, callback);
-					return true;
+					return;
 				}
 			}
 			else if (url_info.site === "hitomi") {
 				if (url_info.type === "gallery") {
 					get_hitomi_gallery(url_info.gid, callback);
-					return true;
+					return;
 				}
 			}
 
-			return false;
+			// Custom
+			var i = url_info._custom_id,
+				fn;
+
+			if (typeof(i) === "number" && (fn = url_info_to_data_registrations[i]) !== undefined) {
+				fn(url_info, callback);
+				return;
+			}
+
+			callback.call(null, "Malformed data", null);
 		};
 
 		var cached_thumbnail_urls = {};
@@ -9209,6 +9221,8 @@
 
 				self.api_name = null;
 				self.api_key = null;
+			}, function (url_info, callback) {
+				callback("TODO", null);
 			});
 
 			return id_data;
