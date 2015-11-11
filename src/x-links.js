@@ -1341,7 +1341,7 @@
 		};
 
 		var set_node_id = function (node, info) {
-			node.setAttribute("data-xl-id", info.site + "_" + info.gid);
+			node.setAttribute("data-xl-id", info.id);
 		};
 		var get_node_id_full = function (node) {
 			return node.getAttribute("data-xl-id") || "";
@@ -1699,7 +1699,7 @@
 		};
 		var update_full = function (data, info) {
 			var domain = domains.exhentai,
-				full_id = info.site + "_" + info.gid,
+				full_id = info.id,
 				details = details_nodes[full_id],
 				tagfrag, n, n2;
 
@@ -3899,6 +3899,7 @@
 				m = /^\/g\/(\d+)\/([0-9a-f]+)/.exec(remaining);
 				if (m !== null) {
 					data = {
+						id: "ehentai_" + m[1],
 						site: "ehentai",
 						type: "gallery",
 						gid: parseInt(m[1], 10),
@@ -3911,6 +3912,7 @@
 					m = /^\/s\/([0-9a-f]+)\/(\d+)\-(\d+)/.exec(remaining);
 					if (m !== null) {
 						data = {
+							id: "ehentai_" + m[2],
 							site: "ehentai",
 							type: "page",
 							gid: parseInt(m[2], 10),
@@ -3926,6 +3928,7 @@
 				m = /^\/g\/(\d+)(?:\/(\d+))?/.exec(remaining);
 				if (m !== null) {
 					data = {
+						id: "nhentai_" + m[1],
 						site: "nhentai",
 						type: "gallery",
 						gid: parseInt(m[1], 10),
@@ -3939,6 +3942,7 @@
 				m = /^\/(galleries|reader|smalltn)\/(\d+)(?:\.html#(\d+))?/.exec(remaining);
 				if (m !== null) {
 					data = {
+						id: "nhentai_" + m[2],
 						site: "hitomi",
 						type: "gallery",
 						gid: parseInt(m[2], 10),
@@ -7368,7 +7372,7 @@
 				n1, n2, n3, n4, n5, n6, n7, i, t;
 
 			n1 = $.node("div", "xl-easylist-item" + theme);
-			n1.setAttribute("data-xl-id", info.site + "_" + info.gid);
+			n1.setAttribute("data-xl-id", info.id);
 			n1.setAttribute("data-xl-index", index);
 			n1.setAttribute("data-xl-rating", data.rating);
 			n1.setAttribute("data-xl-date-created", data.date_created);
@@ -7795,7 +7799,7 @@
 			for (i = 0, ii = links.length; i < ii; ++i) {
 				info = API.get_url_info_saved(links[i].href);
 				if (info !== null) {
-					key = info.site + "_" + info.gid;
+					key = info.id;
 					if (data_map[key] === undefined) {
 						entry = new Entry(info);
 						queue.push(entry);
@@ -7861,7 +7865,7 @@
 		var parse_custom_url_info = function (index, info) {
 			API.get_data_from_url_info(info, function (err, data) {
 				if (err === null) {
-					var key = data.type + "_" + data.gid,
+					var key = info.id,
 						entry;
 
 					if (custom_links_map[key] === undefined) {
@@ -9235,6 +9239,7 @@
 				send_data.url = url_info;
 
 				self.send(event, send_data, null, function (err, data) {
+					if (event==="url_info_to_data")console.log("url_info_to_data",err, data);
 					if (err !== null) {
 						cb(err, null);
 					}
