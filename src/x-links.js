@@ -2258,6 +2258,9 @@
 				}
 			}
 		};
+		var cache_get_prefix = function () {
+			return cache_prefix;
+		};
 
 
 
@@ -4237,6 +4240,7 @@
 			get_thumbnail: get_thumbnail,
 			lookup_on_ehentai: lookup_on_ehentai,
 			cache_clear: cache_clear,
+			cache_get_prefix: cache_get_prefix,
 			get_category: get_category,
 			get_category_sort_rank: get_category_sort_rank,
 			is_fjording: is_fjording,
@@ -9270,7 +9274,11 @@
 							key: reply_key,
 							apis: []
 						};
-						reply_data = { key: reply_key };
+						reply_data = {
+							key: reply_key,
+							cache_prefix: API.cache_get_prefix(),
+							cache_mode: config.debug.cache_mode
+						};
 						break;
 					}
 				}
