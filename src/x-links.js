@@ -5831,7 +5831,7 @@
 		};
 		var open = function () {
 			var theme = Theme.classes,
-				content_container, n, n2;
+				content_container, a, v, i, ii, j, jj, n, n2;
 
 			// Config
 			config_temp = JSON.parse(JSON.stringify(config));
@@ -5895,6 +5895,15 @@
 					{ type: "button", text: "Clear", on_change: on_cache_clear_click },
 				]
 			);
+
+			// Custom
+			a = Config.get_custom_namespaces();
+			for (i = 0, ii = a.length; i < ii; ++i) {
+				v = Config.get_custom_namespace_vars(a[i]);
+				for (j = 0, jj = v.length; j < jj; ++j) {
+					// TODO
+				}
+			}
 
 			// Events
 			$.on(popup, "click", on_cancel_click);
@@ -6322,6 +6331,21 @@
 			var v = custom[namespace];
 			return (v !== undefined && (v = v[name]) !== undefined) ? v : default_value;
 		};
+		var get_custom_namespaces = function () {
+			return custom_descriptor === null ? [] : Object.keys(custom_descriptor);
+		};
+		var get_custom_namespace_vars = function (namespace) {
+			var res = [],
+				a, i, ii;
+
+			if (custom_descriptor !== null && (a = custom_descriptor[namespace]) !== undefined) {
+				for (i = 0, ii = a.length; i < ii; ++i) {
+					res.push(a[i][0]);
+				}
+			}
+
+			return res;
+		};
 		var get_custom_settings_descriptor = function () {
 			return custom_descriptor;
 		};
@@ -6348,6 +6372,8 @@
 			register_custom_setting: register_custom_setting,
 			get_custom: get_custom,
 			set_custom: set_custom,
+			get_custom_namespaces: get_custom_namespaces,
+			get_custom_namespace_vars: get_custom_namespace_vars,
 			get_custom_settings_descriptor: get_custom_settings_descriptor
 		};
 
