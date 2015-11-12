@@ -1193,36 +1193,35 @@
 		var gallery_link_events = {
 			mouseover: $.wrap_mouseenterleave_event(function (event) {
 				var self = this,
-					details, info, data;
+					info = API.get_url_info_saved(this.href);
 
-				if (
-					(info = API.get_url_info_saved(this.href)) === null ||
-					(data = API.get_data(info)) === null
-				) {
-					Debug.log("Invalid link", { link: this, info: info, data: data });
-					return;
-				}
+				if (info === null) return;
 
 				gallery_link_events_data.link = this;
 				gallery_link_events_data.mouse_x = event.clientX;
 				gallery_link_events_data.mouse_y = event.clientY;
 
-				details = details_nodes[info.id];
-				if (details !== undefined) {
-					details_hover_start(data, info, this, details);
-				}
-				else if (this.getAttribute("data-xl-details-creating") !== "true") {
-					this.setAttribute("data-xl-details-creating", "true");
-					create_details(data, info, function (err, details) {
-						self.removeAttribute("data-xl-details-creating");
-						if (err === null) {
-							details_nodes[info.id] = details;
-							if (gallery_link_events_data.link === self) {
-								details_hover_start(data, info, self, details);
-							}
+				API.get_data_from_url_info(info, function (err, data) {
+					if (err === null && gallery_link_events_data.link === self) {
+						var details = details_nodes[info.id];
+						if (details !== undefined) {
+							details_hover_start(data, info, self, details);
 						}
-					});
-				}
+						else if (self.getAttribute("data-xl-details-creating") !== "true") {
+							self.setAttribute("data-xl-details-creating", "true");
+							create_details(data, info, function (err, details) {
+								self.removeAttribute("data-xl-details-creating");
+								if (err === null) {
+									details_nodes[info.id] = details;
+									if (gallery_link_events_data.link === self) {
+										details_hover_start(data, info, self, details);
+									}
+								}
+							});
+						}
+					}
+				});
+
 			}),
 			mouseout: $.wrap_mouseenterleave_event(function () {
 				var details = details_nodes[get_node_id_full(this)];
@@ -1276,15 +1275,18 @@
 						// Create
 						if (
 							(link = get_link_from_tag_button(this)) !== null &&
-							(info = API.get_url_info_saved(link.href)) !== null &&
-							(data = API.get_data(info)) !== null
+							(info = API.get_url_info_saved(link.href)) !== null
 						) {
 							n = this;
-							create_actions(data, info, index, function (err, actions) {
+							API.get_data_from_url_info(info, function (err, data) {
 								if (err === null) {
-									actions_nodes[index] = actions;
-									activate_actions(actions, index);
-									update_actions_position(actions, n, tag_bg, d.documentElement.getBoundingClientRect());
+									create_actions(data, info, index, function (err, actions) {
+										if (err === null) {
+											actions_nodes[index] = actions;
+											activate_actions(actions, index);
+											update_actions_position(actions, n, tag_bg, d.documentElement.getBoundingClientRect());
+										}
+									});
 								}
 							});
 						}
@@ -1411,12 +1413,12 @@
 
 			// Custom
 			if (data.subtype !== "gallery") {
-				fn = custom_details_functions[data._custom_id];
+				fn = custom_details_functions[info._custom_id];
 				if (fn !== undefined) {
 					// Add to container
 					fn(data, info, function (err, content) {
 						if (err === null) {
-							content.className = (content.className + " xl-details xl-hover-shadow" + theme).trim();
+							content.className = (content.className + " xl-details xl-details-hidden xl-hover-shadow" + theme).trim();
 							Theme.bg(content);
 							Popup.hovering(content);
 							callback(null, content);
@@ -1433,7 +1435,7 @@
 			}
 
 			// Body
-			content = $.node("div", "xl-details xl-hover-shadow" + theme);
+			content = $.node("div", "xl-details xl-details-hidden xl-hover-shadow" + theme);
 			Theme.bg(content);
 
 			// Image
@@ -9318,10 +9320,10 @@
 			);
 
 			if (reg_info.details === true) {
-				UI.register_details_creation("create_details", index, this.register_details_actions_fn({ id: id_data.id, info: null, data: null }), ExtensionAPI.details_validator);
+				UI.register_details_creation(index, this.register_details_actions_fn("create_details", { id: id_data.id, info: null, data: null }, ExtensionAPI.details_validator));
 			}
 			if (reg_info.actions === true) {
-				UI.register_actions_creation("create_actions", index, this.register_details_actions_fn({ id: id_data.id, info: null, data: null }), ExtensionAPI.actions_validator);
+				UI.register_actions_creation(index, this.register_details_actions_fn("create_actions", { id: id_data.id, info: null, data: null }, ExtensionAPI.actions_validator));
 			}
 
 			return id_data;
