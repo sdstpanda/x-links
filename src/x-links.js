@@ -5604,6 +5604,7 @@
 
 		// Private
 		var config_temp = null,
+			config_custom_temp = null,
 			export_url = null,
 			popup = null;
 
@@ -5772,7 +5773,7 @@
 				event.preventDefault();
 
 				config = config_temp;
-				config_temp = null;
+				Config.load_custom_from_clone(config_custom_temp);
 
 				Config.save();
 				close();
@@ -5835,6 +5836,7 @@
 
 			// Config
 			config_temp = JSON.parse(JSON.stringify(config));
+			config_custom_temp = Config.get_custom_clone();
 
 			// Popup
 			popup = Popup.create("settings", [[{
@@ -6059,6 +6061,7 @@
 		};
 		var close = function () {
 			config_temp = null;
+			config_custom_temp = null;
 			if (popup !== null) {
 				Popup.close(popup);
 				popup = null;
@@ -6322,15 +6325,6 @@
 
 			return [ false, val ];
 		};
-		var set_custom = function (namespace, name, value) {
-			var v = custom[namespace];
-			if (v === undefined) custom[namespace] = v = {};
-			v[name] = value;
-		};
-		var get_custom = function (namespace, name, default_value) {
-			var v = custom[namespace];
-			return (v !== undefined && (v = v[name]) !== undefined) ? v : default_value;
-		};
 		var get_custom_namespaces = function () {
 			return custom_descriptor === null ? [] : Object.keys(custom_descriptor);
 		};
@@ -6349,7 +6343,13 @@
 		var get_custom_settings_descriptor = function () {
 			return custom_descriptor;
 		};
-
+		var get_custom_clone = function () {
+			return JSON.parse(JSON.stringify(custom));
+		};
+		var load_custom_from_clone = function (clone) {
+			custom = clone;
+			save_custom();
+		};
 
 		// Exports
 		var Module = {
@@ -6370,11 +6370,10 @@
 			get_saved_settings: get_saved_settings,
 			set_saved_settings: set_saved_settings,
 			register_custom_setting: register_custom_setting,
-			get_custom: get_custom,
-			set_custom: set_custom,
 			get_custom_namespaces: get_custom_namespaces,
 			get_custom_namespace_vars: get_custom_namespace_vars,
-			get_custom_settings_descriptor: get_custom_settings_descriptor
+			get_custom_settings_descriptor: get_custom_settings_descriptor,
+			get_custom_clone: get_custom_clone
 		};
 
 		return Module;
