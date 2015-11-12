@@ -5717,28 +5717,31 @@
 					$.add(cell, input = $.node("button", "xl-settings-entry-input" + theme, ext.text || ""));
 					event = "click";
 				}
+				else {
+					continue;
+				}
 
-				$.on(input, event, $.bind(on_change, input, type, option_type, name, ext));
+				$.on(input, event, $.bind(on_change, input, type, config_scope, name, ext));
 			}
 
 			$.add(container, n);
 		};
 
-		var on_change = function (option_type, scope, name, extra, event) {
+		var on_change = function (type, config_scope, name, extra, event) {
 			var fn, v;
 
 			if (name !== null) {
-				if (option_type === "checkbox") {
+				if (type === "checkbox") {
 					v = this.checked;
 				}
-				else if (option_type === "select" || option_type === "textbox" || option_type === "textarea") {
+				else if (type === "select" || type === "textbox" || type === "textarea") {
 					v = this.value;
 				}
 
 				fn = (extra === null ? undefined : extra.set);
 				if (fn !== undefined) fn.call(null, v);
 
-				config_temp[scope][name] = v;
+				config_scope[name] = v;
 			}
 
 			if (extra !== null && (fn = extra.on_change) !== undefined) {
@@ -6373,7 +6376,8 @@
 			get_custom_namespaces: get_custom_namespaces,
 			get_custom_namespace_vars: get_custom_namespace_vars,
 			get_custom_settings_descriptor: get_custom_settings_descriptor,
-			get_custom_clone: get_custom_clone
+			get_custom_clone: get_custom_clone,
+			load_custom_from_clone: load_custom_from_clone
 		};
 
 		return Module;
