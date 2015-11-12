@@ -1391,17 +1391,44 @@
 			return (n < 10 ? "0" : "") + n + sep;
 		};
 
+		var custom_details_functions = {}; // function (data, info, callback(err, copy_from_node))
+		var custom_actions_functions = {}; // function (data, info, callback(err, gen_info))
+		var register_details_creation = function (custom_id, callback) {
+			custom_details_functions[custom_id] = callback;
+		};
+		var register_actions_creation = function (custom_id, callback) {
+			custom_actions_functions[custom_id] = callback;
+		};
+
 		var create_details = function (data, info, callback) {
 			var category = API.get_category(data.category),
 				theme = Theme.classes,
 				file_size = (data.total_size / 1024 / 1024).toFixed(2),
-				content, n1, n2, n3;
+				content, n1, n2, n3, fn;
+
+			// Fonts
+			Main.insert_custom_fonts();
 
 			// Body
 			content = $.node("div", "xl-details xl-hover-shadow" + theme);
 			Theme.bg(content);
 			if (data.subtype !== "gallery") {
-				callback("Could not create details", null);
+				fn = custom_details_functions[data._custom_id];
+				if (fn !== undefined) {
+					// Add to container
+					fn(data, info, function (err, content_node) {
+						if (err === null) {
+							Popup.hovering(content);
+							callback("Not implemented", null);
+						}
+						else {
+							callback(err, null);
+						}
+					});
+				}
+				else {
+					callback("Could not create details", null);
+				}
 				return;
 			}
 
@@ -1493,8 +1520,7 @@
 				});
 			}
 
-			// Fonts
-			Main.insert_custom_fonts();
+			// Add to container
 			Popup.hovering(content);
 
 			// Done
@@ -1508,7 +1534,10 @@
 				actions = $.node("div", "xl-actions xl-hover-shadow" + theme),
 				domain = info.domain,
 				created = false,
-				n1, n2, n3;
+				n1, n2, n3, fn;
+
+			$.on(actions, "click", on_actions_click);
+			Theme.bg(actions);
 
 			$.add(actions, n1 = $.node("div", "xl-actions-inner" + theme));
 			$.add(n1, n2 = $.node("div", "xl-actions-table" + theme));
@@ -1576,12 +1605,24 @@
 
 			// Empty
 			if (!created) {
+				fn = custom_actions_functions[info._custom_id];
+				if (fn !== null) {
+					fn(data, info, function (err, gen_info) {
+						if (err === null) {
+							Popup.hovering(actions);
+							callback("Not implemented", null);
+						}
+						else {
+							callback(err, null);
+						}
+					});
+					return;
+				}
+
 				gen_entry(n2, "No actions available", null, null);
 			}
 
 			// Prepare
-			$.on(actions, "click", on_actions_click);
-			Theme.bg(actions);
 			Popup.hovering(actions);
 
 			// Done
@@ -2102,6 +2143,8 @@
 			format_date: format_date,
 			cleanup_post: cleanup_post,
 			cleanup_post_removed: cleanup_post_removed,
+			register_details_creation: register_details_creation,
+			register_actions_creation: register_actions_creation,
 			init: init
 		};
 
