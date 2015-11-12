@@ -1409,17 +1409,17 @@
 			// Fonts
 			Main.insert_custom_fonts();
 
-			// Body
-			content = $.node("div", "xl-details xl-hover-shadow" + theme);
-			Theme.bg(content);
+			// Custom
 			if (data.subtype !== "gallery") {
 				fn = custom_details_functions[data._custom_id];
 				if (fn !== undefined) {
 					// Add to container
-					fn(data, info, function (err, content_node) {
+					fn(data, info, function (err, content) {
 						if (err === null) {
+							content.className = (content.className + " xl-details xl-hover-shadow" + theme).trim();
+							Theme.bg(content);
 							Popup.hovering(content);
-							callback("Not implemented", null);
+							callback(null, content);
 						}
 						else {
 							callback(err, null);
@@ -1431,6 +1431,10 @@
 				}
 				return;
 			}
+
+			// Body
+			content = $.node("div", "xl-details xl-hover-shadow" + theme);
+			Theme.bg(content);
 
 			// Image
 			$.add(content, n1 = $.node("div", "xl-details-thumbnail" + theme));
@@ -1609,8 +1613,26 @@
 				if (fn !== null) {
 					fn(data, info, function (err, gen_info) {
 						if (err === null) {
+							var ii = gen_info.length,
+								i, g;
+
+							if (ii === 0) {
+								gen_entry(n2, "No actions available", null, null);
+							}
+							else {
+								for (i = 0; i < ii; ++i) {
+									g = gen_info[i];
+									if (g === null) {
+										gen_sep(n2);
+									}
+									else {
+										gen_entry(n2, g[0] || null, g[1] || null, g[2] || null);
+									}
+								}
+							}
+
 							Popup.hovering(actions);
-							callback("Not implemented", null);
+							callback(null, actions);
 						}
 						else {
 							callback(err, null);
