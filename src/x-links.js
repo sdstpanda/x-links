@@ -4096,6 +4096,7 @@
 		var register_url_info_function = function (check_fn, get_data_fn) {
 			url_info_registrations.push(check_fn);
 			url_info_to_data_registrations.push(get_data_fn);
+			return url_info_registrations.length - 1;
 		};
 
 		var domain_tags = {
@@ -9017,6 +9018,27 @@
 			return (obj !== null && typeof(obj) === "object");
 		};
 
+		var get_shared_node = function (selector) {
+			var par = $(".xl-extension-sharing-elements"),
+				n;
+
+			if (par === null) return null;
+
+			try {
+				n = $("[data-xl-sharing-id='" + selector + "']", par);
+			}
+			catch (e) {
+				return null;
+			}
+
+			if (n !== null) {
+				n.removeAttribute("data-xl-sharing-id");
+				$.remove(n);
+				if (par.firstChild === null) $.remove(par);
+			}
+			return n;
+		};
+
 		var api = null;
 		var ExtensionAPI = function () {
 			this.origin = window.location.protocol + "//" + window.location.host;
@@ -9287,12 +9309,20 @@
 				return "Invalid";
 			}
 
-			var id_data = { url: null, id: random_string(32) };
+			var id_data = { id: random_string(32), url: null },
+				index;
 
-			API.register_url_info_function(
+			index = API.register_url_info_function(
 				this.register_fetcher_fn("url_info", id_data, 1000),
 				this.register_fetcher_fn("url_info_to_data", id_data, -1)
 			);
+
+			if (reg_info.details === true) {
+				UI.register_details_creation("create_details", index, this.register_details_actions_fn({ id: id_data.id, info: null, data: null }), ExtensionAPI.details_validator);
+			}
+			if (reg_info.actions === true) {
+				UI.register_actions_creation("create_actions", index, this.register_details_actions_fn({ id: id_data.id, info: null, data: null }), ExtensionAPI.actions_validator);
+			}
 
 			return id_data;
 		};
@@ -9331,6 +9361,70 @@
 				self.api_key = null;
 				self.timeout_delay = d;
 			};
+		};
+		ExtensionAPI.prototype.register_details_actions_fn = function (event, send_data, validator) {
+			var api_name = this.api_name,
+				api_key = this.api_key,
+				self = this;
+
+			return function (data, info, cb) {
+				self.api_name = api_name;
+				self.api_key = api_key;
+
+				send_data.data = data;
+				send_data.info = info;
+
+				self.send(event, send_data, null, function (err, data) {
+					if (err !== null) {
+						cb(err, null);
+					}
+					else if (!is_object(data)) {
+						cb("Invalid extension data", null);
+					}
+					else if ((err = data.err) !== null) {
+						cb(err, null);
+					}
+					else {
+						validator(data.data, cb);
+					}
+				});
+
+				self.api_name = null;
+				self.api_key = null;
+			};
+		};
+
+		ExtensionAPI.details_validator = function (data, cb) {
+			if (typeof(data) !== "string") {
+				cb("Invalid extension response", null);
+			}
+			else {
+				data = get_shared_node(data);
+				if (data === null) {
+					cb("Invalid extension node", null);
+				}
+				else {
+					cb(null, data);
+				}
+			}
+		};
+		ExtensionAPI.actions_validator = function (data, cb) {
+			if (!Array.isArray(data)) {
+				cb("Invalid extension response", null);
+			}
+			else {
+				var response = [],
+					d, i, ii;
+
+				for (i = 0, ii = data.length; i < ii; ++i) {
+					d = data[i];
+					if (d === null || Array.isArray(d)) {
+						response.push(d);
+					}
+				}
+
+				cb(null, response);
+			}
 		};
 
 		ExtensionAPI.request_api_functions_required = [
