@@ -1192,9 +1192,8 @@
 		};
 		var gallery_link_events = {
 			mouseover: $.wrap_mouseenterleave_event(function (event) {
-				var full_id = get_node_id_full(this),
-					details = details_nodes[full_id],
-					info, data;
+				var self = this,
+					details, info, data;
 
 				if (
 					(info = API.get_url_info_saved(this.href)) === null ||
@@ -1204,44 +1203,25 @@
 					return;
 				}
 
-				if (details === undefined) {
-					details = create_details(data, info);
-					details_nodes[full_id] = details;
-				}
-				if (Debug.enabled) {
-					var i = 1,
-						n = details;
-					while (n.parentNode !== document) {
-						if (!n.parentNode) {
-							Debug.log(
-								"Invalid details: parent[" + i + "] failed;",
-								{
-									link: this,
-									node: n,
-									parent: n.parentNode,
-									details: details,
-									full_id: full_id
-								}
-							);
-							break;
-						}
-						n = n.parentNode;
-						++i;
-					}
-				}
-
-				details.classList.remove("xl-details-hidden");
-				details.classList.remove("xl-details-has-thumbnail");
-				details.classList.remove("xl-details-has-thumbnail-visible");
-
 				gallery_link_events_data.link = this;
 				gallery_link_events_data.mouse_x = event.clientX;
 				gallery_link_events_data.mouse_y = event.clientY;
 
-				update_details_position(details, this, event.clientX, event.clientY);
-
-				if (data.subtype === "gallery" && info.page !== undefined && info.page > 1) {
-					update_details_page_thumbnail(info.page, data, info, details, this);
+				details = details_nodes[info.id];
+				if (details !== undefined) {
+					details_hover_start(data, info, this, details);
+				}
+				else if (this.getAttribute("data-xl-details-creating") !== "true") {
+					this.setAttribute("data-xl-details-creating", "true");
+					create_details(data, info, function (err, details) {
+						self.removeAttribute("data-xl-details-creating");
+						if (err === null) {
+							details_nodes[info.id] = details;
+							if (gallery_link_events_data.link === self) {
+								details_hover_start(data, info, self, details);
+							}
+						}
+					});
 				}
 			}),
 			mouseout: $.wrap_mouseenterleave_event(function () {
@@ -1269,7 +1249,7 @@
 				event.preventDefault();
 
 				var index = this.getAttribute("xl-actions-index"),
-					actions, tag_bg, info, data, link;
+					actions, tag_bg, info, data, link, n;
 
 				if (!index) {
 					index = "" + actions_nodes_index;
@@ -1288,6 +1268,9 @@
 						actions.classList.remove("xl-actions-hidden");
 						Popup.hovering(actions);
 						activate_actions(actions, index);
+
+						// Position
+						update_actions_position(actions, this, tag_bg, d.documentElement.getBoundingClientRect());
 					}
 					else {
 						// Create
@@ -1296,17 +1279,16 @@
 							(info = API.get_url_info_saved(link.href)) !== null &&
 							(data = API.get_data(info)) !== null
 						) {
-							actions = create_actions(data, info, index);
-							actions_nodes[index] = actions;
-							activate_actions(actions, index);
-						}
-						else {
-							return;
+							n = this;
+							create_actions(data, info, index, function (err, actions) {
+								if (err === null) {
+									actions_nodes[index] = actions;
+									activate_actions(actions, index);
+									update_actions_position(actions, n, tag_bg, d.documentElement.getBoundingClientRect());
+								}
+							});
 						}
 					}
-
-					// Position
-					update_actions_position(actions, this, tag_bg, d.documentElement.getBoundingClientRect());
 				}
 				else {
 					// Hide
@@ -1337,6 +1319,41 @@
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				return false;
+			}
+		};
+
+		var details_hover_start = function (data, info, node, details) {
+			if (Debug.enabled) {
+				var i = 1,
+					n = details;
+				while (n.parentNode !== document) {
+					if (!n.parentNode) {
+						Debug.log(
+							"Invalid details: parent[" + i + "] failed;",
+							{
+								link: node,
+								node: n,
+								parent: n.parentNode,
+								details: details,
+								data: data,
+								info: info
+							}
+						);
+						break;
+					}
+					n = n.parentNode;
+					++i;
+				}
+			}
+
+			details.classList.remove("xl-details-hidden");
+			details.classList.remove("xl-details-has-thumbnail");
+			details.classList.remove("xl-details-has-thumbnail-visible");
+
+			update_details_position(details, node, gallery_link_events_data.mouse_x, gallery_link_events_data.mouse_y);
+
+			if (data.subtype === "gallery" && info.page !== undefined && info.page > 1) {
+				update_details_page_thumbnail(info.page, data, info, details, node);
 			}
 		};
 
@@ -1374,7 +1391,7 @@
 			return (n < 10 ? "0" : "") + n + sep;
 		};
 
-		var create_details = function (data, info) {
+		var create_details = function (data, info, callback) {
 			var category = API.get_category(data.category),
 				theme = Theme.classes,
 				file_size = (data.total_size / 1024 / 1024).toFixed(2),
@@ -1383,7 +1400,10 @@
 			// Body
 			content = $.node("div", "xl-details xl-hover-shadow" + theme);
 			Theme.bg(content);
-			if (data.subtype !== "gallery") return content;
+			if (data.subtype !== "gallery") {
+				callback("Could not create details", null);
+				return;
+			}
 
 			// Image
 			$.add(content, n1 = $.node("div", "xl-details-thumbnail" + theme));
@@ -1476,9 +1496,11 @@
 			// Fonts
 			Main.insert_custom_fonts();
 			Popup.hovering(content);
-			return content;
+
+			// Done
+			callback(null, content);
 		};
-		var create_actions = function (data, info, index) {
+		var create_actions = function (data, info, index, callback) {
 			var theme = Theme.classes,
 				gid = data.gid,
 				token = data.token,
@@ -1563,7 +1585,7 @@
 			Popup.hovering(actions);
 
 			// Done
-			return actions;
+			callback(null, actions);
 		};
 		var create_tags = function (data, domain) {
 			var tagfrag = d.createDocumentFragment(),
