@@ -3425,7 +3425,7 @@
 
 		rt_ehentai_gallery.get_data = function (info, callback) {
 			var data = get_saved_data(info.id);
-			callback(null, (data !== null && data.token === info[1]) ? data : null);
+			callback(null, (data !== null && data.token === info.token) ? data : null);
 		};
 		rt_ehentai_gallery.set_data = function (data, info, callback) {
 			set_saved_data(info.id, data);
@@ -3541,7 +3541,6 @@
 		};
 		rt_ehentai_gallery_full.setup_xhr = function (callback) {
 			var info = this.infos[0];
-			console.log("setup_xhr",info);
 			callback(null, {
 				method: "GET",
 				url: "http://" + info.domain + "/g/" + info.gid + "/" + info.token + "/" + info.search,
