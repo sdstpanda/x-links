@@ -6072,7 +6072,9 @@
 	var Config = (function () {
 
 		// Private
-		var settings_key = "#PREFIX#settings";
+		var settings_key = "#PREFIX#settings",
+			custom = {},
+			custom_descriptor = null;
 
 		// Public
 		var storage = (function () {
@@ -6238,6 +6240,93 @@
 			}
 		};
 
+		var load_custom = function () {
+			var saved = $.json_parse_safe(storage.getItem(settings_key + "-custom"), null),
+				obj, k1, k2, v;
+
+			if (saved === null || typeof(saved) !== "object") return;
+
+			for (k1 in saved) {
+				obj = saved[k1];
+				if (obj !== null && typeof(obj) === "object") {
+					for (k2 in obj) {
+						if (!Object.prototype.hasOwnProperty.call(custom, k1)) {
+							v = custom[k1] = {};
+						}
+						else {
+							v = custom[k1];
+						}
+						v[k2] = obj[k2];
+					}
+				}
+			}
+		};
+		var save_custom = function () {
+			storage.setItem(settings_key + "-custom", JSON.stringify(custom));
+		};
+
+		var register_custom_setting = function (namespace, name, default_value, title, description, descriptor) {
+			// Already exists
+			if (Object.prototype.hasOwnProperty.call(config, namespace) && Object.prototype.hasOwnProperty.call(config[namespace], name)) {
+				return undefined;
+			}
+
+			// Load custom
+			if (custom_descriptor === null) {
+				custom_descriptor = {};
+				load_custom();
+			}
+
+			// Get value
+			var update = init_custom(namespace, name, default_value),
+				d, v;
+
+			// Descriptor
+			d = [ name, default_value, title, description, null ];
+			if (descriptor !== null) d.push(descriptor);
+
+			v = custom_descriptor[namespace];
+			if (v === undefined) custom_descriptor[namespace] = v = [];
+			v.push(d);
+
+			// Save
+			if (update[0]) save_custom();
+
+			// Return value
+			return update[1];
+		};
+		var init_custom = function (namespace, name, default_value) {
+			var v = custom[namespace],
+				val;
+
+			if (v === undefined) {
+				custom[namespace] = v = {};
+				v[name] = default_value;
+				return [ true, default_value ];
+			}
+
+			val = v[name];
+			if (val === undefined) {
+				v[name] = default_value;
+				return [ true, default_value ];
+			}
+
+			return [ false, val ];
+		};
+		var set_custom = function (namespace, name, value) {
+			var v = custom[namespace];
+			if (v === undefined) custom[namespace] = v = {};
+			v[name] = value;
+		};
+		var get_custom = function (namespace, name, default_value) {
+			var v = custom[namespace];
+			return (v !== undefined && (v = v[name]) !== undefined) ? v : default_value;
+		};
+		var get_custom_settings_descriptor = function () {
+			return custom_descriptor;
+		};
+
+
 		// Exports
 		var Module = {
 			mode: "4chan", // foolz, fuuka, tinyboard, ipb, ipb_lofi
@@ -6255,7 +6344,11 @@
 			ready: ready,
 			save: save,
 			get_saved_settings: get_saved_settings,
-			set_saved_settings: set_saved_settings
+			set_saved_settings: set_saved_settings,
+			register_custom_setting: register_custom_setting,
+			get_custom: get_custom,
+			set_custom: set_custom,
+			get_custom_settings_descriptor: get_custom_settings_descriptor
 		};
 
 		return Module;
