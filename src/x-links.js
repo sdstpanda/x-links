@@ -1248,7 +1248,7 @@
 				event.preventDefault();
 
 				var index = this.getAttribute("xl-actions-index"),
-					actions, tag_bg, info, data, link, n;
+					actions, tag_bg, info, link, n;
 
 				if (!index) {
 					index = "" + actions_nodes_index;
@@ -9021,10 +9021,14 @@
 		};
 
 		var get_shared_node = function (selector) {
-			var par = $(".xl-extension-sharing-elements"),
-				n;
+			var par, n;
 
-			if (par === null) return null;
+			if (
+				selector === null ||
+				(par = $(".xl-extension-sharing-elements")) === null
+			) {
+				return null;
+			}
 
 			try {
 				n = $("[data-xl-sharing-id='" + selector + "']", par);
