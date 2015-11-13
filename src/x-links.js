@@ -5606,6 +5606,7 @@
 		// Private
 		var config_temp = null,
 			config_custom_temp = null,
+			config_exts_temp = null,
 			export_url = null,
 			popup = null;
 
@@ -5742,6 +5743,36 @@
 			$.on(input, event, $.bind(on_change, input, type, config_scope, name, info));
 		};
 
+		var generate_extensions = function (container) {
+			var exts = ExtensionAPI.get_registered_extensions(),
+				descriptor, data, section, e, i, ii, v;
+
+			if (exts.length === 0) return null;
+
+			$.add(container, generate_section_header("Extensions"));
+			section = generate_section();
+
+			descriptor = [];
+			data = [];
+			for (i = 0, ii = exts.length; i < ii; ++i) {
+				e = exts[i];
+				v = e[0];
+				data.push(v);
+				descriptor.push([
+					i,
+					v,
+					e[1] + (e[2].length > 0 ? (" by " + e[2]) : ""),
+					e[3],
+					null
+				]);
+			}
+
+			generate_section_options(section, "extensions", descriptor, data);
+			$.add(container, section);
+
+			return data;
+		};
+
 		var titlify_custom_namespace = function (namespace) {
 			return namespace.replace(/[_\W]+/g, " ").replace(/\b\w/g, function (m) { return m.toUpperCase(); });
 		};
@@ -5796,6 +5827,7 @@
 
 				config = config_temp;
 				Config.load_custom_from_clone(config_custom_temp);
+				ExtensionAPI.set_extensions_enabled(config_exts_temp);
 
 				Config.save();
 				close();
@@ -5967,6 +5999,9 @@
 				}
 			}
 
+			// Extensions
+			config_exts_temp = generate_extensions(content_container);
+
 			// Events
 			$.on(popup, "click", on_cancel_click);
 
@@ -6122,6 +6157,7 @@
 		var close = function () {
 			config_temp = null;
 			config_custom_temp = null;
+			config_exts_temp = null;
 			if (popup !== null) {
 				Popup.close(popup);
 				popup = null;
@@ -6400,10 +6436,6 @@
 			save_custom();
 		};
 
-		var extension_is_enabled = function (name, author, description) {
-			return true;
-		};
-
 		// Exports
 		var Module = {
 			mode: "4chan", // foolz, fuuka, tinyboard, ipb, ipb_lofi
@@ -6426,8 +6458,7 @@
 			get_custom_settings_descriptor: get_custom_settings_descriptor,
 			get_custom: get_custom,
 			get_custom_clone: get_custom_clone,
-			load_custom_from_clone: load_custom_from_clone,
-			extension_is_enabled: extension_is_enabled
+			load_custom_from_clone: load_custom_from_clone
 		};
 
 		return Module;
@@ -9228,6 +9259,20 @@
 			return n;
 		};
 
+		var save_extensions_enabled_states = function () {
+		};
+		var set_extensions_enabled = function (enabled_array) {
+			if (enabled_array === null) return;
+
+			for (var i = 0, ii = Math.min(registered.length, enabled_array.length); i < ii; ++i) {
+				registered[i][0] = enabled_array[i];
+			}
+			save_extensions_enabled_states();
+		};
+		var extension_is_enabled = function (name, author, description) {
+			return true;
+		};
+
 		var registered = [];
 
 		var api = null;
@@ -9735,7 +9780,7 @@
 					},
 					de = document.documentElement,
 					complete = false,
-					name, author, description,
+					enabled, name, author, description,
 					k, o, i, ii;
 
 				// Decrease register count
@@ -9763,8 +9808,9 @@
 					this.send(this.action, { err: "Missing extension identification", response: null }, this.reply_id);
 					return;
 				}
-				registered.push([ name, author, description ]);
-				if (!Config.extension_is_enabled(name, author, description)) {
+				enabled = extension_is_enabled(name, author, description);
+				registered.push([ enabled, name, author, description ]);
+				if (!enabled) {
 					this.send(this.action, { err: "Extension disabled", response: null }, this.reply_id);
 					return;
 				}
@@ -9891,7 +9937,8 @@
 			init: init,
 			request: request,
 			should_defer_processing: should_defer_processing,
-			get_registered_extensions: get_registered_extensions
+			get_registered_extensions: get_registered_extensions,
+			set_extensions_enabled: set_extensions_enabled
 		};
 
 	})();
