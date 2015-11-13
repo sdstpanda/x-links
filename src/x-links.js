@@ -9363,6 +9363,70 @@
 				}
 			};
 		};
+		ExtensionAPI.prototype.register_settings = function (reg_info) {
+			var response = {},
+				name, default_value, title, description, descriptor,
+				res, value, k, i, ii, a, v;
+
+			if (is_object(reg_info)) {
+				for (k in reg_info) {
+					a = reg_info[k];
+					if (!Array.isArray(a)) continue;
+
+					response[k] = res = {};
+					for (i = 0, ii = a.length; i < ii; ++i) {
+						v = a[i];
+						if (!Array.isArray(v) || typeof((name = v[0])) !== "string") continue;
+
+						default_value = v[1];
+						if (default_value === undefined) default_value = null;
+						title = v[2];
+						if (typeof(title) !== "string") title = name;
+						description = v[3];
+						if (typeof(description) !== "string") description = "";
+						descriptor = this.register_settings_descriptor_info(v[4]);
+
+						value = Config.register_custom_setting(k, name, default_value, title, description, descriptor);
+						if (value === undefined) {
+							value = config[k][name];
+						}
+
+						res[name] = value;
+					}
+				}
+			}
+
+			return response;
+		};
+		ExtensionAPI.prototype.register_settings_descriptor_info = function (input) {
+			if (!is_object(input)) return null;
+
+			var info = {},
+				opt, label, desc, a, i, ii, v;
+
+			if (typeof(input.type) === "string") {
+				info.type = input.type;
+			}
+			if (Array.isArray((a = input.options))) {
+				info.options = [];
+				for (i = 0, ii = a.length; i < ii; ++i) {
+					v = a[i];
+					if (
+						Array.isArray(v) &&
+						v.length >= 2 &&
+						typeof((label = v[1])) === "string"
+					) {
+						opt = [ v[0], v[1] ];
+						if (typeof((desc = v[2])) === "string") {
+							opt.push(desc);
+						}
+						info.options.push(opt);
+					}
+				}
+			}
+
+			return info;
+		};
 		ExtensionAPI.prototype.register_request_api = function (reg_info) {
 			if (!is_object(reg_info)) return "Invalid";
 
@@ -9640,7 +9704,7 @@
 
 				// Register
 				var response = {
-						settings: {},
+						settings: null,
 						request_apis: [],
 						linkifiers: [],
 						fetchers: [],
@@ -9664,6 +9728,9 @@
 						}
 					}
 				}
+
+				// Settings
+				response.settings = this.register_settings(data.settings);
 
 				// Request APIs
 				if (Array.isArray((o = data.request_apis))) {
