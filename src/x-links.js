@@ -5665,6 +5665,12 @@
 				);
 			}
 		};
+		var generate_section_options_custom = function (section, namespace, custom_descriptor, custom_config) {
+			var config_descriptor = custom_descriptor[namespace];
+			if (config_descriptor === undefined) return;
+
+			generate_section_options(section, namespace + "-custom", config_descriptor, custom_config[namespace]);
+		};
 		var generate_section_option = function (section, config_scope, id, name, label_text, description, type, value, info) {
 			var event = "change",
 				theme = Theme.classes,
@@ -5733,6 +5739,10 @@
 			// Event
 			if (config_scope === null) name = null;
 			$.on(input, event, $.bind(on_change, input, type, config_scope, name, info));
+		};
+
+		var titlify_custom_namespace = function (namespace) {
+			return namespace.replace(/[_\W]+/g, " ").replace(/\b\w/g, function (m) { return m.toUpperCase(); });
 		};
 
 		var on_change = function (type, config_scope, name, info, event) {
@@ -5843,7 +5853,8 @@
 		};
 		var open = function () {
 			var theme = Theme.classes,
-				content_container, a, v, i, ii, j, jj, n;
+				custom_options = Config.get_custom_settings_descriptor(),
+				content_container, k, n;
 
 			// Config
 			config_temp = JSON.parse(JSON.stringify(config));
@@ -5893,26 +5904,31 @@
 			$.add(content_container, generate_section_header("General", n));
 			n = generate_section();
 			generate_section_options(n, "general", options.general, config_temp.general);
+			generate_section_options_custom(n, "general", custom_options, config_custom_temp);
 			$.add(content_container, n);
 
 			$.add(content_container, generate_section_header("Sites"));
 			n = generate_section();
 			generate_section_options(n, "sites", options.sites, config_temp.sites);
+			generate_section_options_custom(n, "sites", custom_options, config_custom_temp);
 			$.add(content_container, n);
 
 			$.add(content_container, generate_section_header("Gallery Details"));
 			n = generate_section();
 			generate_section_options(n, "details", options.details, config_temp.details);
+			generate_section_options_custom(n, "details", custom_options, config_custom_temp);
 			$.add(content_container, n);
 
 			$.add(content_container, generate_section_header("Gallery Actions"));
 			n = generate_section();
 			generate_section_options(n, "actions", options.actions, config_temp.actions);
+			generate_section_options_custom(n, "actions", custom_options, config_custom_temp);
 			$.add(content_container, n);
 
 			$.add(content_container, generate_section_header("ExSauce"));
 			n = generate_section();
 			generate_section_options(n, "sauce", options.sauce, config_temp.sauce);
+			generate_section_options_custom(n, "sauce", custom_options, config_custom_temp);
 			$.add(content_container, n);
 
 			n = $.link("#", "xl-settings-filter-guide-toggle", "Click here to toggle the guide");
@@ -5924,6 +5940,7 @@
 			$.add(content_container, n);
 			n = generate_section();
 			generate_section_options(n, "filter", options.filter, config_temp.filter);
+			generate_section_options_custom(n, "filter", custom_options, config_custom_temp);
 			$.add(content_container, n);
 
 			$.add(content_container, generate_section_header("Debugging"));
@@ -5936,16 +5953,16 @@
 					{ type: "button", text: "Clear", on_change: on_cache_clear_click },
 				]
 			], null);
+			generate_section_options_custom(n, "debug", custom_options, config_custom_temp);
 			$.add(content_container, n);
 
 			// Custom
-			a = Config.get_custom_namespaces();
-			for (i = 0, ii = a.length; i < ii; ++i) {
-				if (Object.prototype.hasOwnProperty.call(config_temp, a[i])) continue;
-
-				v = Config.get_custom_namespace_vars(a[i]);
-				for (j = 0, jj = v.length; j < jj; ++j) {
-					// TODO
+			for (k in custom_options) {
+				if (!Object.prototype.hasOwnProperty.call(config_temp, k)) {
+					$.add(content_container, generate_section_header(titlify_custom_namespace(k)));
+					n = generate_section();
+					generate_section_options(n, k + "-custom", custom_options[k], config_custom_temp[k]);
+					$.add(content_container, n);
 				}
 			}
 
@@ -6367,21 +6384,6 @@
 
 			return [ false, val ];
 		};
-		var get_custom_namespaces = function () {
-			return custom_descriptor === null ? [] : Object.keys(custom_descriptor);
-		};
-		var get_custom_namespace_vars = function (namespace) {
-			var res = [],
-				a, i, ii;
-
-			if (custom_descriptor !== null && (a = custom_descriptor[namespace]) !== undefined) {
-				for (i = 0, ii = a.length; i < ii; ++i) {
-					res.push(a[i][0]);
-				}
-			}
-
-			return res;
-		};
 		var get_custom_settings_descriptor = function () {
 			return custom_descriptor;
 		};
@@ -6412,8 +6414,6 @@
 			get_saved_settings: get_saved_settings,
 			set_saved_settings: set_saved_settings,
 			register_custom_setting: register_custom_setting,
-			get_custom_namespaces: get_custom_namespaces,
-			get_custom_namespace_vars: get_custom_namespace_vars,
 			get_custom_settings_descriptor: get_custom_settings_descriptor,
 			get_custom_clone: get_custom_clone,
 			load_custom_from_clone: load_custom_from_clone
