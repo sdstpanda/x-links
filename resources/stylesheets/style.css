@@ -264,7 +264,7 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 	display: none;
 }
 
-/* Actions v2 */
+/* Actions */
 .xl-actions {
 	border-radius: 0.25em;
 	position: absolute;
@@ -370,6 +370,12 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 }
 .xl-details.xl-details-hidden {
 	display: none;
+}
+
+.xl-details.xl-details-limited-size {
+	max-height: 16em;
+	overflow: hidden;
+	text-align: left;
 }
 
 .xl-details-thumbnail {

@@ -1420,6 +1420,7 @@
 						if (err === null) {
 							content.className = (content.className + " xl-details xl-details-hidden xl-hover-shadow" + theme).trim();
 							Theme.bg(content);
+							Theme.apply(content);
 							Popup.hovering(content);
 							callback(null, content);
 						}
