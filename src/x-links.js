@@ -9552,7 +9552,7 @@
 			Linkifier.linkify_register(regex, prefix_group, prefix, null, null);
 			return null;
 		};
-		ExtensionAPI.prototype.register_fetcher = function (reg_info) {
+		ExtensionAPI.prototype.register_command = function (reg_info) {
 			if (!is_object(reg_info) || reg_info.url_info !== true || reg_info.to_data !== true) {
 				return "Invalid";
 			}
@@ -9561,8 +9561,8 @@
 				index;
 
 			index = API.register_url_info_function(
-				this.register_fetcher_fn("url_info", id_data, 1000),
-				this.register_fetcher_fn("url_info_to_data", id_data, -1)
+				this.register_command_fn("url_info", id_data, 1000),
+				this.register_command_fn("url_info_to_data", id_data, -1)
 			);
 
 			if (reg_info.details === true) {
@@ -9574,7 +9574,7 @@
 
 			return id_data;
 		};
-		ExtensionAPI.prototype.register_fetcher_fn = function (event, send_data, delay) {
+		ExtensionAPI.prototype.register_command_fn = function (event, send_data, delay) {
 			var api_name = this.api_name,
 				api_key = this.api_key,
 				self = this;
@@ -9724,7 +9724,7 @@
 						settings: null,
 						request_apis: [],
 						linkifiers: [],
-						fetchers: [],
+						commands: [],
 					},
 					de = document.documentElement,
 					complete = false,
@@ -9764,9 +9764,9 @@
 				}
 
 				// URL info function
-				if (Array.isArray((o = data.fetchers))) {
+				if (Array.isArray((o = data.commands))) {
 					for (i = 0, ii = o.length; i < ii; ++i) {
-						response.fetchers.push(this.register_fetcher(o[i]));
+						response.commands.push(this.register_command(o[i]));
 					}
 				}
 
