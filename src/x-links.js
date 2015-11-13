@@ -6400,6 +6400,10 @@
 			save_custom();
 		};
 
+		var extension_is_enabled = function (name, author, description) {
+			return true;
+		};
+
 		// Exports
 		var Module = {
 			mode: "4chan", // foolz, fuuka, tinyboard, ipb, ipb_lofi
@@ -6422,7 +6426,8 @@
 			get_custom_settings_descriptor: get_custom_settings_descriptor,
 			get_custom: get_custom,
 			get_custom_clone: get_custom_clone,
-			load_custom_from_clone: load_custom_from_clone
+			load_custom_from_clone: load_custom_from_clone,
+			extension_is_enabled: extension_is_enabled
 		};
 
 		return Module;
@@ -9223,6 +9228,8 @@
 			return n;
 		};
 
+		var registered = [];
+
 		var api = null;
 		var ExtensionAPI = function () {
 			this.origin = window.location.protocol + "//" + window.location.host;
@@ -9728,6 +9735,7 @@
 					},
 					de = document.documentElement,
 					complete = false,
+					name, author, description,
 					k, o, i, ii;
 
 				// Decrease register count
@@ -9744,6 +9752,21 @@
 							complete = true;
 						}
 					}
+				}
+
+				// Add to list
+				if (
+					typeof((name = data.name)) !== "string" ||
+					typeof((author = data.author)) !== "string" ||
+					typeof((description = data.description)) !== "string"
+				) {
+					this.send(this.action, { err: "Missing extension identification", response: null }, this.reply_id);
+					return;
+				}
+				registered.push([ name, author, description ]);
+				if (!Config.extension_is_enabled(name, author, description)) {
+					this.send(this.action, { err: "Extension disabled", response: null }, this.reply_id);
+					return;
 				}
 
 				// Settings
@@ -9858,12 +9881,17 @@
 			return document.documentElement.hasAttribute("data-xlinks-extensions-waiting");
 		};
 
+		var get_registered_extensions = function () {
+			return registered;
+		};
+
 
 		// Exports
 		return {
 			init: init,
 			request: request,
-			should_defer_processing: should_defer_processing
+			should_defer_processing: should_defer_processing,
+			get_registered_extensions: get_registered_extensions
 		};
 
 	})();
