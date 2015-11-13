@@ -6422,7 +6422,7 @@
 			return [ false, val ];
 		};
 		var get_custom_settings_descriptor = function () {
-			return custom_descriptor;
+			return custom_descriptor === null ? {} : custom_descriptor;
 		};
 		var get_custom = function (namespace, name) {
 			var v = custom[namespace];
@@ -9259,7 +9259,27 @@
 			return n;
 		};
 
+		var disabled_extensions_key = "#PREFIX#extensions-disabled";
+		var disabled_extensions;
 		var save_extensions_enabled_states = function () {
+			var save_data = [],
+				i, ii, r;
+
+			for (i = 0, ii = registered.length; i < ii; ++i) {
+				r = registered[i];
+				if (!r[0]) {
+					save_data.push([ r[1], r[2], r[3] ]);
+				}
+			}
+
+			if (save_data.length > 0) {
+				Config.storage.setItem(disabled_extensions_key, JSON.stringify(save_data));
+				disabled_extensions = save_data;
+			}
+			else {
+				Config.storage.removeItem(disabled_extensions_key);
+				disabled_extensions = null;
+			}
 		};
 		var set_extensions_enabled = function (enabled_array) {
 			if (enabled_array === null) return;
@@ -9270,6 +9290,17 @@
 			save_extensions_enabled_states();
 		};
 		var extension_is_enabled = function (name, author, description) {
+			if (disabled_extensions === undefined) {
+				disabled_extensions = $.json_parse_safe(Config.storage.getItem(disabled_extensions_key), null);
+			}
+			if (disabled_extensions === null) return true;
+
+			var i, ii, r;
+			for (i = 0, ii = disabled_extensions.length; i < ii; ++i) {
+				r = disabled_extensions[i];
+				if (r[0] === name && r[1] === author && r[2] === description) return false;
+			}
+
 			return true;
 		};
 
