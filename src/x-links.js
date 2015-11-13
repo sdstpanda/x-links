@@ -5999,13 +5999,13 @@
 			generate_section_options_custom(n, "sites", custom_options, config_custom_temp);
 			$.add(content_container, n);
 
-			$.add(content_container, generate_section_header("Gallery Details"));
+			$.add(content_container, generate_section_header("Details"));
 			n = generate_section();
 			generate_section_options(n, "details", options.details, config_temp.details);
 			generate_section_options_custom(n, "details", custom_options, config_custom_temp);
 			$.add(content_container, n);
 
-			$.add(content_container, generate_section_header("Gallery Actions"));
+			$.add(content_container, generate_section_header("Actions"));
 			n = generate_section();
 			generate_section_options(n, "actions", options.actions, config_temp.actions);
 			generate_section_options_custom(n, "actions", custom_options, config_custom_temp);
