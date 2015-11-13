@@ -5218,7 +5218,7 @@
 			API.get_url_info(url, function (err, info) {
 				if (node.parentNode === null) return;
 
-				if (info === null || (config.sites[info.site] === false)) {
+				if (info === null || (config.sites[info.site] === false || Config.get_custom("sites", info.site) === false)) {
 					if (update_on_fail) {
 						node.href = url;
 						node.target = "_blank";
@@ -6387,6 +6387,10 @@
 		var get_custom_settings_descriptor = function () {
 			return custom_descriptor;
 		};
+		var get_custom = function (namespace, name) {
+			var v = custom[namespace];
+			return (v !== undefined) ? v[name] : undefined;
+		};
 		var get_custom_clone = function () {
 			return JSON.parse(JSON.stringify(custom));
 		};
@@ -6415,6 +6419,7 @@
 			set_saved_settings: set_saved_settings,
 			register_custom_setting: register_custom_setting,
 			get_custom_settings_descriptor: get_custom_settings_descriptor,
+			get_custom: get_custom,
 			get_custom_clone: get_custom_clone,
 			load_custom_from_clone: load_custom_from_clone
 		};
