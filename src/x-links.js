@@ -99,6 +99,46 @@
 					set: function (v) { return parseFloat(v) || 0.0; }
 				}
 			],
+			[ "opacity", 0.93,
+				"Opacity", "Opacity of the details display (as a percentage)",
+				null,
+				{
+					type: "textbox",
+					get: function (v) {
+						return "" + (v * 100);
+					},
+					set: function (v) {
+						v = parseFloat(v);
+						if (isNaN(v)) {
+							v = 0.93;
+						}
+						else {
+							v = Math.max(0, Math.min(1, v / 100.0));
+						}
+						return v;
+					}
+				}
+			],
+			[ "opacity_bg", 1.0,
+				"Background opacity", "Opacity of the details display background (as a percentage)",
+				null,
+				{
+					type: "textbox",
+					get: function (v) {
+						return "" + (v * 100);
+					},
+					set: function (v) {
+						v = parseFloat(v);
+						if (isNaN(v)) {
+							v = 1.0;
+						}
+						else {
+							v = Math.max(0, Math.min(1, v / 100.0));
+						}
+						return v;
+					}
+				}
+			],
 		],
 		actions: [
 			[ "enabled", true,
@@ -5676,7 +5716,7 @@
 		var generate_section_option = function (section, config_scope, id, name, label_text, description, type, value, info) {
 			var event = "change",
 				theme = Theme.classes,
-				values, entry, table, row, cell, label, input, n, i, ii, v;
+				values, entry, table, row, cell, label, input, fn, n, i, ii, v;
 
 			// Create label/description
 			$.add(section, entry = $.node("div", "xl-settings-entry" + theme));
@@ -5692,6 +5732,10 @@
 			}
 
 			// Value edit
+			if (info !== null && (fn = info.get) !== undefined) {
+				value = fn.call(null, value);
+			}
+
 			if (type === "checkbox") {
 				$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
 				$.add(cell, input = $.node("input", "xl-settings-entry-input" + theme));
@@ -5789,7 +5833,16 @@
 				}
 
 				fn = (info === null ? undefined : info.set);
-				if (fn !== undefined) fn.call(null, v);
+				if (fn !== undefined) {
+					v = fn.call(null, v);
+					fn = info.get;
+					if (type === "textbox" || type === "textarea") {
+						this.value = (fn === undefined ? v : fn.call(null, v));
+					}
+					else if (type === "checkbox") {
+						this.value = !!(fn === undefined ? v : fn.call(null, v));
+					}
+				}
 
 				config_scope[name] = v;
 			}
