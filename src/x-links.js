@@ -7344,8 +7344,9 @@
 	})();
 	var EasyList = (function () {
 
-		var Entry = function (info) {
+		var Entry = function (info, data) {
 			this.info = info;
+			this.data = data;
 			this.node = null;
 		};
 
@@ -7773,10 +7774,10 @@
 		var add_gallery_update_timer = null;
 		var add_gallery = function (content_index, entry, index, force_reorder) {
 			var info = entry.info,
-				data = API.get_data(info),
+				data = entry.data,
 				entries, n;
 
-			if (data !== null && data.subtype === "gallery") {
+			if (data.subtype === "gallery") {
 				entries = contents[content_index].entries;
 				n = create_gallery_nodes(data, index, info);
 				n.setAttribute("data-xl-easylist-item-parity", (contents[content_index].visible % 2) === 0 ? "odd" : "even");
@@ -8034,23 +8035,39 @@
 			custom_filters = Filter.parse(settings.custom_filters, undefined);
 		};
 		var add_links = function (links) {
-			var info, key, entry, i, ii;
+			var immediate = true,
+				i, ii;
+
+			var cb = function (err, data) {
+				add_entry(immediate, err, data);
+			};
 
 			for (i = 0, ii = links.length; i < ii; ++i) {
-				info = API.get_url_info_saved(links[i].href);
-				if (info !== null) {
-					key = info.id;
-					if (data_map[key] === undefined) {
-						entry = new Entry(info);
-						queue.push(entry);
-						data_map[key] = entry;
-					}
-				}
+				API.get_url_info(links[i].href, cb);
 			}
 
+			immediate = false;
 			if (queue.length > 0 && queue_timer === null) {
 				on_timer();
 			}
+		};
+		var add_entry = function (immediate, err, info) {
+			var key;
+			if (err !== null || data_map[(key = info.id)] !== undefined) return;
+
+			API.get_data_from_url_info(info, function (err, data) {
+				if (err === null) {
+					if (data_map[key] === undefined) {
+						var entry = new Entry(info, data);
+						queue.push(entry);
+						data_map[key] = entry;
+
+						if (!immediate && queue.length > 0 && queue_timer === null) {
+							on_timer();
+						}
+					}
+				}
+			});
 		};
 
 		var set_content_index = function (content_index) {
@@ -8090,26 +8107,20 @@
 		};
 		var parse_custom_urls = function (text) {
 			var urls = Linkifier.parse_text_for_urls(text),
-				info, i, ii;
-
-			var cb = function (i, err, info) {
-				if (info !== null) {
-					parse_custom_url_info(i, info);
-				}
-			};
+				i, ii;
 
 			for (i = 0, ii = urls.length; i < ii; ++i) {
-				info = API.get_url_info(urls[i], $.bind(cb, null, i));
+				API.get_url_info(urls[i], $.bind(parse_custom_url_info, null, i));
 			}
 		};
-		var parse_custom_url_info = function (index, info) {
+		var parse_custom_url_info = function (index, err, info) {
+			var key;
+			if (err !== null || custom_links_map[(key = info.id)] !== undefined) return;
+
 			API.get_data_from_url_info(info, function (err, data) {
 				if (err === null) {
-					var key = info.id,
-						entry;
-
 					if (custom_links_map[key] === undefined) {
-						entry = new Entry(info);
+						var entry = new Entry(info, data);
 						custom_links_map[key] = entry;
 						add_gallery(1, entry, index, true);
 					}
