@@ -353,7 +353,7 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 
 /* Details */
 .xl-details {
-	opacity: 0.93;
+	opacity: 1;
 	display: block;
 	font-size: inherit;
 	position: fixed;

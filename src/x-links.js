@@ -99,7 +99,7 @@
 					set: function (v) { return parseFloat(v) || 0.0; }
 				}
 			],
-			[ "opacity", 0.93,
+			[ "opacity", 1.0,
 				"Opacity", "Opacity of the details display (as a percentage)",
 				null,
 				{
@@ -110,7 +110,7 @@
 					set: function (v) {
 						v = parseFloat(v);
 						if (isNaN(v)) {
-							v = 0.93;
+							v = 1.0;
 						}
 						else {
 							v = Math.max(0, Math.min(1, v / 100.0));
@@ -119,7 +119,7 @@
 					}
 				}
 			],
-			[ "opacity_bg", 1.0,
+			[ "opacity_bg", 0.93,
 				"Background opacity", "Opacity of the details display background (as a percentage)",
 				null,
 				{
@@ -130,7 +130,7 @@
 					set: function (v) {
 						v = parseFloat(v);
 						if (isNaN(v)) {
-							v = 1.0;
+							v = 0.93;
 						}
 						else {
 							v = Math.max(0, Math.min(1, v / 100.0));
@@ -1459,7 +1459,8 @@
 					fn(data, info, function (err, content) {
 						if (err === null) {
 							content.className = (content.className + " xl-details xl-details-hidden xl-hover-shadow" + theme).trim();
-							Theme.bg(content);
+							content.style.opacity = config.details.opacity;
+							Theme.bg(content, config.details.opacity_bg);
 							Theme.apply(content);
 							Popup.hovering(content);
 							callback(null, content);
@@ -1477,7 +1478,8 @@
 
 			// Body
 			content = $.node("div", "xl-details xl-details-hidden xl-hover-shadow" + theme);
-			Theme.bg(content);
+			content.style.opacity = config.details.opacity;
+			Theme.bg(content, config.details.opacity_bg);
 
 			// Image
 			$.add(content, n1 = $.node("div", "xl-details-thumbnail" + theme));
@@ -7229,7 +7231,8 @@
 
 		// Private
 		var current = "light",
-			post_bg = "#ffffff";
+			post_bg = "#ffffff",
+			post_bg_opac = "rgba(255,255,255,";
 
 		var to_hex2 = function (n) {
 			n = n.toString(16);
@@ -7279,7 +7282,8 @@
 
 			return [
 				(color[0] + color[1] + color[2] < 384) ? "dark" : "light",
-				"#" + to_hex2(colors[1][0]) + to_hex2(colors[1][1]) + to_hex2(colors[1][2])
+				"#" + to_hex2(colors[1][0]) + to_hex2(colors[1][1]) + to_hex2(colors[1][2]),
+				"rgba(" + colors[1][0] + "," + colors[1][1] + "," + colors[1][2] + ","
 			];
 		};
 		var update = function (change_nodes) {
@@ -7292,6 +7296,7 @@
 				}
 				if (new_theme[1] !== post_bg) {
 					post_bg = new_theme[1];
+					post_bg_opac = new_theme[2];
 					if (change_nodes) update_nodes_bg();
 				}
 				return true;
@@ -7317,9 +7322,11 @@
 		};
 		var update_nodes_bg = function () {
 			var nodes = $$(".xl-theme-post-bg"),
-				i, ii;
+				opacity, node, i, ii;
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
-				nodes[i].style.backgroundColor = post_bg;
+				node = nodes[i];
+				opacity = node.getAttribute("data-xl-theme-post-bg-opacity");
+				node.style.backgroundColor = (opacity ? post_bg_opac + opacity + ")" : post_bg);
 			}
 		};
 
@@ -7358,9 +7365,16 @@
 				new MutationObserver(on_head_mutate).observe(d.head, { childList: true });
 			}
 		};
-		var bg = function (node) {
+		var bg = function (node, opacity) {
 			node.classList.add("xl-theme-post-bg");
-			node.style.backgroundColor = post_bg;
+			if (opacity === undefined || opacity === 1) {
+				node.style.backgroundColor = post_bg;
+				node.removeAttribute("data-xl-theme-post-bg-opacity");
+			}
+			else {
+				node.style.backgroundColor = post_bg_opac + opacity + ")";
+				node.setAttribute("data-xl-theme-post-bg-opacity", opacity);
+			}
 		};
 		var apply = function (node) {
 			if (current !== "light") {
