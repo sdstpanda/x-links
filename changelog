@@ -1,5 +1,11 @@
 ﻿master
 
+1.2.2
+- dnsev-h
+  + Added options to change the opacity of the details hover
+  + Fixed archiver links not working
+  + Extension API now works (allows for link title-ification, hovering details, actions, and custom settings)
+
 1.2.1.2
 - dnsev-h
   + Fixed some edge case bugs when processing non-standard formatted links

@@ -2,7 +2,7 @@
 // @name        X-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.1.2
+// @version     1.2.2
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -127,6 +127,46 @@
 					set: function (v) { return parseFloat(v) || 0.0; }
 				}
 			],
+			[ "opacity", 1.0,
+				"Opacity", "Opacity of the details display (as a percentage)",
+				null,
+				{
+					type: "textbox",
+					get: function (v) {
+						return "" + (v * 100);
+					},
+					set: function (v) {
+						v = parseFloat(v);
+						if (isNaN(v)) {
+							v = 1.0;
+						}
+						else {
+							v = Math.max(0, Math.min(1, v / 100.0));
+						}
+						return v;
+					}
+				}
+			],
+			[ "opacity_bg", 0.93,
+				"Background opacity", "Opacity of the details display background (as a percentage)",
+				null,
+				{
+					type: "textbox",
+					get: function (v) {
+						return "" + (v * 100);
+					},
+					set: function (v) {
+						v = parseFloat(v);
+						if (isNaN(v)) {
+							v = 0.93;
+						}
+						else {
+							v = Math.max(0, Math.min(1, v / 100.0));
+						}
+						return v;
+					}
+				}
+			],
 		],
 		actions: [
 			[ "enabled", true,
@@ -174,12 +214,12 @@
 				"Full Highlighting"
 			],
 			[ "good_tag_marker", "!",
-				"Good tag marker", "Text to mark a good [Ex]/[EH] tag with",
+				"Good tag marker", "Text to mark a [Site] tag with when a good filter is matched",
 				"Good Tag Marker",
 				{ type: "textbox" },
 			],
 			[ "bad_tag_marker", "",
-				"Bad tag marker", "Text to mark a bad [Ex]/[EH] tag with",
+				"Bad tag marker", "Text to mark a [Site] tag with when a bad filter is matched",
 				"Bad Tag Marker",
 				{ type: "textbox" },
 			],
@@ -285,7 +325,8 @@
 	};
 	var $ = (function () {
 
-		var re_short_domain = /^(?:[\w\-]+):\/*(?:[\w-]+\.)*([\w-]+\.[\w]+)/i,
+		var re_full_domain = /^(?:[\w\-]+):\/*((?:[\w\-]+\.)+[\w\-]+)/i,
+			re_short_domain = /^(?:[\w\-]+):\/*(?:[\w\-]+\.)*([\w\-]+\.[\w\-]+)/i,
 			re_change_domain = /^([\w\-]+:\/*)([\w\-]+(?:\.[\w\-]+)*)([\w\W]*)$/i;
 
 		var Module = function (selector, root) {
@@ -621,6 +662,10 @@
 		};
 		Module.get_domain = function (url) {
 			var m = re_short_domain.exec(url);
+			return (m === null) ? "" : m[1].toLowerCase();
+		};
+		Module.get_full_domain = function (url) {
+			var m = re_full_domain.exec(url);
 			return (m === null) ? "" : m[1].toLowerCase();
 		};
 		Module.change_url_domain = function (url, new_domain) {
@@ -1215,119 +1260,36 @@
 		};
 		var gallery_link_events = {
 			mouseover: $.wrap_mouseenterleave_event(function (event) {
-				var full_id = get_node_id_full(this),
-					details = details_nodes[full_id],
-					node = this,
-					info, data, thumb_state, thumb_cb;
+				var self = this,
+					info = API.get_url_info_saved(this.href);
 
-				if (
-					(info = API.get_url_info_saved(this.href)) === null ||
-					(data = API.get_data(info.site, info.gid)) === null
-				) {
-					Debug.log("Invalid link", { link: this, info: info, data: data });
-					return;
-				}
-
-				if (details === undefined) {
-					details = create_details(data, info);
-					details_nodes[full_id] = details;
-				}
-				if (Debug.enabled) {
-					var i = 1,
-						n = details;
-					while (n.parentNode !== document) {
-						if (!n.parentNode) {
-							Debug.log(
-								"Invalid details: parent[" + i + "] failed;",
-								{
-									link: this,
-									node: n,
-									parent: n.parentNode,
-									details: details,
-									full_id: full_id
-								}
-							);
-							break;
-						}
-						n = n.parentNode;
-						++i;
-					}
-				}
-
-				details.classList.remove("xl-details-hidden");
-				details.classList.remove("xl-details-has-thumbnail");
-				details.classList.remove("xl-details-has-thumbnail-visible");
+				if (info === null) return;
 
 				gallery_link_events_data.link = this;
 				gallery_link_events_data.mouse_x = event.clientX;
 				gallery_link_events_data.mouse_y = event.clientY;
 
-				update_details_position(details, this, event.clientX, event.clientY);
-
-				if (info.page !== undefined && info.page > 1) {
-					// Thumbnail processing
-					thumb_state = 0;
-					thumb_cb = function (err, thumb_data) {
-						if (err === null) {
-							API.get_thumbnail(thumb_data.url, thumb_data.flags, function (err, thumb_url) {
-								if (err === null && node === gallery_link_events_data.link) {
-									var n0, n1, n2;
-									if (
-										(n0 = $(".xl-details-page-thumbnail", details)) !== null &&
-										(n1 = $(".xl-details-page-thumbnail-size", n0)) !== null &&
-										(n2 = $(".xl-details-page-thumbnail-image", n1)) !== null
-									) {
-										n2.style.backgroundImage = "url('" + thumb_url + "')";
-
-										if (thumb_data.width > 0 && thumb_data.height > 0) {
-											// Small thumbnail
-											var max_width = 140,
-												max_height = 200,
-												max_ratio = max_height / max_width,
-												scale = (thumb_data.height / thumb_data.width > max_ratio) ? max_height / thumb_data.height : max_width / thumb_data.width;
-
-											n1.style.transform = "translate(-50%,-50%) scale(" + scale + ")";
-											n1.style.left = "50%";
-											n1.style.top = "50%";
-											n1.style.width = thumb_data.width + "px";
-											n1.style.height = thumb_data.height + "px";
-											n2.style.backgroundSize = "auto";
-											n2.style.backgroundPosition = (-thumb_data.left) + "px " + (-thumb_data.top) + "px";
-										}
-										else {
-											// Large thumbnail
-											n1.style.transform = "";
-											n1.style.left = "";
-											n1.style.top = "";
-											n1.style.width = "";
-											n1.style.height = "";
-											n2.style.backgroundSize = "";
-											n2.style.backgroundPosition = "";
-										}
-
-										// Animate
-										if (thumb_state === 1) {
-											Theme.get_computed_style(n0).getPropertyValue("transform");
-										}
-										details.classList.add("xl-details-has-thumbnail-visible");
+				API.get_data_from_url_info(info, function (err, data) {
+					if (err === null && gallery_link_events_data.link === self) {
+						var details = details_nodes[info.id];
+						if (details !== undefined) {
+							details_hover_start(data, info, self, details);
+						}
+						else if (self.getAttribute("data-xl-details-creating") !== "true") {
+							self.setAttribute("data-xl-details-creating", "true");
+							create_details(data, info, function (err, details) {
+								self.removeAttribute("data-xl-details-creating");
+								if (err === null) {
+									details_nodes[info.id] = details;
+									if (gallery_link_events_data.link === self) {
+										details_hover_start(data, info, self, details);
 									}
 								}
 							});
 						}
-					};
+					}
+				});
 
-					details.classList.add("xl-details-has-thumbnail");
-					if (info.site === "ehentai") {
-						API.get_ehentai_gallery_page_thumb(info.domain, data.gid, data.token, info.page_token, info.page, thumb_cb);
-					}
-					else if (info.site === "nhentai") {
-						API.get_nhentai_gallery_page_thumb(data.gid, info.page, thumb_cb);
-					}
-					else if (info.site === "hitomi") {
-						API.get_hitomi_gallery_page_thumb(data.gid, info.page, thumb_cb);
-					}
-					if (thumb_state === 0) ++thumb_state;
-				}
 			}),
 			mouseout: $.wrap_mouseenterleave_event(function () {
 				var details = details_nodes[get_node_id_full(this)];
@@ -1354,7 +1316,7 @@
 				event.preventDefault();
 
 				var index = this.getAttribute("xl-actions-index"),
-					actions, tag_bg, info, data, link;
+					actions, tag_bg, info, link, n;
 
 				if (!index) {
 					index = "" + actions_nodes_index;
@@ -1373,25 +1335,30 @@
 						actions.classList.remove("xl-actions-hidden");
 						Popup.hovering(actions);
 						activate_actions(actions, index);
+
+						// Position
+						update_actions_position(actions, this, tag_bg, d.documentElement.getBoundingClientRect());
 					}
 					else {
 						// Create
 						if (
 							(link = get_link_from_tag_button(this)) !== null &&
-							(info = API.get_url_info_saved(link.href)) !== null &&
-							(data = API.get_data(info.site, info.gid)) !== null
+							(info = API.get_url_info_saved(link.href)) !== null
 						) {
-							actions = create_actions(data, info, index);
-							actions_nodes[index] = actions;
-							activate_actions(actions, index);
-						}
-						else {
-							return;
+							n = this;
+							API.get_data_from_url_info(info, function (err, data) {
+								if (err === null) {
+									create_actions(data, info, index, function (err, actions) {
+										if (err === null) {
+											actions_nodes[index] = actions;
+											activate_actions(actions, index);
+											update_actions_position(actions, n, tag_bg, d.documentElement.getBoundingClientRect());
+										}
+									});
+								}
+							});
 						}
 					}
-
-					// Position
-					update_actions_position(actions, this, tag_bg, d.documentElement.getBoundingClientRect());
 				}
 				else {
 					// Hide
@@ -1425,8 +1392,43 @@
 			}
 		};
 
-		var set_node_id = function (node, namespace, id) {
-			node.setAttribute("data-xl-id", namespace + "_" + id);
+		var details_hover_start = function (data, info, node, details) {
+			if (Debug.enabled) {
+				var i = 1,
+					n = details;
+				while (n.parentNode !== document) {
+					if (!n.parentNode) {
+						Debug.log(
+							"Invalid details: parent[" + i + "] failed;",
+							{
+								link: node,
+								node: n,
+								parent: n.parentNode,
+								details: details,
+								data: data,
+								info: info
+							}
+						);
+						break;
+					}
+					n = n.parentNode;
+					++i;
+				}
+			}
+
+			details.classList.remove("xl-details-hidden");
+			details.classList.remove("xl-details-has-thumbnail");
+			details.classList.remove("xl-details-has-thumbnail-visible");
+
+			update_details_position(details, node, gallery_link_events_data.mouse_x, gallery_link_events_data.mouse_y);
+
+			if (data.subtype === "gallery" && info.page !== undefined && info.page > 1) {
+				update_details_page_thumbnail(info.page, data, info, details, node);
+			}
+		};
+
+		var set_node_id = function (node, info) {
+			node.setAttribute("data-xl-id", info.id);
 		};
 		var get_node_id_full = function (node) {
 			return node.getAttribute("data-xl-id") || "";
@@ -1459,15 +1461,53 @@
 			return (n < 10 ? "0" : "") + n + sep;
 		};
 
-		var create_details = function (data, info) {
+		var custom_details_functions = {}; // function (data, info, callback(err, copy_from_node))
+		var custom_actions_functions = {}; // function (data, info, callback(err, gen_info))
+		var register_details_creation = function (custom_id, callback) {
+			custom_details_functions[custom_id] = callback;
+		};
+		var register_actions_creation = function (custom_id, callback) {
+			custom_actions_functions[custom_id] = callback;
+		};
+
+		var create_details = function (data, info, callback) {
 			var category = API.get_category(data.category),
 				theme = Theme.classes,
 				file_size = (data.total_size / 1024 / 1024).toFixed(2),
-				content, n1, n2, n3;
+				content, n1, n2, n3, fn;
+
+			// Fonts
+			Main.insert_custom_fonts();
+
+			// Custom
+			if (data.subtype !== "gallery") {
+				fn = custom_details_functions[info._custom_id];
+				if (fn !== undefined) {
+					// Add to container
+					fn(data, info, function (err, content) {
+						if (err === null) {
+							content.className = (content.className + " xl-details xl-details-hidden xl-hover-shadow" + theme).trim();
+							content.style.opacity = config.details.opacity;
+							Theme.bg(content, config.details.opacity_bg);
+							Theme.apply(content);
+							Popup.hovering(content);
+							callback(null, content);
+						}
+						else {
+							callback(err, null);
+						}
+					});
+				}
+				else {
+					callback("Could not create details", null);
+				}
+				return;
+			}
 
 			// Body
-			content = $.node("div", "xl-details xl-hover-shadow" + theme);
-			Theme.bg(content);
+			content = $.node("div", "xl-details xl-details-hidden xl-hover-shadow" + theme);
+			content.style.opacity = config.details.opacity;
+			Theme.bg(content, config.details.opacity_bg);
 
 			// Image
 			$.add(content, n1 = $.node("div", "xl-details-thumbnail" + theme));
@@ -1534,7 +1574,7 @@
 			$.add(n1, n2 = $.node("strong", "xl-details-uploader", data.uploader));
 			Filter.highlight("uploader", n2, data, Filter.None);
 			$.add(n1, $.tnode("on"));
-			$.add(n1, $.node("strong", "xl-details-upload-date", format_date(new Date(data.upload_date))));
+			$.add(n1, $.node("strong", "xl-details-upload-date", format_date(data.date_created)));
 
 			// Tags
 			$.add(content, n1 = $.node("div", "xl-details-tag-block" + theme));
@@ -1547,9 +1587,9 @@
 
 			// Full info
 			if (data.type === "ehentai" && config.sites.ehentai_ext && !data.full) {
-				API.get_ehentai_gallery_full(info.domain, data, function (err, data) {
+				API.get_ehentai_gallery_full(info, data, function (err, data) {
 					if (err === null) {
-						update_full(data);
+						update_full(data, info);
 					}
 					else {
 						Debug.log("Error requesting full information: " + err);
@@ -1557,19 +1597,24 @@
 				});
 			}
 
-			// Fonts
-			Main.insert_custom_fonts();
+			// Add to container
 			Popup.hovering(content);
-			return content;
+
+			// Done
+			callback(null, content);
 		};
-		var create_actions = function (data, info, index) {
+		var create_actions = function (data, info, index, callback) {
 			var theme = Theme.classes,
 				gid = data.gid,
 				token = data.token,
 				type = data.type,
 				actions = $.node("div", "xl-actions xl-hover-shadow" + theme),
 				domain = info.domain,
-				n1, n2, n3;
+				created = false,
+				n1, n2, n3, fn;
+
+			$.on(actions, "click", on_actions_click);
+			Theme.bg(actions);
 
 			$.add(actions, n1 = $.node("div", "xl-actions-inner" + theme));
 			$.add(n1, n2 = $.node("div", "xl-actions-table" + theme));
@@ -1578,10 +1623,17 @@
 				var n1, n2, n3;
 				$.add(container, n1 = $.node("div", "xl-actions-table-row" + theme));
 				$.add(n1, n2 = $.node("div", "xl-actions-table-cell" + theme));
-				if (label !== null) $.add(n2, $.node("div", "xl-actions-table-header", label));
-				$.add(n1, n2 = $.node("div", "xl-actions-table-cell" + theme));
-				$.add(n2, n3 = $.link(url, "xl-actions-option" + theme, text));
-				$.on(n3, "click", $.bind(on_actions_link_click, n3, actions, index));
+				if (label !== null) {
+					$.add(n2, $.node("div", "xl-actions-table-header", label));
+				}
+				if (text !== null) {
+					$.add(n1, n2 = $.node("div", "xl-actions-table-cell" + theme));
+					$.add(n2, n3 = $.link(url, "xl-actions-option" + theme, text));
+					$.on(n3, "click", $.bind(on_actions_link_click, n3, actions, index));
+				}
+				else {
+					n2.classList.add("xl-actions-table-cell-full");
+				}
 				return n3;
 			};
 			var gen_sep = function (container) {
@@ -1591,42 +1643,85 @@
 				$.add(n2, $.node("div", "xl-actions-table-sep"));
 			};
 
-			if (type === "ehentai") {
-				gen_entry(n2, "View on:", CreateURL.to_gallery(data, domains.gehentai), "E-Hentai");
-				gen_entry(n2, null, CreateURL.to_gallery(data, domains.exhentai), "ExHentai");
+			if (data.subtype === "gallery") {
+				if (type === "ehentai") {
+					gen_entry(n2, "View on:", CreateURL.to_gallery(data, domains.gehentai), "E-Hentai");
+					gen_entry(n2, null, CreateURL.to_gallery(data, domains.exhentai), "ExHentai");
 
-				gen_sep(n2);
+					gen_sep(n2);
 
-				n3 = gen_entry(n2, "Uploader:", CreateURL.to_uploader(data, domain), data.uploader);
-				n3.classList.add("xl-actions-uploader");
-				Filter.highlight("uploader", n3, data, Filter.None);
+					n3 = gen_entry(n2, "Uploader:", CreateURL.to_uploader(data, domain), data.uploader);
+					n3.classList.add("xl-actions-uploader");
+					Filter.highlight("uploader", n3, data, Filter.None);
 
-				gen_sep(n2);
+					gen_sep(n2);
 
-				gen_entry(n2, "Download:", "http://" + domain + "/gallerytorrents.php?gid=" + gid + "&t=" + token, "Torrent (" + data.torrent_count + ")");
-				gen_entry(n2, null, "http://" + domain + "/archiver.php?gid=" + gid + "&t=" + token + "&or=" + data.archiver_key, "Archiver");
-				n3 = gen_entry(n2, null, "http://" + domain + "/hathdler.php?gid=" + gid + "&t=" + token, "via H@H");
-				n3.removeAttribute("target");
+					gen_entry(n2, "Download:", "http://" + domain + "/gallerytorrents.php?gid=" + gid + "&t=" + token, "Torrent (" + data.torrent_count + ")");
+					gen_entry(n2, null, "http://" + domains.gehentai + "/archiver.php?gid=" + gid + "&token=" + token + "&or=" + data.archiver_key, "Archiver");
+					n3 = gen_entry(n2, null, "http://" + domain + "/hathdler.php?gid=" + gid + "&t=" + token, "via H@H");
+					n3.removeAttribute("target");
 
-				gen_sep(n2);
+					gen_sep(n2);
 
-				gen_entry(n2, "Other:", "http://" + domain + "/gallerypopups.php?gid=" + gid + "&t=" + token + "&act=addfav", "Favorite");
-				gen_entry(n2, null, "http://" + domains.gehentai + "/stats.php?gid=" + gid + "&t=" + token, "Stats");
+					gen_entry(n2, "Other:", "http://" + domain + "/gallerypopups.php?gid=" + gid + "&t=" + token + "&act=addfav", "Favorite");
+					gen_entry(n2, null, "http://" + domains.gehentai + "/stats.php?gid=" + gid + "&t=" + token, "Stats");
+
+					created = true;
+				}
+				else if (type === "nhentai") {
+					gen_entry(n2, "View on:", CreateURL.to_gallery(data, domain), "nhentai.net");
+
+					created = true;
+				}
+				else if (type === "hitomi") {
+					gen_entry(n2, "View on:", CreateURL.to_gallery(data, domain), "hitomi.la");
+
+					created = true;
+				}
 			}
-			else if (type === "nhentai") {
-				gen_entry(n2, "View on:", CreateURL.to_gallery(data, domain), "nhentai.net");
-			}
-			else if (type === "hitomi") {
-				gen_entry(n2, "View on:", CreateURL.to_gallery(data, domain), "hitomi.la");
+
+			// Empty
+			if (!created) {
+				fn = custom_actions_functions[info._custom_id];
+				if (fn !== null) {
+					fn(data, info, function (err, gen_info) {
+						if (err === null) {
+							var ii = gen_info.length,
+								i, g;
+
+							if (ii === 0) {
+								gen_entry(n2, "No actions available", null, null);
+							}
+							else {
+								for (i = 0; i < ii; ++i) {
+									g = gen_info[i];
+									if (g === null) {
+										gen_sep(n2);
+									}
+									else {
+										gen_entry(n2, g[0] || null, g[1] || null, g[2] || null);
+									}
+								}
+							}
+
+							Popup.hovering(actions);
+							callback(null, actions);
+						}
+						else {
+							callback(err, null);
+						}
+					});
+					return;
+				}
+
+				gen_entry(n2, "No actions available", null, null);
 			}
 
 			// Prepare
-			$.on(actions, "click", on_actions_click);
-			Theme.bg(actions);
 			Popup.hovering(actions);
 
 			// Done
-			return actions;
+			callback(null, actions);
 		};
 		var create_tags = function (data, domain) {
 			var tagfrag = d.createDocumentFragment(),
@@ -1693,9 +1788,76 @@
 
 			return tagfrag;
 		};
-		var update_full = function (data) {
+		var update_details_page_thumbnail = function (page, data, info, details, node) {
+			var thumb_state = 0;
+
+			var thumb_cb = function (err, thumb_data) {
+				if (err === null) {
+					API.get_thumbnail(thumb_data.url, thumb_data.flags, function (err, thumb_url) {
+						if (err === null && node === gallery_link_events_data.link) {
+							var n0, n1, n2;
+							if (
+								(n0 = $(".xl-details-page-thumbnail", details)) !== null &&
+								(n1 = $(".xl-details-page-thumbnail-size", n0)) !== null &&
+								(n2 = $(".xl-details-page-thumbnail-image", n1)) !== null
+							) {
+								n2.style.backgroundImage = "url('" + thumb_url + "')";
+
+								if (thumb_data.width > 0 && thumb_data.height > 0) {
+									// Small thumbnail
+									var max_width = 140,
+										max_height = 200,
+										max_ratio = max_height / max_width,
+										scale = (thumb_data.height / thumb_data.width > max_ratio) ? max_height / thumb_data.height : max_width / thumb_data.width;
+
+									n1.style.transform = "translate(-50%,-50%) scale(" + scale + ")";
+									n1.style.left = "50%";
+									n1.style.top = "50%";
+									n1.style.width = thumb_data.width + "px";
+									n1.style.height = thumb_data.height + "px";
+									n2.style.backgroundSize = "auto";
+									n2.style.backgroundPosition = (-thumb_data.left) + "px " + (-thumb_data.top) + "px";
+								}
+								else {
+									// Large thumbnail
+									n1.style.transform = "";
+									n1.style.left = "";
+									n1.style.top = "";
+									n1.style.width = "";
+									n1.style.height = "";
+									n2.style.backgroundSize = "";
+									n2.style.backgroundPosition = "";
+								}
+
+								// Animate
+								if (thumb_state === 1) {
+									Theme.get_computed_style(n0).getPropertyValue("transform");
+								}
+								details.classList.add("xl-details-has-thumbnail-visible");
+							}
+						}
+					});
+				}
+			};
+
+			details.classList.add("xl-details-has-thumbnail");
+			if (info.site === "ehentai") {
+				API.get_ehentai_gallery_page_thumb(info.domain, data.gid, data.token, info.page_token, page, thumb_cb);
+			}
+			else if (info.site === "nhentai") {
+				API.get_nhentai_gallery_page_thumb(data.gid, page, thumb_cb);
+			}
+			else if (info.site === "hitomi") {
+				API.get_hitomi_gallery_page_thumb(data.gid, page, thumb_cb);
+			}
+			else {
+				thumb_cb("Invalid", null);
+			}
+			if (thumb_state === 0) ++thumb_state;
+		};
+		var update_full = function (data, info) {
 			var domain = domains.exhentai,
-				full_id = data.type + "_" + data.gid,
+				full_id = info.id,
 				details = details_nodes[full_id],
 				tagfrag, n, n2;
 
@@ -1712,7 +1874,7 @@
 
 			// Update domain
 			if ((n = $(".xl-details-title[href]", details)) !== null) {
-				domain = $.get_domain(n.href);
+				domain = $.get_full_domain(n.href);
 			}
 
 			// Update tags
@@ -1943,7 +2105,8 @@
 		var button_text = function (info) {
 			return "[" + (info.tag || "?") + "]";
 		};
-		var format_date = function (d) {
+		var format_date = function (timestamp) {
+			var d = new Date(timestamp);
 			return d.getUTCFullYear() + "-" +
 				pad(d.getUTCMonth() + 1, "-") +
 				pad(d.getUTCDate(), " ") +
@@ -1955,7 +2118,7 @@
 			var button = $.link(url, "xl-site-tag" + Theme.classes),
 				text = $.node("span", "xl-site-tag-text", button_text(info));
 
-			set_node_id(link, info.site, info.gid);
+			set_node_id(link, info);
 
 			$.add(button, text);
 
@@ -2075,6 +2238,8 @@
 			format_date: format_date,
 			cleanup_post: cleanup_post,
 			cleanup_post_removed: cleanup_post_removed,
+			register_details_creation: register_details_creation,
+			register_actions_creation: register_actions_creation,
 			init: init
 		};
 
@@ -2209,39 +2374,7 @@
 		var cache_init = function () {
 			// Cache mode
 			if (config.debug.cache_mode === "none") {
-				cache_storage = (function () {
-					var data = {};
-
-					var fn = {
-						length: 0,
-						key: function (index) {
-							return Object.keys(data)[index];
-						},
-						getItem: function (key) {
-							if (Object.prototype.hasOwnProperty.call(data, key)) {
-								return data[key];
-							}
-							return null;
-						},
-						setItem: function (key, value) {
-							if (!Object.prototype.hasOwnProperty.call(data, key)) {
-								++fn.length;
-							}
-							data[key] = value;
-						},
-						removeItem: function (key) {
-							if (Object.prototype.hasOwnProperty.call(data, key)) {
-								delete data[key];
-								--fn.length;
-							}
-						},
-						clear: function () {
-							data = {};
-							fn.length = 0;
-						}
-					};
-					return fn;
-				})();
+				cache_storage = create_temp_storage();
 			}
 			else if (config.debug.cache_mode === "session") {
 				cache_storage = window.sessionStorage;
@@ -2258,6 +2391,44 @@
 				}
 			}
 		};
+		var cache_get_prefix = function () {
+			return cache_prefix;
+		};
+
+		var create_temp_storage = function () {
+			var data = {};
+
+			var fn = {
+				length: 0,
+				key: function (index) {
+					return Object.keys(data)[index];
+				},
+				getItem: function (key) {
+					if (Object.prototype.hasOwnProperty.call(data, key)) {
+						return data[key];
+					}
+					return null;
+				},
+				setItem: function (key, value) {
+					if (!Object.prototype.hasOwnProperty.call(data, key)) {
+						++fn.length;
+					}
+					data[key] = value;
+				},
+				removeItem: function (key) {
+					if (Object.prototype.hasOwnProperty.call(data, key)) {
+						delete data[key];
+						--fn.length;
+					}
+				},
+				clear: function () {
+					data = {};
+					fn.length = 0;
+				}
+			};
+
+			return fn;
+		};
 
 
 
@@ -2265,24 +2436,22 @@
 		var saved_data = {};
 		var saved_thumbnails = {};
 
-		var get_saved_data = function (namespace, gid) {
-			var id_full = namespace + "-" + gid,
-				data = saved_data[id_full];
+		var get_saved_data = function (id) {
+			var data = saved_data[id];
 
 			if (data !== undefined) return data;
 
-			data = cache_get("data-" + id_full);
+			data = cache_get("data-" + id);
 			if (data !== null) {
-				saved_data[id_full] = data;
+				saved_data[id] = data;
 				return data;
 			}
 
 			return null;
 		};
-		var set_saved_data = function (data) {
-			var id_full = data.type + "-" + data.gid;
-			saved_data[id_full] = data;
-			cache_set("data-" + id_full, data, ttl_1_hour * (data.upload_date >= Date.now() - ttl_1_day ? 1 : 12));
+		var set_saved_data = function (id, data) {
+			saved_data[id] = data;
+			cache_set("data-" + id, data, ttl_1_hour * (data.date_created >= Date.now() - ttl_1_day ? 1 : 12));
 		};
 		var set_saved_error = function (id_list, error, cache) {
 			var id = id_list.join("-");
@@ -2432,6 +2601,7 @@
 		var create_empty_gallery_info = function (type) {
 			return {
 				type: type,
+				subtype: "gallery",
 				gid: 0,
 				token: null,
 				title: "",
@@ -2441,7 +2611,7 @@
 				thumbnail: null,
 
 				flags: 0,
-				upload_date: 0,
+				date_created: 0,
 				file_count: 0,
 				total_size: -1,
 				favorites: -1,
@@ -2508,7 +2678,7 @@
 			data.uploader = ehentai_normalize_string(info.uploader, null);
 			data.category = normalize_category(ehentai_category_mapping, ehentai_simple_string(info.category, ""));
 			data.thumbnail = ehentai_simple_string(info.thumb, null);
-			data.upload_date = (parseInt(info.posted, 10) || 0) * 1000;
+			data.date_created = (parseInt(info.posted, 10) || 0) * 1000;
 			data.file_count = parseInt(info.filecount, 10) || 0;
 			data.total_size = parseInt(info.filesize, 10) || 0;
 			data.rating = parseFloat(info.rating) || 0.0;
@@ -2764,7 +2934,7 @@
 			if ((n = $("time[datetime]", info)) !== null) {
 				m = /^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)\.(\d{6})/i.exec(n.getAttribute("datetime") || "");
 				if (m !== null) {
-					data.upload_date = new Date(
+					data.date_created = new Date(
 						parseInt(m[1], 10),
 						parseInt(m[2], 10) - 1,
 						parseInt(m[3], 10),
@@ -2950,7 +3120,7 @@
 			if ((n = $(".date", info)) !== null) {
 				m = /^(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)/i.exec(n.textContent.trim());
 				if (m !== null) {
-					data.upload_date = new Date(
+					data.date_created = new Date(
 						parseInt(m[1], 10),
 						parseInt(m[2], 10) - 1,
 						parseInt(m[3], 10),
@@ -3392,19 +3562,20 @@
 			rt_hitomi_gallery_page_thumb = new RequestType(1, 1, 200, 5000, "hitomi", "hitomi", "page_thumb");
 
 		rt_ehentai_gallery.get_data = function (info, callback) {
-			var data = get_saved_data("ehentai", info[0]);
-			callback(null, (data !== null && data.token === info[1]) ? data : null);
+			var data = get_saved_data(info.id);
+			callback(null, (data !== null && data.token === info.token) ? data : null);
 		};
 		rt_ehentai_gallery.set_data = function (data, info, callback) {
-			set_saved_data(data);
+			set_saved_data(info.id, data);
 			callback(null);
 		};
 		rt_ehentai_gallery.setup_xhr = function (callback) {
 			var gidlist = [],
-				i, ii;
+				info, i, ii;
 
 			for (i = 0, ii = this.infos.length; i < ii; ++i) {
-				gidlist.push(this.infos[i]);
+				info = this.infos[i];
+				gidlist.push([ info.gid, info.token ]);
 			}
 
 			callback(null, {
@@ -3446,7 +3617,7 @@
 		};
 
 		rt_ehentai_gallery_page.get_data = function (info, callback) {
-			var data = get_saved_data("ehentai", info[0]);
+			var data = get_saved_data(info.id);
 			if (data !== null) {
 				callback(null, {
 					gid: data.gid,
@@ -3459,10 +3630,11 @@
 		};
 		rt_ehentai_gallery_page.setup_xhr = function (callback) {
 			var pagelist = [],
-				i, ii;
+				info, i, ii;
 
 			for (i = 0, ii = this.infos.length; i < ii; ++i) {
-				pagelist.push(this.infos[i]);
+				info = this.infos[i];
+				pagelist.push([ info.gid, info.page_token, info.page ]);
 			}
 
 			callback(null, {
@@ -3499,11 +3671,10 @@
 		};
 
 		rt_ehentai_gallery_full.get_data = function (info, callback) {
-			var data = get_saved_data("ehentai", info.gid);
-			callback(null, (data !== null && data.token === info.token && data.full) ? data : null);
+			callback(null, info.data.full ? info.data : null);
 		};
 		rt_ehentai_gallery_full.set_data = function (data, info, callback) {
-			set_saved_data(data);
+			set_saved_data(info.info.id, data);
 			callback(null);
 		};
 		rt_ehentai_gallery_full.setup_xhr = function (callback) {
@@ -3715,10 +3886,10 @@
 		};
 
 		rt_nhentai_gallery.get_data = function (info, callback) {
-			callback(null, get_saved_data("nhentai", info.gid));
+			callback(null, get_saved_data(info.id));
 		};
 		rt_nhentai_gallery.set_data = function (data, info, callback) {
-			set_saved_data(data);
+			set_saved_data(info.id, data);
 			callback(null);
 		};
 		rt_nhentai_gallery.setup_xhr = function (callback) {
@@ -3781,10 +3952,10 @@
 		};
 
 		rt_hitomi_gallery.get_data = function (info, callback) {
-			callback(null, get_saved_data("hitomi", info.gid));
+			callback(null, get_saved_data(info.id));
 		};
 		rt_hitomi_gallery.set_data = function (data, info, callback) {
-			set_saved_data(data);
+			set_saved_data(info.id, data);
 			callback(null);
 		};
 		rt_hitomi_gallery.setup_xhr = function (callback) {
@@ -3861,7 +4032,9 @@
 		var re_remove_protocol = /^https?:\/*/i,
 			re_url_info = /^([\w\-]+(?:\.[\w\-]+)*)((?:[\/\?\#][\w\W]*)?)/,
 			url_info_saved = {},
-			url_info_registrations = [];
+			url_info_registrations = [],
+			url_info_to_data_registrations = [];
+
 		var get_url_info = function (url, callback) {
 			var save_key = url.replace(re_remove_protocol, ""),
 				match, data, domain, remaining, is_ex, m;
@@ -3886,6 +4059,7 @@
 				m = /^\/g\/(\d+)\/([0-9a-f]+)/.exec(remaining);
 				if (m !== null) {
 					data = {
+						id: "ehentai_" + m[1],
 						site: "ehentai",
 						type: "gallery",
 						gid: parseInt(m[1], 10),
@@ -3898,6 +4072,7 @@
 					m = /^\/s\/([0-9a-f]+)\/(\d+)\-(\d+)/.exec(remaining);
 					if (m !== null) {
 						data = {
+							id: "ehentai_" + m[2],
 							site: "ehentai",
 							type: "page",
 							gid: parseInt(m[2], 10),
@@ -3913,6 +4088,7 @@
 				m = /^\/g\/(\d+)(?:\/(\d+))?/.exec(remaining);
 				if (m !== null) {
 					data = {
+						id: "nhentai_" + m[1],
 						site: "nhentai",
 						type: "gallery",
 						gid: parseInt(m[1], 10),
@@ -3926,6 +4102,7 @@
 				m = /^\/(galleries|reader|smalltn)\/(\d+)(?:\.html#(\d+))?/.exec(remaining);
 				if (m !== null) {
 					data = {
+						id: "nhentai_" + m[2],
 						site: "hitomi",
 						type: "gallery",
 						gid: parseInt(m[2], 10),
@@ -3958,7 +4135,14 @@
 
 			var fn_cb = function (err, data) {
 				if (err === null && data !== null) {
-					url_info_saved[save_key] = data;
+					var v = url_info_saved[save_key];
+					if (v === undefined) {
+						data._custom_id = i;
+						url_info_saved[save_key] = data;
+					}
+					else {
+						data = v;
+					}
 					callback(null, data);
 				}
 				else if (immediate) {
@@ -3982,8 +4166,10 @@
 
 			callback(null, null);
 		};
-		var register_url_info_function = function (check_fn) {
+		var register_url_info_function = function (check_fn, get_data_fn) {
 			url_info_registrations.push(check_fn);
+			url_info_to_data_registrations.push(get_data_fn);
+			return url_info_registrations.length - 1;
 		};
 
 		var domain_tags = {
@@ -3997,13 +4183,15 @@
 			return (d === undefined) ? "?" : d;
 		};
 
-		var get_ehentai_gallery = function (gid, token, callback) {
-			var info = [ gid, token ];
-			rt_ehentai_gallery.add(info.join("_"), info, false, callback);
-		};
-		var get_ehentai_gallery_page = function (gid, page_token, page, callback) {
-			var info = [ gid, page_token, page ];
-			rt_ehentai_gallery_page.add("" + gid, info, false, callback);
+		var get_ehentai_gallery_full = function (info, data, callback) {
+			rt_ehentai_gallery_full.add("" + data.gid, {
+				domain: info.domain,
+				search: "",
+				gid: data.gid,
+				token: data.token,
+				info: info,
+				data: data
+			}, false, callback);
 		};
 		var get_ehentai_gallery_page_thumb = function (domain, gid, token, page_token, page, callback) {
 			rt_ehentai_gallery_page_thumb.add(gid + "-" + page, {
@@ -4015,26 +4203,11 @@
 				search: ""
 			}, false, callback);
 		};
-		var get_ehentai_gallery_full = function (domain, data, callback) {
-			rt_ehentai_gallery_full.add("" + data.gid, {
-				domain: domain,
-				gid: data.gid,
-				token: data.token,
-				search: "",
-				data: data
-			}, false, callback);
-		};
-		var get_nhentai_gallery = function (gid, callback) {
-			rt_nhentai_gallery.add("" + gid, { gid: gid }, false, callback);
-		};
 		var get_nhentai_gallery_page_thumb = function (gid, page, callback) {
 			rt_nhentai_gallery_page_thumb.add(gid + "-" + page, {
 				gid: gid,
 				page: page
 			}, false, callback);
-		};
-		var get_hitomi_gallery = function (gid, callback) {
-			rt_hitomi_gallery.add("" + gid, { gid: gid }, false, callback);
 		};
 		var get_hitomi_gallery_page_thumb = function (gid, page, callback) {
 			rt_hitomi_gallery_page_thumb.add(gid + "-" + page, {
@@ -4043,41 +4216,51 @@
 			}, false, callback);
 		};
 
-		var get_data = function (site, gid) {
-			return get_saved_data(site, gid);
+		var get_data = function (url_info) {
+			return get_saved_data(url_info.id);
 		};
 		var get_data_from_url_info = function (url_info, callback) {
 			if (url_info.site === "ehentai") {
 				if (url_info.type === "gallery") {
-					get_ehentai_gallery(url_info.gid, url_info.token, callback);
-					return true;
+					rt_ehentai_gallery.add("" + url_info.gid, url_info, false, callback);
+					return;
 				}
 				if (url_info.type === "page") {
-					get_ehentai_gallery_page(url_info.gid, url_info.page_token, url_info.page, function (err, data) {
+					rt_ehentai_gallery_page.add("" + url_info.gid, url_info, false, function (err, data) {
 						if (err === null) {
-							get_ehentai_gallery(data.gid, data.token, callback);
+							url_info.token = data.token;
+							rt_ehentai_gallery.add("" + url_info.gid, url_info, false, callback);
 						}
 						else {
 							callback.call(null, err, null);
 						}
 					});
-					return true;
+					return;
 				}
 			}
 			else if (url_info.site === "nhentai") {
 				if (url_info.type === "gallery") {
-					get_nhentai_gallery(url_info.gid, callback);
-					return true;
+					rt_nhentai_gallery.add("" + url_info.gid, url_info, false, callback);
+					return;
 				}
 			}
 			else if (url_info.site === "hitomi") {
 				if (url_info.type === "gallery") {
-					get_hitomi_gallery(url_info.gid, callback);
-					return true;
+					rt_hitomi_gallery.add("" + url_info.gid, url_info, false, callback);
+					return;
 				}
 			}
 
-			return false;
+			// Custom
+			var i = url_info._custom_id,
+				fn;
+
+			if (typeof(i) === "number" && (fn = url_info_to_data_registrations[i]) !== undefined) {
+				fn(url_info, callback);
+				return;
+			}
+
+			callback.call(null, "Malformed data", null);
 		};
 
 		var cached_thumbnail_urls = {};
@@ -4205,19 +4388,16 @@
 			get_url_info: get_url_info,
 			get_url_info_saved: get_url_info_saved,
 			get_tag_from_domain: get_tag_from_domain,
-			get_ehentai_gallery: get_ehentai_gallery,
-			get_ehentai_gallery_page: get_ehentai_gallery_page,
 			get_ehentai_gallery_full: get_ehentai_gallery_full,
 			get_ehentai_gallery_page_thumb: get_ehentai_gallery_page_thumb,
-			get_nhentai_gallery: get_nhentai_gallery,
 			get_nhentai_gallery_page_thumb: get_nhentai_gallery_page_thumb,
-			get_hitomi_gallery: get_hitomi_gallery,
 			get_hitomi_gallery_page_thumb: get_hitomi_gallery_page_thumb,
 			get_data: get_data,
 			get_data_from_url_info: get_data_from_url_info,
 			get_thumbnail: get_thumbnail,
 			lookup_on_ehentai: lookup_on_ehentai,
 			cache_clear: cache_clear,
+			cache_get_prefix: cache_get_prefix,
 			get_category: get_category,
 			get_category_sort_rank: get_category_sort_rank,
 			is_fjording: is_fjording,
@@ -4969,7 +5149,7 @@
 
 		var linkify_groups = [{
 			regex: re_url,
-			prefix_index: 1,
+			prefix_group: 1,
 			prefix: "http://",
 			prefix_replace: [ /^\/+/, "" ],
 			tag: "a",
@@ -5001,6 +5181,7 @@
 
 					for (i = 0, ii = linkify_groups.length; i < ii; ++i) {
 						group = linkify_groups[i];
+
 						if ((m = group.match) === null || m.index < pos) {
 							group.regex.lastIndex = pos;
 							group.match = m = group.regex.exec(text);
@@ -5017,7 +5198,7 @@
 						group = match[4],
 						re;
 
-					if (match[3][group.prefix_index] === undefined) {
+					if (match[3][group.prefix_group] === undefined) {
 						if ((re = group.prefix_replace) !== null) {
 							url = url.replace(re[0], re[1]);
 						}
@@ -5053,7 +5234,7 @@
 				re = group.regex;
 				re.lastIndex = 0;
 				if ((m = re.exec(text)) !== null) {
-					if (m[group.prefix_index] === undefined) {
+					if (m[group.prefix_group] === undefined) {
 						if ((re = group.prefix_replace) !== null) {
 							text = text.replace(re[0], re[1]);
 						}
@@ -5073,7 +5254,7 @@
 
 			linkify_groups.push({
 				regex: regex,
-				prefix_index: prefix_group,
+				prefix_group: prefix_group,
 				prefix: prefix,
 				prefix_replace: prefix_replace,
 				tag: "a",
@@ -5105,10 +5286,10 @@
 			return link;
 		};
 		var preprocess_link = function (node, url, update_on_fail, auto_load) {
-			if (node.parentNode === null) return;
-
 			API.get_url_info(url, function (err, info) {
-				if (info === null || !config.sites[info.site]) {
+				if (node.parentNode === null) return;
+
+				if (info === null || (config.sites[info.site] === false || Config.get_custom("sites", info.site) === false)) {
 					if (update_on_fail) {
 						node.href = url;
 						node.target = "_blank";
@@ -5494,6 +5675,8 @@
 
 		// Private
 		var config_temp = null,
+			config_custom_temp = null,
+			config_exts_temp = null,
 			export_url = null,
 			popup = null;
 
@@ -5517,120 +5700,184 @@
 				EasyList.set_saved_settings(v);
 			}
 		};
-		var gen = function (container, option_type, title, message, pre) {
-			var config_scope = config_temp[option_type],
-				theme = Theme.classes,
-				entry, table, row, cell, label, input, event,
-				args, values, id, name, desc, type, value, obj, label_text, ext, i, ii, j, jj, n, n2, n3, v;
 
-			// [ name, default, label, description, old_name, formatter, info? ]
-			args = options[option_type];
-			if (arguments.length > 5) args = Array.prototype.concat.call(args, Array.prototype.slice.call(arguments, 5));
+		var generate_section_header = function (title, message) {
+			var theme = Theme.classes,
+				n1, n2, n3;
 
-			n = $.node("div", "xl-settings-heading" + theme);
-			$.add(n, n2 = $.node("div", "xl-settings-heading-inner" + theme));
+			n1 = $.node("div", "xl-settings-heading" + theme);
+			$.add(n1, n2 = $.node("div", "xl-settings-heading-inner" + theme));
 			$.add(n2, $.node("div", "xl-settings-heading-cell xl-settings-heading-title" + theme, title));
 			if (message !== undefined) {
 				$.add(n2, n3 = $.node("div", "xl-settings-heading-cell xl-settings-heading-subtitle" + theme));
 				$.add(n3, message);
 			}
 
-			$.add(container, n);
-			if (pre !== undefined) $.add(container, pre);
+			return n1;
+		};
+		var generate_section = function () {
+			return $.node("div", "xl-settings-group " + Theme.classes);
+		};
+		var generate_section_options = function (section, namespace, config_descriptor, config_scope) {
+			var type, info, d, i, ii;
+			for (i = 0, ii = config_descriptor.length; i < ii; ++i) {
+				d = config_descriptor[i]; // [ name, default, label, description, old_name, info? ]
+				info = (d.length > 5 ? d[5] : null);
+				if (info === null || (type = info.type) === undefined) type = "checkbox";
+				generate_section_option(
+					section,
+					config_scope,
+					"xl-settings-" + namespace + "-" + i, // id
+					d[0], // name
+					d[2], // label
+					d[3], // description
+					type, // type
+					config_scope !== null ? config_scope[d[0]] : null, // value
+					info // info
+				);
+			}
+		};
+		var generate_section_options_custom = function (section, namespace, custom_descriptor, custom_config) {
+			var config_descriptor = custom_descriptor[namespace];
+			if (config_descriptor === undefined) return;
 
-			n = $.node("div", "xl-settings-group xl-settings-group-" + option_type + theme);
+			generate_section_options(section, namespace + "-custom", config_descriptor, custom_config[namespace]);
+		};
+		var generate_section_option = function (section, config_scope, id, name, label_text, description, type, value, info) {
+			var event = "change",
+				theme = Theme.classes,
+				values, entry, table, row, cell, label, input, fn, n, i, ii, v;
 
-			for (i = 0, ii = args.length; i < ii; ++i) {
-				obj = args[i];
-				name = obj[0];
-				label_text = obj[2];
-				desc = obj[3];
-				ext = (obj.length > 5 ? obj[5] : null);
-				if (ext === null || (type = ext.type) === undefined) type = "checkbox";
-				value = (name === null ? null : config_scope[name]);
-				id = "xl-settings-" + option_type + "-" + i;
-				event = "change";
+			// Create label/description
+			$.add(section, entry = $.node("div", "xl-settings-entry" + theme));
+			$.add(entry, table = $.node("div", "xl-settings-entry-table"));
+			$.add(table, row = $.node("div", "xl-settings-entry-row"));
 
-				$.add(n, entry = $.node("div", "xl-settings-entry" + theme));
-				$.add(entry, table = $.node("div", "xl-settings-entry-table"));
-				$.add(table, row = $.node("div", "xl-settings-entry-row"));
-
-				$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
-				$.add(cell, label = $.node("label", "xl-settings-entry-label"));
-				label.htmlFor = id;
-				$.add(label, $.node("strong", "xl-settings-entry-label-name", label_text + ":"));
-				if (desc.length > 0) {
-					n2 = $.node("span", "xl-settings-entry-label-description");
-					n2.innerHTML = " " + desc;
-					$.add(label, n2);
-				}
-
-				if (type === "checkbox") {
-					$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
-					$.add(cell, input = $.node("input", "xl-settings-entry-input" + theme));
-					input.type = "checkbox";
-					input.id = id;
-					input.checked = value;
-				}
-				else if (type === "select") {
-					$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
-					$.add(cell, input = $.node("select", "xl-settings-entry-input" + theme));
-
-					values = ext.options;
-					for (j = 0, jj = values.length; j < jj; ++j) {
-						v = values[j];
-						$.add(input, n2 = $.node("option", "xl-settings-entry-input-option", v[1]));
-						n2.value = v[0];
-						n2.selected = (v[0] === value);
-						if (v.length > 2) n2.title = v[2];
-					}
-				}
-				else if (type === "textbox") {
-					$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
-					$.add(cell, input = $.node("input", "xl-settings-entry-input" + theme));
-					input.type = "text";
-					input.id = id;
-					input.value = value;
-				}
-				else if (type === "textarea") {
-					$.add(table, row = $.node("div", "xl-settings-entry-row"));
-					$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
-					$.add(cell, input = $.node("textarea", "xl-settings-entry-input" + theme));
-					input.wrap = "off";
-					input.spellcheck = false;
-					input.id = id;
-					input.value = value;
-				}
-				else if (type === "button") {
-					$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
-					$.add(cell, input = $.node("button", "xl-settings-entry-input" + theme, ext.text || ""));
-					event = "click";
-				}
-
-				$.on(input, event, $.bind(on_change, input, type, option_type, name, ext));
+			$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
+			$.add(cell, label = $.node("label", "xl-settings-entry-label"));
+			label.htmlFor = id;
+			$.add(label, $.node("strong", "xl-settings-entry-label-name", label_text + ":"));
+			if (description) {
+				$.add(label, $.node("span", "xl-settings-entry-label-description", " " + description));
 			}
 
-			$.add(container, n);
+			// Value edit
+			if (info !== null && (fn = info.get) !== undefined) {
+				value = fn.call(null, value);
+			}
+
+			if (type === "checkbox") {
+				$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
+				$.add(cell, input = $.node("input", "xl-settings-entry-input" + theme));
+				input.type = "checkbox";
+				input.id = id;
+				input.checked = value;
+			}
+			else if (type === "select") {
+				$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
+				$.add(cell, input = $.node("select", "xl-settings-entry-input" + theme));
+
+				values = (info !== null ? info.options : []);
+				for (i = 0, ii = values.length; i < ii; ++i) {
+					v = values[i];
+					$.add(input, n = $.node("option", "xl-settings-entry-input-option", v[1]));
+					n.value = v[0];
+					n.selected = (v[0] === value);
+					if (v.length > 2) n.title = v[2];
+				}
+			}
+			else if (type === "textbox") {
+				$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
+				$.add(cell, input = $.node("input", "xl-settings-entry-input" + theme));
+				input.type = "text";
+				input.id = id;
+				input.value = value;
+			}
+			else if (type === "textarea") {
+				$.add(table, row = $.node("div", "xl-settings-entry-row"));
+				$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
+				$.add(cell, input = $.node("textarea", "xl-settings-entry-input" + theme));
+				input.wrap = "off";
+				input.spellcheck = false;
+				input.id = id;
+				input.value = value;
+			}
+			else if (type === "button") {
+				$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
+				$.add(cell, input = $.node("button", "xl-settings-entry-input" + theme, (info !== null ? info.text || "" : "")));
+				event = "click";
+			}
+			else {
+				// Skip event
+				return;
+			}
+
+			// Event
+			if (config_scope === null) name = null;
+			$.on(input, event, $.bind(on_change, input, type, config_scope, name, info));
 		};
 
-		var on_change = function (option_type, scope, name, extra, event) {
+		var generate_extensions = function (container) {
+			var exts = ExtensionAPI.get_registered_extensions(),
+				descriptor, data, section, e, i, ii, v;
+
+			if (exts.length === 0) return null;
+
+			$.add(container, generate_section_header("Extensions"));
+			section = generate_section();
+
+			descriptor = [];
+			data = [];
+			for (i = 0, ii = exts.length; i < ii; ++i) {
+				e = exts[i];
+				v = e[0];
+				data.push(v);
+				descriptor.push([
+					i,
+					v,
+					e[1] + (e[2].length > 0 ? (" by " + e[2]) : ""),
+					e[3],
+					null
+				]);
+			}
+
+			generate_section_options(section, "extensions", descriptor, data);
+			$.add(container, section);
+
+			return data;
+		};
+
+		var titlify_custom_namespace = function (namespace) {
+			return namespace.replace(/[_\W]+/g, " ").replace(/\b\w/g, function (m) { return m.toUpperCase(); });
+		};
+
+		var on_change = function (type, config_scope, name, info, event) {
 			var fn, v;
 
 			if (name !== null) {
-				if (option_type === "checkbox") {
+				if (type === "checkbox") {
 					v = this.checked;
 				}
-				else if (option_type === "select" || option_type === "textbox" || option_type === "textarea") {
+				else if (type === "select" || type === "textbox" || type === "textarea") {
 					v = this.value;
 				}
 
-				fn = (extra === null ? undefined : extra.set);
-				if (fn !== undefined) fn.call(null, v);
+				fn = (info === null ? undefined : info.set);
+				if (fn !== undefined) {
+					v = fn.call(null, v);
+					fn = info.get;
+					if (type === "textbox" || type === "textarea") {
+						this.value = (fn === undefined ? v : fn.call(null, v));
+					}
+					else if (type === "checkbox") {
+						this.value = !!(fn === undefined ? v : fn.call(null, v));
+					}
+				}
 
-				config_temp[scope][name] = v;
+				config_scope[name] = v;
 			}
 
-			if (extra !== null && (fn = extra.on_change) !== undefined) {
+			if (info !== null && (fn = info.on_change) !== undefined) {
 				fn.call(this, event);
 			}
 		};
@@ -5662,7 +5909,8 @@
 				event.preventDefault();
 
 				config = config_temp;
-				config_temp = null;
+				Config.load_custom_from_clone(config_custom_temp);
+				ExtensionAPI.set_extensions_enabled(config_exts_temp);
 
 				Config.save();
 				close();
@@ -5721,10 +5969,12 @@
 		};
 		var open = function () {
 			var theme = Theme.classes,
-				content_container, n, n2;
+				custom_options = Config.get_custom_settings_descriptor(),
+				content_container, k, n;
 
 			// Config
 			config_temp = JSON.parse(JSON.stringify(config));
+			config_custom_temp = Config.get_custom_clone();
 
 			// Popup
 			popup = Popup.create("settings", [[{
@@ -5767,24 +6017,73 @@
 
 			// Settings
 			n = $.tnode("Note: you must reload the page after saving for some changes to take effect");
-			gen(content_container, "general", "General", n);
-			gen(content_container, "sites", "Sites");
-			gen(content_container, "details", "Gallery Details");
-			gen(content_container, "actions", "Gallery Actions");
-			gen(content_container, "sauce", "ExSauce");
+			$.add(content_container, generate_section_header("General", n));
+			n = generate_section();
+			generate_section_options(n, "general", options.general, config_temp.general);
+			generate_section_options_custom(n, "general", custom_options, config_custom_temp);
+			$.add(content_container, n);
+
+			$.add(content_container, generate_section_header("Sites"));
+			n = generate_section();
+			generate_section_options(n, "sites", options.sites, config_temp.sites);
+			generate_section_options_custom(n, "sites", custom_options, config_custom_temp);
+			$.add(content_container, n);
+
+			$.add(content_container, generate_section_header("Details"));
+			n = generate_section();
+			generate_section_options(n, "details", options.details, config_temp.details);
+			generate_section_options_custom(n, "details", custom_options, config_custom_temp);
+			$.add(content_container, n);
+
+			$.add(content_container, generate_section_header("Actions"));
+			n = generate_section();
+			generate_section_options(n, "actions", options.actions, config_temp.actions);
+			generate_section_options_custom(n, "actions", custom_options, config_custom_temp);
+			$.add(content_container, n);
+
+			$.add(content_container, generate_section_header("ExSauce"));
+			n = generate_section();
+			generate_section_options(n, "sauce", options.sauce, config_temp.sauce);
+			generate_section_options_custom(n, "sauce", custom_options, config_custom_temp);
+			$.add(content_container, n);
+
 			n = $.link("#", "xl-settings-filter-guide-toggle", "Click here to toggle the guide");
-			n2 = $.frag(html_filter_guide());
 			$.on(n, "click", on_toggle_filter_guide);
-			$.on($("input.xl-settings-color-input[type=color]", n2), "change", on_color_helper_change);
-			Theme.apply(n2);
-			gen(content_container, "filter", "Filtering", n, n2);
-			gen(content_container, "debug", "Debugging", undefined, undefined,
+			$.add(content_container, generate_section_header("Filtering", n));
+			n = $.frag(html_filter_guide());
+			Theme.apply(n);
+			$.on($("input.xl-settings-color-input[type=color]", n), "change", on_color_helper_change);
+			$.add(content_container, n);
+			n = generate_section();
+			generate_section_options(n, "filter", options.filter, config_temp.filter);
+			generate_section_options_custom(n, "filter", custom_options, config_custom_temp);
+			$.add(content_container, n);
+
+			$.add(content_container, generate_section_header("Debugging"));
+			n = generate_section();
+			generate_section_options(n, "debug", options.debug, config_temp.debug);
+			generate_section_options(n, "debug-ext", [
 				[ null, null,
 					"Clear cache data", "Clear all cached gallery data",
 					null,
 					{ type: "button", text: "Clear", on_change: on_cache_clear_click },
 				]
-			);
+			], null);
+			generate_section_options_custom(n, "debug", custom_options, config_custom_temp);
+			$.add(content_container, n);
+
+			// Custom
+			for (k in custom_options) {
+				if (!Object.prototype.hasOwnProperty.call(config_temp, k)) {
+					$.add(content_container, generate_section_header(titlify_custom_namespace(k)));
+					n = generate_section();
+					generate_section_options(n, k + "-custom", custom_options[k], config_custom_temp[k]);
+					$.add(content_container, n);
+				}
+			}
+
+			// Extensions
+			config_exts_temp = generate_extensions(content_container);
 
 			// Events
 			$.on(popup, "click", on_cancel_click);
@@ -5940,6 +6239,8 @@
 		};
 		var close = function () {
 			config_temp = null;
+			config_custom_temp = null;
+			config_exts_temp = null;
 			if (popup !== null) {
 				Popup.close(popup);
 				popup = null;
@@ -5962,7 +6263,9 @@
 	var Config = (function () {
 
 		// Private
-		var settings_key = "xlinks-settings";
+		var settings_key = "xlinks-settings",
+			custom = {},
+			custom_descriptor = null;
 
 		// Public
 		var storage = (function () {
@@ -6128,6 +6431,94 @@
 			}
 		};
 
+		var load_custom = function () {
+			var saved = $.json_parse_safe(storage.getItem(settings_key + "-custom"), null),
+				obj, k1, k2, v;
+
+			if (saved === null || typeof(saved) !== "object") return;
+
+			for (k1 in saved) {
+				obj = saved[k1];
+				if (obj !== null && typeof(obj) === "object") {
+					for (k2 in obj) {
+						if (!Object.prototype.hasOwnProperty.call(custom, k1)) {
+							v = custom[k1] = {};
+						}
+						else {
+							v = custom[k1];
+						}
+						v[k2] = obj[k2];
+					}
+				}
+			}
+		};
+		var save_custom = function () {
+			storage.setItem(settings_key + "-custom", JSON.stringify(custom));
+		};
+
+		var register_custom_setting = function (namespace, name, default_value, title, description, descriptor) {
+			// Already exists
+			if (Object.prototype.hasOwnProperty.call(config, namespace) && Object.prototype.hasOwnProperty.call(config[namespace], name)) {
+				return undefined;
+			}
+
+			// Load custom
+			if (custom_descriptor === null) {
+				custom_descriptor = {};
+				load_custom();
+			}
+
+			// Get value
+			var update = init_custom(namespace, name, default_value),
+				d, v;
+
+			// Descriptor
+			d = [ name, default_value, title, description, null ];
+			if (descriptor !== null) d.push(descriptor);
+
+			v = custom_descriptor[namespace];
+			if (v === undefined) custom_descriptor[namespace] = v = [];
+			v.push(d);
+
+			// Save
+			if (update[0]) save_custom();
+
+			// Return value
+			return update[1];
+		};
+		var init_custom = function (namespace, name, default_value) {
+			var v = custom[namespace],
+				val;
+
+			if (v === undefined) {
+				custom[namespace] = v = {};
+				v[name] = default_value;
+				return [ true, default_value ];
+			}
+
+			val = v[name];
+			if (val === undefined) {
+				v[name] = default_value;
+				return [ true, default_value ];
+			}
+
+			return [ false, val ];
+		};
+		var get_custom_settings_descriptor = function () {
+			return custom_descriptor === null ? {} : custom_descriptor;
+		};
+		var get_custom = function (namespace, name) {
+			var v = custom[namespace];
+			return (v !== undefined) ? v[name] : undefined;
+		};
+		var get_custom_clone = function () {
+			return JSON.parse(JSON.stringify(custom));
+		};
+		var load_custom_from_clone = function (clone) {
+			custom = clone;
+			save_custom();
+		};
+
 		// Exports
 		var Module = {
 			mode: "4chan", // foolz, fuuka, tinyboard, ipb, ipb_lofi
@@ -6145,7 +6536,12 @@
 			ready: ready,
 			save: save,
 			get_saved_settings: get_saved_settings,
-			set_saved_settings: set_saved_settings
+			set_saved_settings: set_saved_settings,
+			register_custom_setting: register_custom_setting,
+			get_custom_settings_descriptor: get_custom_settings_descriptor,
+			get_custom: get_custom,
+			get_custom_clone: get_custom_clone,
+			load_custom_from_clone: load_custom_from_clone
 		};
 
 		return Module;
@@ -6863,7 +7259,8 @@
 
 		// Private
 		var current = "light",
-			post_bg = "#ffffff";
+			post_bg = "#ffffff",
+			post_bg_opac = "rgba(255,255,255,";
 
 		var to_hex2 = function (n) {
 			n = n.toString(16);
@@ -6913,7 +7310,8 @@
 
 			return [
 				(color[0] + color[1] + color[2] < 384) ? "dark" : "light",
-				"#" + to_hex2(colors[1][0]) + to_hex2(colors[1][1]) + to_hex2(colors[1][2])
+				"#" + to_hex2(colors[1][0]) + to_hex2(colors[1][1]) + to_hex2(colors[1][2]),
+				"rgba(" + colors[1][0] + "," + colors[1][1] + "," + colors[1][2] + ","
 			];
 		};
 		var update = function (change_nodes) {
@@ -6926,6 +7324,7 @@
 				}
 				if (new_theme[1] !== post_bg) {
 					post_bg = new_theme[1];
+					post_bg_opac = new_theme[2];
 					if (change_nodes) update_nodes_bg();
 				}
 				return true;
@@ -6951,9 +7350,11 @@
 		};
 		var update_nodes_bg = function () {
 			var nodes = $$(".xl-theme-post-bg"),
-				i, ii;
+				opacity, node, i, ii;
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
-				nodes[i].style.backgroundColor = post_bg;
+				node = nodes[i];
+				opacity = node.getAttribute("data-xl-theme-post-bg-opacity");
+				node.style.backgroundColor = (opacity ? post_bg_opac + opacity + ")" : post_bg);
 			}
 		};
 
@@ -6992,9 +7393,16 @@
 				new MutationObserver(on_head_mutate).observe(d.head, { childList: true });
 			}
 		};
-		var bg = function (node) {
+		var bg = function (node, opacity) {
 			node.classList.add("xl-theme-post-bg");
-			node.style.backgroundColor = post_bg;
+			if (opacity === undefined || opacity === 1) {
+				node.style.backgroundColor = post_bg;
+				node.removeAttribute("data-xl-theme-post-bg-opacity");
+			}
+			else {
+				node.style.backgroundColor = post_bg_opac + opacity + ")";
+				node.setAttribute("data-xl-theme-post-bg-opacity", opacity);
+			}
 		};
 		var apply = function (node) {
 			if (current !== "light") {
@@ -7068,8 +7476,9 @@
 	})();
 	var EasyList = (function () {
 
-		var Entry = function (info) {
+		var Entry = function (info, data) {
 			this.info = info;
+			this.data = data;
 			this.node = null;
 		};
 
@@ -7098,7 +7507,7 @@
 			custom_links_text = "",
 			node_sort_order_keys = {
 				thread: [ "data-xl-index", 1 ],
-				upload: [ "data-xl-date-uploaded", -1 ],
+				upload: [ "data-xl-date-created", -1 ],
 				rating: [ "data-xl-rating", -1 ]
 			},
 			display_mode_names = [
@@ -7336,10 +7745,10 @@
 				n1, n2, n3, n4, n5, n6, n7, i, t;
 
 			n1 = $.node("div", "xl-easylist-item" + theme);
-			n1.setAttribute("data-xl-id", info.site + "_" + info.gid);
+			n1.setAttribute("data-xl-id", info.id);
 			n1.setAttribute("data-xl-index", index);
 			n1.setAttribute("data-xl-rating", data.rating);
-			n1.setAttribute("data-xl-date-uploaded", data.upload_date);
+			n1.setAttribute("data-xl-date-created", data.date_created);
 			n1.setAttribute("data-xl-category", data.category);
 
 			$.add(n1, n2 = $.node("div", "xl-easylist-item-table-container" + theme));
@@ -7402,7 +7811,7 @@
 			$.add(n5, n6 = $.link(CreateURL.to_uploader(data, domain), "xl-easylist-item-uploader" + theme, data.uploader));
 			n6.setAttribute("data-xl-original", n6.textContent);
 			$.add(n5, $.tnode(" on "));
-			$.add(n5, $.node("span", "xl-easylist-item-upload-date" + theme, UI.format_date(new Date(data.upload_date))));
+			$.add(n5, $.node("span", "xl-easylist-item-upload-date" + theme, UI.format_date(data.date_created)));
 
 			$.add(n4, n5 = $.node("div", "xl-easylist-item-tags" + theme));
 
@@ -7497,10 +7906,10 @@
 		var add_gallery_update_timer = null;
 		var add_gallery = function (content_index, entry, index, force_reorder) {
 			var info = entry.info,
-				data = API.get_data(info.site, info.gid),
+				data = entry.data,
 				entries, n;
 
-			if (data !== null) {
+			if (data.subtype === "gallery") {
 				entries = contents[content_index].entries;
 				n = create_gallery_nodes(data, index, info);
 				n.setAttribute("data-xl-easylist-item-parity", (contents[content_index].visible % 2) === 0 ? "odd" : "even");
@@ -7743,7 +8152,7 @@
 
 			for (i = 0, ii = entries.length; i < ii; ++i) {
 				info = entries[i].info;
-				data = API.get_data(info.site, info.gid);
+				data = API.get_data(info);
 				if (data !== null) {
 					update_filters(entries[i].node, data, false, false);
 				}
@@ -7758,23 +8167,39 @@
 			custom_filters = Filter.parse(settings.custom_filters, undefined);
 		};
 		var add_links = function (links) {
-			var info, key, entry, i, ii;
+			var immediate = true,
+				i, ii;
+
+			var cb = function (err, data) {
+				add_entry(immediate, err, data);
+			};
 
 			for (i = 0, ii = links.length; i < ii; ++i) {
-				info = API.get_url_info_saved(links[i].href);
-				if (info !== null) {
-					key = info.site + "_" + info.gid;
-					if (data_map[key] === undefined) {
-						entry = new Entry(info);
-						queue.push(entry);
-						data_map[key] = entry;
-					}
-				}
+				API.get_url_info(links[i].href, cb);
 			}
 
+			immediate = false;
 			if (queue.length > 0 && queue_timer === null) {
 				on_timer();
 			}
+		};
+		var add_entry = function (immediate, err, info) {
+			var key;
+			if (err !== null || data_map[(key = info.id)] !== undefined) return;
+
+			API.get_data_from_url_info(info, function (err, data) {
+				if (err === null) {
+					if (data_map[key] === undefined) {
+						var entry = new Entry(info, data);
+						queue.push(entry);
+						data_map[key] = entry;
+
+						if (!immediate && queue.length > 0 && queue_timer === null) {
+							on_timer();
+						}
+					}
+				}
+			});
 		};
 
 		var set_content_index = function (content_index) {
@@ -7814,26 +8239,20 @@
 		};
 		var parse_custom_urls = function (text) {
 			var urls = Linkifier.parse_text_for_urls(text),
-				info, i, ii;
-
-			var cb = function (i, err, info) {
-				if (info !== null) {
-					parse_custom_url_info(i, info);
-				}
-			};
+				i, ii;
 
 			for (i = 0, ii = urls.length; i < ii; ++i) {
-				info = API.get_url_info(urls[i], $.bind(cb, null, i));
+				API.get_url_info(urls[i], $.bind(parse_custom_url_info, null, i));
 			}
 		};
-		var parse_custom_url_info = function (index, info) {
+		var parse_custom_url_info = function (index, err, info) {
+			var key;
+			if (err !== null || custom_links_map[(key = info.id)] !== undefined) return;
+
 			API.get_data_from_url_info(info, function (err, data) {
 				if (err === null) {
-					var key = data.type + "_" + data.gid,
-						entry;
-
 					if (custom_links_map[key] === undefined) {
-						entry = new Entry(info);
+						var entry = new Entry(info, data);
 						custom_links_map[key] = entry;
 						add_gallery(1, entry, index, true);
 					}
@@ -7919,9 +8338,9 @@
 			if (
 				(id = this.getAttribute("data-xl-id")) &&
 				(entry = data_map[id]) !== undefined &&
-				(data = API.get_data(entry.info.site, entry.info.gid)) !== null
+				(data = API.get_data(entry.info)) !== null
 			) {
-				API.get_ehentai_gallery_full(entry.info.domain, data, function (err, data) {
+				API.get_ehentai_gallery_full(entry.info, data, function (err, data) {
 					var tags_container, n;
 
 					if (
@@ -8910,6 +9329,78 @@
 			return (obj !== null && typeof(obj) === "object");
 		};
 
+		var get_shared_node = function (selector) {
+			var par, n;
+
+			if (
+				selector === null ||
+				(par = $(".xl-extension-sharing-elements")) === null
+			) {
+				return null;
+			}
+
+			try {
+				n = $("[data-xl-sharing-id='" + selector + "']", par);
+			}
+			catch (e) {
+				return null;
+			}
+
+			if (n !== null) {
+				n.removeAttribute("data-xl-sharing-id");
+				$.remove(n);
+				if (par.firstChild === null) $.remove(par);
+			}
+			return n;
+		};
+
+		var disabled_extensions_key = "xlinks-extensions-disabled";
+		var disabled_extensions;
+		var save_extensions_enabled_states = function () {
+			var save_data = [],
+				i, ii, r;
+
+			for (i = 0, ii = registered.length; i < ii; ++i) {
+				r = registered[i];
+				if (!r[0]) {
+					save_data.push([ r[1], r[2], r[3] ]);
+				}
+			}
+
+			if (save_data.length > 0) {
+				Config.storage.setItem(disabled_extensions_key, JSON.stringify(save_data));
+				disabled_extensions = save_data;
+			}
+			else {
+				Config.storage.removeItem(disabled_extensions_key);
+				disabled_extensions = null;
+			}
+		};
+		var set_extensions_enabled = function (enabled_array) {
+			if (enabled_array === null) return;
+
+			for (var i = 0, ii = Math.min(registered.length, enabled_array.length); i < ii; ++i) {
+				registered[i][0] = enabled_array[i];
+			}
+			save_extensions_enabled_states();
+		};
+		var extension_is_enabled = function (name, author, description) {
+			if (disabled_extensions === undefined) {
+				disabled_extensions = $.json_parse_safe(Config.storage.getItem(disabled_extensions_key), null);
+			}
+			if (disabled_extensions === null) return true;
+
+			var i, ii, r;
+			for (i = 0, ii = disabled_extensions.length; i < ii; ++i) {
+				r = disabled_extensions[i];
+				if (r[0] === name && r[1] === author && r[2] === description) return false;
+			}
+
+			return true;
+		};
+
+		var registered = [];
+
 		var api = null;
 		var ExtensionAPI = function () {
 			this.origin = window.location.protocol + "//" + window.location.host;
@@ -8965,7 +9456,7 @@
 						fn.call(this, action_data);
 					}
 					else if (this.reply_id !== null) {
-						this.send(this.action, { err: "Invalid call" }, this.reply_id);
+						this.send(this.action, { err: "Invalid extension call" }, this.reply_id);
 					}
 				}
 
@@ -9059,13 +9550,307 @@
 					callback.call(null, err, null);
 				}
 				else if (!is_object(data) || !Array.isArray((args = data.args))) {
-					callback.call(null, "Invalid response", null);
+					callback.call(null, "Invalid extension response", null);
 				}
 				else {
 					args = JSON.parse(JSON.stringify(args));
 					callback.apply(null, args);
 				}
 			};
+		};
+		ExtensionAPI.prototype.register_settings = function (reg_info) {
+			var response = {},
+				name, default_value, title, description, descriptor,
+				res, value, k, i, ii, a, v;
+
+			if (is_object(reg_info)) {
+				for (k in reg_info) {
+					a = reg_info[k];
+					if (!Array.isArray(a)) continue;
+
+					response[k] = res = {};
+					for (i = 0, ii = a.length; i < ii; ++i) {
+						v = a[i];
+						if (!Array.isArray(v) || typeof((name = v[0])) !== "string") continue;
+
+						default_value = v[1];
+						if (default_value === undefined) default_value = null;
+						title = v[2];
+						if (typeof(title) !== "string") title = name;
+						description = v[3];
+						if (typeof(description) !== "string") description = "";
+						descriptor = this.register_settings_descriptor_info(v[4]);
+
+						value = Config.register_custom_setting(k, name, default_value, title, description, descriptor);
+						if (value === undefined) {
+							value = config[k][name];
+						}
+
+						res[name] = value;
+					}
+				}
+			}
+
+			return response;
+		};
+		ExtensionAPI.prototype.register_settings_descriptor_info = function (input) {
+			if (!is_object(input)) return null;
+
+			var info = {},
+				opt, label, desc, a, i, ii, v;
+
+			if (typeof(input.type) === "string") {
+				info.type = input.type;
+			}
+			if (Array.isArray((a = input.options))) {
+				info.options = [];
+				for (i = 0, ii = a.length; i < ii; ++i) {
+					v = a[i];
+					if (
+						Array.isArray(v) &&
+						v.length >= 2 &&
+						typeof((label = v[1])) === "string"
+					) {
+						opt = [ v[0], v[1] ];
+						if (typeof((desc = v[2])) === "string") {
+							opt.push(desc);
+						}
+						info.options.push(opt);
+					}
+				}
+			}
+
+			return info;
+		};
+		ExtensionAPI.prototype.register_request_api = function (reg_info) {
+			if (!is_object(reg_info)) return "Invalid";
+
+			var req_group = "other",
+				req_namespace = "other",
+				req_type = "other",
+				req_count = 1,
+				req_concurrent = 1,
+				req_delay_okay = 200,
+				req_delay_error = 5000,
+				req_functions = {},
+				req_function_ids = {},
+				fns, fn_id, req, i, ii, k, o, v;
+
+			// Settings
+			if (typeof((v = reg_info.group)) === "string") req_group = v;
+			if (typeof((v = reg_info.namespace)) === "string") req_namespace = v;
+			if (typeof((v = reg_info.type)) === "string") req_type = v;
+			if (typeof((v = reg_info.count)) === "number") req_count = Math.max(1, v);
+			if (typeof((v = reg_info.concurrent)) === "number") req_concurrent = Math.max(1, v);
+			if (typeof((v = reg_info.delay_okay)) === "number") req_delay_okay = Math.max(0, v);
+			if (typeof((v = reg_info.delay_error)) === "number") req_delay_error = Math.max(0, v);
+
+			// Functions
+			if (Array.isArray((fns = reg_info.functions))) {
+				for (i = 0, ii = fns.length; i < ii; ++i) {
+					v = fns[i];
+					if (Object.prototype.hasOwnProperty.call(ExtensionAPI.request_api_functions, v)) {
+						fn_id = random_string(32);
+						req_functions[ExtensionAPI.request_api_functions[v]] = this.request_api_fn(fn_id, v);
+						req_function_ids[v] = fn_id;
+					}
+				}
+			}
+
+			// Validate
+			for (i = 0, ii = ExtensionAPI.request_api_functions_required.length; i < ii; ++i) {
+				if (!Object.prototype.hasOwnProperty.call(req_functions, ExtensionAPI.request_api_functions_required[i])) break;
+			}
+			if (i < ii) return "Missing functions";
+
+			// Check to see if the namespace/type is unique
+			if (
+				(o = this.request_apis[req_namespace]) !== undefined &&
+				o[req_type] !== undefined
+			) {
+				return "Already exists";
+			}
+
+			// Create
+			req = new API.RequestType(
+				req_count,
+				req_concurrent,
+				req_delay_okay,
+				req_delay_error,
+				req_group,
+				req_namespace,
+				req_type
+			);
+			for (k in req_functions) {
+				req[k] = req_functions[k];
+			}
+			req.request_init = api_request_init_fn;
+			req.request_complete = create_api_request_complete_fn(this.api_name, this.api_key);
+
+			if (o === undefined) {
+				this.request_apis[req_namespace] = o = {};
+			}
+			o[req_type] = {
+				req: req,
+				api_name: this.api_name,
+				api_key: this.api_key
+			};
+
+			return req_function_ids;
+		};
+		ExtensionAPI.prototype.register_linkifier = function (reg_info) {
+			if (!is_object(reg_info)) return "Invalid";
+
+			var regex,
+				prefix_group = 0,
+				prefix = "",
+				flags, v, v2;
+
+			// Regex
+			if (
+				!Array.isArray((v = reg_info.regex)) ||
+				typeof((v2 = v[0])) !== "string"
+			) {
+				return "Invalid regex";
+			}
+			if (typeof((flags = v[1])) === "string") {
+				if (flags.indexOf("g") < 0) flags += "g";
+			}
+			else {
+				flags = "g";
+			}
+			regex = $.create_regex_safe(v2, flags);
+			if (regex === null) return "Invalid regex";
+
+			// Prefix
+			if (typeof((v = reg_info.prefix_group)) === "number") prefix_group = v;
+			if (typeof((v = reg_info.prefix)) === "string") prefix = v;
+
+			// Register
+			Linkifier.linkify_register(regex, prefix_group, prefix, null, null);
+			return null;
+		};
+		ExtensionAPI.prototype.register_command = function (reg_info) {
+			if (!is_object(reg_info) || reg_info.url_info !== true || reg_info.to_data !== true) {
+				return "Invalid";
+			}
+
+			var id_data = { id: random_string(32), url: null },
+				index;
+
+			index = API.register_url_info_function(
+				this.register_command_fn("url_info", id_data, 1000),
+				this.register_command_fn("url_info_to_data", id_data, -1)
+			);
+
+			if (reg_info.details === true) {
+				UI.register_details_creation(index, this.register_details_actions_fn("create_details", { id: id_data.id, info: null, data: null }, ExtensionAPI.details_validator));
+			}
+			if (reg_info.actions === true) {
+				UI.register_actions_creation(index, this.register_details_actions_fn("create_actions", { id: id_data.id, info: null, data: null }, ExtensionAPI.actions_validator));
+			}
+
+			return id_data;
+		};
+		ExtensionAPI.prototype.register_command_fn = function (event, send_data, delay) {
+			var api_name = this.api_name,
+				api_key = this.api_key,
+				self = this;
+
+			return function (url_info, cb) {
+				var d = self.timeout_delay;
+				self.timeout_delay = delay;
+				self.api_name = api_name;
+				self.api_key = api_key;
+
+				send_data.url = url_info;
+
+				self.send(event, send_data, null, function (err, data) {
+					if (err !== null) {
+						cb(err, null);
+					}
+					else if (!is_object(data)) {
+						cb("Invalid extension data", null);
+					}
+					else if ((err = data.err) !== null) {
+						cb(err, null);
+					}
+					else if (!is_object(data.data)) {
+						cb("Invalid extension data", null);
+					}
+					else {
+						cb(null, data.data);
+					}
+				});
+
+				self.api_name = null;
+				self.api_key = null;
+				self.timeout_delay = d;
+			};
+		};
+		ExtensionAPI.prototype.register_details_actions_fn = function (event, send_data, validator) {
+			var api_name = this.api_name,
+				api_key = this.api_key,
+				self = this;
+
+			return function (data, info, cb) {
+				self.api_name = api_name;
+				self.api_key = api_key;
+
+				send_data.data = data;
+				send_data.info = info;
+
+				self.send(event, send_data, null, function (err, data) {
+					if (err !== null) {
+						cb(err, null);
+					}
+					else if (!is_object(data)) {
+						cb("Invalid extension data", null);
+					}
+					else if ((err = data.err) !== null) {
+						cb(err, null);
+					}
+					else {
+						validator(data.data, cb);
+					}
+				});
+
+				self.api_name = null;
+				self.api_key = null;
+			};
+		};
+
+		ExtensionAPI.details_validator = function (data, cb) {
+			if (typeof(data) !== "string") {
+				cb("Invalid extension response", null);
+			}
+			else {
+				data = get_shared_node(data);
+				if (data === null) {
+					cb("Invalid extension node", null);
+				}
+				else {
+					cb(null, data);
+				}
+			}
+		};
+		ExtensionAPI.actions_validator = function (data, cb) {
+			if (!Array.isArray(data)) {
+				cb("Invalid extension response", null);
+			}
+			else {
+				var response = [],
+					d, i, ii;
+
+				for (i = 0, ii = data.length; i < ii; ++i) {
+					d = data[i];
+					if (d === null || Array.isArray(d)) {
+						response.push(d);
+					}
+				}
+
+				cb(null, response);
+			}
 		};
 
 		ExtensionAPI.request_api_functions_required = [
@@ -9092,7 +9877,11 @@
 							key: reply_key,
 							apis: []
 						};
-						reply_data = { key: reply_key };
+						reply_data = {
+							key: reply_key,
+							cache_prefix: API.cache_get_prefix(),
+							cache_mode: config.debug.cache_mode
+						};
 						break;
 					}
 				}
@@ -9104,102 +9893,75 @@
 			register: function (data) {
 				if (!is_object(data)) {
 					// Failure
-					this.send(this.action, {
-						err: "Invalid data"
-					}, this.reply_id);
+					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
 					return;
 				}
 
 				// Register
 				var response = {
-						settings: {},
-						request_apis: []
+						settings: null,
+						request_apis: [],
+						linkifiers: [],
+						commands: [],
 					},
-					req, fns, fn_id, a, o, o2, v, i, ii, j, jj, k;
+					de = document.documentElement,
+					complete = false,
+					enabled, name, author, description,
+					k, o, i, ii;
+
+				// Decrease register count
+				if (de) {
+					k = "data-xlinks-extensions-waiting";
+					o = de.getAttribute(k);
+					if (o) {
+						o = (parseInt(o, 10) || 0) - 1;
+						if (o > 0) {
+							de.setAttribute(k, o);
+						}
+						else {
+							de.removeAttribute(k);
+							complete = true;
+						}
+					}
+				}
+
+				// Add to list
+				if (
+					typeof((name = data.name)) !== "string" ||
+					typeof((author = data.author)) !== "string" ||
+					typeof((description = data.description)) !== "string"
+				) {
+					this.send(this.action, { err: "Missing extension identification", response: null }, this.reply_id);
+					return;
+				}
+				enabled = extension_is_enabled(name, author, description);
+				registered.push([ enabled, name, author, description ]);
+				if (!enabled) {
+					this.send(this.action, { err: "Extension disabled", response: null }, this.reply_id);
+					return;
+				}
+
+				// Settings
+				response.settings = this.register_settings(data.settings);
 
 				// Request APIs
 				if (Array.isArray((o = data.request_apis))) {
 					for (i = 0, ii = o.length; i < ii; ++i) {
-						a = o[i];
-						if (is_object(a)) {
-							var req_group = "other",
-								req_namespace = "other",
-								req_type = "other",
-								req_count = 1,
-								req_concurrent = 1,
-								req_delay_okay = 200,
-								req_delay_error = 5000,
-								req_functions = {},
-								req_function_ids = {};
+						response.request_apis.push(this.register_request_api(o[i]));
+					}
+				}
 
-							// Settings
-							if (typeof((v = a.group)) === "string") req_group = v;
-							if (typeof((v = a.namespace)) === "string") req_namespace = v;
-							if (typeof((v = a.type)) === "string") req_type = v;
-							if (typeof((v = a.count)) === "number") req_count = Math.max(1, v);
-							if (typeof((v = a.concurrent)) === "number") req_concurrent = Math.max(1, v);
-							if (typeof((v = a.delay_okay)) === "number") req_delay_okay = Math.max(0, v);
-							if (typeof((v = a.delay_error)) === "number") req_delay_error = Math.max(0, v);
+				// Linkifiers
+				if (Array.isArray((o = data.linkifiers))) {
+					for (i = 0, ii = o.length; i < ii; ++i) {
+						response.linkifiers.push(this.register_linkifier(o[i]));
+					}
+				}
 
-							// Functions
-							if (Array.isArray((fns = a.functions))) {
-								for (j = 0, jj = fns.length; j < jj; ++j) {
-									v = fns[j];
-									if (Object.prototype.hasOwnProperty.call(ExtensionAPI.request_api_functions, v)) {
-										fn_id = random_string(32);
-										req_functions[ExtensionAPI.request_api_functions[v]] = this.request_api_fn(fn_id, v);
-										req_function_ids[v] = fn_id;
-									}
-								}
-							}
-
-							// Validate
-							for (j = 0, jj = ExtensionAPI.request_api_functions_required.length; j < jj; ++j) {
-								if (!Object.prototype.hasOwnProperty.call(req_functions, ExtensionAPI.request_api_functions_required[j])) break;
-							}
-							if (j < jj) {
-								response.request_apis.push([ "Missing functions" ]);
-							}
-							else {
-								// Check to see if the namespace/type is unique
-								if (
-									(o2 = this.request_apis[req_namespace]) !== undefined &&
-									o2[req_type] !== undefined
-								) {
-									response.request_apis.push([ "Already exists" ]);
-								}
-								else {
-									req = new API.RequestType(
-										req_count,
-										req_concurrent,
-										req_delay_okay,
-										req_delay_error,
-										req_group,
-										req_namespace,
-										req_type
-									);
-									for (k in req_functions) {
-										req[k] = req_functions[k];
-									}
-									req.request_init = api_request_init_fn;
-									req.request_complete = create_api_request_complete_fn(this.api_name, this.api_key);
-
-									if (o2 === undefined) {
-										this.request_apis[req_namespace] = o2 = {};
-									}
-									o2[req_type] = {
-										req: req,
-										api_name: this.api_name,
-										api_key: this.api_key
-									};
-
-									response.request_apis.push([ null, req_function_ids ]);
-								}
-							}
-						}
-						else {
-							response.request_apis.push([ "Invalid" ]);
-						}
+				// URL info function
+				if (Array.isArray((o = data.commands))) {
+					for (i = 0, ii = o.length; i < ii; ++i) {
+						response.commands.push(this.register_command(o[i]));
 					}
 				}
 
@@ -9208,6 +9970,9 @@
 					err: null,
 					response: response
 				}, this.reply_id);
+
+				// Done
+				Main.start_processing(!complete);
 			},
 			request: function (data) {
 				var self = this,
@@ -9225,9 +9990,7 @@
 					(info = data.info) === undefined
 				) {
 					// Failure
-					this.send(this.action, {
-						err: "Invalid data"
-					}, this.reply_id);
+					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
 					return;
 				}
 
@@ -9273,24 +10036,35 @@
 		};
 
 		var request = function (namespace, type, unique_id, info, callback) {
-			var req_data, req;
+			var req_data;
 			if (
 				api === null ||
 				(req_data = api.request_apis[namespace]) === undefined ||
 				(req_data = req_data[type]) === undefined
 			) {
-				callback.call(null, "Invalid API", null);
+				callback.call(null, "Invalid extension request API", null);
 				return;
 			}
 
 			return req_data.req.add(unique_id, info, false, callback);
 		};
 
+		var should_defer_processing = function () {
+			return document.documentElement.hasAttribute("data-xlinks-extensions-waiting");
+		};
+
+		var get_registered_extensions = function () {
+			return registered;
+		};
+
 
 		// Exports
 		return {
 			init: init,
-			request: request
+			request: request,
+			should_defer_processing: should_defer_processing,
+			get_registered_extensions: get_registered_extensions,
+			set_extensions_enabled: set_extensions_enabled
 		};
 
 	})();
@@ -9298,7 +10072,9 @@
 
 		// Private
 		var fonts_inserted = false,
-			all_posts_reloaded = false;
+			all_posts_reloaded = false,
+			processing_started = false,
+			processing_start_timer = null;
 
 		var reload_all_posts = function () {
 			if (all_posts_reloaded) return;
@@ -9313,10 +10089,9 @@
 			if (!Config.ready()) return;
 			Settings.ready();
 
-			var style = $.node_simple("style"),
-				updater;
+			var style = $.node_simple("style");
 
-			style.textContent = ".xl-button,.xl-star{display:inline-block}.xl-easylist-subtitle,.xl-link-page,.xl-link.xl-link-error{font-style:italic}.xl-actions:before,.xl-changelog-message-container:before,.xl-easylist-item-image-container:after,.xl-popup-aligner:before,.xl-site-tag-bg-inner:after{content:\"\"}.xl-stars-container{position:relative;z-index:0;white-space:nowrap}.xl-stars-container.xl-stars-container-na{opacity:.5}.xl-star-none{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAQAAADYBBcfAAAA5UlEQVR4AZ2VwQmEMBBFfx0S5iwWJCIhhSwhRXgSEesQCVuIzbgCGiLJ4GTzbupjvvqNYFcDd9KgcBFmHCczqEzUOC50meiC6Eo0hS2IG5Rc7HFE9HLRPkQrf6L+IXpQ/n0ZuJigxap7YEAhViEa+Pwr1tDwRZKHvu+asIi15ZZudRJpEyhty/CqDfkWVWixs9KOFpWg3AmuoDNMf/ivkEHLgwrDEr6M8hLWJBd6PiwfdASdjO9hFdZoVg91He2juWuuAF04PYPSrfKiS0WbK3FQF34bMcm03FST3/ItanCrho1/CT96LV7iyUEWwgAAAABJRU5ErkJggg==)}.xl-star-half{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAADA0lEQVR4AbWWA7PkQBRG+9m28ubZNta2bdu2bdu2bdu2rZ/w7e2t9DKTHVS66gySyZy6X5MZ2/JjWTwx1MWBTbW1ZslMy0YiictyI2zham8BGyu2ki5LWgqbclnDkg7wdbeEnTUDXW6smVBUN6yFH0L9bYRwqJZxLuXC2X10iAqxE8KDRLBmcfZq4IujC9OREu0MVydLLuQ01CzO8V10uLuzOLIS3eDuYiWEgzWLc9moRDw6UAbZyR7wcrcRwsOEZMy8akoM1YeQTe4VjctbS+H58crISfFEgI+dEArpUBWaEpKICv9jSu9oXN1RDq/P1iRqIDfNC8H+DkJmKI3/ENJndKnpgZFtAjCmQzD1Vygmdg/HirEp4LI35+vi/aUGRF3kpXubLBSRLhVz7MCsJFzfmM8HB/VXWYqwCnhlXPbxelN8ut4A+Rk+CA4wWHiYywhJcdniFdLQl4VlwPuMx8gr47Jvt+qR0NtQ4VIhUl0rezbwwaKhMTi3rhDPjlbAq9NV8O5CDXy4UhufrtYkoUF9uFCvTEnKmdBNhwsbC/HiRAW8PlMZ785zcWXkpXmS0F5NNtPQFUhImxJHuXTZyFg8PVwaL46XxcuT5fDqVDnkpnog2E9R+JCoSwSasbpIeLi3KB4fLIGnh4jDJZCT7IYgPzsl4VCzV5cFg8JxZ3se7u3Kx/3dBXiwJx/Zia4I9LXVNyIlkxfr7nU8cGhuAq6tz8DNTZm4uSULt4jMBGcE+tjqnW+m733NvXFuSQIuLE/CpVXJODgnDnP7hvDtCX6e1vqEQ02Oc3IHHxyfE41T82Kwe3IEhrf0hjhiuDmL7cnMWEWc7So6YN3AAGwcGoRJ7b3RuZqzWAKXOtmzc/IGbH6sIs5e1R2xopc3+tb5IRKyoYTkbM+ibKzZUhXhUKPj7F7FAT2qOkJUJc/Nn1HZ2TCdvNsfVhDuJ4INjrNWrjWal7D7oyqVxyRisYK0vqFxcom6TFH6T8SDDa3QcJl6pU0NPsrLxDPjW6xc2VDin+e/Azq4LxX5iaTWAAAAAElFTkSuQmCC)}.xl-star-full{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAADhElEQVR4AbWWg3IsURRF82zbtm3btm3btmPbtm3btvEJ+93TlbmVigapSVV3D3tlr4NEQdqf5VMVprPjdf0xXdrvSwsbTaClEzqDjnroaHkCTxPo+PpudIigp+UJFNK9OTcEr88O5inlqVOXIMqPxkL54RgRUJdrlYfOB8cGw1dzPnw05uH+0YFcq9x0fr01FqmOa5HisBpfbo7iWuWmU+/DTGR5bEKm+0bovJsqrVY+V6f5bDV/CLCfDyYj2nYD8v13Is93GyIsV+L73bEcKuYexBjNVYk7fj2cjFiHLSgO3c+OfSgK3oWCgG2IJOidMWK/z2vdaJBxa38/vL80DJ+ujWT1GsMSjIfB5zkCrCT8MMqjjrHjMMoi9qE4ZCcK/Dcj3HwZdN5MxOfrw/Hh8hC8PTcQL0/2xbUd3emejYFcqa5oxjyUZiHecjk1B6vXZqZwFyUTYJXxp1EVfwwVMQdRFr4LhYFbkOu1DunOK5BoswjRxnMQqjUVtp9G49nRXlw3V9rM2qKE1Pr1wE1UM9JIyQRYXdIRVMXuZyl3oiiIAb3XIcNlOZIYMMZ4Nlx+TcDLU/3Er7+G0PvHBkHr9RSEma2kBqGakUZKJsAqonejNGw7CgM2IsdrDdKdlsFfexZUH43EnQO9G8GkWNDf7oylbqQGoZqRRkpGMJaO6fZdh2z3lQgymIvP14ZChsXOoeTcV5i991OZto3UIFQz0igkE2Aeq5HhvAxaL/h4+PJ6yb5dRiPTdTWyPddRg1DNSCMlE2Aptovw6epQnqzN20XjxXik2C9DmtNy6kZqEKoZa6olSLZZiHjzuVB5NKJNy5wv67uH+sFLdQbizBcg0Wohtb7QjYnWC5BgOQ+xprMRZTgDLr/H49Y+PganZf/bd3YgwnRmIEJ/FqKMZsNTZRpUH48SutFDcTLCdacjRHMyApTH48WJPlyrzDp/XhsEf5XJCFKbAuefE/D2/EDeiW/ODYDj19HwVRwHr5+j8PVCH5m0cp1XtneD2fNhsHw9Aj+uDsTNPT35DUW/0PXdPRioL0yeDoLhg364tKWL1Fq5zgd7u8PgwUA8PtSzyXw1nteH+7pD53Y/3NvdnX9Oap13d3XjN2i8DxvNK//8nR3dpNLKdR5Y2hFn13WRaGs0THt2bWfsX9JRYq1cJ7s2DxMHbfRdiROKhYmB8oTy/Vde/Pf/AxrB4Rr+1b9fAAAAAElFTkSuQmCC)}.xl-star{width:1.2em;height:1.4em;margin-left:-.1em;margin-right:-.1em;margin-bottom:-.2em;background-repeat:no-repeat;background-size:cover;background-position:-.1em 0;position:relative}.xl-star-1{z-index:4;width:1.3em;background-position:0 0}.xl-star-2{z-index:3}.xl-star-3{z-index:2}.xl-star-4{z-index:1}.xl-star-5{z-index:0;width:1.3em}.xl-button{padding:.3em 1em;font-size:inherit;line-height:1.6em;color:#333;text-align:center;text-shadow:0 .08em .08em rgba(255,255,255,.75);vertical-align:middle;cursor:pointer;background-color:#f5f5f5;background-image:-webkit-gradient(linear,0 0,0 100%,from(#fff),to(#e6e6e6));background-image:-webkit-linear-gradient(top,#fff,#e6e6e6);background-image:-o-linear-gradient(top,#fff,#e6e6e6);background-image:linear-gradient(to bottom,#fff,#e6e6e6);background-image:-moz-linear-gradient(top,#fff,#e6e6e6);background-repeat:repeat-x;border:1px solid #bbb;border-color:#e6e6e6 #e6e6e6 #bfbfbf;border-bottom-color:#a2a2a2;border-radius:.3em;box-shadow:inset 0 .08em 0 rgba(255,255,255,.2),0 .08em .16em rgba(0,0,0,.05)}.xl-button-eh{font-family:'Source Sans Pro',Tahoma,sans-serif!important;font-weight:900;font-size:.86em;width:100%;padding:.15em 0;color:#FFF!important;box-shadow:0 0 .5em rgba(0,0,0,.5);text-shadow:.09em .09em 0 rgba(0,0,0,.5),0 0 .3em #000;-webkit-font-smoothing:antialiased}.xl-button-doujinshi{background-color:#840505!important;background-image:-khtml-gradient(linear,left top,left bottom,from(#f74040),to(#840505));background-image:-moz-linear-gradient(top,#f74040,#840505);background-image:-ms-linear-gradient(top,#f74040,#840505);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#f74040),color-stop(100%,#840505));background-image:-webkit-linear-gradient(top,#f74040,#840505);background-image:-o-linear-gradient(top,#f74040,#840505);background-image:linear-gradient(#f74040,#840505);border-color:#840505 #840505 hsl(0,92%,18.5%)}.xl-button-manga{background-color:#7a2800!important;background-image:-khtml-gradient(linear,left top,left bottom,from(#ff7632),to(#7a2800));background-image:-moz-linear-gradient(top,#ff7632,#7a2800);background-image:-ms-linear-gradient(top,#ff7632,#7a2800);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#ff7632),color-stop(100%,#7a2800));background-image:-webkit-linear-gradient(top,#ff7632,#7a2800);background-image:-o-linear-gradient(top,#ff7632,#7a2800);background-image:linear-gradient(#ff7632,#7a2800);border-color:#7a2800 #7a2800 #4c1900}.xl-button-artistcg{background-color:#7a6a00!important;background-image:-khtml-gradient(linear,left top,left bottom,from(#ffe95b),to(#7a6a00));background-image:-moz-linear-gradient(top,#ffe95b,#7a6a00);background-image:-ms-linear-gradient(top,#ffe95b,#7a6a00);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#ffe95b),color-stop(100%,#7a6a00));background-image:-webkit-linear-gradient(top,#ffe95b,#7a6a00);background-image:-o-linear-gradient(top,#ffe95b,#7a6a00);background-image:linear-gradient(#ffe95b,#7a6a00);border-color:#7a6a00 #7a6a00 #423900}.xl-button-gamecg{background-color:#273214!important;background-image:-moz-linear-gradient(top,#96ba58,#273214);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#96ba58),color-stop(100%,#273214));background-image:-webkit-linear-gradient(top,#96ba58,#273214);background-image:-o-linear-gradient(top,#96ba58,#273214);background-image:linear-gradient(#96ba58,#273214);border-color:#273214 #273214 #0b0e05}.xl-button-western{background-color:#4d7a00!important;background-image:-moz-linear-gradient(top,#c3ff5b,#4d7a00);background-image:-ms-linear-gradient(top,#c3ff5b,#4d7a00);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#c3ff5b),color-stop(100%,#4d7a00));background-image:-webkit-linear-gradient(top,#c3ff5b,#4d7a00);background-image:-o-linear-gradient(top,#c3ff5b,#4d7a00);background-image:linear-gradient(#c3ff5b,#4d7a00);border-color:#4d7a00 #4d7a00 #294200}.xl-button-non-h{background-color:#225358!important;background-image:-moz-linear-gradient(top,#73c1c8,#225358);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#73c1c8),color-stop(100%,#225358));background-image:-webkit-linear-gradient(top,#73c1c8,#225358);background-image:-o-linear-gradient(top,#73c1c8,#225358);background-image:linear-gradient(#73c1c8,#225358);border-color:#225358 #225358 hsl(185,44%,14.5%)}.xl-button-imageset{background-color:#0e3961!important;background-image:-moz-linear-gradient(top,#56a0e5,#0e3961);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#56a0e5),color-stop(100%,#0e3961));background-image:-webkit-linear-gradient(top,#56a0e5,#0e3961);background-image:-o-linear-gradient(top,#56a0e5,#0e3961);background-image:linear-gradient(#56a0e5,#0e3961);border-color:#0e3961 #0e3961 #071f35}.xl-button-cosplay{background-color:#3a2861!important;background-image:-moz-linear-gradient(top,#a996d3,#3a2861);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#a996d3),color-stop(100%,#3a2861));background-image:-webkit-linear-gradient(top,#a996d3,#3a2861);background-image:-o-linear-gradient(top,#a996d3,#3a2861);background-image:linear-gradient(#a996d3,#3a2861);border-color:#3a2861 #3a2861 #221839}.xl-button-asianporn{background-color:#740f51!important;background-image:-moz-linear-gradient(top,#ec78c3,#740f51);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#ec78c3),color-stop(100%,#740f51));background-image:-webkit-linear-gradient(top,#ec78c3,#740f51);background-image:-o-linear-gradient(top,#ec78c3,#740f51);background-image:linear-gradient(#ec78c3,#740f51);border-color:#740f51 #740f51 #43092e}.xl-button-misc{background-color:#353535!important;background-image:-moz-linear-gradient(top,#bfbfbf,#353535);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#bfbfbf),color-stop(100%,#353535));background-image:-webkit-linear-gradient(top,#bfbfbf,#353535);background-image:-o-linear-gradient(top,#bfbfbf,#353535);background-image:linear-gradient(#bfbfbf,#353535);border-color:#353535 #353535 hsl(321,0%,7.5%)}.xl-noise{color:#fff!important;margin:0 0 -.25em;padding:.125em 0;border-radius:.25em;position:relative;top:-.125em;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAMAAACd646MAAAAG1BMVEUAAAAfHx8/Pz9fX19/f3+fn5+/v7/f39////8NX9jPAAAACXRSTlMICAgICAgICAWHgaIXAAAErklEQVR42rWXOZIlNBBEn2rLd/8TYxBDANEsA78dGSpDqi0XGmDL04cKanRWhrWBvHqbUoemvHZscN5EVMV1KzTXzfMYtGVvkemNHVWiNitiC++ww3M5McNsFxaKkYcotEyUCKccLXvyXGFVfU/uYA2oWq/L9eapmsOmQd7BE7BcFEbWQp/jNE9jr6OjYYaAJ9K01LrCrCOc2Im2wVLsfjKHsHIttCn0DlYpU0tBSQMM9gRXpr8pLaRdGzUPpVefT1Dv7aFZ1wGL6OHPtRKg9BW1GCktCxq9ePZjhcsJCorYCOZgHdccomwrb1FL0fPQJ1lYuKfalqjeDVFMj+bUZ0d7BSHCPhnqeX0CKlqv11FlhbXAju0YmodWTo2otue1V84WPlT6PWtvRUGZS634CskGj4sogqJTDY1Bt8EM+VglKRWgR32nwhrIk/Gp/3sAAVen3hPvRpVwr5QD0eeqVgCNyvS6WrQC1JN+y7hA06qKLfC3wVWDrVZbvSDvjaTUKle0qBUZjWifntuN5TXI25oweKzOtEjZtmcclanhClMILtEmrT5ReKbUZzX6RxxBlTXdLZAdkRR2FbTPt17sU0kpLddnLH1IqaqoAMTcqZo6CgW/uytPtZVxIpYW0oNxH3gqZ0QQdyXeiOB6CyvaxQSgrDXkzlhvMePcySj71Oc4ilwVAoNiZb31dTzTI/vssNWxhzpvFHCRHQ0A4gOtOcLR7nNpQUV846ryYi3yVID1+U7sx/y4NSqzFqMVzUM+vt5fACVoFsyRZ+s2IIyISyaMjh5yyLqrIuZ8fY2LzKSe1698IojmNahUo891Vp3sQ1XfCMCbFUvrkBPvVhlD4Uoprw4dHFlltNSRs3wvnX6eF80inB6g57y2FR17T0QzDBifpe+y6rJImsiUcD9S+taxclb5axLwtnGkZwIct4K4pyCtJQ+PU1WjbBrDLD4V8R8FTW+ebzLq2A3GYWqRqDy0kQbPQ17jKefd8HUR+6BUP4Nq4KAOurFBzDzeOqL6+gkall6T97Nzj8/8epSOr4TVolhElXZGLi3oMjeqgjLPWhEkfRocTBqCzz4+q0vSCq+3geOpehTyeNvS0y2KmC7xVubpuz1XyZlVtH5CG7CKwvU5LiJNLTz0wfWUUsDqvhbRx4toKfokNMU2rlZ55nrP4TFleXOqqNDv9d19UPXxKTgvwozCG/WppSPrIRYAPXiCiWpjXe6cRtTu/8zUfNtISXScQdKWhuiIsocNZmdwoFQ5TN2VitkprVX7lsJzDlChARzENZy/mcc76duguKmZnfaMBw9Apwza2vGGiarj044exFsCAbUMNsB+ZcA+6oc/iR4iumKrv+NbvtOP/igH3yGB/rwzv1FkKHXVXhj1aEX0UJoFOeAAdME5xZLdoxHoVYiKNT5h3TOeqveGpihwRG12PKPIqH1cCjG8+OB1k4gQRnV2dVRRFKKA4strjYMqZQTK4tRRn08BBMT+d+aDD+iE14LKqRW+4Nr/ghNniexqONNKuyDiaXRTo4JiYIl22ZlDJ+/DxvsvHj9OBtW9d2alRrtAFTeiU5aD0UJEZIu2obEpQPlgYb7+2y84P1jASwAjowAAAABJRU5ErkJggg==)}.xl-exsauce-link{white-space:nowrap;text-transform:lowercase}.xl-exsauce-hover-link{text-decoration:none!important}a.xl-exsauce-link.xl-exsauce-link-disabled{text-decoration:line-through!important;cursor:default!important}.xl-exsauce-results{display:block;white-space:nowrap}.xl-exsauce-results.xl-exsauce-results-hidden{display:none}.xl-exsauce-results-inner{display:table;margin:.25em 0;border-radius:.375em;background-color:rgba(0,0,0,.05);padding:.5em;white-space:normal}.xl-details-page-thumbnail,.xl-details-rating,.xl-details-side-box>div,.xl-exsauce-results-label,.xl-exsauce-results-link{white-space:nowrap}.xl-exsauce-results-inner.xl-theme-dark{background-color:rgba(255,255,255,.05)}.xl-exsauce-results-sep{display:inline-block;margin:0 .5em}.xl-exsauce-results-link{text-decoration:none!important;vertical-align:top;margin:0 .375em;text-transform:lowercase}.xl-exsauce-results-group+.xl-exsauce-results-group{margin-top:.25em}.xl-details,.xl-exsauce-hover{opacity:.93;font-size:inherit;margin:0;overflow:visible}.xl-exsauce-hover{display:block;position:fixed;z-index:993;padding:.5em;border-radius:.25em;width:auto}.xl-actions.xl-actions-hidden,.xl-exsauce-hover.xl-exsauce-hover-hidden{display:none}.xl-actions,.xl-actions:before{position:absolute;border-radius:.25em}.xl-actions{z-index:5;box-sizing:border-box;-moz-box-sizing:border-box}.xl-actions:before{display:block;left:0;top:0;bottom:0;right:0;background-color:rgba(0,0,0,.05)}.xl-actions.xl-theme-dark:before{background-color:rgba(255,255,255,.05)}.xl-actions[data-xl-actions-vpos=above]:not([data-xl-actions-hpos=left]),.xl-actions[data-xl-actions-vpos=above]:not([data-xl-actions-hpos=left]):before{border-bottom-left-radius:0}.xl-actions[data-xl-actions-vpos=below]:not([data-xl-actions-hpos=left]),.xl-actions[data-xl-actions-vpos=below]:not([data-xl-actions-hpos=left]):before{border-top-left-radius:0}.xl-actions[data-xl-actions-vpos=above]:not([data-xl-actions-hpos=right]),.xl-actions[data-xl-actions-vpos=above]:not([data-xl-actions-hpos=right]):before{border-bottom-right-radius:0}.xl-actions[data-xl-actions-vpos=below]:not([data-xl-actions-hpos=right]),.xl-actions[data-xl-actions-vpos=below]:not([data-xl-actions-hpos=right]):before{border-top-right-radius:0}.xl-actions-inner{position:relative;padding:.5em 0}.xl-actions-table{display:table}.xl-actions-table-row{display:table-row}.xl-actions-table-cell{display:table-cell;height:100%;vertical-align:middle;text-align:left}.xl-actions-table-cell:first-of-type{width:0;white-space:nowrap;text-align:right}.xl-actions-table-sep{height:.25em}.xl-actions-table-header{font-weight:700;padding:0 .25em 0 1em;line-height:1.325em}.xl-actions-option{padding:0 1em 0 .25em;line-height:1.325em;display:block}.xl-actions-option:hover{background-color:rgba(0,0,0,.05)}.xl-actions-option.xl-theme-dark:hover{background-color:rgba(255,255,255,.05)}.xl-details{display:block;position:fixed;z-index:994;padding:.5em;border-radius:.5em;text-align:center;width:60%;min-width:600px;box-sizing:border-box;-moz-box-sizing:border-box}.xl-details.xl-details-hidden{display:none}.xl-details-thumbnail{float:left;margin-right:.625em;width:140px;height:200px;background-color:rgba(0,0,0,.03125);background-repeat:no-repeat;background-size:contain;background-position:center center}.xl-details-thumbnail.xl-details-thumbnail-full{background-size:cover;background-position:25% 0}.xl-details-thumbnail.xl-theme-dark{background-color:rgba(255,255,255,.03125)}.xl-details-page-thumbnail{display:none;visibility:hidden;position:absolute;left:0;top:0;width:100%;height:100%;background-color:#fff;text-align:center;transform-origin:100% 50%;-moz-transform-origin:100% 50%;-webkit-transform-origin:100% 50%;transform:rotateY(35deg) translate(1em,0);-moz-transform:rotateY(35deg) translate(1em,0);-webkit-transform:rotateY(35deg) translate(1em,0);backface-visibility:hidden;-moz-backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;transition:transform .25s ease-out 0s,opacity .25s ease-out 0s;-moz-transition:-moz-transform .25s ease-out 0s,opacity .25s ease-out 0s;-webkit-transition:-webkit-transform .25s ease-out 0s,opacity .25s ease-out 0s}.xl-details-page-thumbnail-size{position:absolute;width:100%;height:100%;transform-origin:50% 50%}.xl-site-tag,.xl-tag{position:relative;text-decoration:none!important}.xl-details-page-thumbnail-image{width:100%;height:100%;background-repeat:no-repeat;background-size:contain;background-position:center center}.xl-details.xl-details-has-thumbnail>.xl-details-thumbnail{margin-right:1em}.xl-details.xl-details-has-thumbnail.xl-details-has-thumbnail-visible>.xl-details-thumbnail{perspective:500px;-moz-perspective:500px;-webkit-perspective:500px;perspective-origin:100% 50%;-moz-perspective-origin:100% 50%;-webkit-perspective-origin:100% 50%;transform-style:preserve-3d;-moz-transform-style:preserve-3d;-webkit-transform-style:preserve-3d}.xl-details.xl-details-has-thumbnail>.xl-details-thumbnail>.xl-details-page-thumbnail{display:block}.xl-details.xl-details-has-thumbnail.xl-details-has-thumbnail-visible>.xl-details-thumbnail>.xl-details-page-thumbnail{visibility:visible;opacity:1}.xl-details.xl-details-has-thumbnail:not(.xl-details-has-thumbnail-visible)>.xl-details-thumbnail>.xl-details-page-thumbnail{transform:none;-moz-transform:none;-webkit-transform:none;opacity:0}.xl-details-side-panel{float:right;margin-left:.5em;font-size:1.0625em!important;line-height:1em!important}.xl-details-side-box{width:100%;min-width:6em;font-size:.8em;padding:.5em 0;margin:.8em 0 .4em;border-radius:.5em;background-clip:padding-box;background-color:rgba(0,0,0,.125);box-shadow:0 0 .5em rgba(0,0,0,.125);text-shadow:0 .1em 0 rgba(255,255,255,.5)}.xl-details-side-box.xl-theme-dark{background-color:rgba(255,255,255,.125);box-shadow:0 0 .5em rgba(255,255,255,.125);text-shadow:0 .1em 0 rgba(0,0,0,.5)}.xl-details-side-box-error{color:#e00000}.xl-details-side-box-error.xl-theme-dark{color:#ff1f1f}.xl-details-title{font-size:1.5em!important;font-weight:700!important;text-shadow:.1em .1em .4em rgba(0,0,0,.15)!important;text-decoration:none!important}.xl-details-title-jp{margin-top:.25em;opacity:.5;font-size:1.1em;text-shadow:.1em .1em .5em rgba(0,0,0,.2)}.xl-details-title-jp.xl-theme-dark{text-shadow:.1em .1em .5em rgba(255,255,255,.2)}.xl-details-rating{text-align:center;display:inline-block;vertical-align:middle}.xl-details-file-size,.xl-details-rating-text{opacity:.65;font-size:.95em}.xl-details-upload-info{font-size:1em;margin:1em 0}.xl-details-uploader{font-size:1em!important;margin:0 .625em}.xl-details-upload-date{font-size:1em!important;margin-left:.625em}.xl-details-tag-block{font-size:1.075em!important;display:inline!important;line-height:1.4em}.xl-tag-block,.xl-tag-namespace-first{display:inline-block}.xl-details-tag-block-label{margin-right:.25em!important}.xl-details-clear{clear:both}.xl-tag-block{margin:0 .125em}.xl-tag{white-space:nobreak}.xl-tag.xl-tag-color-inherit{color:inherit!important}.xl-tag-block.xl-tag-block-last-of-namespace{margin-right:.5em}.xl-tag-block.xl-tag-block-last{margin-right:0}.xl-tag-namespace-first>.xl-tag-block{display:inline}.xl-tag-namespace-block{display:inline-block;margin:0 .125em}.xl-tag-namespace{display:inline-block;border:1px solid rgba(0,0,0,.4);border-radius:.25em;padding:0 .25em;line-height:normal}.xl-tag-namespace-block.xl-tag-namespace-block-no-outline>.xl-tag-namespace{border-style:none}.xl-tag-namespace-block.xl-theme-dark>.xl-tag-namespace{border-color:rgba(255,255,255,.4)}.xl-tag-namespace-block.xl-tag-namespace-language>.xl-tag-namespace{color:#6721c6}.xl-tag-namespace-block.xl-tag-namespace-group>.xl-tag-namespace{color:#9f8636}.xl-tag-namespace-block.xl-tag-namespace-artist>.xl-tag-namespace{color:#c47525}.xl-tag-namespace-block.xl-tag-namespace-parody>.xl-tag-namespace{color:#0ea79e}.xl-tag-namespace-block.xl-tag-namespace-character>.xl-tag-namespace{color:#288028}.xl-tag-namespace-block.xl-tag-namespace-male>.xl-tag-namespace{color:#0659ae}.xl-tag-namespace-block.xl-tag-namespace-female>.xl-tag-namespace{color:#e0338d}.xl-tag-namespace-block.xl-tag-namespace-language.xl-theme-dark>.xl-tag-namespace{color:#895cc6}.xl-tag-namespace-block.xl-tag-namespace-group.xl-theme-dark>.xl-tag-namespace{color:#e8c44f}.xl-tag-namespace-block.xl-tag-namespace-artist.xl-theme-dark>.xl-tag-namespace{color:#e89c4f}.xl-tag-namespace-block.xl-tag-namespace-parody.xl-theme-dark>.xl-tag-namespace{color:#21eda2}.xl-tag-namespace-block.xl-tag-namespace-character.xl-theme-dark>.xl-tag-namespace{color:#6ce769}.xl-tag-namespace-block.xl-tag-namespace-male.xl-theme-dark>.xl-tag-namespace{color:#23add0}.xl-tag-namespace-block.xl-tag-namespace-female.xl-theme-dark>.xl-tag-namespace{color:#e89cc4}.xl-actions-uploader.xl-filter-good,.xl-details-uploader.xl-filter-good,.xl-link.xl-filter-good,.xl-site-tag.xl-filter-good,.xl-tag.xl-filter-good{font-weight:700}.xl-filter-text{display:inline}.xl-site-tag{white-space:nowrap;display:inline-block;margin-right:.25em;outline:0!important}.xl-site-tag-bg,.xl-site-tag-bg-shadow{display:none;position:absolute;left:-.25em;top:-.25em;bottom:-.25em;right:-.25em;border-radius:.25em;pointer-events:none}.xl-site-tag.xl-site-tag-active>.xl-site-tag-bg-shadow{z-index:4}.xl-site-tag.xl-site-tag-active>.xl-site-tag-bg>.xl-site-tag-bg-inner,.xl-site-tag.xl-site-tag-active>.xl-site-tag-text{z-index:6}.xl-site-tag.xl-site-tag-active>.xl-site-tag-bg,.xl-site-tag.xl-site-tag-active>.xl-site-tag-bg-shadow{display:block}.xl-site-tag-bg-inner,.xl-site-tag-bg-inner:after{display:block;position:absolute;left:0;top:0;bottom:0;right:0;border-radius:.25em}.xl-popup-align,.xl-popup-aligner:before{display:inline-block;vertical-align:middle}.xl-site-tag-bg-inner:after{background-color:rgba(0,0,0,.05)}.xl-site-tag-bg-inner.xl-theme-dark:after{background-color:rgba(255,255,255,.05)}.xl-site-tag[data-xl-actions-vpos=above]>.xl-site-tag-bg,.xl-site-tag[data-xl-actions-vpos=above]>.xl-site-tag-bg-shadow,.xl-site-tag[data-xl-actions-vpos=above]>.xl-site-tag-bg>.xl-site-tag-bg-inner,.xl-site-tag[data-xl-actions-vpos=above]>.xl-site-tag-bg>.xl-site-tag-bg-inner:after{border-top-left-radius:0;border-top-right-radius:0}.xl-site-tag[data-xl-actions-vpos=below]>.xl-site-tag-bg,.xl-site-tag[data-xl-actions-vpos=below]>.xl-site-tag-bg-shadow,.xl-site-tag[data-xl-actions-vpos=below]>.xl-site-tag-bg>.xl-site-tag-bg-inner,.xl-site-tag[data-xl-actions-vpos=below]>.xl-site-tag-bg>.xl-site-tag-bg-inner:after{border-bottom-left-radius:0;border-bottom-right-radius:0}.xl-site-tag-text{position:relative}.xl-link.xl-link-formatted{text-decoration:none!important}.xl-link-error-message{opacity:.75}.xl-link-page{font-weight:400;white-space:nowrap}.xl-nav-extras-mobile{text-align:center;margin:.5em 0}.xl-nav-link{cursor:pointer}.xl-hover-shadow{box-shadow:0 0 .125em 0 rgba(0,0,0,.5)}.xl-hover-shadow.xl-theme-dark{box-shadow:0 0 .125em 0 rgba(255,255,255,.5)}:root.xl-popup-overlaying,:root.xl-popup-overlaying body{overflow-x:hidden!important;overflow-y:hidden!important}.xl-popup-overlay{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(255,255,255,.5);z-index:400;overflow-x:auto;overflow-y:scroll}.xl-popup-overlay.xl-theme-dark{background:rgba(0,0,0,.5)}.xl-popup-aligner{position:absolute;left:0;top:0;right:0;bottom:0;white-space:nowrap;line-height:0;text-align:center}.xl-popup-aligner:before{width:0;height:100%}.xl-popup-align{white-space:normal;line-height:normal;text-align:left;padding:1em;margin:0;width:800px;min-width:60%;max-width:100%;box-sizing:border-box;-moz-box-sizing:border-box}.xl-popup-content{display:block;padding:1em;margin:0;width:100%;border:none;box-sizing:border-box;-moz-box-sizing:border-box;position:relative;border-radius:.5em;overflow:visible}.xl-popup-table{display:table;width:100%;height:100%}.xl-popup-row{display:table-row;width:100%;height:0}.xl-popup-row.xl-popup-row-body,.xl-popup-row.xl-popup-row-body>.xl-popup-cell{height:100%}.xl-popup-cell{display:table-cell;width:100%;height:0;vertical-align:top;text-align:left}.xl-popup-cell.xl-popup-cell-small{width:0;white-space:nowrap}.xl-popup-cell.xl-popup-cell-center{text-align:center}.xl-popup-cell.xl-popup-cell-right{text-align:right}.xl-popup-cell.xl-popup-cell-middle{vertical-align:middle}.xl-popup-cell.xl-popup-cell-bottom{vertical-align:bottom}.xl-popup-cell-size{position:relative;width:100%;height:100%}.xl-popup-cell-size-scroll{position:absolute;left:0;top:0;right:0;bottom:0;overflow:auto}.xl-popup-cell-size-padding{position:relative;padding:.375em;width:100%;min-height:100%;box-sizing:border-box;-moz-box-sizing:border-box}.xl-settings-popup-align{min-height:80%;height:200px}.xl-settings-popup-content{position:relative;height:100%}.xl-settings-button{margin:0 .25em;display:inline-block!important;vertical-align:middle;padding:.25em;background:rgba(0,0,0,.05);border-radius:.2em;text-decoration:none!important;cursor:pointer;font-size:inherit!important;line-height:normal!important;white-space:nowrap!important}.xl-settings-button.xl-theme-dark{background:rgba(255,255,255,.05)}.xl-settings-button-checkbox,.xl-settings-button-checkbox+.riceCheck{margin:0!important;padding:0!important;vertical-align:middle}.xl-settings-button-checkbox-text{display:none}.xl-settings-button-checkbox:checked~.xl-settings-button-checkbox-text:nth-of-type(1),.xl-settings-button-checkbox:not(:checked)~.xl-settings-button-checkbox-text:nth-of-type(2){display:inline}.xl-settings-title{font-size:2em!important;font-weight:700!important;text-decoration:none!important}.xl-settings-version{margin:0 .25em;opacity:.9;vertical-align:75%;text-decoration:none!important;color:inherit!important}.xl-settings-title-info,.xl-settings-version.xl-settings-version-large{margin:0;font-size:1.8em;vertical-align:baseline;opacity:1}.xl-settings-heading{display:table;width:100%;padding:.25em 0}.xl-settings-heading>div{display:table-row;height:100%}.xl-settings-heading-cell{display:table-cell;height:100%;width:100%}.xl-settings-heading-title{vertical-align:top;text-align:left;font-size:1.5em;font-weight:700;font-family:sans-serif;white-space:nowrap;width:0}.xl-settings-heading-subtitle{vertical-align:bottom;text-align:right;padding-left:.5em;opacity:.6}.xl-settings-group{border:1px solid rgba(0,0,0,.2);border-radius:.25em;padding:.125em;box-sizing:border-box;-moz-box-sizing:border-box}.xl-settings-group.xl-theme-dark{border-color:rgba(255,255,255,.2)}.xl-settings-group+.xl-settings-heading{margin-top:.75em}.xl-settings-entry-table{display:table;width:100%;padding:.375em .25em;box-sizing:border-box;-moz-box-sizing:border-box}.xl-settings-entry-row{display:table-row;height:100%}.xl-settings-entry-cell{vertical-align:middle;text-align:left;display:table-cell;width:100%;height:100%}.xl-settings-entry-cell:last-of-type:not(:first-of-type){vertical-align:middle;text-align:right;width:0}.xl-settings-entry+.xl-settings-entry{border-top:.125em solid transparent}.xl-settings-entry:nth-child(even)>.xl-settings-entry-table{background-color:rgba(0,0,0,.05)}.xl-settings-entry:nth-child(odd)>.xl-settings-entry-table{background-color:rgba(0,0,0,.025)}.xl-settings-entry.xl-theme-dark:nth-child(even)>.xl-settings-entry-table{background-color:rgba(255,255,255,.05)}.xl-settings-entry.xl-theme-dark:nth-child(odd)>.xl-settings-entry-table{background-color:rgba(255,255,255,.025)}input.xl-settings-entry-input[type=text]{width:8em}button.xl-settings-entry-input,input.xl-settings-entry-input[type=text],select.xl-settings-entry-input{min-width:8em;box-sizing:border-box;-moz-box-sizing:border-box;padding:.0625em .125em!important;margin:0!important;font-size:inherit!important;font-family:inherit!important;line-height:1.3em!important}select.xl-settings-entry-input{width:auto;height:auto}label.xl-settings-entry-label{cursor:pointer;margin-bottom:0}.xl-settings-filter-guide-toggle{cursor:pointer;text-decoration:none!important}.xl-settings-filter-guide{margin-bottom:.25em;padding:.375em}.xl-settings-filter-guide:not(.xl-settings-filter-guide-visible){display:none}.xl-settings-popup-content ul{padding:0;margin:1em 0;list-style-type:disc!important}.xl-settings-popup-content ul>li{margin:0 .5em 0 2em}.xl-settings-popup-content ul>li+li{margin-top:1em}.xl-settings-popup-content ul>li.xl-settings-li-no-space{margin-top:0}.xl-settings-popup-content code{color:#000;background-color:#fff;font-family:Courier,monospace!important}.xl-settings-popup-content.xl-theme-dark code{color:#fff;background-color:#000;font-family:Courier,monospace!important}.xl-settings-color-input{padding:.25em!important;margin:0 1em 0 0!important;display:inline-block;vertical-align:middle!important;line-height:1.5em!important;height:2em!important;width:8em!important;box-sizing:border-box!important;-moz-box-sizing:border-box!important;cursor:text!important}.xl-settings-color-input:first-of-type{cursor:pointer!important}.xl-settings-color-input:last-of-type{width:11em!important}.xl-settings-export-textarea,textarea.xl-settings-entry-input{display:block;width:100%;height:15em;line-height:1.3em;padding:.5em!important;margin:0!important;box-sizing:border-box;-moz-box-sizing:border-box;resize:vertical;font-size:.9em!important;font-family:Courier,monospace!important}button.xl-settings-entry-input{float:right;padding:.125em .25em;margin:0;box-sizing:border-box;-moz-box-sizing:border-box;background-color:transparent;border:1px solid rgba(0,0,0,.25);border-radius:.25em;font-size:inherit;font-family:inherit;color:inherit;cursor:pointer}button.xl-settings-entry-input:hover{border-color:rgba(0,0,0,.5)}button.xl-settings-entry-input.xl-theme-dark{border-color:rgba(255,255,255,.25)}button.xl-settings-entry-input.xl-theme-dark:hover{border-color:rgba(255,255,255,.5)}.xl-settings-export-textarea{height:100%;resize:none}.xl-settings-export-textarea.xl-settings-export-textarea-error{border-color:#f00000!important;color:#f00000!important}.xl-settings-export-textarea.xl-settings-export-textarea-changed{color:#0080f0!important}.xl-settings-export-textarea.xl-settings-export-textarea-changed.xl-theme-dark{color:#80b0ff!important}.xl-settings-file-input{display:inline-block;display:none;visibility:hidden;opacity:0;width:0;height:0}.xl-settings-export-message{line-height:1.6em}.xl-settings-export-label{display:inline-block;margin:0;padding:0}.xl-settings-export-checkbox,.xl-settings-export-checkbox:checked~.xl-settings-export-label-text:first-of-type,.xl-settings-export-checkbox:not(:checked)~.xl-settings-export-label-text:not(:first-of-type){display:none}.xl-settings-export-label-text:first-of-type{opacity:.6}.xl-easylist-title{margin-left:-2em}.xl-easylist-title-text{display:inline-block;font-size:2em;font-weight:700;margin-left:1em}.xl-easylist-subtitle{display:inline-block;opacity:.8;margin-left:2em}.xl-easylist-title-line{border-bottom:1px solid grey;margin:.5em 0}.xl-easylist-control-links{position:absolute;top:0;right:0}.xl-easylist-control-link{display:inline-block;padding:.5em;cursor:pointer;opacity:.5;text-decoration:none!important}.xl-easylist-empty-notification.xl-easylist-empty-notification-visible+.xl-easylist-items,.xl-easylist-empty-notification:not(.xl-easylist-empty-notification-visible),.xl-easylist-item.xl-easylist-item-hidden{display:none}.xl-easylist-control-link.xl-easylist-control-link-focus,.xl-easylist-control-link:hover{opacity:1}.xl-easylist-control-link+.xl-easylist-control-link{margin-left:.5em}.xl-easylist-empty-notification{text-align:center;font-size:2em;font-style:italic;padding:2em}.xl-easylist-items{border-radius:.5em;border:1px solid rgba(0,0,0,.25);box-sizing:border-box;-moz-box-sizing:border-box;overflow:hidden}.xl-easylist-items.xl-theme-dark{border:1px solid rgba(255,255,255,.25)}.xl-easylist-item{background-color:rgba(0,0,0,.03125)}.xl-easylist-item[data-xl-easylist-item-parity=even]{background-color:rgba(0,0,0,.0625)}.xl-easylist-item.xl-theme-dark{background-color:rgba(255,255,255,.03125)}.xl-easylist-item.xl-theme-dark[data-xl-easylist-item-parity=even]{background-color:rgba(255,255,255,.0625)}.xl-easylist-item-table-container{padding:.5em;position:relative;box-sizing:border-box;-moz-box-sizing:border-box}.xl-easylist-item-table{display:table;width:100%}.xl-easylist-item-row{display:table-row}.xl-easylist-item-cell{display:table-cell;width:100%;vertical-align:top;padding:0 .5em}.xl-easylist-item-cell.xl-easylist-item-cell-image,.xl-easylist-item-cell.xl-easylist-item-cell-side{width:0;padding:0}.xl-easylist-item-image-container{display:block;margin:0;padding:0;border:none;width:140px;height:200px;background-color:rgba(0,0,0,.03125);text-align:center;white-space:nowrap;line-height:0}.xl-easylist-item-image-container:after{display:inline-block;vertical-align:middle;width:0;height:100%}.xl-easylist-item-image-container.xl-theme-dark{background-color:rgba(255,255,255,.03125)}.xl-easylist-item-image-outer{display:inline-block;vertical-align:middle;position:relative;line-height:normal;white-space:normal}.xl-easylist-item-image{margin:0!important;padding:0!important;border:none!important;display:inline-block;vertical-align:middle;max-width:140px;max-height:200px}.xl-easylist-item-image-index{display:block;position:absolute;left:0;top:0;padding:.25em;color:#000;text-shadow:0 0 .125em #fff,0 0 .25em #fff}.xl-easylist-item-image-index.xl-theme-dark{color:#fff;text-shadow:0 0 .125em #000,0 0 .25em #000}.xl-easylist-item-info{display:inline-block;padding:0 0 .5em .5em;width:4.8em}.xl-easylist-item-info-item{font-size:.825em;margin-top:1em;text-align:center;max-width:100%;border-radius:.5em;padding:.375em 0;background-color:rgba(0,0,0,.125);box-shadow:0 0 .5em rgba(0,0,0,.125);text-shadow:0 .1em 0 rgba(255,255,255,.5)}.xl-easylist-item-tags,.xl-easylist-item-upload-info,.xl-easylist-option-group+.xl-easylist-option-group{margin-top:.5em}.xl-easylist-item-info-item.xl-theme-dark{background-color:rgba(255,255,255,.125);box-shadow:0 0 .5em rgba(255,255,255,.125);text-shadow:0 .1em 0 rgba(0,0,0,.5)}.xl-easylist-item-info-light{opacity:.8}.xl-easylist-item-info-button{text-decoration:none!important}.xl-easylist-item-title{font-size:1.5em;font-weight:700}.xl-easylist-item-title:hover{text-shadow:0 0 .25em #fff}.xl-easylist-item-title.xl-theme-dark:hover{text-shadow:0 0 .25em #000}.xl-easylist-item-title-link{text-decoration:none!important}.xl-easylist-item-title-tag-link{text-decoration:none!important;margin-right:.25em;display:none}.xl-easylist-item-title-jp{opacity:.5;font-size:1.1em;display:block}.xl-easylist-item-upload-date,.xl-easylist-item-uploader{font-weight:700;display:inline-block;padding:0 .25em}.xl-easylist-item-tag-table{display:table;width:100%}.xl-easylist-item-tag-row{display:table-row}.xl-easylist-item-tag-row+.xl-easylist-item-tag-row>.xl-easylist-item-tag-cell{padding-top:.25em}.xl-easylist-item-tag-cell{display:table-cell;width:100%}.xl-easylist-compact .xl-easylist-item-info-item.xl-easylist-item-info-item-files>:not(:first-child),.xl-easylist-compact .xl-easylist-item-info-item.xl-easylist-item-info-item-rating>:not(:first-child),.xl-easylist-compact .xl-easylist-item-title-jp,.xl-easylist-compact .xl-easylist-item-upload-info{display:none}.xl-easylist-item-tag-cell.xl-easylist-item-tag-cell-label{width:0;white-space:nowrap;text-align:right;padding-right:.25em}.xl-easylist-compact .xl-easylist-item-image-container{width:70px;height:100px}.xl-easylist-compact .xl-easylist-item-image{max-width:70px;max-height:100px}.xl-easylist-compact .xl-easylist-item-title{font-size:1em;line-height:1.25em;max-height:2.5em;overflow:hidden;position:relative}.xl-easylist-compact .xl-easylist-item-title:hover{overflow:visible;z-index:1}.xl-easylist-compact .xl-easylist-item-tags{font-size:.9em}.xl-easylist-compact .xl-easylist-item-tag-row+.xl-easylist-item-tag-row>.xl-easylist-item-tag-cell{padding-top:0}.xl-easylist-compact .xl-easylist-item-tag-table{display:block;line-height:1.4em}.xl-easylist-compact .xl-easylist-item-tag-row{display:inline}.xl-easylist-compact .xl-easylist-item-tag-row+.xl-easylist-item-tag-row:before{content:\"\";display:inline-block;width:1em;height:0}.xl-easylist-compact .xl-easylist-item-tag-cell{display:inline;width:auto}.xl-easylist-minimal .xl-easylist-item-cell-image,.xl-easylist-minimal .xl-easylist-item-info-item,.xl-easylist-minimal .xl-easylist-item-tags,.xl-easylist-minimal .xl-easylist-item-title-jp,.xl-easylist-minimal .xl-easylist-item-upload-info{display:none}.xl-easylist-compact .xl-easylist-item-tag-cell>.xl-tag-namespace-block.xl-tag-namespace-block-no-outline>.xl-tag-namespace{border-width:1px;border-style:solid}.xl-easylist-minimal .xl-easylist-item-cell{padding-left:0;vertical-align:middle}.xl-easylist-minimal .xl-easylist-item-cell-side{vertical-align:top}.xl-easylist-minimal .xl-easylist-item-title{font-size:1em;line-height:1.25em}.xl-easylist-minimal .xl-easylist-item-title-tag-link{display:inline-block}.xl-easylist-options:not(.xl-easylist-options-visible){display:none}.xl-easylist-option-table{display:table;width:100%}.xl-easylist-option-row{display:table-row}.xl-easylist-option-row+.xl-easylist-option-row>.xl-easylist-option-cell{padding-top:.5em}.xl-easylist-option-cell{display:table-cell;width:100%;vertical-align:top}.xl-easylist-option-cell:first-of-type{width:0;text-align:right}.xl-easylist-option-title{font-weight:700;margin-right:1em;display:inline-block;padding:.25em 0;border-top:1px solid transparent;border-bottom:1px solid transparent;white-space:nowrap}.xl-easylist-option-title-sub{max-width:100%;margin-right:1em;opacity:.9;white-space:normal}.xl-easylist-option-title-sub-text{font-size:.875em;line-height:1.1em}.xl-easylist-option-label{display:inline-block}.xl-easylist-option-label+.xl-easylist-option-label{margin-left:.5em}.xl-easylist-option-input,.xl-easylist-option-input+.riceCheck{display:none}.xl-easylist-option-button{display:inline-block;padding:.25em .5em;border-radius:.25em;background-color:rgba(255,255,255,.125);border:1px solid rgba(0,0,0,.0625);cursor:pointer}.xl-easylist-option-button:hover{border-color:rgba(0,0,0,.25)}.xl-easylist-option-button.xl-theme-dark{background-color:rgba(0,0,0,.125);border:1px solid rgba(255,255,255,.0625)}.xl-easylist-option-button.xl-theme-dark:hover{border-color:rgba(255,255,255,.25)}.xl-easylist-option-input:checked~.xl-easylist-option-button{background-color:rgba(255,255,255,.5);border-color:rgba(0,0,0,.25);color:#000}.xl-easylist-option-input:checked~.xl-easylist-option-button.xl-theme-dark{background-color:rgba(0,0,0,.5);border-color:rgba(255,255,255,.25);color:#fff}.xl-easylist-option-textarea{background-color:rgba(255,255,255,.125)!important;border:1px solid rgba(0,0,0,.0625)!important;margin:0!important;padding:.25em!important;box-sizing:border-box;-moz-box-sizing:border-box;width:100%;line-height:1.4em;height:4.8em;min-height:2em;resize:vertical;font-family:Courier,monospace!important}.xl-easylist-option-textarea:focus,.xl-easylist-option-textarea:hover{background-color:rgba(255,255,255,.5)!important;border-color:rgba(0,0,0,.25)!important}.xl-easylist-option-textarea.xl-theme-dark{background-color:rgba(0,0,0,.125)!important;border:1px solid rgba(255,255,255,.0625)!important;margin:0!important;padding:.25em!important}.xl-easylist-option-textarea.xl-theme-dark:focus,.xl-easylist-option-textarea.xl-theme-dark:hover{background-color:rgba(0,0,0,.5)!important;border-color:rgba(255,255,255,.25)!important}.xl-changelog-popup-align{min-height:80%;height:200px}.xl-changelog-popup-content{position:relative;height:100%}.xl-changelog-message-container{position:absolute;left:0;top:0;right:0;bottom:0;text-align:center;line-height:0;white-space:nowrap}.xl-changelog-message-container:before{display:inline-block;vertical-align:middle;width:0;height:100%}.xl-changelog-message{text-align:left;line-height:normal;white-space:normal;display:inline-block;vertical-align:middle}.xl-changelog-entry-user-name,.xl-changelog-entry-version{font-weight:700;line-height:1.4em}.xl-changelog-entries{padding:.375em}.xl-changelog-entry+.xl-changelog-entry{margin-top:1em}.xl-changelog-entry-version{font-size:1.25em}.xl-changelog-entry-users{margin-left:1em}.xl-changelog-entry-user+.xl-changelog-entry-user{margin-top:.5em}.xl-changelog-entry-changes{margin:0 0 0 1.5em!important;padding:0!important;list-style-type:disc!important}.xl-changelog-entry-change{margin:0!important;padding:0!important}.xl-changelog-entry-change+.xl-changelog-entry-change{margin-top:.5em!important}.xl-header-bar-link{vertical-align:bottom;cursor:pointer}.xl-header-bar-link.xl-appchanx,.xl-header-bar-svg{vertical-align:middle}.xl-header-bar-svg{width:1.2em;height:1.16em;display:inline-block;fill:#000;stroke:none}.xl-header-bar-link.xl-appchanx>.xl-header-bar-svg{width:100%;height:100%}";
+			style.textContent = ".xl-button,.xl-star{display:inline-block}.xl-actions:before,.xl-changelog-message-container:before,.xl-easylist-item-image-container:after,.xl-popup-aligner:before,.xl-site-tag-bg-inner:after{content:\"\"}.xl-easylist-subtitle,.xl-link-page,.xl-link.xl-link-error{font-style:italic}.xl-stars-container{position:relative;z-index:0;white-space:nowrap}.xl-stars-container.xl-stars-container-na{opacity:.5}.xl-star-none{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAQAAADYBBcfAAAA5UlEQVR4AZ2VwQmEMBBFfx0S5iwWJCIhhSwhRXgSEesQCVuIzbgCGiLJ4GTzbupjvvqNYFcDd9KgcBFmHCczqEzUOC50meiC6Eo0hS2IG5Rc7HFE9HLRPkQrf6L+IXpQ/n0ZuJigxap7YEAhViEa+Pwr1tDwRZKHvu+asIi15ZZudRJpEyhty/CqDfkWVWixs9KOFpWg3AmuoDNMf/ivkEHLgwrDEr6M8hLWJBd6PiwfdASdjO9hFdZoVg91He2juWuuAF04PYPSrfKiS0WbK3FQF34bMcm03FST3/ItanCrho1/CT96LV7iyUEWwgAAAABJRU5ErkJggg==)}.xl-star-half{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAADA0lEQVR4AbWWA7PkQBRG+9m28ubZNta2bdu2bdu2bdu2rZ/w7e2t9DKTHVS66gySyZy6X5MZ2/JjWTwx1MWBTbW1ZslMy0YiictyI2zham8BGyu2ki5LWgqbclnDkg7wdbeEnTUDXW6smVBUN6yFH0L9bYRwqJZxLuXC2X10iAqxE8KDRLBmcfZq4IujC9OREu0MVydLLuQ01CzO8V10uLuzOLIS3eDuYiWEgzWLc9moRDw6UAbZyR7wcrcRwsOEZMy8akoM1YeQTe4VjctbS+H58crISfFEgI+dEArpUBWaEpKICv9jSu9oXN1RDq/P1iRqIDfNC8H+DkJmKI3/ENJndKnpgZFtAjCmQzD1Vygmdg/HirEp4LI35+vi/aUGRF3kpXubLBSRLhVz7MCsJFzfmM8HB/VXWYqwCnhlXPbxelN8ut4A+Rk+CA4wWHiYywhJcdniFdLQl4VlwPuMx8gr47Jvt+qR0NtQ4VIhUl0rezbwwaKhMTi3rhDPjlbAq9NV8O5CDXy4UhufrtYkoUF9uFCvTEnKmdBNhwsbC/HiRAW8PlMZ785zcWXkpXmS0F5NNtPQFUhImxJHuXTZyFg8PVwaL46XxcuT5fDqVDnkpnog2E9R+JCoSwSasbpIeLi3KB4fLIGnh4jDJZCT7IYgPzsl4VCzV5cFg8JxZ3se7u3Kx/3dBXiwJx/Zia4I9LXVNyIlkxfr7nU8cGhuAq6tz8DNTZm4uSULt4jMBGcE+tjqnW+m733NvXFuSQIuLE/CpVXJODgnDnP7hvDtCX6e1vqEQ02Oc3IHHxyfE41T82Kwe3IEhrf0hjhiuDmL7cnMWEWc7So6YN3AAGwcGoRJ7b3RuZqzWAKXOtmzc/IGbH6sIs5e1R2xopc3+tb5IRKyoYTkbM+ibKzZUhXhUKPj7F7FAT2qOkJUJc/Nn1HZ2TCdvNsfVhDuJ4INjrNWrjWal7D7oyqVxyRisYK0vqFxcom6TFH6T8SDDa3QcJl6pU0NPsrLxDPjW6xc2VDin+e/Azq4LxX5iaTWAAAAAElFTkSuQmCC)}.xl-star-full{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAADhElEQVR4AbWWg3IsURRF82zbtm3btm3btmPbtm3btvEJ+93TlbmVigapSVV3D3tlr4NEQdqf5VMVprPjdf0xXdrvSwsbTaClEzqDjnroaHkCTxPo+PpudIigp+UJFNK9OTcEr88O5inlqVOXIMqPxkL54RgRUJdrlYfOB8cGw1dzPnw05uH+0YFcq9x0fr01FqmOa5HisBpfbo7iWuWmU+/DTGR5bEKm+0bovJsqrVY+V6f5bDV/CLCfDyYj2nYD8v13Is93GyIsV+L73bEcKuYexBjNVYk7fj2cjFiHLSgO3c+OfSgK3oWCgG2IJOidMWK/z2vdaJBxa38/vL80DJ+ujWT1GsMSjIfB5zkCrCT8MMqjjrHjMMoi9qE4ZCcK/Dcj3HwZdN5MxOfrw/Hh8hC8PTcQL0/2xbUd3emejYFcqa5oxjyUZiHecjk1B6vXZqZwFyUTYJXxp1EVfwwVMQdRFr4LhYFbkOu1DunOK5BoswjRxnMQqjUVtp9G49nRXlw3V9rM2qKE1Pr1wE1UM9JIyQRYXdIRVMXuZyl3oiiIAb3XIcNlOZIYMMZ4Nlx+TcDLU/3Er7+G0PvHBkHr9RSEma2kBqGakUZKJsAqonejNGw7CgM2IsdrDdKdlsFfexZUH43EnQO9G8GkWNDf7oylbqQGoZqRRkpGMJaO6fZdh2z3lQgymIvP14ZChsXOoeTcV5i991OZto3UIFQz0igkE2Aeq5HhvAxaL/h4+PJ6yb5dRiPTdTWyPddRg1DNSCMlE2Aptovw6epQnqzN20XjxXik2C9DmtNy6kZqEKoZa6olSLZZiHjzuVB5NKJNy5wv67uH+sFLdQbizBcg0Wohtb7QjYnWC5BgOQ+xprMRZTgDLr/H49Y+PganZf/bd3YgwnRmIEJ/FqKMZsNTZRpUH48SutFDcTLCdacjRHMyApTH48WJPlyrzDp/XhsEf5XJCFKbAuefE/D2/EDeiW/ODYDj19HwVRwHr5+j8PVCH5m0cp1XtneD2fNhsHw9Aj+uDsTNPT35DUW/0PXdPRioL0yeDoLhg364tKWL1Fq5zgd7u8PgwUA8PtSzyXw1nteH+7pD53Y/3NvdnX9Oap13d3XjN2i8DxvNK//8nR3dpNLKdR5Y2hFn13WRaGs0THt2bWfsX9JRYq1cJ7s2DxMHbfRdiROKhYmB8oTy/Vde/Pf/AxrB4Rr+1b9fAAAAAElFTkSuQmCC)}.xl-star{width:1.2em;height:1.4em;margin-left:-.1em;margin-right:-.1em;margin-bottom:-.2em;background-repeat:no-repeat;background-size:cover;background-position:-.1em 0;position:relative}.xl-star-1{z-index:4;width:1.3em;background-position:0 0}.xl-star-2{z-index:3}.xl-star-3{z-index:2}.xl-star-4{z-index:1}.xl-star-5{z-index:0;width:1.3em}.xl-button{padding:.3em 1em;font-size:inherit;line-height:1.6em;color:#333;text-align:center;text-shadow:0 .08em .08em rgba(255,255,255,.75);vertical-align:middle;cursor:pointer;background-color:#f5f5f5;background-image:-webkit-gradient(linear,0 0,0 100%,from(#fff),to(#e6e6e6));background-image:-webkit-linear-gradient(top,#fff,#e6e6e6);background-image:-o-linear-gradient(top,#fff,#e6e6e6);background-image:linear-gradient(to bottom,#fff,#e6e6e6);background-image:-moz-linear-gradient(top,#fff,#e6e6e6);background-repeat:repeat-x;border:1px solid #bbb;border-color:#e6e6e6 #e6e6e6 #bfbfbf;border-bottom-color:#a2a2a2;border-radius:.3em;box-shadow:inset 0 .08em 0 rgba(255,255,255,.2),0 .08em .16em rgba(0,0,0,.05)}.xl-button-eh{font-family:'Source Sans Pro',Tahoma,sans-serif!important;font-weight:900;font-size:.86em;width:100%;padding:.15em 0;color:#FFF!important;box-shadow:0 0 .5em rgba(0,0,0,.5);text-shadow:.09em .09em 0 rgba(0,0,0,.5),0 0 .3em #000;-webkit-font-smoothing:antialiased}.xl-button-doujinshi{background-color:#840505!important;background-image:-khtml-gradient(linear,left top,left bottom,from(#f74040),to(#840505));background-image:-moz-linear-gradient(top,#f74040,#840505);background-image:-ms-linear-gradient(top,#f74040,#840505);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#f74040),color-stop(100%,#840505));background-image:-webkit-linear-gradient(top,#f74040,#840505);background-image:-o-linear-gradient(top,#f74040,#840505);background-image:linear-gradient(#f74040,#840505);border-color:#840505 #840505 hsl(0,92%,18.5%)}.xl-button-manga{background-color:#7a2800!important;background-image:-khtml-gradient(linear,left top,left bottom,from(#ff7632),to(#7a2800));background-image:-moz-linear-gradient(top,#ff7632,#7a2800);background-image:-ms-linear-gradient(top,#ff7632,#7a2800);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#ff7632),color-stop(100%,#7a2800));background-image:-webkit-linear-gradient(top,#ff7632,#7a2800);background-image:-o-linear-gradient(top,#ff7632,#7a2800);background-image:linear-gradient(#ff7632,#7a2800);border-color:#7a2800 #7a2800 #4c1900}.xl-button-artistcg{background-color:#7a6a00!important;background-image:-khtml-gradient(linear,left top,left bottom,from(#ffe95b),to(#7a6a00));background-image:-moz-linear-gradient(top,#ffe95b,#7a6a00);background-image:-ms-linear-gradient(top,#ffe95b,#7a6a00);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#ffe95b),color-stop(100%,#7a6a00));background-image:-webkit-linear-gradient(top,#ffe95b,#7a6a00);background-image:-o-linear-gradient(top,#ffe95b,#7a6a00);background-image:linear-gradient(#ffe95b,#7a6a00);border-color:#7a6a00 #7a6a00 #423900}.xl-button-gamecg{background-color:#273214!important;background-image:-moz-linear-gradient(top,#96ba58,#273214);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#96ba58),color-stop(100%,#273214));background-image:-webkit-linear-gradient(top,#96ba58,#273214);background-image:-o-linear-gradient(top,#96ba58,#273214);background-image:linear-gradient(#96ba58,#273214);border-color:#273214 #273214 #0b0e05}.xl-button-western{background-color:#4d7a00!important;background-image:-moz-linear-gradient(top,#c3ff5b,#4d7a00);background-image:-ms-linear-gradient(top,#c3ff5b,#4d7a00);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#c3ff5b),color-stop(100%,#4d7a00));background-image:-webkit-linear-gradient(top,#c3ff5b,#4d7a00);background-image:-o-linear-gradient(top,#c3ff5b,#4d7a00);background-image:linear-gradient(#c3ff5b,#4d7a00);border-color:#4d7a00 #4d7a00 #294200}.xl-button-non-h{background-color:#225358!important;background-image:-moz-linear-gradient(top,#73c1c8,#225358);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#73c1c8),color-stop(100%,#225358));background-image:-webkit-linear-gradient(top,#73c1c8,#225358);background-image:-o-linear-gradient(top,#73c1c8,#225358);background-image:linear-gradient(#73c1c8,#225358);border-color:#225358 #225358 hsl(185,44%,14.5%)}.xl-button-imageset{background-color:#0e3961!important;background-image:-moz-linear-gradient(top,#56a0e5,#0e3961);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#56a0e5),color-stop(100%,#0e3961));background-image:-webkit-linear-gradient(top,#56a0e5,#0e3961);background-image:-o-linear-gradient(top,#56a0e5,#0e3961);background-image:linear-gradient(#56a0e5,#0e3961);border-color:#0e3961 #0e3961 #071f35}.xl-button-cosplay{background-color:#3a2861!important;background-image:-moz-linear-gradient(top,#a996d3,#3a2861);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#a996d3),color-stop(100%,#3a2861));background-image:-webkit-linear-gradient(top,#a996d3,#3a2861);background-image:-o-linear-gradient(top,#a996d3,#3a2861);background-image:linear-gradient(#a996d3,#3a2861);border-color:#3a2861 #3a2861 #221839}.xl-button-asianporn{background-color:#740f51!important;background-image:-moz-linear-gradient(top,#ec78c3,#740f51);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#ec78c3),color-stop(100%,#740f51));background-image:-webkit-linear-gradient(top,#ec78c3,#740f51);background-image:-o-linear-gradient(top,#ec78c3,#740f51);background-image:linear-gradient(#ec78c3,#740f51);border-color:#740f51 #740f51 #43092e}.xl-button-misc{background-color:#353535!important;background-image:-moz-linear-gradient(top,#bfbfbf,#353535);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#bfbfbf),color-stop(100%,#353535));background-image:-webkit-linear-gradient(top,#bfbfbf,#353535);background-image:-o-linear-gradient(top,#bfbfbf,#353535);background-image:linear-gradient(#bfbfbf,#353535);border-color:#353535 #353535 hsl(321,0%,7.5%)}.xl-noise{color:#fff!important;margin:0 0 -.25em;padding:.125em 0;border-radius:.25em;position:relative;top:-.125em;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAMAAACd646MAAAAG1BMVEUAAAAfHx8/Pz9fX19/f3+fn5+/v7/f39////8NX9jPAAAACXRSTlMICAgICAgICAWHgaIXAAAErklEQVR42rWXOZIlNBBEn2rLd/8TYxBDANEsA78dGSpDqi0XGmDL04cKanRWhrWBvHqbUoemvHZscN5EVMV1KzTXzfMYtGVvkemNHVWiNitiC++ww3M5McNsFxaKkYcotEyUCKccLXvyXGFVfU/uYA2oWq/L9eapmsOmQd7BE7BcFEbWQp/jNE9jr6OjYYaAJ9K01LrCrCOc2Im2wVLsfjKHsHIttCn0DlYpU0tBSQMM9gRXpr8pLaRdGzUPpVefT1Dv7aFZ1wGL6OHPtRKg9BW1GCktCxq9ePZjhcsJCorYCOZgHdccomwrb1FL0fPQJ1lYuKfalqjeDVFMj+bUZ0d7BSHCPhnqeX0CKlqv11FlhbXAju0YmodWTo2otue1V84WPlT6PWtvRUGZS634CskGj4sogqJTDY1Bt8EM+VglKRWgR32nwhrIk/Gp/3sAAVen3hPvRpVwr5QD0eeqVgCNyvS6WrQC1JN+y7hA06qKLfC3wVWDrVZbvSDvjaTUKle0qBUZjWifntuN5TXI25oweKzOtEjZtmcclanhClMILtEmrT5ReKbUZzX6RxxBlTXdLZAdkRR2FbTPt17sU0kpLddnLH1IqaqoAMTcqZo6CgW/uytPtZVxIpYW0oNxH3gqZ0QQdyXeiOB6CyvaxQSgrDXkzlhvMePcySj71Oc4ilwVAoNiZb31dTzTI/vssNWxhzpvFHCRHQ0A4gOtOcLR7nNpQUV846ryYi3yVID1+U7sx/y4NSqzFqMVzUM+vt5fACVoFsyRZ+s2IIyISyaMjh5yyLqrIuZ8fY2LzKSe1698IojmNahUo891Vp3sQ1XfCMCbFUvrkBPvVhlD4Uoprw4dHFlltNSRs3wvnX6eF80inB6g57y2FR17T0QzDBifpe+y6rJImsiUcD9S+taxclb5axLwtnGkZwIct4K4pyCtJQ+PU1WjbBrDLD4V8R8FTW+ebzLq2A3GYWqRqDy0kQbPQ17jKefd8HUR+6BUP4Nq4KAOurFBzDzeOqL6+gkall6T97Nzj8/8epSOr4TVolhElXZGLi3oMjeqgjLPWhEkfRocTBqCzz4+q0vSCq+3geOpehTyeNvS0y2KmC7xVubpuz1XyZlVtH5CG7CKwvU5LiJNLTz0wfWUUsDqvhbRx4toKfokNMU2rlZ55nrP4TFleXOqqNDv9d19UPXxKTgvwozCG/WppSPrIRYAPXiCiWpjXe6cRtTu/8zUfNtISXScQdKWhuiIsocNZmdwoFQ5TN2VitkprVX7lsJzDlChARzENZy/mcc76duguKmZnfaMBw9Apwza2vGGiarj044exFsCAbUMNsB+ZcA+6oc/iR4iumKrv+NbvtOP/igH3yGB/rwzv1FkKHXVXhj1aEX0UJoFOeAAdME5xZLdoxHoVYiKNT5h3TOeqveGpihwRG12PKPIqH1cCjG8+OB1k4gQRnV2dVRRFKKA4strjYMqZQTK4tRRn08BBMT+d+aDD+iE14LKqRW+4Nr/ghNniexqONNKuyDiaXRTo4JiYIl22ZlDJ+/DxvsvHj9OBtW9d2alRrtAFTeiU5aD0UJEZIu2obEpQPlgYb7+2y84P1jASwAjowAAAABJRU5ErkJggg==)}.xl-exsauce-link{white-space:nowrap;text-transform:lowercase}.xl-exsauce-hover-link{text-decoration:none!important}a.xl-exsauce-link.xl-exsauce-link-disabled{text-decoration:line-through!important;cursor:default!important}.xl-exsauce-results{display:block;white-space:nowrap}.xl-exsauce-results.xl-exsauce-results-hidden{display:none}.xl-exsauce-results-inner{display:table;margin:.25em 0;border-radius:.375em;background-color:rgba(0,0,0,.05);padding:.5em;white-space:normal}.xl-details-page-thumbnail,.xl-details-rating,.xl-details-side-box>div,.xl-exsauce-results-label,.xl-exsauce-results-link{white-space:nowrap}.xl-exsauce-results-inner.xl-theme-dark{background-color:rgba(255,255,255,.05)}.xl-exsauce-results-sep{display:inline-block;margin:0 .5em}.xl-exsauce-results-link{text-decoration:none!important;vertical-align:top;margin:0 .375em;text-transform:lowercase}.xl-exsauce-results-group+.xl-exsauce-results-group{margin-top:.25em}.xl-details,.xl-exsauce-hover{font-size:inherit;margin:0;overflow:visible}.xl-exsauce-hover{opacity:.93;display:block;position:fixed;z-index:993;padding:.5em;border-radius:.25em;width:auto}.xl-actions.xl-actions-hidden,.xl-exsauce-hover.xl-exsauce-hover-hidden{display:none}.xl-actions,.xl-actions:before{position:absolute;border-radius:.25em}.xl-actions{z-index:5;box-sizing:border-box;-moz-box-sizing:border-box}.xl-actions:before{display:block;left:0;top:0;bottom:0;right:0;background-color:rgba(0,0,0,.05)}.xl-actions.xl-theme-dark:before{background-color:rgba(255,255,255,.05)}.xl-actions[data-xl-actions-vpos=above]:not([data-xl-actions-hpos=left]),.xl-actions[data-xl-actions-vpos=above]:not([data-xl-actions-hpos=left]):before{border-bottom-left-radius:0}.xl-actions[data-xl-actions-vpos=below]:not([data-xl-actions-hpos=left]),.xl-actions[data-xl-actions-vpos=below]:not([data-xl-actions-hpos=left]):before{border-top-left-radius:0}.xl-actions[data-xl-actions-vpos=above]:not([data-xl-actions-hpos=right]),.xl-actions[data-xl-actions-vpos=above]:not([data-xl-actions-hpos=right]):before{border-bottom-right-radius:0}.xl-actions[data-xl-actions-vpos=below]:not([data-xl-actions-hpos=right]),.xl-actions[data-xl-actions-vpos=below]:not([data-xl-actions-hpos=right]):before{border-top-right-radius:0}.xl-actions-inner{position:relative;padding:.5em 0}.xl-actions-table{display:table}.xl-actions-table-row{display:table-row}.xl-actions-table-cell{display:table-cell;height:100%;vertical-align:middle;text-align:left}.xl-actions-table-cell:first-of-type{width:0;white-space:nowrap;text-align:right}.xl-actions-table-sep{height:.25em}.xl-actions-table-header{font-weight:700;padding:0 .25em 0 1em;line-height:1.325em}.xl-actions-table-cell.xl-actions-table-cell-full>.xl-actions-table-header{padding-right:1em}.xl-actions-option{padding:0 1em 0 .25em;line-height:1.325em;display:block}.xl-actions-option:hover{background-color:rgba(0,0,0,.05)}.xl-actions-option.xl-theme-dark:hover{background-color:rgba(255,255,255,.05)}.xl-details{opacity:1;display:block;position:fixed;z-index:994;padding:.5em;border-radius:.5em;text-align:center;width:60%;min-width:600px;box-sizing:border-box;-moz-box-sizing:border-box}.xl-details.xl-details-hidden{display:none}.xl-details.xl-details-limited-size{max-height:16em;overflow:hidden;text-align:left}.xl-details-thumbnail{float:left;margin-right:.625em;width:140px;height:200px;background-color:rgba(0,0,0,.03125);background-repeat:no-repeat;background-size:contain;background-position:center center}.xl-details-thumbnail.xl-details-thumbnail-full{background-size:cover;background-position:25% 0}.xl-details-thumbnail.xl-theme-dark{background-color:rgba(255,255,255,.03125)}.xl-details-page-thumbnail{display:none;visibility:hidden;position:absolute;left:0;top:0;width:100%;height:100%;background-color:#fff;text-align:center;transform-origin:100% 50%;-moz-transform-origin:100% 50%;-webkit-transform-origin:100% 50%;transform:rotateY(35deg) translate(1em,0);-moz-transform:rotateY(35deg) translate(1em,0);-webkit-transform:rotateY(35deg) translate(1em,0);backface-visibility:hidden;-moz-backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;transition:transform .25s ease-out 0s,opacity .25s ease-out 0s;-moz-transition:-moz-transform .25s ease-out 0s,opacity .25s ease-out 0s;-webkit-transition:-webkit-transform .25s ease-out 0s,opacity .25s ease-out 0s}.xl-details-page-thumbnail-size{position:absolute;width:100%;height:100%;transform-origin:50% 50%}.xl-site-tag,.xl-tag{position:relative;text-decoration:none!important}.xl-details-page-thumbnail-image{width:100%;height:100%;background-repeat:no-repeat;background-size:contain;background-position:center center}.xl-details.xl-details-has-thumbnail>.xl-details-thumbnail{margin-right:1em}.xl-details.xl-details-has-thumbnail.xl-details-has-thumbnail-visible>.xl-details-thumbnail{perspective:500px;-moz-perspective:500px;-webkit-perspective:500px;perspective-origin:100% 50%;-moz-perspective-origin:100% 50%;-webkit-perspective-origin:100% 50%;transform-style:preserve-3d;-moz-transform-style:preserve-3d;-webkit-transform-style:preserve-3d}.xl-details.xl-details-has-thumbnail>.xl-details-thumbnail>.xl-details-page-thumbnail{display:block}.xl-details.xl-details-has-thumbnail.xl-details-has-thumbnail-visible>.xl-details-thumbnail>.xl-details-page-thumbnail{visibility:visible;opacity:1}.xl-details.xl-details-has-thumbnail:not(.xl-details-has-thumbnail-visible)>.xl-details-thumbnail>.xl-details-page-thumbnail{transform:none;-moz-transform:none;-webkit-transform:none;opacity:0}.xl-details-side-panel{float:right;margin-left:.5em;font-size:1.0625em!important;line-height:1em!important}.xl-details-side-box{width:100%;min-width:6em;font-size:.8em;padding:.5em 0;margin:.8em 0 .4em;border-radius:.5em;background-clip:padding-box;background-color:rgba(0,0,0,.125);box-shadow:0 0 .5em rgba(0,0,0,.125);text-shadow:0 .1em 0 rgba(255,255,255,.5)}.xl-details-side-box.xl-theme-dark{background-color:rgba(255,255,255,.125);box-shadow:0 0 .5em rgba(255,255,255,.125);text-shadow:0 .1em 0 rgba(0,0,0,.5)}.xl-details-side-box-error{color:#e00000}.xl-details-side-box-error.xl-theme-dark{color:#ff1f1f}.xl-details-title{font-size:1.5em!important;font-weight:700!important;text-shadow:.1em .1em .4em rgba(0,0,0,.15)!important;text-decoration:none!important}.xl-details-title-jp{margin-top:.25em;opacity:.5;font-size:1.1em;text-shadow:.1em .1em .5em rgba(0,0,0,.2)}.xl-details-title-jp.xl-theme-dark{text-shadow:.1em .1em .5em rgba(255,255,255,.2)}.xl-details-rating{text-align:center;display:inline-block;vertical-align:middle}.xl-details-file-size,.xl-details-rating-text{opacity:.65;font-size:.95em}.xl-details-upload-info{font-size:1em;margin:1em 0}.xl-details-uploader{font-size:1em!important;margin:0 .625em}.xl-details-upload-date{font-size:1em!important;margin-left:.625em}.xl-details-tag-block{font-size:1.075em!important;display:inline!important;line-height:1.4em}.xl-tag-block,.xl-tag-namespace-first{display:inline-block}.xl-details-tag-block-label{margin-right:.25em!important}.xl-details-clear{clear:both}.xl-tag-block{margin:0 .125em}.xl-tag{white-space:nobreak}.xl-tag.xl-tag-color-inherit{color:inherit!important}.xl-tag-block.xl-tag-block-last-of-namespace{margin-right:.5em}.xl-tag-block.xl-tag-block-last{margin-right:0}.xl-tag-namespace-first>.xl-tag-block{display:inline}.xl-tag-namespace-block{display:inline-block;margin:0 .125em}.xl-tag-namespace{display:inline-block;border:1px solid rgba(0,0,0,.4);border-radius:.25em;padding:0 .25em;line-height:normal}.xl-tag-namespace-block.xl-tag-namespace-block-no-outline>.xl-tag-namespace{border-style:none}.xl-tag-namespace-block.xl-theme-dark>.xl-tag-namespace{border-color:rgba(255,255,255,.4)}.xl-tag-namespace-block.xl-tag-namespace-language>.xl-tag-namespace{color:#6721c6}.xl-tag-namespace-block.xl-tag-namespace-group>.xl-tag-namespace{color:#9f8636}.xl-tag-namespace-block.xl-tag-namespace-artist>.xl-tag-namespace{color:#c47525}.xl-tag-namespace-block.xl-tag-namespace-parody>.xl-tag-namespace{color:#0ea79e}.xl-tag-namespace-block.xl-tag-namespace-character>.xl-tag-namespace{color:#288028}.xl-tag-namespace-block.xl-tag-namespace-male>.xl-tag-namespace{color:#0659ae}.xl-tag-namespace-block.xl-tag-namespace-female>.xl-tag-namespace{color:#e0338d}.xl-tag-namespace-block.xl-tag-namespace-language.xl-theme-dark>.xl-tag-namespace{color:#895cc6}.xl-tag-namespace-block.xl-tag-namespace-group.xl-theme-dark>.xl-tag-namespace{color:#e8c44f}.xl-tag-namespace-block.xl-tag-namespace-artist.xl-theme-dark>.xl-tag-namespace{color:#e89c4f}.xl-tag-namespace-block.xl-tag-namespace-parody.xl-theme-dark>.xl-tag-namespace{color:#21eda2}.xl-tag-namespace-block.xl-tag-namespace-character.xl-theme-dark>.xl-tag-namespace{color:#6ce769}.xl-tag-namespace-block.xl-tag-namespace-male.xl-theme-dark>.xl-tag-namespace{color:#23add0}.xl-tag-namespace-block.xl-tag-namespace-female.xl-theme-dark>.xl-tag-namespace{color:#e89cc4}.xl-actions-uploader.xl-filter-good,.xl-details-uploader.xl-filter-good,.xl-link.xl-filter-good,.xl-site-tag.xl-filter-good,.xl-tag.xl-filter-good{font-weight:700}.xl-filter-text{display:inline}.xl-site-tag{white-space:nowrap;display:inline-block;margin-right:.25em;outline:0!important}.xl-site-tag-bg,.xl-site-tag-bg-shadow{display:none;position:absolute;left:-.25em;top:-.25em;bottom:-.25em;right:-.25em;border-radius:.25em;pointer-events:none}.xl-site-tag.xl-site-tag-active>.xl-site-tag-bg-shadow{z-index:4}.xl-site-tag.xl-site-tag-active>.xl-site-tag-bg>.xl-site-tag-bg-inner,.xl-site-tag.xl-site-tag-active>.xl-site-tag-text{z-index:6}.xl-site-tag.xl-site-tag-active>.xl-site-tag-bg,.xl-site-tag.xl-site-tag-active>.xl-site-tag-bg-shadow{display:block}.xl-site-tag-bg-inner,.xl-site-tag-bg-inner:after{display:block;position:absolute;left:0;top:0;bottom:0;right:0;border-radius:.25em}.xl-popup-align,.xl-popup-aligner:before{display:inline-block;vertical-align:middle}.xl-site-tag-bg-inner:after{background-color:rgba(0,0,0,.05)}.xl-site-tag-bg-inner.xl-theme-dark:after{background-color:rgba(255,255,255,.05)}.xl-site-tag[data-xl-actions-vpos=above]>.xl-site-tag-bg,.xl-site-tag[data-xl-actions-vpos=above]>.xl-site-tag-bg-shadow,.xl-site-tag[data-xl-actions-vpos=above]>.xl-site-tag-bg>.xl-site-tag-bg-inner,.xl-site-tag[data-xl-actions-vpos=above]>.xl-site-tag-bg>.xl-site-tag-bg-inner:after{border-top-left-radius:0;border-top-right-radius:0}.xl-site-tag[data-xl-actions-vpos=below]>.xl-site-tag-bg,.xl-site-tag[data-xl-actions-vpos=below]>.xl-site-tag-bg-shadow,.xl-site-tag[data-xl-actions-vpos=below]>.xl-site-tag-bg>.xl-site-tag-bg-inner,.xl-site-tag[data-xl-actions-vpos=below]>.xl-site-tag-bg>.xl-site-tag-bg-inner:after{border-bottom-left-radius:0;border-bottom-right-radius:0}.xl-site-tag-text{position:relative}.xl-link.xl-link-formatted{text-decoration:none!important}.xl-link-error-message{opacity:.75}.xl-link-page{font-weight:400;white-space:nowrap}.xl-nav-extras-mobile{text-align:center;margin:.5em 0}.xl-nav-link{cursor:pointer}.xl-hover-shadow{box-shadow:0 0 .125em 0 rgba(0,0,0,.5)}.xl-hover-shadow.xl-theme-dark{box-shadow:0 0 .125em 0 rgba(255,255,255,.5)}:root.xl-popup-overlaying,:root.xl-popup-overlaying body{overflow-x:hidden!important;overflow-y:hidden!important}.xl-popup-overlay{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(255,255,255,.5);z-index:400;overflow-x:auto;overflow-y:scroll}.xl-popup-overlay.xl-theme-dark{background:rgba(0,0,0,.5)}.xl-popup-aligner{position:absolute;left:0;top:0;right:0;bottom:0;white-space:nowrap;line-height:0;text-align:center}.xl-popup-aligner:before{width:0;height:100%}.xl-popup-align{white-space:normal;line-height:normal;text-align:left;padding:1em;margin:0;width:800px;min-width:60%;max-width:100%;box-sizing:border-box;-moz-box-sizing:border-box}.xl-popup-content{display:block;padding:1em;margin:0;width:100%;border:none;box-sizing:border-box;-moz-box-sizing:border-box;position:relative;border-radius:.5em;overflow:visible}.xl-popup-table{display:table;width:100%;height:100%}.xl-popup-row{display:table-row;width:100%;height:0}.xl-popup-row.xl-popup-row-body,.xl-popup-row.xl-popup-row-body>.xl-popup-cell{height:100%}.xl-popup-cell{display:table-cell;width:100%;height:0;vertical-align:top;text-align:left}.xl-popup-cell.xl-popup-cell-small{width:0;white-space:nowrap}.xl-popup-cell.xl-popup-cell-center{text-align:center}.xl-popup-cell.xl-popup-cell-right{text-align:right}.xl-popup-cell.xl-popup-cell-middle{vertical-align:middle}.xl-popup-cell.xl-popup-cell-bottom{vertical-align:bottom}.xl-popup-cell-size{position:relative;width:100%;height:100%}.xl-popup-cell-size-scroll{position:absolute;left:0;top:0;right:0;bottom:0;overflow:auto}.xl-popup-cell-size-padding{position:relative;padding:.375em;width:100%;min-height:100%;box-sizing:border-box;-moz-box-sizing:border-box}.xl-settings-popup-align{min-height:80%;height:200px}.xl-settings-popup-content{position:relative;height:100%}.xl-settings-button{margin:0 .25em;display:inline-block!important;vertical-align:middle;padding:.25em;background:rgba(0,0,0,.05);border-radius:.2em;text-decoration:none!important;cursor:pointer;font-size:inherit!important;line-height:normal!important;white-space:nowrap!important}.xl-settings-button.xl-theme-dark{background:rgba(255,255,255,.05)}.xl-settings-button-checkbox,.xl-settings-button-checkbox+.riceCheck{margin:0!important;padding:0!important;vertical-align:middle}.xl-settings-button-checkbox-text{display:none}.xl-settings-button-checkbox:checked~.xl-settings-button-checkbox-text:nth-of-type(1),.xl-settings-button-checkbox:not(:checked)~.xl-settings-button-checkbox-text:nth-of-type(2){display:inline}.xl-settings-title{font-size:2em!important;font-weight:700!important;text-decoration:none!important}.xl-settings-version{margin:0 .25em;opacity:.9;vertical-align:75%;text-decoration:none!important;color:inherit!important}.xl-settings-title-info,.xl-settings-version.xl-settings-version-large{margin:0;font-size:1.8em;vertical-align:baseline;opacity:1}.xl-settings-heading{display:table;width:100%;padding:.25em 0}.xl-settings-heading>div{display:table-row;height:100%}.xl-settings-heading-cell{display:table-cell;height:100%;width:100%}.xl-settings-heading-title{vertical-align:top;text-align:left;font-size:1.5em;font-weight:700;font-family:sans-serif;white-space:nowrap;width:0}.xl-settings-heading-subtitle{vertical-align:bottom;text-align:right;padding-left:.5em;opacity:.6}.xl-settings-group{border:1px solid rgba(0,0,0,.2);border-radius:.25em;padding:.125em;box-sizing:border-box;-moz-box-sizing:border-box}.xl-settings-group.xl-theme-dark{border-color:rgba(255,255,255,.2)}.xl-settings-group+.xl-settings-heading{margin-top:.75em}.xl-settings-entry-table{display:table;width:100%;padding:.375em .25em;box-sizing:border-box;-moz-box-sizing:border-box}.xl-settings-entry-row{display:table-row;height:100%}.xl-settings-entry-cell{vertical-align:middle;text-align:left;display:table-cell;width:100%;height:100%}.xl-settings-entry-cell:last-of-type:not(:first-of-type){vertical-align:middle;text-align:right;width:0}.xl-settings-entry+.xl-settings-entry{border-top:.125em solid transparent}.xl-settings-entry:nth-child(even)>.xl-settings-entry-table{background-color:rgba(0,0,0,.05)}.xl-settings-entry:nth-child(odd)>.xl-settings-entry-table{background-color:rgba(0,0,0,.025)}.xl-settings-entry.xl-theme-dark:nth-child(even)>.xl-settings-entry-table{background-color:rgba(255,255,255,.05)}.xl-settings-entry.xl-theme-dark:nth-child(odd)>.xl-settings-entry-table{background-color:rgba(255,255,255,.025)}input.xl-settings-entry-input[type=text]{width:8em}button.xl-settings-entry-input,input.xl-settings-entry-input[type=text],select.xl-settings-entry-input{min-width:8em;box-sizing:border-box;-moz-box-sizing:border-box;padding:.0625em .125em!important;margin:0!important;font-size:inherit!important;font-family:inherit!important;line-height:1.3em!important}select.xl-settings-entry-input{width:auto;height:auto}label.xl-settings-entry-label{cursor:pointer;margin-bottom:0}.xl-settings-filter-guide-toggle{cursor:pointer;text-decoration:none!important}.xl-settings-filter-guide{margin-bottom:.25em;padding:.375em}.xl-settings-filter-guide:not(.xl-settings-filter-guide-visible){display:none}.xl-settings-popup-content ul{padding:0;margin:1em 0;list-style-type:disc!important}.xl-settings-popup-content ul>li{margin:0 .5em 0 2em}.xl-settings-popup-content ul>li+li{margin-top:1em}.xl-settings-popup-content ul>li.xl-settings-li-no-space{margin-top:0}.xl-settings-popup-content code{color:#000;background-color:#fff;font-family:Courier,monospace!important}.xl-settings-popup-content.xl-theme-dark code{color:#fff;background-color:#000;font-family:Courier,monospace!important}.xl-settings-color-input{padding:.25em!important;margin:0 1em 0 0!important;display:inline-block;vertical-align:middle!important;line-height:1.5em!important;height:2em!important;width:8em!important;box-sizing:border-box!important;-moz-box-sizing:border-box!important;cursor:text!important}.xl-settings-color-input:first-of-type{cursor:pointer!important}.xl-settings-color-input:last-of-type{width:11em!important}.xl-settings-export-textarea,textarea.xl-settings-entry-input{display:block;width:100%;height:15em;line-height:1.3em;padding:.5em!important;margin:0!important;box-sizing:border-box;-moz-box-sizing:border-box;resize:vertical;font-size:.9em!important;font-family:Courier,monospace!important}button.xl-settings-entry-input{float:right;padding:.125em .25em;margin:0;box-sizing:border-box;-moz-box-sizing:border-box;background-color:transparent;border:1px solid rgba(0,0,0,.25);border-radius:.25em;font-size:inherit;font-family:inherit;color:inherit;cursor:pointer}button.xl-settings-entry-input:hover{border-color:rgba(0,0,0,.5)}button.xl-settings-entry-input.xl-theme-dark{border-color:rgba(255,255,255,.25)}button.xl-settings-entry-input.xl-theme-dark:hover{border-color:rgba(255,255,255,.5)}.xl-settings-export-textarea{height:100%;resize:none}.xl-settings-export-textarea.xl-settings-export-textarea-error{border-color:#f00000!important;color:#f00000!important}.xl-settings-export-textarea.xl-settings-export-textarea-changed{color:#0080f0!important}.xl-settings-export-textarea.xl-settings-export-textarea-changed.xl-theme-dark{color:#80b0ff!important}.xl-settings-file-input{display:inline-block;display:none;visibility:hidden;opacity:0;width:0;height:0}.xl-settings-export-message{line-height:1.6em}.xl-settings-export-label{display:inline-block;margin:0;padding:0}.xl-settings-export-checkbox,.xl-settings-export-checkbox:checked~.xl-settings-export-label-text:first-of-type,.xl-settings-export-checkbox:not(:checked)~.xl-settings-export-label-text:not(:first-of-type){display:none}.xl-settings-export-label-text:first-of-type{opacity:.6}.xl-easylist-title{margin-left:-2em}.xl-easylist-title-text{display:inline-block;font-size:2em;font-weight:700;margin-left:1em}.xl-easylist-subtitle{display:inline-block;opacity:.8;margin-left:2em}.xl-easylist-title-line{border-bottom:1px solid grey;margin:.5em 0}.xl-easylist-control-links{position:absolute;top:0;right:0}.xl-easylist-control-link{display:inline-block;padding:.5em;cursor:pointer;opacity:.5;text-decoration:none!important}.xl-easylist-empty-notification.xl-easylist-empty-notification-visible+.xl-easylist-items,.xl-easylist-empty-notification:not(.xl-easylist-empty-notification-visible),.xl-easylist-item.xl-easylist-item-hidden{display:none}.xl-easylist-control-link.xl-easylist-control-link-focus,.xl-easylist-control-link:hover{opacity:1}.xl-easylist-control-link+.xl-easylist-control-link{margin-left:.5em}.xl-easylist-empty-notification{text-align:center;font-size:2em;font-style:italic;padding:2em}.xl-easylist-items{border-radius:.5em;border:1px solid rgba(0,0,0,.25);box-sizing:border-box;-moz-box-sizing:border-box;overflow:hidden}.xl-easylist-items.xl-theme-dark{border:1px solid rgba(255,255,255,.25)}.xl-easylist-item{background-color:rgba(0,0,0,.03125)}.xl-easylist-item[data-xl-easylist-item-parity=even]{background-color:rgba(0,0,0,.0625)}.xl-easylist-item.xl-theme-dark{background-color:rgba(255,255,255,.03125)}.xl-easylist-item.xl-theme-dark[data-xl-easylist-item-parity=even]{background-color:rgba(255,255,255,.0625)}.xl-easylist-item-table-container{padding:.5em;position:relative;box-sizing:border-box;-moz-box-sizing:border-box}.xl-easylist-item-table{display:table;width:100%}.xl-easylist-item-row{display:table-row}.xl-easylist-item-cell{display:table-cell;width:100%;vertical-align:top;padding:0 .5em}.xl-easylist-item-cell.xl-easylist-item-cell-image,.xl-easylist-item-cell.xl-easylist-item-cell-side{width:0;padding:0}.xl-easylist-item-image-container{display:block;margin:0;padding:0;border:none;width:140px;height:200px;background-color:rgba(0,0,0,.03125);text-align:center;white-space:nowrap;line-height:0}.xl-easylist-item-image-container:after{display:inline-block;vertical-align:middle;width:0;height:100%}.xl-easylist-item-image-container.xl-theme-dark{background-color:rgba(255,255,255,.03125)}.xl-easylist-item-image-outer{display:inline-block;vertical-align:middle;position:relative;line-height:normal;white-space:normal}.xl-easylist-item-image{margin:0!important;padding:0!important;border:none!important;display:inline-block;vertical-align:middle;max-width:140px;max-height:200px}.xl-easylist-item-image-index{display:block;position:absolute;left:0;top:0;padding:.25em;color:#000;text-shadow:0 0 .125em #fff,0 0 .25em #fff}.xl-easylist-item-image-index.xl-theme-dark{color:#fff;text-shadow:0 0 .125em #000,0 0 .25em #000}.xl-easylist-item-info{display:inline-block;padding:0 0 .5em .5em;width:4.8em}.xl-easylist-item-info-item{font-size:.825em;margin-top:1em;text-align:center;max-width:100%;border-radius:.5em;padding:.375em 0;background-color:rgba(0,0,0,.125);box-shadow:0 0 .5em rgba(0,0,0,.125);text-shadow:0 .1em 0 rgba(255,255,255,.5)}.xl-easylist-item-tags,.xl-easylist-item-upload-info,.xl-easylist-option-group+.xl-easylist-option-group{margin-top:.5em}.xl-easylist-item-info-item.xl-theme-dark{background-color:rgba(255,255,255,.125);box-shadow:0 0 .5em rgba(255,255,255,.125);text-shadow:0 .1em 0 rgba(0,0,0,.5)}.xl-easylist-item-info-light{opacity:.8}.xl-easylist-item-info-button{text-decoration:none!important}.xl-easylist-item-title{font-size:1.5em;font-weight:700}.xl-easylist-item-title:hover{text-shadow:0 0 .25em #fff}.xl-easylist-item-title.xl-theme-dark:hover{text-shadow:0 0 .25em #000}.xl-easylist-item-title-link{text-decoration:none!important}.xl-easylist-item-title-tag-link{text-decoration:none!important;margin-right:.25em;display:none}.xl-easylist-item-title-jp{opacity:.5;font-size:1.1em;display:block}.xl-easylist-item-upload-date,.xl-easylist-item-uploader{font-weight:700;display:inline-block;padding:0 .25em}.xl-easylist-item-tag-table{display:table;width:100%}.xl-easylist-item-tag-row{display:table-row}.xl-easylist-item-tag-row+.xl-easylist-item-tag-row>.xl-easylist-item-tag-cell{padding-top:.25em}.xl-easylist-item-tag-cell{display:table-cell;width:100%}.xl-easylist-compact .xl-easylist-item-info-item.xl-easylist-item-info-item-files>:not(:first-child),.xl-easylist-compact .xl-easylist-item-info-item.xl-easylist-item-info-item-rating>:not(:first-child),.xl-easylist-compact .xl-easylist-item-title-jp,.xl-easylist-compact .xl-easylist-item-upload-info{display:none}.xl-easylist-item-tag-cell.xl-easylist-item-tag-cell-label{width:0;white-space:nowrap;text-align:right;padding-right:.25em}.xl-easylist-compact .xl-easylist-item-image-container{width:70px;height:100px}.xl-easylist-compact .xl-easylist-item-image{max-width:70px;max-height:100px}.xl-easylist-compact .xl-easylist-item-title{font-size:1em;line-height:1.25em;max-height:2.5em;overflow:hidden;position:relative}.xl-easylist-compact .xl-easylist-item-title:hover{overflow:visible;z-index:1}.xl-easylist-compact .xl-easylist-item-tags{font-size:.9em}.xl-easylist-compact .xl-easylist-item-tag-row+.xl-easylist-item-tag-row>.xl-easylist-item-tag-cell{padding-top:0}.xl-easylist-compact .xl-easylist-item-tag-table{display:block;line-height:1.4em}.xl-easylist-compact .xl-easylist-item-tag-row{display:inline}.xl-easylist-compact .xl-easylist-item-tag-row+.xl-easylist-item-tag-row:before{content:\"\";display:inline-block;width:1em;height:0}.xl-easylist-compact .xl-easylist-item-tag-cell{display:inline;width:auto}.xl-easylist-minimal .xl-easylist-item-cell-image,.xl-easylist-minimal .xl-easylist-item-info-item,.xl-easylist-minimal .xl-easylist-item-tags,.xl-easylist-minimal .xl-easylist-item-title-jp,.xl-easylist-minimal .xl-easylist-item-upload-info{display:none}.xl-easylist-compact .xl-easylist-item-tag-cell>.xl-tag-namespace-block.xl-tag-namespace-block-no-outline>.xl-tag-namespace{border-width:1px;border-style:solid}.xl-easylist-minimal .xl-easylist-item-cell{padding-left:0;vertical-align:middle}.xl-easylist-minimal .xl-easylist-item-cell-side{vertical-align:top}.xl-easylist-minimal .xl-easylist-item-title{font-size:1em;line-height:1.25em}.xl-easylist-minimal .xl-easylist-item-title-tag-link{display:inline-block}.xl-easylist-options:not(.xl-easylist-options-visible){display:none}.xl-easylist-option-table{display:table;width:100%}.xl-easylist-option-row{display:table-row}.xl-easylist-option-row+.xl-easylist-option-row>.xl-easylist-option-cell{padding-top:.5em}.xl-easylist-option-cell{display:table-cell;width:100%;vertical-align:top}.xl-easylist-option-cell:first-of-type{width:0;text-align:right}.xl-easylist-option-title{font-weight:700;margin-right:1em;display:inline-block;padding:.25em 0;border-top:1px solid transparent;border-bottom:1px solid transparent;white-space:nowrap}.xl-easylist-option-title-sub{max-width:100%;margin-right:1em;opacity:.9;white-space:normal}.xl-easylist-option-title-sub-text{font-size:.875em;line-height:1.1em}.xl-easylist-option-label{display:inline-block}.xl-easylist-option-label+.xl-easylist-option-label{margin-left:.5em}.xl-easylist-option-input,.xl-easylist-option-input+.riceCheck{display:none}.xl-easylist-option-button{display:inline-block;padding:.25em .5em;border-radius:.25em;background-color:rgba(255,255,255,.125);border:1px solid rgba(0,0,0,.0625);cursor:pointer}.xl-easylist-option-button:hover{border-color:rgba(0,0,0,.25)}.xl-easylist-option-button.xl-theme-dark{background-color:rgba(0,0,0,.125);border:1px solid rgba(255,255,255,.0625)}.xl-easylist-option-button.xl-theme-dark:hover{border-color:rgba(255,255,255,.25)}.xl-easylist-option-input:checked~.xl-easylist-option-button{background-color:rgba(255,255,255,.5);border-color:rgba(0,0,0,.25);color:#000}.xl-easylist-option-input:checked~.xl-easylist-option-button.xl-theme-dark{background-color:rgba(0,0,0,.5);border-color:rgba(255,255,255,.25);color:#fff}.xl-easylist-option-textarea{background-color:rgba(255,255,255,.125)!important;border:1px solid rgba(0,0,0,.0625)!important;margin:0!important;padding:.25em!important;box-sizing:border-box;-moz-box-sizing:border-box;width:100%;line-height:1.4em;height:4.8em;min-height:2em;resize:vertical;font-family:Courier,monospace!important}.xl-easylist-option-textarea:focus,.xl-easylist-option-textarea:hover{background-color:rgba(255,255,255,.5)!important;border-color:rgba(0,0,0,.25)!important}.xl-easylist-option-textarea.xl-theme-dark{background-color:rgba(0,0,0,.125)!important;border:1px solid rgba(255,255,255,.0625)!important;margin:0!important;padding:.25em!important}.xl-easylist-option-textarea.xl-theme-dark:focus,.xl-easylist-option-textarea.xl-theme-dark:hover{background-color:rgba(0,0,0,.5)!important;border-color:rgba(255,255,255,.25)!important}.xl-changelog-popup-align{min-height:80%;height:200px}.xl-changelog-popup-content{position:relative;height:100%}.xl-changelog-message-container{position:absolute;left:0;top:0;right:0;bottom:0;text-align:center;line-height:0;white-space:nowrap}.xl-changelog-message-container:before{display:inline-block;vertical-align:middle;width:0;height:100%}.xl-changelog-message{text-align:left;line-height:normal;white-space:normal;display:inline-block;vertical-align:middle}.xl-changelog-entry-user-name,.xl-changelog-entry-version{font-weight:700;line-height:1.4em}.xl-changelog-entries{padding:.375em}.xl-changelog-entry+.xl-changelog-entry{margin-top:1em}.xl-changelog-entry-version{font-size:1.25em}.xl-changelog-entry-users{margin-left:1em}.xl-changelog-entry-user+.xl-changelog-entry-user{margin-top:.5em}.xl-changelog-entry-changes{margin:0 0 0 1.5em!important;padding:0!important;list-style-type:disc!important}.xl-changelog-entry-change{margin:0!important;padding:0!important}.xl-changelog-entry-change+.xl-changelog-entry-change{margin-top:.5em!important}.xl-header-bar-link{vertical-align:bottom;cursor:pointer}.xl-header-bar-link.xl-appchanx,.xl-header-bar-svg{vertical-align:middle}.xl-header-bar-svg{width:1.2em;height:1.16em;display:inline-block;fill:#000;stroke:none}.xl-header-bar-link.xl-appchanx>.xl-header-bar-svg{width:100%;height:100%}";
 			$.add(d.head, style);
 
 			Theme.ready();
@@ -9324,12 +10099,7 @@
 
 			Debug.timer_log("init.ready duration", "init");
 
-			Linkifier.queue_posts(Post.get_all_posts(d), Linkifier.queue_posts.Flags.UseDelay);
-
-			if (Config.dynamic) {
-				updater = new MutationObserver(on_body_observe);
-				updater.observe(d.body, { childList: true, subtree: true });
-			}
+			start_processing(ExtensionAPI.should_defer_processing());
 
 			HeaderBar.ready();
 
@@ -9504,15 +10274,43 @@
 			font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
 			$.add(d.head, font);
 		};
+		var start_processing = function (defer) {
+			if (processing_started) return;
+
+			// Stop timer
+			if (processing_start_timer !== null) {
+				clearTimeout(processing_start_timer);
+				processing_start_timer = null;
+			}
+
+			if (defer) {
+				// Wait
+				processing_start_timer = setTimeout(function () {
+					start_processing(false);
+				}, 5000);
+			}
+			else {
+				// Start processing
+				processing_started = true;
+
+				Linkifier.queue_posts(Post.get_all_posts(d), Linkifier.queue_posts.Flags.UseDelay);
+
+				if (Config.dynamic) {
+					var updater = new MutationObserver(on_body_observe);
+					updater.observe(d.body, { childList: true, subtree: true });
+				}
+			}
+		};
 
 		// Exports
 		var Module = {
 			homepage: "https://dnsev-h.github.io/x-links/",
-			version: [1,2,1,2],
+			version: [1,2,2],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
-			insert_custom_fonts: insert_custom_fonts
+			insert_custom_fonts: insert_custom_fonts,
+			start_processing: start_processing
 		};
 
 		return Module;

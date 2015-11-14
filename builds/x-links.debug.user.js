@@ -2,7 +2,7 @@
 // @name        X-links (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.1.2.0xDB
+// @version     1.2.2.0xDB
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -295,6 +295,46 @@
 					set: function (v) { return parseFloat(v) || 0.0; }._w(3)
 				}
 			],
+			[ "opacity", 1.0,
+				"Opacity", "Opacity of the details display (as a percentage)",
+				null,
+				{
+					type: "textbox",
+					get: function (v) {
+						return "" + (v * 100);
+					}._w(4),
+					set: function (v) {
+						v = parseFloat(v);
+						if (isNaN(v)) {
+							v = 1.0;
+						}
+						else {
+							v = Math.max(0, Math.min(1, v / 100.0));
+						}
+						return v;
+					}._w(5)
+				}
+			],
+			[ "opacity_bg", 0.93,
+				"Background opacity", "Opacity of the details display background (as a percentage)",
+				null,
+				{
+					type: "textbox",
+					get: function (v) {
+						return "" + (v * 100);
+					}._w(6),
+					set: function (v) {
+						v = parseFloat(v);
+						if (isNaN(v)) {
+							v = 0.93;
+						}
+						else {
+							v = Math.max(0, Math.min(1, v / 100.0));
+						}
+						return v;
+					}._w(7)
+				}
+			],
 		],
 		actions: [
 			[ "enabled", true,
@@ -342,12 +382,12 @@
 				"Full Highlighting"
 			],
 			[ "good_tag_marker", "!",
-				"Good tag marker", "Text to mark a good [Ex]/[EH] tag with",
+				"Good tag marker", "Text to mark a [Site] tag with when a good filter is matched",
 				"Good Tag Marker",
 				{ type: "textbox" },
 			],
 			[ "bad_tag_marker", "",
-				"Bad tag marker", "Text to mark a bad [Ex]/[EH] tag with",
+				"Bad tag marker", "Text to mark a [Site] tag with when a bad filter is matched",
 				"Bad Tag Marker",
 				{ type: "textbox" },
 			],
@@ -380,7 +420,7 @@
 					if (config_old["Disable Caching"]) return "none";
 					if (config_old["Disable Local Storage Cache"]) return "session";
 					return "local";
-				}._w(4),
+				}._w(8),
 				{
 					type: "select",
 					options: [ // [ value, label_text, description? ]
@@ -409,7 +449,7 @@
 					nextSibling: node.nextSibling,
 					previousSibling: node.previousSibling
 				}]);
-			}._w(6);
+			}._w(10);
 			var on_body_node_remove = function (event) {
 				var node = event.target;
 				this.callback.call(this, [{
@@ -419,21 +459,21 @@
 					nextSibling: node.nextSibling,
 					previousSibling: node.previousSibling
 				}]);
-			}._w(7);
+			}._w(11);
 
 			MutationObserver = function (callback) {
 				this.on_body_node_add = $.bind(on_body_node_add, this);
 				this.on_body_node_remove = $.bind(on_body_node_remove, this);
 				this.callback = callback;
 				this.nodes = [];
-			}._w(8);
+			}._w(12);
 			MutationObserver.prototype.observe = function (node, data) {
 				this.nodes.push(node);
 				if (data.childList) {
 					$.on(node, "DOMNodeInserted", this.on_body_node_add);
 					$.on(node, "DOMNodeRemoved", this.on_body_node_remove);
 				}
-			}._w(9);
+			}._w(13);
 			MutationObserver.prototype.disconnect = function () {
 				var node, i, ii;
 				for (i = 0, ii = this.nodes.length; i < ii; ++i) {
@@ -442,23 +482,24 @@
 					$.off(node, "DOMNodeRemoved", this.on_body_node_remove);
 				}
 				this.nodes = [];
-			}._w(10);
+			}._w(14);
 		}
 
 		return MutationObserver;
 
-	}._w(5))();
+	}._w(9))();
 	var $$ = function (selector, root) {
 		return (root || d).querySelectorAll(selector);
-	}._w(11);
+	}._w(15);
 	var $ = (function () {
 
-		var re_short_domain = /^(?:[\w\-]+):\/*(?:[\w-]+\.)*([\w-]+\.[\w]+)/i,
+		var re_full_domain = /^(?:[\w\-]+):\/*((?:[\w\-]+\.)+[\w\-]+)/i,
+			re_short_domain = /^(?:[\w\-]+):\/*(?:[\w\-]+\.)*([\w\-]+\.[\w\-]+)/i,
 			re_change_domain = /^([\w\-]+:\/*)([\w\-]+(?:\.[\w\-]+)*)([\w\W]*)$/i;
 
 		var Module = function (selector, root) {
 			return (root || d).querySelector(selector);
-		}._w(13);
+		}._w(17);
 
 		Module.ready = (function () {
 
@@ -494,7 +535,7 @@
 				}
 
 				return false;
-			}._w(15);
+			}._w(19);
 
 			window.addEventListener("load", callback_check, false);
 			window.addEventListener("DOMContentLoaded", callback_check, false);
@@ -510,9 +551,9 @@
 						check_interval = setInterval(callback_check, check_interval_time);
 					}
 				}
-			}._w(16);
+			}._w(20);
 
-		}._w(14))();
+		}._w(18))();
 
 		Module.frag = function (content) {
 			var frag = d.createDocumentFragment(),
@@ -525,28 +566,28 @@
 				frag.appendChild(n);
 			}
 			return frag;
-		}._w(17);
+		}._w(21);
 		Module.prepend = function (parent, child) {
 			return parent.insertBefore(child, parent.firstChild);
-		}._w(18);
+		}._w(22);
 		Module.add = function (parent, child) {
 			return parent.appendChild(child);
-		}._w(19);
+		}._w(23);
 		Module.before = function (root, next, node) {
 			return root.insertBefore(node, next);
-		}._w(20);
+		}._w(24);
 		Module.after = function (root, prev, node) {
 			return root.insertBefore(node, prev.nextSibling);
-		}._w(21);
+		}._w(25);
 		Module.replace = function (root, elem) {
 			return root.parentNode.replaceChild(elem, root);
-		}._w(22);
+		}._w(26);
 		Module.remove = function (elem) {
 			return elem.parentNode.removeChild(elem);
-		}._w(23);
+		}._w(27);
 		Module.tnode = function (text) {
 			return d.createTextNode(text);
-		}._w(24);
+		}._w(28);
 		Module.node = function (tag, class_name, text) {
 			var elem = d.createElement(tag);
 			elem.className = class_name;
@@ -554,15 +595,15 @@
 				elem.textContent = text;
 			}
 			return elem;
-		}._w(25);
+		}._w(29);
 		Module.node_ns = function (namespace, tag, class_name) {
 			var elem = d.createElementNS(namespace, tag);
 			elem.setAttribute("class", class_name);
 			return elem;
-		}._w(26);
+		}._w(30);
 		Module.node_simple = function (tag) {
 			return d.createElement(tag);
-		}._w(27);
+		}._w(31);
 		Module.link = function (href, class_name, text) {
 			var elem = d.createElement("a");
 			if (href !== undefined) {
@@ -577,7 +618,7 @@
 				elem.textContent = text;
 			}
 			return elem;
-		}._w(28);
+		}._w(32);
 		Module.on = function (elem, eventlist, handler) {
 			var event, i, ii;
 			if (eventlist instanceof Array) {
@@ -589,7 +630,7 @@
 			else {
 				elem.addEventListener(eventlist, handler, false);
 			}
-		}._w(29);
+		}._w(33);
 		Module.off = function (elem, eventlist, handler) {
 			var event, i, ii;
 			if (eventlist instanceof Array) {
@@ -601,7 +642,7 @@
 			else {
 				elem.removeEventListener(eventlist, handler, false);
 			}
-		}._w(30);
+		}._w(34);
 		Module.test = function (elem, selector) {
 			try {
 				if (elem.matches) return elem.matches(selector);
@@ -609,7 +650,7 @@
 			}
 			catch (e) {}
 			return false;
-		}._w(31);
+		}._w(35);
 		Module.unwrap = function (node) {
 			var par = node.parentNode,
 				next, n;
@@ -621,7 +662,7 @@
 				}
 				par.removeChild(node);
 			}
-		}._w(32);
+		}._w(36);
 
 		Module.scroll_focus = function (element) {
 			// Focus
@@ -634,13 +675,13 @@
 			// Scroll to top
 			element.scrollTop = 0;
 			element.scrollLeft = 0;
-		}._w(33);
+		}._w(37);
 		Module.clamp = function (value, min, max) {
 			return Math.min(max, Math.max(min, value));
-		}._w(34);
+		}._w(38);
 		Module.is_left_mouse = function (event) {
 			return (event.which === undefined || event.which === 1);
-		}._w(35);
+		}._w(39);
 		Module.push_many = function (target, new_entries) {
 			var max_push = 1000;
 			if (new_entries.length < max_push) {
@@ -651,7 +692,7 @@
 					Array.prototype.push.apply(target, Array.prototype.slice.call(new_entries, i, i + max_push));
 				}
 			}
-		}._w(36);
+		}._w(40);
 		Module.bind = function (fn, self) {
 			if (arguments.length > 2) {
 				var args = Array.prototype.slice.call(arguments, 2);
@@ -661,14 +702,14 @@
 					Array.prototype.push.apply(full_args, arguments);
 
 					return fn.apply(self, full_args);
-				}._w(38);
+				}._w(42);
 			}
 			else {
 				return function () {
 					return fn.apply(self, arguments);
-				}._w(39);
+				}._w(43);
 			}
-		}._w(37);
+		}._w(41);
 
 		var mouseenterleave_event_validate = function (parent) {
 			try {
@@ -679,12 +720,12 @@
 			}
 			catch (e) {}
 			return false;
-		}._w(40);
+		}._w(44);
 		Module.wrap_mouseenterleave_event = function (fn) {
 			return function (event) {
 				return mouseenterleave_event_validate.call(this, event.relatedTarget) ? fn.call(this, event) : undefined;
-			}._w(42);
-		}._w(41);
+			}._w(46);
+		}._w(45);
 
 		var parse_url = function (url) {
 			var ret = {
@@ -726,7 +767,7 @@
 			}
 
 			return ret;
-		}._w(43);
+		}._w(47);
 		Module.resolve = function (url, from) {
 			var url_loc = parse_url(url || ""),
 				from_loc = parse_url(from !== undefined ? from : window.location.href),
@@ -758,7 +799,7 @@
 			if (url_loc.hash !== null) url += url_loc.hash;
 
 			return url;
-		}._w(44);
+		}._w(48);
 
 		Module.create_regex_safe = function (text, flags) {
 			try {
@@ -767,10 +808,10 @@
 			catch (e) {
 				return null;
 			}
-		}._w(45);
+		}._w(49);
 		Module.regex_escape = function (text) {
 			return text.replace(/[\$\(\)\*\+\-\.\/\?\[\\\]\^\{\|\}]/g, "\\$&");
-		}._w(46);
+		}._w(50);
 		Module.json_parse_safe = function (text, def) {
 			try {
 				return JSON.parse(text);
@@ -778,7 +819,7 @@
 			catch (e) {
 				return def;
 			}
-		}._w(47);
+		}._w(51);
 		Module.html_parse_safe = function (text, def) {
 			try {
 				return (new DOMParser()).parseFromString(text, "text/html");
@@ -786,25 +827,29 @@
 			catch (e) {
 				return def;
 			}
-		}._w(48);
+		}._w(52);
 		Module.get_domain = function (url) {
 			var m = re_short_domain.exec(url);
 			return (m === null) ? "" : m[1].toLowerCase();
-		}._w(49);
+		}._w(53);
+		Module.get_full_domain = function (url) {
+			var m = re_full_domain.exec(url);
+			return (m === null) ? "" : m[1].toLowerCase();
+		}._w(54);
 		Module.change_url_domain = function (url, new_domain) {
 			var m = re_change_domain.exec(url);
 			return (m === null) ? url : m[1] + new_domain + m[3];
-		}._w(50);
+		}._w(55);
 
 		return Module;
 
-	}._w(12))();
+	}._w(16))();
 	var Debug = (function () {
 
 		var started = false,
 			timer_names = null;
 
-		var dummy_fn = function () {}._w(52);
+		var dummy_fn = function () {}._w(57);
 		var log = dummy_fn;
 		var timer_log = function (label, timer) {
 			var t = timing(),
@@ -816,7 +861,7 @@
 
 			if (!started) return [ label, value ];
 			log(label, value);
-		}._w(53);
+		}._w(58);
 
 		var init = function () {
 			started = true;
@@ -834,7 +879,7 @@
 			log = function () {
 				var args = [ "X-links " + Main.version.join(".") + ":" ].concat(Array.prototype.slice.call(arguments));
 				console.log.apply(console, args);
-			}._w(55);
+			}._w(60);
 			Module.log = log;
 			Module.timer = function (name, dont_format) {
 				var t1 = timing(),
@@ -847,8 +892,8 @@
 					return (t2 === undefined) ? -1 : (t1 - t2);
 				}
 				return (t2 === undefined) ? "???ms" : (t1 - t2).toFixed(3) + "ms";
-			}._w(56);
-		}._w(54);
+			}._w(61);
+		}._w(59);
 
 		// Exports
 		var Module = {
@@ -861,25 +906,25 @@
 
 		return Module;
 
-	}._w(51))();
+	}._w(56))();
 	var Post = (function () {
 
 		// Private
 		var file_ext = function (url) {
 			var m = /\.[^\.]*$/.exec(url);
 			return (m === null) ? "" : m[0].toLowerCase();
-		}._w(58);
+		}._w(63);
 		var file_name = function (url) {
 			url = url.split("/");
 			return url[url.length - 1];
-		}._w(59);
+		}._w(64);
 
 		var get_op_post_files_container_tinyboard = function (node) {
 			while (true) {
 				if ((node = node.previousSibling) === null) return null;
 				if (node.classList && node.classList.contains("files")) return node;
 			}
-		}._w(60);
+		}._w(65);
 
 		var post_selector = {
 			"4chan": ".postContainer,.post.inlined,#quote-preview",
@@ -913,13 +958,13 @@
 					if (node.classList.contains("post") && (node.classList.contains("inlined") || node.id === "quote-preview")) return node;
 				}
 				return null;
-			}._w(61),
+			}._w(66),
 			"foolz": function (node) {
 				while ((node = node.parentNode) !== null) {
 					if (node.tagName === "ARTICLE") return node;
 				}
 				return null;
-			}._w(62),
+			}._w(67),
 			"fuuka": function (node) {
 				while ((node = node.parentNode) !== null) {
 					if (
@@ -930,7 +975,7 @@
 					}
 				}
 				return null;
-			}._w(63),
+			}._w(68),
 			"tinyboard": function (node) {
 				while ((node = node.parentNode) !== null) {
 					if (node.classList.contains("post")) {
@@ -941,19 +986,19 @@
 					}
 				}
 				return null;
-			}._w(64),
+			}._w(69),
 			"ipb": function (node) {
 				while ((node = node.parentNode) !== null) {
 					if (node.classList.contains("borderwrap")) return node;
 				}
 				return null;
-			}._w(65),
+			}._w(70),
 			"ipb_lofi": function (node) {
 				while ((node = node.parentNode) !== null) {
 					if (node.classList.contains("postwrapper")) return node;
 				}
 				return null;
-			}._w(66)
+			}._w(71)
 		};
 		var get_file_info = {
 			"4chan": function (post) {
@@ -982,7 +1027,7 @@
 					name: file_name(url),
 					md5: img.getAttribute("data-md5") || null
 				}];
-			}._w(67),
+			}._w(72),
 			"foolz": function (post) {
 				var n, ft, img, a1, url, i;
 
@@ -1009,7 +1054,7 @@
 					name: file_name(url),
 					md5: img.getAttribute("data-md5") || null
 				}];
-			}._w(68),
+			}._w(73),
 			"fuuka": function (post) {
 				var n, img, a1, url, i;
 
@@ -1035,7 +1080,7 @@
 					name: file_name(url),
 					md5: img.getAttribute("data-md5") || null
 				}];
-			}._w(69),
+			}._w(74),
 			"tinyboard": function (post) {
 				var results = [],
 					imgs, infos, img, array, ft, a1, n, url, i, ii, j;
@@ -1090,17 +1135,17 @@
 				}
 
 				return results;
-			}._w(70),
+			}._w(75),
 			"ipb": function () {
 				return [];
-			}._w(71),
+			}._w(76),
 			"ipb_lofi": function () {
 				return [];
-			}._w(72)
+			}._w(77)
 		};
 		var belongs_to_default = function (node, post) {
 			return (Module.get_post_container(node) === post);
-		}._w(73);
+		}._w(78);
 		var belongs_to_re_non_digit = /\D+/g;
 		var belongs_to = {
 			"4chan": function (node, post) {
@@ -1108,7 +1153,7 @@
 					id2 = post.id.replace(belongs_to_re_non_digit, "");
 
 				return (id1 && id1 === id2);
-			}._w(74),
+			}._w(79),
 			"foolz": belongs_to_default,
 			"fuuka": belongs_to_default,
 			"tinyboard": belongs_to_default,
@@ -1119,7 +1164,7 @@
 			var par = file_info.options;
 			$.add(par, $.tnode(" "));
 			$.add(par, node);
-		}._w(75);
+		}._w(80);
 		var create_image_meta_link = {
 			"4chan": create_image_meta_link_default,
 			"foolz": function (file_info, node) {
@@ -1133,7 +1178,7 @@
 				node.classList.add("btnr");
 				node.classList.add("parent");
 				$.before(par, next, node);
-			}._w(76),
+			}._w(81),
 			"fuuka": function (file_info, node) {
 				var par = file_info.options,
 					t = " [",
@@ -1158,7 +1203,7 @@
 
 				$.before(par, next, node);
 				$.before(par, next, $.tnode("]"));
-			}._w(77),
+			}._w(82),
 			"tinyboard": create_image_meta_link_default,
 			"ipb": create_image_meta_link_default,
 			"ipb_lofi": create_image_meta_link_default
@@ -1168,86 +1213,86 @@
 		var Module = {
 			get_post_container: function (node) {
 				return post_parent_find[Config.mode].call(null, node);
-			}._w(78),
+			}._w(83),
 			get_text_body: function (node) {
 				return $(post_body_selector[Config.mode], node);
-			}._w(79),
+			}._w(84),
 			is_post: function (node) {
 				return $.test(node, post_selector[Config.mode]);
-			}._w(80),
+			}._w(85),
 			get_all_posts: function (parent) {
 				return $$(post_selector[Config.mode], parent);
-			}._w(81),
+			}._w(86),
 			get_file_info: function (post) {
 				return get_file_info[Config.mode].call(null, post);
-			}._w(82),
+			}._w(87),
 			get_body_links: function (post) {
 				return $$(body_links_selector[Config.mode], post);
-			}._w(83),
+			}._w(88),
 			create_image_meta_link: function (file_info, node) {
 				return create_image_meta_link[Config.mode].call(null, file_info, node);
-			}._w(84),
+			}._w(89),
 			get_op_post_files_container_tinyboard: get_op_post_files_container_tinyboard
 		};
 
 		return Module;
 
-	}._w(57))();
+	}._w(62))();
 	var CreateURL = (function () {
 
 		// Private
 		var to_gallery = {
 			ehentai: function (data, domain) {
 				return "http://" + domain + "/g/" + data.gid + "/" + data.token + "/";
-			}._w(86),
+			}._w(91),
 			nhentai: function (data) {
 				return "http://" + domains.nhentai + "/g/" + data.gid + "/";
-			}._w(87),
+			}._w(92),
 			hitomi: function (data) {
 				return "https://" + domains.hitomi + "/galleries/" + data.gid + ".html";
-			}._w(88)
+			}._w(93)
 		};
 		var to_uploader = {
 			ehentai: function (data, domain) {
 				return "http://" + domain + "/uploader/" + (data.uploader || "Unknown").replace(/\s+/g, "+");
-			}._w(89),
+			}._w(94),
 			nhentai: function () {
 				return "http://" + domains.nhentai + "/";
-			}._w(90),
+			}._w(95),
 			hitomi: function () {
 				return "https://" + domains.hitomi + "/";
-			}._w(91)
+			}._w(96)
 		};
 		var to_category = {
 			ehentai: function (data, domain) {
 				return "http://" + domain + "/" + API.get_category(data.category).short_name;
-			}._w(92),
+			}._w(97),
 			nhentai: function (data) {
 				return "http://" + domains.nhentai + "/category/" + data.category.toLowerCase() + "/";
-			}._w(93),
+			}._w(98),
 			hitomi: function (data) {
 				return "https://" + domains.hitomi + "/type/" + data.category.toLowerCase() + "-all-1.html";
-			}._w(94)
+			}._w(99)
 		};
 		var to_tag = {
 			ehentai: function (tag, domain) {
 				return "http://" + domain + "/tag/" + tag.replace(/\s+/g, "+");
-			}._w(95),
+			}._w(100),
 			nhentai: function (tag, domain) {
 				return "http://" + domain + "/tag/" + tag.replace(/\s+/g, "-") + "/";
-			}._w(96),
+			}._w(101),
 			hitomi: function (tag, domain) {
 				return "https://" + domain + "/tag/" + tag + "-all-1.html";
-			}._w(97)
+			}._w(102)
 		};
 		var to_tag_ns = {
 			ehentai: function (tag, namespace, domain) {
 				return "http://" + domain + "/tag/" + namespace + ":" + tag.replace(/\s+/g, "+");
-			}._w(98),
+			}._w(103),
 			nhentai: function (tag, namespace, domain) {
 				if (namespace === "tags") namespace = "tag";
 				return "http://" + domain + "/" + namespace + "/" + tag.replace(/\s+/g, "-") + "/";
-			}._w(99),
+			}._w(104),
 			hitomi: function (tag, namespace, domain) {
 				if (namespace === "male" || namespace === "female") {
 					return "https://" + domain + "/tag/" + namespace + ":" + tag + "-all-1.html";
@@ -1264,29 +1309,29 @@
 				else {
 					return "https://" + domain + "/tag/" + tag + "-all-1.html";
 				}
-			}._w(100)
+			}._w(105)
 		};
 
 		// Exports
 		return {
 			to_gallery: function (data, domain) {
 				return to_gallery[data.type].call(null, data, domain);
-			}._w(101),
+			}._w(106),
 			to_uploader: function (data, domain) {
 				return to_uploader[data.type].call(null, data, domain);
-			}._w(102),
+			}._w(107),
 			to_category: function (data, domain) {
 				return to_category[data.type].call(null, data, domain);
-			}._w(103),
+			}._w(108),
 			to_tag: function (tag, domain_type, domain) {
 				return to_tag[domain_type].call(null, tag, domain);
-			}._w(104),
+			}._w(109),
 			to_tag_ns: function (tag, namespace, domain_type, domain) {
 				return to_tag_ns[domain_type].call(null, tag, namespace, domain);
-			}._w(105)
+			}._w(110)
 		};
 
-	}._w(85))();
+	}._w(90))();
 	var HttpRequest = (function () {
 
 		var gm_exists = false,
@@ -1314,8 +1359,8 @@
 
 				Debug.log.apply(Debug, args);
 				return callback.apply(this, arguments);
-			}._w(108);
-		}._w(107);
+			}._w(113);
+		}._w(112);
 
 		if (gm_exists) {
 			request = function (data) {
@@ -1347,7 +1392,7 @@
 				}
 
 				return GM_xmlhttpRequest(data);
-			}._w(109);
+			}._w(114);
 		}
 		else {
 			// Fallback
@@ -1357,15 +1402,15 @@
 				if (onerror !== null) {
 					setTimeout(function () {
 						onerror.call(null, {});
-					}._w(111), 1);
+					}._w(116), 1);
 				}
-			}._w(110);
+			}._w(115);
 		}
 
 		// Done
 		return request;
 
-	}._w(106))();
+	}._w(111))();
 	var UI = (function () {
 
 		// Private
@@ -1383,120 +1428,37 @@
 		};
 		var gallery_link_events = {
 			mouseover: $.wrap_mouseenterleave_event(function (event) {
-				var full_id = get_node_id_full(this),
-					details = details_nodes[full_id],
-					node = this,
-					info, data, thumb_state, thumb_cb;
+				var self = this,
+					info = API.get_url_info_saved(this.href);
 
-				if (
-					(info = API.get_url_info_saved(this.href)) === null ||
-					(data = API.get_data(info.site, info.gid)) === null
-				) {
-					Debug.log("Invalid link", { link: this, info: info, data: data });
-					return;
-				}
-
-				if (details === undefined) {
-					details = create_details(data, info);
-					details_nodes[full_id] = details;
-				}
-				if (Debug.enabled) {
-					var i = 1,
-						n = details;
-					while (n.parentNode !== document) {
-						if (!n.parentNode) {
-							Debug.log(
-								"Invalid details: parent[" + i + "] failed;",
-								{
-									link: this,
-									node: n,
-									parent: n.parentNode,
-									details: details,
-									full_id: full_id
-								}
-							);
-							break;
-						}
-						n = n.parentNode;
-						++i;
-					}
-				}
-
-				details.classList.remove("xl-details-hidden");
-				details.classList.remove("xl-details-has-thumbnail");
-				details.classList.remove("xl-details-has-thumbnail-visible");
+				if (info === null) return;
 
 				gallery_link_events_data.link = this;
 				gallery_link_events_data.mouse_x = event.clientX;
 				gallery_link_events_data.mouse_y = event.clientY;
 
-				update_details_position(details, this, event.clientX, event.clientY);
-
-				if (info.page !== undefined && info.page > 1) {
-					// Thumbnail processing
-					thumb_state = 0;
-					thumb_cb = function (err, thumb_data) {
-						if (err === null) {
-							API.get_thumbnail(thumb_data.url, thumb_data.flags, function (err, thumb_url) {
-								if (err === null && node === gallery_link_events_data.link) {
-									var n0, n1, n2;
-									if (
-										(n0 = $(".xl-details-page-thumbnail", details)) !== null &&
-										(n1 = $(".xl-details-page-thumbnail-size", n0)) !== null &&
-										(n2 = $(".xl-details-page-thumbnail-image", n1)) !== null
-									) {
-										n2.style.backgroundImage = "url('" + thumb_url + "')";
-
-										if (thumb_data.width > 0 && thumb_data.height > 0) {
-											// Small thumbnail
-											var max_width = 140,
-												max_height = 200,
-												max_ratio = max_height / max_width,
-												scale = (thumb_data.height / thumb_data.width > max_ratio) ? max_height / thumb_data.height : max_width / thumb_data.width;
-
-											n1.style.transform = "translate(-50%,-50%) scale(" + scale + ")";
-											n1.style.left = "50%";
-											n1.style.top = "50%";
-											n1.style.width = thumb_data.width + "px";
-											n1.style.height = thumb_data.height + "px";
-											n2.style.backgroundSize = "auto";
-											n2.style.backgroundPosition = (-thumb_data.left) + "px " + (-thumb_data.top) + "px";
-										}
-										else {
-											// Large thumbnail
-											n1.style.transform = "";
-											n1.style.left = "";
-											n1.style.top = "";
-											n1.style.width = "";
-											n1.style.height = "";
-											n2.style.backgroundSize = "";
-											n2.style.backgroundPosition = "";
-										}
-
-										// Animate
-										if (thumb_state === 1) {
-											Theme.get_computed_style(n0).getPropertyValue("transform");
-										}
-										details.classList.add("xl-details-has-thumbnail-visible");
+				API.get_data_from_url_info(info, function (err, data) {
+					if (err === null && gallery_link_events_data.link === self) {
+						var details = details_nodes[info.id];
+						if (details !== undefined) {
+							details_hover_start(data, info, self, details);
+						}
+						else if (self.getAttribute("data-xl-details-creating") !== "true") {
+							self.setAttribute("data-xl-details-creating", "true");
+							create_details(data, info, function (err, details) {
+								self.removeAttribute("data-xl-details-creating");
+								if (err === null) {
+									details_nodes[info.id] = details;
+									if (gallery_link_events_data.link === self) {
+										details_hover_start(data, info, self, details);
 									}
 								}
-							}._w(115));
+							}._w(120));
 						}
-					}._w(114);
+					}
+				}._w(119));
 
-					details.classList.add("xl-details-has-thumbnail");
-					if (info.site === "ehentai") {
-						API.get_ehentai_gallery_page_thumb(info.domain, data.gid, data.token, info.page_token, info.page, thumb_cb);
-					}
-					else if (info.site === "nhentai") {
-						API.get_nhentai_gallery_page_thumb(data.gid, info.page, thumb_cb);
-					}
-					else if (info.site === "hitomi") {
-						API.get_hitomi_gallery_page_thumb(data.gid, info.page, thumb_cb);
-					}
-					if (thumb_state === 0) ++thumb_state;
-				}
-			}._w(113)),
+			}._w(118)),
 			mouseout: $.wrap_mouseenterleave_event(function () {
 				var details = details_nodes[get_node_id_full(this)];
 
@@ -1505,7 +1467,7 @@
 				details.classList.add("xl-details-hidden");
 
 				gallery_link_events_data.link = null;
-			}._w(116)),
+			}._w(121)),
 			mousemove: function (event) {
 				var details = details_nodes[get_node_id_full(this)];
 
@@ -1515,14 +1477,14 @@
 				gallery_link_events_data.mouse_y = event.clientY;
 
 				update_details_position(details, this, event.clientX, event.clientY);
-			}._w(117)
+			}._w(122)
 		};
 		var gallery_toggle_actions = function (event) {
 			if ($.is_left_mouse(event) && config.actions.enabled) {
 				event.preventDefault();
 
 				var index = this.getAttribute("xl-actions-index"),
-					actions, tag_bg, info, data, link;
+					actions, tag_bg, info, link, n;
 
 				if (!index) {
 					index = "" + actions_nodes_index;
@@ -1541,25 +1503,30 @@
 						actions.classList.remove("xl-actions-hidden");
 						Popup.hovering(actions);
 						activate_actions(actions, index);
+
+						// Position
+						update_actions_position(actions, this, tag_bg, d.documentElement.getBoundingClientRect());
 					}
 					else {
 						// Create
 						if (
 							(link = get_link_from_tag_button(this)) !== null &&
-							(info = API.get_url_info_saved(link.href)) !== null &&
-							(data = API.get_data(info.site, info.gid)) !== null
+							(info = API.get_url_info_saved(link.href)) !== null
 						) {
-							actions = create_actions(data, info, index);
-							actions_nodes[index] = actions;
-							activate_actions(actions, index);
-						}
-						else {
-							return;
+							n = this;
+							API.get_data_from_url_info(info, function (err, data) {
+								if (err === null) {
+									create_actions(data, info, index, function (err, actions) {
+										if (err === null) {
+											actions_nodes[index] = actions;
+											activate_actions(actions, index);
+											update_actions_position(actions, n, tag_bg, d.documentElement.getBoundingClientRect());
+										}
+									}._w(125));
+								}
+							}._w(124));
 						}
 					}
-
-					// Position
-					update_actions_position(actions, this, tag_bg, d.documentElement.getBoundingClientRect());
 				}
 				else {
 					// Hide
@@ -1569,7 +1536,7 @@
 					}
 				}
 			}
-		}._w(118);
+		}._w(123);
 		var gallery_fetch_event = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
@@ -1585,20 +1552,55 @@
 					Linkifier.load_link(link, info);
 				}
 			}
-		}._w(119);
+		}._w(126);
 		var gallery_error_event = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				return false;
 			}
-		}._w(120);
+		}._w(127);
 
-		var set_node_id = function (node, namespace, id) {
-			node.setAttribute("data-xl-id", namespace + "_" + id);
-		}._w(121);
+		var details_hover_start = function (data, info, node, details) {
+			if (Debug.enabled) {
+				var i = 1,
+					n = details;
+				while (n.parentNode !== document) {
+					if (!n.parentNode) {
+						Debug.log(
+							"Invalid details: parent[" + i + "] failed;",
+							{
+								link: node,
+								node: n,
+								parent: n.parentNode,
+								details: details,
+								data: data,
+								info: info
+							}
+						);
+						break;
+					}
+					n = n.parentNode;
+					++i;
+				}
+			}
+
+			details.classList.remove("xl-details-hidden");
+			details.classList.remove("xl-details-has-thumbnail");
+			details.classList.remove("xl-details-has-thumbnail-visible");
+
+			update_details_position(details, node, gallery_link_events_data.mouse_x, gallery_link_events_data.mouse_y);
+
+			if (data.subtype === "gallery" && info.page !== undefined && info.page > 1) {
+				update_details_page_thumbnail(info.page, data, info, details, node);
+			}
+		}._w(128);
+
+		var set_node_id = function (node, info) {
+			node.setAttribute("data-xl-id", info.id);
+		}._w(129);
 		var get_node_id_full = function (node) {
 			return node.getAttribute("data-xl-id") || "";
-		}._w(122);
+		}._w(130);
 
 		var get_tag_button_from_link = function (node) {
 			// Assume the button is the previous (or previous-previous) sibling
@@ -1610,7 +1612,7 @@
 				return node;
 			}
 			return null;
-		}._w(123);
+		}._w(131);
 		var get_link_from_tag_button = function (node) {
 			// Assume the link is the next (or next-next) sibling
 			if (
@@ -1621,21 +1623,59 @@
 				return node;
 			}
 			return null;
-		}._w(124);
+		}._w(132);
 
 		var pad = function (n, sep) {
 			return (n < 10 ? "0" : "") + n + sep;
-		}._w(125);
+		}._w(133);
 
-		var create_details = function (data, info) {
+		var custom_details_functions = {}; // function (data, info, callback(err, copy_from_node))
+		var custom_actions_functions = {}; // function (data, info, callback(err, gen_info))
+		var register_details_creation = function (custom_id, callback) {
+			custom_details_functions[custom_id] = callback;
+		}._w(134);
+		var register_actions_creation = function (custom_id, callback) {
+			custom_actions_functions[custom_id] = callback;
+		}._w(135);
+
+		var create_details = function (data, info, callback) {
 			var category = API.get_category(data.category),
 				theme = Theme.classes,
 				file_size = (data.total_size / 1024 / 1024).toFixed(2),
-				content, n1, n2, n3;
+				content, n1, n2, n3, fn;
+
+			// Fonts
+			Main.insert_custom_fonts();
+
+			// Custom
+			if (data.subtype !== "gallery") {
+				fn = custom_details_functions[info._custom_id];
+				if (fn !== undefined) {
+					// Add to container
+					fn(data, info, function (err, content) {
+						if (err === null) {
+							content.className = (content.className + " xl-details xl-details-hidden xl-hover-shadow" + theme).trim();
+							content.style.opacity = config.details.opacity;
+							Theme.bg(content, config.details.opacity_bg);
+							Theme.apply(content);
+							Popup.hovering(content);
+							callback(null, content);
+						}
+						else {
+							callback(err, null);
+						}
+					}._w(137));
+				}
+				else {
+					callback("Could not create details", null);
+				}
+				return;
+			}
 
 			// Body
-			content = $.node("div", "xl-details xl-hover-shadow" + theme);
-			Theme.bg(content);
+			content = $.node("div", "xl-details xl-details-hidden xl-hover-shadow" + theme);
+			content.style.opacity = config.details.opacity;
+			Theme.bg(content, config.details.opacity_bg);
 
 			// Image
 			$.add(content, n1 = $.node("div", "xl-details-thumbnail" + theme));
@@ -1646,7 +1686,7 @@
 				if (err === null) {
 					this.style.backgroundImage = "url('" + url + "')";
 				}
-			}._w(127), n1));
+			}._w(138), n1));
 
 
 			// Sidebar
@@ -1702,7 +1742,7 @@
 			$.add(n1, n2 = $.node("strong", "xl-details-uploader", data.uploader));
 			Filter.highlight("uploader", n2, data, Filter.None);
 			$.add(n1, $.tnode("on"));
-			$.add(n1, $.node("strong", "xl-details-upload-date", format_date(new Date(data.upload_date))));
+			$.add(n1, $.node("strong", "xl-details-upload-date", format_date(data.date_created)));
 
 			// Tags
 			$.add(content, n1 = $.node("div", "xl-details-tag-block" + theme));
@@ -1715,29 +1755,34 @@
 
 			// Full info
 			if (data.type === "ehentai" && config.sites.ehentai_ext && !data.full) {
-				API.get_ehentai_gallery_full(info.domain, data, function (err, data) {
+				API.get_ehentai_gallery_full(info, data, function (err, data) {
 					if (err === null) {
-						update_full(data);
+						update_full(data, info);
 					}
 					else {
 						Debug.log("Error requesting full information: " + err);
 					}
-				}._w(128));
+				}._w(139));
 			}
 
-			// Fonts
-			Main.insert_custom_fonts();
+			// Add to container
 			Popup.hovering(content);
-			return content;
-		}._w(126);
-		var create_actions = function (data, info, index) {
+
+			// Done
+			callback(null, content);
+		}._w(136);
+		var create_actions = function (data, info, index, callback) {
 			var theme = Theme.classes,
 				gid = data.gid,
 				token = data.token,
 				type = data.type,
 				actions = $.node("div", "xl-actions xl-hover-shadow" + theme),
 				domain = info.domain,
-				n1, n2, n3;
+				created = false,
+				n1, n2, n3, fn;
+
+			$.on(actions, "click", on_actions_click);
+			Theme.bg(actions);
 
 			$.add(actions, n1 = $.node("div", "xl-actions-inner" + theme));
 			$.add(n1, n2 = $.node("div", "xl-actions-table" + theme));
@@ -1746,56 +1791,106 @@
 				var n1, n2, n3;
 				$.add(container, n1 = $.node("div", "xl-actions-table-row" + theme));
 				$.add(n1, n2 = $.node("div", "xl-actions-table-cell" + theme));
-				if (label !== null) $.add(n2, $.node("div", "xl-actions-table-header", label));
-				$.add(n1, n2 = $.node("div", "xl-actions-table-cell" + theme));
-				$.add(n2, n3 = $.link(url, "xl-actions-option" + theme, text));
-				$.on(n3, "click", $.bind(on_actions_link_click, n3, actions, index));
+				if (label !== null) {
+					$.add(n2, $.node("div", "xl-actions-table-header", label));
+				}
+				if (text !== null) {
+					$.add(n1, n2 = $.node("div", "xl-actions-table-cell" + theme));
+					$.add(n2, n3 = $.link(url, "xl-actions-option" + theme, text));
+					$.on(n3, "click", $.bind(on_actions_link_click, n3, actions, index));
+				}
+				else {
+					n2.classList.add("xl-actions-table-cell-full");
+				}
 				return n3;
-			}._w(130);
+			}._w(141);
 			var gen_sep = function (container) {
 				var n1, n2;
 				$.add(container, n1 = $.node("div", "xl-actions-table-row" + theme));
 				$.add(n1, n2 = $.node("div", "xl-actions-table-cell" + theme));
 				$.add(n2, $.node("div", "xl-actions-table-sep"));
-			}._w(131);
+			}._w(142);
 
-			if (type === "ehentai") {
-				gen_entry(n2, "View on:", CreateURL.to_gallery(data, domains.gehentai), "E-Hentai");
-				gen_entry(n2, null, CreateURL.to_gallery(data, domains.exhentai), "ExHentai");
+			if (data.subtype === "gallery") {
+				if (type === "ehentai") {
+					gen_entry(n2, "View on:", CreateURL.to_gallery(data, domains.gehentai), "E-Hentai");
+					gen_entry(n2, null, CreateURL.to_gallery(data, domains.exhentai), "ExHentai");
 
-				gen_sep(n2);
+					gen_sep(n2);
 
-				n3 = gen_entry(n2, "Uploader:", CreateURL.to_uploader(data, domain), data.uploader);
-				n3.classList.add("xl-actions-uploader");
-				Filter.highlight("uploader", n3, data, Filter.None);
+					n3 = gen_entry(n2, "Uploader:", CreateURL.to_uploader(data, domain), data.uploader);
+					n3.classList.add("xl-actions-uploader");
+					Filter.highlight("uploader", n3, data, Filter.None);
 
-				gen_sep(n2);
+					gen_sep(n2);
 
-				gen_entry(n2, "Download:", "http://" + domain + "/gallerytorrents.php?gid=" + gid + "&t=" + token, "Torrent (" + data.torrent_count + ")");
-				gen_entry(n2, null, "http://" + domain + "/archiver.php?gid=" + gid + "&t=" + token + "&or=" + data.archiver_key, "Archiver");
-				n3 = gen_entry(n2, null, "http://" + domain + "/hathdler.php?gid=" + gid + "&t=" + token, "via H@H");
-				n3.removeAttribute("target");
+					gen_entry(n2, "Download:", "http://" + domain + "/gallerytorrents.php?gid=" + gid + "&t=" + token, "Torrent (" + data.torrent_count + ")");
+					gen_entry(n2, null, "http://" + domains.gehentai + "/archiver.php?gid=" + gid + "&token=" + token + "&or=" + data.archiver_key, "Archiver");
+					n3 = gen_entry(n2, null, "http://" + domain + "/hathdler.php?gid=" + gid + "&t=" + token, "via H@H");
+					n3.removeAttribute("target");
 
-				gen_sep(n2);
+					gen_sep(n2);
 
-				gen_entry(n2, "Other:", "http://" + domain + "/gallerypopups.php?gid=" + gid + "&t=" + token + "&act=addfav", "Favorite");
-				gen_entry(n2, null, "http://" + domains.gehentai + "/stats.php?gid=" + gid + "&t=" + token, "Stats");
+					gen_entry(n2, "Other:", "http://" + domain + "/gallerypopups.php?gid=" + gid + "&t=" + token + "&act=addfav", "Favorite");
+					gen_entry(n2, null, "http://" + domains.gehentai + "/stats.php?gid=" + gid + "&t=" + token, "Stats");
+
+					created = true;
+				}
+				else if (type === "nhentai") {
+					gen_entry(n2, "View on:", CreateURL.to_gallery(data, domain), "nhentai.net");
+
+					created = true;
+				}
+				else if (type === "hitomi") {
+					gen_entry(n2, "View on:", CreateURL.to_gallery(data, domain), "hitomi.la");
+
+					created = true;
+				}
 			}
-			else if (type === "nhentai") {
-				gen_entry(n2, "View on:", CreateURL.to_gallery(data, domain), "nhentai.net");
-			}
-			else if (type === "hitomi") {
-				gen_entry(n2, "View on:", CreateURL.to_gallery(data, domain), "hitomi.la");
+
+			// Empty
+			if (!created) {
+				fn = custom_actions_functions[info._custom_id];
+				if (fn !== null) {
+					fn(data, info, function (err, gen_info) {
+						if (err === null) {
+							var ii = gen_info.length,
+								i, g;
+
+							if (ii === 0) {
+								gen_entry(n2, "No actions available", null, null);
+							}
+							else {
+								for (i = 0; i < ii; ++i) {
+									g = gen_info[i];
+									if (g === null) {
+										gen_sep(n2);
+									}
+									else {
+										gen_entry(n2, g[0] || null, g[1] || null, g[2] || null);
+									}
+								}
+							}
+
+							Popup.hovering(actions);
+							callback(null, actions);
+						}
+						else {
+							callback(err, null);
+						}
+					}._w(143));
+					return;
+				}
+
+				gen_entry(n2, "No actions available", null, null);
 			}
 
 			// Prepare
-			$.on(actions, "click", on_actions_click);
-			Theme.bg(actions);
 			Popup.hovering(actions);
 
 			// Done
-			return actions;
-		}._w(129);
+			callback(null, actions);
+		}._w(140);
 		var create_tags = function (data, domain) {
 			var tagfrag = d.createDocumentFragment(),
 				site = data.type,
@@ -1860,10 +1955,77 @@
 			}
 
 			return tagfrag;
-		}._w(132);
-		var update_full = function (data) {
+		}._w(144);
+		var update_details_page_thumbnail = function (page, data, info, details, node) {
+			var thumb_state = 0;
+
+			var thumb_cb = function (err, thumb_data) {
+				if (err === null) {
+					API.get_thumbnail(thumb_data.url, thumb_data.flags, function (err, thumb_url) {
+						if (err === null && node === gallery_link_events_data.link) {
+							var n0, n1, n2;
+							if (
+								(n0 = $(".xl-details-page-thumbnail", details)) !== null &&
+								(n1 = $(".xl-details-page-thumbnail-size", n0)) !== null &&
+								(n2 = $(".xl-details-page-thumbnail-image", n1)) !== null
+							) {
+								n2.style.backgroundImage = "url('" + thumb_url + "')";
+
+								if (thumb_data.width > 0 && thumb_data.height > 0) {
+									// Small thumbnail
+									var max_width = 140,
+										max_height = 200,
+										max_ratio = max_height / max_width,
+										scale = (thumb_data.height / thumb_data.width > max_ratio) ? max_height / thumb_data.height : max_width / thumb_data.width;
+
+									n1.style.transform = "translate(-50%,-50%) scale(" + scale + ")";
+									n1.style.left = "50%";
+									n1.style.top = "50%";
+									n1.style.width = thumb_data.width + "px";
+									n1.style.height = thumb_data.height + "px";
+									n2.style.backgroundSize = "auto";
+									n2.style.backgroundPosition = (-thumb_data.left) + "px " + (-thumb_data.top) + "px";
+								}
+								else {
+									// Large thumbnail
+									n1.style.transform = "";
+									n1.style.left = "";
+									n1.style.top = "";
+									n1.style.width = "";
+									n1.style.height = "";
+									n2.style.backgroundSize = "";
+									n2.style.backgroundPosition = "";
+								}
+
+								// Animate
+								if (thumb_state === 1) {
+									Theme.get_computed_style(n0).getPropertyValue("transform");
+								}
+								details.classList.add("xl-details-has-thumbnail-visible");
+							}
+						}
+					}._w(147));
+				}
+			}._w(146);
+
+			details.classList.add("xl-details-has-thumbnail");
+			if (info.site === "ehentai") {
+				API.get_ehentai_gallery_page_thumb(info.domain, data.gid, data.token, info.page_token, page, thumb_cb);
+			}
+			else if (info.site === "nhentai") {
+				API.get_nhentai_gallery_page_thumb(data.gid, page, thumb_cb);
+			}
+			else if (info.site === "hitomi") {
+				API.get_hitomi_gallery_page_thumb(data.gid, page, thumb_cb);
+			}
+			else {
+				thumb_cb("Invalid", null);
+			}
+			if (thumb_state === 0) ++thumb_state;
+		}._w(145);
+		var update_full = function (data, info) {
 			var domain = domains.exhentai,
-				full_id = data.type + "_" + data.gid,
+				full_id = info.id,
 				details = details_nodes[full_id],
 				tagfrag, n, n2;
 
@@ -1880,7 +2042,7 @@
 
 			// Update domain
 			if ((n = $(".xl-details-title[href]", details)) !== null) {
-				domain = $.get_domain(n.href);
+				domain = $.get_full_domain(n.href);
 			}
 
 			// Update tags
@@ -1900,7 +2062,7 @@
 			) {
 				update_details_position(details, n, gallery_link_events_data.mouse_x, gallery_link_events_data.mouse_y);
 			}
-		}._w(133);
+		}._w(148);
 		var update_details_position = function (details, link, mouse_x, mouse_y) {
 			var w = window,
 				de = d.documentElement,
@@ -1917,7 +2079,7 @@
 
 			details.style.left = mouse_x + "px";
 			details.style.top = mouse_y + "px";
-		}._w(134);
+		}._w(149);
 		var close_actions = function (actions, index) {
 			var ns = $$(".xl-site-tag.xl-site-tag-active[xl-actions-index='" + index + "']"),
 				i, ii;
@@ -1928,12 +2090,12 @@
 
 			actions.classList.add("xl-actions-hidden");
 			deactivate_actions(index);
-		}._w(135);
+		}._w(150);
 		var close_all_actions = function () {
 			for (var index in actions_nodes_active) {
 				close_actions(actions_nodes_active[index], index);
 			}
-		}._w(136);
+		}._w(151);
 		var update_actions_position = function (actions, tag, tag_bg, de_rect, xpos, ypos) {
 			// Position
 			var rect = tag_bg.getBoundingClientRect(),
@@ -1987,7 +2149,7 @@
 			actions.style.top = y + "px";
 			tag.setAttribute("data-xl-actions-vpos", ypos);
 			actions.setAttribute("data-xl-actions-vpos", ypos);
-		}._w(137);
+		}._w(152);
 		var update_active_actions_position = function () {
 			var de_rect = d.documentElement.getBoundingClientRect(),
 				index, actions, tag, tag_bg, xpos, ypos;
@@ -2003,7 +2165,7 @@
 					update_actions_position(actions, tag, tag_bg, de_rect, xpos, ypos);
 				}
 			}
-		}._w(138);
+		}._w(153);
 
 		var activate_actions = function (node, index) {
 			if (config.actions.close_on_click && actions_nodes_active_count !== 0) {
@@ -2013,13 +2175,13 @@
 			actions_nodes_active[index] = node;
 
 			if (actions_close_timeout !== null) clearTimeout(actions_close_timeout);
-			actions_close_timeout = setTimeout(function () { actions_close_timeout = null; }._w(140), 1);
+			actions_close_timeout = setTimeout(function () { actions_close_timeout = null; }._w(155), 1);
 
 			if (++actions_nodes_active_count === 1) {
 				$.on(window, "resize", on_window_resize);
 				$.on(d.documentElement, "click", on_document_click);
 			}
-		}._w(139);
+		}._w(154);
 		var deactivate_actions = function (index) {
 			if (actions_nodes_active[index] === undefined) return;
 
@@ -2032,10 +2194,10 @@
 					actions_close_timeout = null;
 				}
 			}
-		}._w(141);
+		}._w(156);
 		var on_window_resize = function () {
 			update_active_actions_position();
-		}._w(142);
+		}._w(157);
 		var on_document_click = function (event) {
 			if (actions_close_timeout === null) {
 				if (config.actions.close_on_click) {
@@ -2048,12 +2210,12 @@
 					setTimeout(update_active_actions_position, 1);
 				}
 			}
-		}._w(143);
+		}._w(158);
 		var on_actions_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.stopPropagation();
 			}
-		}._w(144);
+		}._w(159);
 		var on_actions_link_click = function (actions, index, event) {
 			if ($.is_left_mouse(event)) {
 				event.stopPropagation();
@@ -2062,7 +2224,7 @@
 					close_actions(actions, index);
 				}
 			}
-		}._w(145);
+		}._w(160);
 		var create_tag_bg = function (parent) {
 			var tag_bg = $.node("div", "xl-site-tag-bg" + Theme.classes),
 				outline = $.node("div", "xl-site-tag-bg-shadow xl-hover-shadow" + Theme.classes),
@@ -2076,18 +2238,18 @@
 			$.before(parent, parent.firstChild, outline);
 
 			return tag_bg;
-		}._w(146);
+		}._w(161);
 
 		var mark_button_text = function (button, text) {
 			if ((button = button_get_inner(button)) !== null) {
 				button.textContent = button.textContent.replace(/\]\s*$/, text + "]");
 			}
-		}._w(147);
+		}._w(162);
 		var update_button_text = function (button, info) {
 			if ((button = button_get_inner(button)) !== null) {
 				button.textContent = button_text(info);
 			}
-		}._w(148);
+		}._w(163);
 
 		// Public
 		var create_rating_stars = function (rating) {
@@ -2104,26 +2266,27 @@
 			}
 
 			return frag;
-		}._w(149);
+		}._w(164);
 		var button_get_inner = function (button) {
 			return ((button = button.lastChild) !== null && button.tagName === "SPAN") ? button : null;
-		}._w(150);
+		}._w(165);
 		var button_text = function (info) {
 			return "[" + (info.tag || "?") + "]";
-		}._w(151);
-		var format_date = function (d) {
+		}._w(166);
+		var format_date = function (timestamp) {
+			var d = new Date(timestamp);
 			return d.getUTCFullYear() + "-" +
 				pad(d.getUTCMonth() + 1, "-") +
 				pad(d.getUTCDate(), " ") +
 				pad(d.getUTCHours(), ":") +
 				pad(d.getUTCMinutes(), "");
-		}._w(152);
+		}._w(167);
 
 		var setup_link = function (link, url, info) {
 			var button = $.link(url, "xl-site-tag" + Theme.classes),
 				text = $.node("span", "xl-site-tag-text", button_text(info));
 
-			set_node_id(link, info.site, info.gid);
+			set_node_id(link, info);
 
 			$.add(button, text);
 
@@ -2131,7 +2294,7 @@
 			Linkifier.change_link_events(button, "gallery_fetch");
 
 			$.before(link.parentNode, link, button);
-		}._w(153);
+		}._w(168);
 		var format_link = function (link, data, info) {
 			var button = get_tag_button_from_link(link),
 				fjord, ex, hl, c, n;
@@ -2171,7 +2334,7 @@
 				n = $.node("span", "xl-link-page", " (page " + info.page + ")");
 				link.appendChild(n);
 			}
-		}._w(154);
+		}._w(169);
 		var format_link_error = function (link, error) {
 			var text = " (" + error.trim().replace(/\.$/, "") + ")",
 				button = get_tag_button_from_link(link),
@@ -2190,7 +2353,7 @@
 			else {
 				n.textContent = text;
 			}
-		}._w(155);
+		}._w(170);
 
 		var cleanup_post = function (post) {
 			var nodes, n, i, ii;
@@ -2208,7 +2371,7 @@
 				n.classList.remove("xl-site-tag-active");
 				n.removeAttribute("xl-actions-index");
 			}
-		}._w(156);
+		}._w(171);
 		var cleanup_post_removed = function (post) {
 			var nodes, index, n, i, ii;
 			nodes = $$(".xl-site-tag[xl-actions-index]", post);
@@ -2221,7 +2384,7 @@
 					deactivate_actions(index);
 				}
 			}
-		}._w(157);
+		}._w(172);
 
 		var init = function () {
 			Linkifier.register_link_events({
@@ -2230,7 +2393,7 @@
 				gallery_fetch: gallery_fetch_event,
 				gallery_error: gallery_error_event
 			});
-		}._w(158);
+		}._w(173);
 
 		// Exports
 		return {
@@ -2243,10 +2406,12 @@
 			format_date: format_date,
 			cleanup_post: cleanup_post,
 			cleanup_post_removed: cleanup_post_removed,
+			register_details_creation: register_details_creation,
+			register_actions_creation: register_actions_creation,
 			init: init
 		};
 
-	}._w(112))();
+	}._w(117))();
 	var API = (function () {
 
 		// Caching
@@ -2267,7 +2432,7 @@
 				expires: Date.now() + ttl,
 				data: data
 			}));
-		}._w(160);
+		}._w(175);
 		var cache_get = function (key) {
 			var json = $.json_parse_safe(cache_storage.getItem(cache_prefix + key), null);
 
@@ -2282,13 +2447,13 @@
 
 			cache_storage.removeItem(key);
 			return null;
-		}._w(161);
+		}._w(176);
 		var cache_set_object = function (object_name) {
 			cache_storage.setItem(cache_prefix + object_name, JSON.stringify({
 				expires: null,
 				data: cache_objects[object_name]
 			}));
-		}._w(162);
+		}._w(177);
 		var cache_get_object = function (object_name) {
 			var json = $.json_parse_safe(cache_storage.getItem(cache_prefix + object_name), null),
 				obj, target;
@@ -2305,7 +2470,7 @@
 
 			cache_storage.removeItem(object_name);
 			return false;
-		}._w(163);
+		}._w(178);
 		var cache_merge_objects = function (dest, obj) {
 			var now = Date.now(),
 				update = false,
@@ -2322,7 +2487,7 @@
 			}
 
 			return update;
-		}._w(164);
+		}._w(179);
 		var cache_cleanup = function () {
 			var storage = cache_storage,
 				removes = [],
@@ -2349,7 +2514,7 @@
 			}
 
 			return ii;
-		}._w(165);
+		}._w(180);
 		var cache_clear = function () {
 			var storage_types = [ window.localStorage, window.sessionStorage ],
 				removes = [],
@@ -2373,43 +2538,11 @@
 			}
 
 			return count;
-		}._w(166);
+		}._w(181);
 		var cache_init = function () {
 			// Cache mode
 			if (config.debug.cache_mode === "none") {
-				cache_storage = (function () {
-					var data = {};
-
-					var fn = {
-						length: 0,
-						key: function (index) {
-							return Object.keys(data)[index];
-						}._w(169),
-						getItem: function (key) {
-							if (Object.prototype.hasOwnProperty.call(data, key)) {
-								return data[key];
-							}
-							return null;
-						}._w(170),
-						setItem: function (key, value) {
-							if (!Object.prototype.hasOwnProperty.call(data, key)) {
-								++fn.length;
-							}
-							data[key] = value;
-						}._w(171),
-						removeItem: function (key) {
-							if (Object.prototype.hasOwnProperty.call(data, key)) {
-								delete data[key];
-								--fn.length;
-							}
-						}._w(172),
-						clear: function () {
-							data = {};
-							fn.length = 0;
-						}._w(173)
-					};
-					return fn;
-				}._w(168))();
+				cache_storage = create_temp_storage();
 			}
 			else if (config.debug.cache_mode === "session") {
 				cache_storage = window.sessionStorage;
@@ -2425,7 +2558,45 @@
 					cache_set_object(k);
 				}
 			}
-		}._w(167);
+		}._w(182);
+		var cache_get_prefix = function () {
+			return cache_prefix;
+		}._w(183);
+
+		var create_temp_storage = function () {
+			var data = {};
+
+			var fn = {
+				length: 0,
+				key: function (index) {
+					return Object.keys(data)[index];
+				}._w(185),
+				getItem: function (key) {
+					if (Object.prototype.hasOwnProperty.call(data, key)) {
+						return data[key];
+					}
+					return null;
+				}._w(186),
+				setItem: function (key, value) {
+					if (!Object.prototype.hasOwnProperty.call(data, key)) {
+						++fn.length;
+					}
+					data[key] = value;
+				}._w(187),
+				removeItem: function (key) {
+					if (Object.prototype.hasOwnProperty.call(data, key)) {
+						delete data[key];
+						--fn.length;
+					}
+				}._w(188),
+				clear: function () {
+					data = {};
+					fn.length = 0;
+				}._w(189)
+			};
+
+			return fn;
+		}._w(184);
 
 
 
@@ -2433,25 +2604,23 @@
 		var saved_data = {};
 		var saved_thumbnails = {};
 
-		var get_saved_data = function (namespace, gid) {
-			var id_full = namespace + "-" + gid,
-				data = saved_data[id_full];
+		var get_saved_data = function (id) {
+			var data = saved_data[id];
 
 			if (data !== undefined) return data;
 
-			data = cache_get("data-" + id_full);
+			data = cache_get("data-" + id);
 			if (data !== null) {
-				saved_data[id_full] = data;
+				saved_data[id] = data;
 				return data;
 			}
 
 			return null;
-		}._w(174);
-		var set_saved_data = function (data) {
-			var id_full = data.type + "-" + data.gid;
-			saved_data[id_full] = data;
-			cache_set("data-" + id_full, data, ttl_1_hour * (data.upload_date >= Date.now() - ttl_1_day ? 1 : 12));
-		}._w(175);
+		}._w(190);
+		var set_saved_data = function (id, data) {
+			saved_data[id] = data;
+			cache_set("data-" + id, data, ttl_1_hour * (data.date_created >= Date.now() - ttl_1_day ? 1 : 12));
+		}._w(191);
 		var set_saved_error = function (id_list, error, cache) {
 			var id = id_list.join("-");
 			cache_objects.errors[id] = {
@@ -2462,13 +2631,13 @@
 			if (cache) {
 				cache_set_object("errors");
 			}
-		}._w(176);
+		}._w(192);
 		var get_saved_error = function (id_list) {
 			var id = id_list.join("-"),
 				value = cache_objects.errors[id];
 
 			return (value !== undefined) ? value.data : null;
-		}._w(177);
+		}._w(193);
 		var get_saved_thumbnail = function (namespace, gid, page) {
 			var id_full = namespace + "-" + gid + "-" + page,
 				data = saved_thumbnails[id_full];
@@ -2482,21 +2651,21 @@
 			}
 
 			return null;
-		}._w(178);
+		}._w(194);
 		var set_saved_thumbnail = function (namespace, gid, page, data) {
 			var id_full = namespace + "-" + gid + "-" + page;
 			saved_thumbnails[id_full] = data;
 			cache_set("thumb-" + id_full, data, ttl_1_hour * 6);
-		}._w(179);
+		}._w(195);
 
 		var hash_get_sha1_from_md5 = function (md5) {
 			var value = cache_objects.md5_to_hash[md5];
 			return (value !== undefined) ? value.data : null;
-		}._w(180);
+		}._w(196);
 		var hash_get_sha1_from_url = function (url) {
 			var value = cache_objects.url_to_hash[url];
 			return (value !== undefined) ? value.data : null;
-		}._w(181);
+		}._w(197);
 		var hash_set_md5_to_sha1 = function (md5, sha1) {
 			cache_objects.md5_to_hash[md5] = {
 				expires: Date.now() + ttl_1_year,
@@ -2504,7 +2673,7 @@
 			};
 
 			cache_set_object("md5_to_hash");
-		}._w(182);
+		}._w(198);
 		var hash_set_url_to_sha1 = function (url, sha1) {
 			cache_objects.url_to_hash[url] = {
 				expires: Date.now() + ttl_1_day,
@@ -2512,12 +2681,12 @@
 			};
 
 			cache_set_object("url_to_hash");
-		}._w(183);
+		}._w(199);
 
 		var lookup_get_results = function (hash) {
 			var value = cache_objects.lookup[hash];
 			return (value !== undefined) ? value.data : null;
-		}._w(184);
+		}._w(200);
 		var lookup_set_results = function (data) {
 			cache_objects.lookup[data.hash] = {
 				expires: Date.now() + ttl_1_day,
@@ -2525,7 +2694,7 @@
 			};
 
 			cache_set_object("lookup");
-		}._w(185);
+		}._w(201);
 
 
 
@@ -2570,16 +2739,16 @@
 		var normalize_category = function (mapping, category) {
 			var t = mapping[category.toLowerCase()];
 			return (t !== undefined ? t : "misc");
-		}._w(186);
+		}._w(202);
 
 		var get_category = function (name) {
 			var c = categories[name];
 			return (c !== undefined) ? c : categories.misc;
-		}._w(187);
+		}._w(203);
 		var get_category_sort_rank = function (name) {
 			var c = categories[name];
 			return (c !== undefined) ? c.sort : Object.keys(categories).length;
-		}._w(188);
+		}._w(204);
 
 
 
@@ -2600,6 +2769,7 @@
 		var create_empty_gallery_info = function (type) {
 			return {
 				type: type,
+				subtype: "gallery",
 				gid: 0,
 				token: null,
 				title: "",
@@ -2609,7 +2779,7 @@
 				thumbnail: null,
 
 				flags: 0,
-				upload_date: 0,
+				date_created: 0,
 				file_count: 0,
 				total_size: -1,
 				favorites: -1,
@@ -2624,7 +2794,7 @@
 				tags: null,
 				tags_ns: null
 			};
-		}._w(189);
+		}._w(205);
 		var uint8_array_to_url = function (data, mime) {
 			try {
 				var blob = new Blob([ data ], { type: mime });
@@ -2632,7 +2802,7 @@
 			}
 			catch (e) {}
 			return null;
-		}._w(190);
+		}._w(206);
 		var header_string_parse = function (header_str) {
 			var lines = header_str.split("\r\n"),
 				re_line = /^([^:]*):\s(.*)$/i,
@@ -2646,11 +2816,11 @@
 			}
 
 			return headers;
-		}._w(191);
+		}._w(207);
 
 		var ehentai_simple_string = function (value, default_value) {
 			return (typeof(value) !== "string" || value.length === 0) ? default_value : value;
-		}._w(192);
+		}._w(208);
 		var ehentai_normalize_string = function (value, default_value) {
 			if (typeof(value) !== "string" || value.length === 0) {
 				return default_value;
@@ -2659,7 +2829,7 @@
 			value = temp_div.textContent;
 			temp_div.textContent = "";
 			return value;
-		}._w(193);
+		}._w(209);
 		var ehentai_normalize_info = function (info) {
 			if (info.error !== undefined) {
 				return { error: info.error };
@@ -2676,7 +2846,7 @@
 			data.uploader = ehentai_normalize_string(info.uploader, null);
 			data.category = normalize_category(ehentai_category_mapping, ehentai_simple_string(info.category, ""));
 			data.thumbnail = ehentai_simple_string(info.thumb, null);
-			data.upload_date = (parseInt(info.posted, 10) || 0) * 1000;
+			data.date_created = (parseInt(info.posted, 10) || 0) * 1000;
 			data.file_count = parseInt(info.filecount, 10) || 0;
 			data.total_size = parseInt(info.filesize, 10) || 0;
 			data.rating = parseFloat(info.rating) || 0.0;
@@ -2686,7 +2856,7 @@
 			data.tags = Array.isArray(t) ? t : [];
 
 			return data;
-		}._w(194);
+		}._w(210);
 
 		var ehentai_is_not_available = function (html) {
 			var n;
@@ -2695,14 +2865,14 @@
 				/^\s*Gallery\s+Not\s+Available/i.test(n.textContent) &&
 				$("#continue", html) !== null
 			);
-		}._w(195);
+		}._w(211);
 		var ehentai_is_content_warning = function (html) {
 			var n;
 			return (
 				(n = $("h1", html)) !== null &&
 				/^\s*Content\s+Warning/i.test(n.textContent)
 			);
-		}._w(196);
+		}._w(212);
 		var ehentai_parse_gallery_info = function (html, data) {
 			// Tags
 			var updated_tag_count = 0,
@@ -2760,12 +2930,12 @@
 			// Done
 			data.full = true;
 			return data;
-		}._w(197);
+		}._w(213);
 		var ehentai_make_removed = function (data) {
 			data.removed = true;
 			data.full = true;
 			return data;
-		}._w(198);
+		}._w(214);
 
 		var ehentai_parse_lookup_results = function (xhr, is_similarity_scan, hash, url, md5) {
 			var final_url = xhr.finalUrl,
@@ -2828,7 +2998,7 @@
 				hash: hash,
 				results: results
 			};
-		}._w(199);
+		}._w(215);
 		var ehentai_create_lookup_url = function (sha1) {
 			var url = "http://";
 			url += config.sauce.lookup_domain;
@@ -2837,11 +3007,11 @@
 			url += "&fs_similar=0";
 			if (config.sauce.expunged) url += "&fs_exp=1";
 			return url;
-		}._w(200);
+		}._w(216);
 
 		var nhentai_normalize_tag_namespace = function (namespace) {
 			return nhentai_tag_namespaces[namespace] || namespace;
-		}._w(201);
+		}._w(217);
 		var nhentai_parse_info = function (html, url) {
 			var info = $("#info", html),
 				data, nodes, tags, tag_ns, tag_ns_list, t, m, n, i, ii, j, jj;
@@ -2932,7 +3102,7 @@
 			if ((n = $("time[datetime]", info)) !== null) {
 				m = /^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)\.(\d{6})/i.exec(n.getAttribute("datetime") || "");
 				if (m !== null) {
-					data.upload_date = new Date(
+					data.date_created = new Date(
 						parseInt(m[1], 10),
 						parseInt(m[2], 10) - 1,
 						parseInt(m[3], 10),
@@ -2953,7 +3123,7 @@
 			}
 
 			return data;
-		}._w(202);
+		}._w(218);
 
 		var hitomi_parse_info = function (html, url) {
 			var info = $(".content", html),
@@ -3118,7 +3288,7 @@
 			if ((n = $(".date", info)) !== null) {
 				m = /^(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)/i.exec(n.textContent.trim());
 				if (m !== null) {
-					data.upload_date = new Date(
+					data.date_created = new Date(
 						parseInt(m[1], 10),
 						parseInt(m[2], 10) - 1,
 						parseInt(m[3], 10),
@@ -3131,7 +3301,7 @@
 			}
 
 			return data;
-		}._w(203);
+		}._w(219);
 
 
 		var get_image = function (url, callback, progress_callback) {
@@ -3157,23 +3327,23 @@
 					else {
 						callback.call(null, "Response error " + xhr.status, null, 0, null, null);
 					}
-				}._w(205),
+				}._w(221),
 				onerror: function () {
 					callback.call(null, "Connection error", null, 0, null, null);
-				}._w(206),
+				}._w(222),
 				onabort: function () {
 					callback.call(null, "Connection aborted", null, 0, null, null);
-				}._w(207)
+				}._w(223)
 			};
 
 			if (progress_callback !== undefined) {
 				xhr_data.onprogress = function (xhr) {
 					progress_callback.call(null, "progress", xhr.lengthComputable, xhr.loaded, xhr.total);
-				}._w(208);
+				}._w(224);
 			}
 
 			HttpRequest(xhr_data);
-		}._w(204);
+		}._w(220);
 		var get_sha1_hash = function (url, md5, callback) {
 			var sha1 = null;
 
@@ -3211,11 +3381,11 @@
 					else {
 						callback.call(null, err, null);
 					}
-				}._w(210));
+				}._w(226));
 			}
 
 			return null;
-		}._w(209);
+		}._w(225);
 
 
 
@@ -3225,7 +3395,7 @@
 			this.active = 0;
 			this.timeout = null;
 			this.types = [];
-		}._w(211);
+		}._w(227);
 		var RequestType = function (count, concurrent, delay_okay, delay_error, group_name, namespace, type) {
 			this.count = count;
 			this.concurrent = concurrent;
@@ -3250,14 +3420,14 @@
 			this.set_data = null;
 			this.setup_xhr = null;
 			this.parse_response = null;
-		}._w(212);
+		}._w(228);
 		var RequestData = function (id, info, callback, progress_callback) {
 			this.id = id;
 			this.info = info;
 			this.callbacks = [ callback ];
 			this.progress_callbacks = [];
 			if (progress_callback !== undefined) this.progress_callbacks.push(progress_callback);
-		}._w(213);
+		}._w(229);
 		var Request = function (type, entries) {
 			var cbs, i, ii;
 
@@ -3281,7 +3451,7 @@
 					}
 				}
 			}
-		}._w(214);
+		}._w(230);
 		var RequestErrorMode = {
 			None: 0,
 			NoCache: 1,
@@ -3291,8 +3461,8 @@
 		RequestGroup.prototype.run_delay = function (type) {
 			setTimeout(function () {
 				type.run();
-			}._w(216), 1);
-		}._w(215);
+			}._w(232), 1);
+		}._w(231);
 		RequestGroup.prototype.run = function (use_delay) {
 			var type, i, ii;
 			for (i = 0, ii = this.types.length; i < ii; ++i) {
@@ -3310,20 +3480,20 @@
 					}
 				}
 			}
-		}._w(217);
+		}._w(233);
 		RequestGroup.prototype.complete = function (delay) {
 			if (delay > 0) {
 				var self = this;
 				setTimeout(function () {
 					--self.active;
 					self.run(false);
-				}._w(219), delay);
+				}._w(235), delay);
 			}
 			else {
 				--this.active;
 				this.run(false);
 			}
-		}._w(218);
+		}._w(234);
 
 		RequestType.prototype.add = function (unique_id, info, quick, callback, progress_callback) {
 			var self = this;
@@ -3362,7 +3532,7 @@
 
 				// Run (if not already running)
 				self.group.run(true);
-			}._w(221);
+			}._w(237);
 
 			if (this.get_data === null) {
 				get_data_callback(null, null);
@@ -3370,14 +3540,14 @@
 			else {
 				this.get_data.call(null, info, get_data_callback);
 			}
-		}._w(220);
+		}._w(236);
 		RequestType.prototype.run = function () {
 			var req = new Request(this, this.queue.splice(0, this.count));
 			if (this.request_init !== null) {
 				this.request_init.call(this, req);
 			}
 			req.run();
-		}._w(222);
+		}._w(238);
 
 		Request.prototype.run = function () {
 			var i, ii, ev;
@@ -3390,7 +3560,7 @@
 			}
 
 			this.type.setup_xhr.call(this, $.bind(this.on_xhr_setup, this));
-		}._w(223);
+		}._w(239);
 		Request.prototype.process_response = function (err, response, delay) {
 			var self = this,
 				total = this.infos.length,
@@ -3407,7 +3577,7 @@
 				}
 
 				if (++complete >= total) self.complete(delay);
-			}._w(225);
+			}._w(241);
 
 			// Save errors
 			for (i = responses; i < total; ++i) {
@@ -3435,26 +3605,26 @@
 					}
 				}
 			}
-		}._w(224);
+		}._w(240);
 		Request.prototype.complete_entries = function () {
 			var unique = this.type.unique;
 			for (var i = 0, ii = this.entries.length; i < ii; ++i) {
 				delete unique[this.entries[i].id];
 			}
-		}._w(226);
+		}._w(242);
 		Request.prototype.complete = function (delay) {
 			if (this.type.request_complete !== null) {
 				this.type.request_complete.call(this.type, this);
 			}
 			this.type.group.complete(delay);
-		}._w(227);
+		}._w(243);
 		Request.prototype.xhr_error = function (err) {
 			var self = this;
 			return function () {
 				self.complete_entries();
 				self.process_response(err, [], self.type.delay_error);
-			}._w(229);
-		}._w(228);
+			}._w(245);
+		}._w(244);
 		Request.prototype.on_xhr_setup = function (err, xhr_data) {
 			var self = this,
 				i, ii, ev;
@@ -3470,12 +3640,12 @@
 				if (xhr.status === 200) {
 					self.type.parse_response.call(self, xhr, function (err, response) {
 						self.on_response_parse(err, response);
-					}._w(232));
+					}._w(248));
 				}
 				else {
 					self.xhr_error("Response error " + xhr.status)();
 				}
-			}._w(231);
+			}._w(247);
 
 			// Error handlers
 			xhr_data.onerror = this.xhr_error("Connection error");
@@ -3494,7 +3664,7 @@
 					for (var i = 0, ii = self.progress_callbacks.length; i < ii; ++i) {
 						self.progress_callbacks[i].call(self, "progress", xhr.lengthComputable, xhr.loaded, xhr.total);
 					}
-				}._w(233);
+				}._w(249);
 
 				if (xhr_data.data !== undefined) {
 					ev = "upload";
@@ -3503,7 +3673,7 @@
 						for (var i = 0, ii = self.progress_callbacks.length; i < ii; ++i) {
 							self.progress_callbacks[i].call(self, "download");
 						}
-					}._w(234);
+					}._w(250);
 				}
 				else {
 					ev = "download";
@@ -3518,7 +3688,7 @@
 			// Start
 			HttpRequest(xhr_data);
 			xhr_data = null;
-		}._w(230);
+		}._w(246);
 		Request.prototype.on_response_parse = function (err, response, delay) {
 			if (err !== null) {
 				// Error
@@ -3532,7 +3702,7 @@
 				if (typeof(delay) !== "number") delay = 0;
 				if (delay > 0) {
 					var self = this;
-					setTimeout(function () { self.run(); }._w(236), delay);
+					setTimeout(function () { self.run(); }._w(252), delay);
 				}
 				else {
 					this.run();
@@ -3544,7 +3714,7 @@
 				this.complete_entries();
 				this.process_response("Data not found", response, delay);
 			}
-		}._w(235);
+		}._w(251);
 
 
 
@@ -3560,19 +3730,20 @@
 			rt_hitomi_gallery_page_thumb = new RequestType(1, 1, 200, 5000, "hitomi", "hitomi", "page_thumb");
 
 		rt_ehentai_gallery.get_data = function (info, callback) {
-			var data = get_saved_data("ehentai", info[0]);
-			callback(null, (data !== null && data.token === info[1]) ? data : null);
-		}._w(237);
+			var data = get_saved_data(info.id);
+			callback(null, (data !== null && data.token === info.token) ? data : null);
+		}._w(253);
 		rt_ehentai_gallery.set_data = function (data, info, callback) {
-			set_saved_data(data);
+			set_saved_data(info.id, data);
 			callback(null);
-		}._w(238);
+		}._w(254);
 		rt_ehentai_gallery.setup_xhr = function (callback) {
 			var gidlist = [],
-				i, ii;
+				info, i, ii;
 
 			for (i = 0, ii = this.infos.length; i < ii; ++i) {
-				gidlist.push(this.infos[i]);
+				info = this.infos[i];
+				gidlist.push([ info.gid, info.token ]);
 			}
 
 			callback(null, {
@@ -3584,7 +3755,7 @@
 					gidlist: gidlist
 				})
 			});
-		}._w(239);
+		}._w(255);
 		rt_ehentai_gallery.parse_response = function (xhr, callback) {
 			var response = $.json_parse_safe(xhr.responseText, null),
 				datas, i, ii;
@@ -3611,10 +3782,10 @@
 				}
 			}
 			return "Invalid response";
-		}._w(240);
+		}._w(256);
 
 		rt_ehentai_gallery_page.get_data = function (info, callback) {
-			var data = get_saved_data("ehentai", info[0]);
+			var data = get_saved_data(info.id);
 			if (data !== null) {
 				callback(null, {
 					gid: data.gid,
@@ -3624,13 +3795,14 @@
 			else {
 				callback(null, null);
 			}
-		}._w(241);
+		}._w(257);
 		rt_ehentai_gallery_page.setup_xhr = function (callback) {
 			var pagelist = [],
-				i, ii;
+				info, i, ii;
 
 			for (i = 0, ii = this.infos.length; i < ii; ++i) {
-				pagelist.push(this.infos[i]);
+				info = this.infos[i];
+				pagelist.push([ info.gid, info.page_token, info.page ]);
 			}
 
 			callback(null, {
@@ -3642,7 +3814,7 @@
 					pagelist: pagelist
 				})
 			});
-		}._w(242);
+		}._w(258);
 		rt_ehentai_gallery_page.parse_response = function (xhr, callback) {
 			var response = $.json_parse_safe(xhr.responseText, null);
 
@@ -3664,29 +3836,28 @@
 			}
 
 			callback("Invalid response");
-		}._w(243);
+		}._w(259);
 
 		rt_ehentai_gallery_full.get_data = function (info, callback) {
-			var data = get_saved_data("ehentai", info.gid);
-			callback(null, (data !== null && data.token === info.token && data.full) ? data : null);
-		}._w(244);
+			callback(null, info.data.full ? info.data : null);
+		}._w(260);
 		rt_ehentai_gallery_full.set_data = function (data, info, callback) {
-			set_saved_data(data);
+			set_saved_data(info.info.id, data);
 			callback(null);
-		}._w(245);
+		}._w(261);
 		rt_ehentai_gallery_full.setup_xhr = function (callback) {
 			var info = this.infos[0];
 			callback(null, {
 				method: "GET",
 				url: "http://" + info.domain + "/g/" + info.gid + "/" + info.token + "/" + info.search,
 			});
-		}._w(246);
+		}._w(262);
 		rt_ehentai_gallery_full.parse_response = function (xhr, callback) {
 			var info = this.infos[0];
 			ehentai_response_process_generic.call(this, xhr, info, this.type.delay_okay, callback, function (err, html) {
 				callback(null, [ err === null ? ehentai_parse_gallery_info(html, info.data) : ehentai_make_removed(info.data) ]);
-			}._w(248));
-		}._w(247);
+			}._w(264));
+		}._w(263);
 		var ehentai_response_process_generic = function (xhr, info, retry_delay, callback, process_callback) {
 			var content_type = header_string_parse(xhr.responseHeaders)["content-type"],
 				html;
@@ -3735,15 +3906,15 @@
 				this.retry_count = 0;
 				process_callback.call(this, null, html);
 			}
-		}._w(249);
+		}._w(265);
 
 		rt_ehentai_gallery_page_thumb.get_data = function (info, callback) {
 			callback(null, get_saved_thumbnail("ehentai", info.gid, info.page));
-		}._w(250);
+		}._w(266);
 		rt_ehentai_gallery_page_thumb.set_data = function (data, info, callback) {
 			set_saved_thumbnail("ehentai", info.gid, info.page, data);
 			callback(null);
-		}._w(251);
+		}._w(267);
 		rt_ehentai_gallery_page_thumb.setup_xhr = rt_ehentai_gallery_full.setup_xhr;
 		rt_ehentai_gallery_page_thumb.parse_response = function (xhr, callback) {
 			var info = this.infos[0],
@@ -3836,16 +4007,16 @@
 				}
 
 				callback("Thumbnail not found");
-			}._w(253));
-		}._w(252);
+			}._w(269));
+		}._w(268);
 
 		rt_ehentai_lookup.get_data = function (info, callback) {
 			callback(null, info.sha1 === null ? null : lookup_get_results(info.sha1));
-		}._w(254);
+		}._w(270);
 		rt_ehentai_lookup.set_data = function (data, info, callback) {
 			lookup_set_results(data);
 			callback(null);
-		}._w(255);
+		}._w(271);
 		rt_ehentai_lookup.setup_xhr = function (callback) {
 			var info = this.infos[0];
 			if (info.similar) {
@@ -3876,25 +4047,25 @@
 					url: ehentai_create_lookup_url(info.sha1)
 				});
 			}
-		}._w(256);
+		}._w(272);
 		rt_ehentai_lookup.parse_response = function (xhr, callback) {
 			var info = this.infos[0];
 			callback(null, [ ehentai_parse_lookup_results(xhr, info.similar, info.sha1, info.url, info.md5) ], info.similar ? this.type.delay_okay : 0);
-		}._w(257);
+		}._w(273);
 
 		rt_nhentai_gallery.get_data = function (info, callback) {
-			callback(null, get_saved_data("nhentai", info.gid));
-		}._w(258);
+			callback(null, get_saved_data(info.id));
+		}._w(274);
 		rt_nhentai_gallery.set_data = function (data, info, callback) {
-			set_saved_data(data);
+			set_saved_data(info.id, data);
 			callback(null);
-		}._w(259);
+		}._w(275);
 		rt_nhentai_gallery.setup_xhr = function (callback) {
 			callback(null, {
 				method: "GET",
 				url: "http://" + domains.nhentai + "/g/" + this.infos[0].gid + "/",
 			});
-		}._w(260);
+		}._w(276);
 		rt_nhentai_gallery.parse_response = function (xhr, callback) {
 			var html = $.html_parse_safe(xhr.responseText, null);
 			if (html === null) {
@@ -3903,22 +4074,22 @@
 			else {
 				callback(null, [ nhentai_parse_info(html, xhr.finalUrl) ]);
 			}
-		}._w(261);
+		}._w(277);
 
 		rt_nhentai_gallery_page_thumb.get_data = function (info, callback) {
 			callback(null, get_saved_thumbnail("nhentai", info.gid, info.page));
-		}._w(262);
+		}._w(278);
 		rt_nhentai_gallery_page_thumb.set_data = function (data, info, callback) {
 			set_saved_thumbnail("nhentai", info.gid, info.page, data);
 			callback(null);
-		}._w(263);
+		}._w(279);
 		rt_nhentai_gallery_page_thumb.setup_xhr = function (callback) {
 			var info = this.infos[0];
 			callback(null, {
 				method: "GET",
 				url: "http://" + domains.nhentai + "/g/" + info.gid + "/" + info.page + "/"
 			});
-		}._w(264);
+		}._w(280);
 		rt_nhentai_gallery_page_thumb.parse_response = function (xhr, callback) {
 			var html = $.html_parse_safe(xhr.responseText, null),
 				n1, url;
@@ -3946,21 +4117,21 @@
 			else {
 				callback("Thumbnail not found");
 			}
-		}._w(265);
+		}._w(281);
 
 		rt_hitomi_gallery.get_data = function (info, callback) {
-			callback(null, get_saved_data("hitomi", info.gid));
-		}._w(266);
+			callback(null, get_saved_data(info.id));
+		}._w(282);
 		rt_hitomi_gallery.set_data = function (data, info, callback) {
-			set_saved_data(data);
+			set_saved_data(info.id, data);
 			callback(null);
-		}._w(267);
+		}._w(283);
 		rt_hitomi_gallery.setup_xhr = function (callback) {
 			callback(null, {
 				method: "GET",
 				url: "https://" + domains.hitomi + "/galleries/" + this.infos[0].gid + ".html",
 			});
-		}._w(268);
+		}._w(284);
 		rt_hitomi_gallery.parse_response = function (xhr, callback) {
 			var html = $.html_parse_safe(xhr.responseText, null);
 			if (html === null) {
@@ -3969,21 +4140,21 @@
 			else {
 				callback(null, [ hitomi_parse_info(html, xhr.finalUrl) ]);
 			}
-		}._w(269);
+		}._w(285);
 
 		rt_hitomi_gallery_page_thumb.get_data = function (info, callback) {
 			callback(null, get_saved_thumbnail("hitomi", info.gid, info.page));
-		}._w(270);
+		}._w(286);
 		rt_hitomi_gallery_page_thumb.set_data = function (data, info, callback) {
 			set_saved_thumbnail("hitomi", info.gid, info.page, data);
 			callback(null);
-		}._w(271);
+		}._w(287);
 		rt_hitomi_gallery_page_thumb.setup_xhr = function (callback) {
 			callback(null, {
 				method: "GET",
 				url: "https://" + domains.hitomi + "/reader/" + this.infos[0].gid + ".html"
 			});
-		}._w(272);
+		}._w(288);
 		rt_hitomi_gallery_page_thumb.parse_response = function (xhr, callback) {
 			var html = $.html_parse_safe(xhr.responseText, null),
 				n1, url;
@@ -4013,7 +4184,7 @@
 			else {
 				callback("Thumbnail not found");
 			}
-		}._w(273);
+		}._w(289);
 
 
 
@@ -4021,7 +4192,7 @@
 		var re_fjord = /abortion|bestiality|incest|lolicon|shotacon|toddlercon/;
 		var is_fjording = function (data) {
 			return re_fjord.test(data.tags.join(","));
-		}._w(274);
+		}._w(290);
 
 
 
@@ -4029,7 +4200,9 @@
 		var re_remove_protocol = /^https?:\/*/i,
 			re_url_info = /^([\w\-]+(?:\.[\w\-]+)*)((?:[\/\?\#][\w\W]*)?)/,
 			url_info_saved = {},
-			url_info_registrations = [];
+			url_info_registrations = [],
+			url_info_to_data_registrations = [];
+
 		var get_url_info = function (url, callback) {
 			var save_key = url.replace(re_remove_protocol, ""),
 				match, data, domain, remaining, is_ex, m;
@@ -4054,6 +4227,7 @@
 				m = /^\/g\/(\d+)\/([0-9a-f]+)/.exec(remaining);
 				if (m !== null) {
 					data = {
+						id: "ehentai_" + m[1],
 						site: "ehentai",
 						type: "gallery",
 						gid: parseInt(m[1], 10),
@@ -4066,6 +4240,7 @@
 					m = /^\/s\/([0-9a-f]+)\/(\d+)\-(\d+)/.exec(remaining);
 					if (m !== null) {
 						data = {
+							id: "ehentai_" + m[2],
 							site: "ehentai",
 							type: "page",
 							gid: parseInt(m[2], 10),
@@ -4081,6 +4256,7 @@
 				m = /^\/g\/(\d+)(?:\/(\d+))?/.exec(remaining);
 				if (m !== null) {
 					data = {
+						id: "nhentai_" + m[1],
 						site: "nhentai",
 						type: "gallery",
 						gid: parseInt(m[1], 10),
@@ -4094,6 +4270,7 @@
 				m = /^\/(galleries|reader|smalltn)\/(\d+)(?:\.html#(\d+))?/.exec(remaining);
 				if (m !== null) {
 					data = {
+						id: "nhentai_" + m[2],
 						site: "hitomi",
 						type: "gallery",
 						gid: parseInt(m[2], 10),
@@ -4113,12 +4290,12 @@
 			}
 
 			callback(null, data);
-		}._w(275);
+		}._w(291);
 		var get_url_info_saved = function (url) {
 			url = url.replace(re_remove_protocol, "");
 			var data = url_info_saved[url];
 			return (data !== undefined) ? data : null;
-		}._w(276);
+		}._w(292);
 		var get_url_info_custom = function (i, url, save_key, callback) {
 			// This should avoid stack overflowing when using a callback chain with many synchronous functions
 			var ii = url_info_registrations.length,
@@ -4126,7 +4303,14 @@
 
 			var fn_cb = function (err, data) {
 				if (err === null && data !== null) {
-					url_info_saved[save_key] = data;
+					var v = url_info_saved[save_key];
+					if (v === undefined) {
+						data._custom_id = i;
+						url_info_saved[save_key] = data;
+					}
+					else {
+						data = v;
+					}
 					callback(null, data);
 				}
 				else if (immediate) {
@@ -4135,7 +4319,7 @@
 				else {
 					get_url_info_custom(i + 1, url, save_key, callback);
 				}
-			}._w(278);
+			}._w(294);
 
 			for (; i < ii; ++i) {
 				immediate = true;
@@ -4149,10 +4333,12 @@
 			}
 
 			callback(null, null);
-		}._w(277);
-		var register_url_info_function = function (check_fn) {
+		}._w(293);
+		var register_url_info_function = function (check_fn, get_data_fn) {
 			url_info_registrations.push(check_fn);
-		}._w(279);
+			url_info_to_data_registrations.push(get_data_fn);
+			return url_info_registrations.length - 1;
+		}._w(295);
 
 		var domain_tags = {
 			"exhentai.org": "Ex",
@@ -4163,16 +4349,18 @@
 		var get_tag_from_domain = function (domain) {
 			var d = domain_tags[domain];
 			return (d === undefined) ? "?" : d;
-		}._w(280);
+		}._w(296);
 
-		var get_ehentai_gallery = function (gid, token, callback) {
-			var info = [ gid, token ];
-			rt_ehentai_gallery.add(info.join("_"), info, false, callback);
-		}._w(281);
-		var get_ehentai_gallery_page = function (gid, page_token, page, callback) {
-			var info = [ gid, page_token, page ];
-			rt_ehentai_gallery_page.add("" + gid, info, false, callback);
-		}._w(282);
+		var get_ehentai_gallery_full = function (info, data, callback) {
+			rt_ehentai_gallery_full.add("" + data.gid, {
+				domain: info.domain,
+				search: "",
+				gid: data.gid,
+				token: data.token,
+				info: info,
+				data: data
+			}, false, callback);
+		}._w(297);
 		var get_ehentai_gallery_page_thumb = function (domain, gid, token, page_token, page, callback) {
 			rt_ehentai_gallery_page_thumb.add(gid + "-" + page, {
 				domain: domain,
@@ -4182,71 +4370,66 @@
 				page_token: page_token,
 				search: ""
 			}, false, callback);
-		}._w(283);
-		var get_ehentai_gallery_full = function (domain, data, callback) {
-			rt_ehentai_gallery_full.add("" + data.gid, {
-				domain: domain,
-				gid: data.gid,
-				token: data.token,
-				search: "",
-				data: data
-			}, false, callback);
-		}._w(284);
-		var get_nhentai_gallery = function (gid, callback) {
-			rt_nhentai_gallery.add("" + gid, { gid: gid }, false, callback);
-		}._w(285);
+		}._w(298);
 		var get_nhentai_gallery_page_thumb = function (gid, page, callback) {
 			rt_nhentai_gallery_page_thumb.add(gid + "-" + page, {
 				gid: gid,
 				page: page
 			}, false, callback);
-		}._w(286);
-		var get_hitomi_gallery = function (gid, callback) {
-			rt_hitomi_gallery.add("" + gid, { gid: gid }, false, callback);
-		}._w(287);
+		}._w(299);
 		var get_hitomi_gallery_page_thumb = function (gid, page, callback) {
 			rt_hitomi_gallery_page_thumb.add(gid + "-" + page, {
 				gid: gid,
 				page: page
 			}, false, callback);
-		}._w(288);
+		}._w(300);
 
-		var get_data = function (site, gid) {
-			return get_saved_data(site, gid);
-		}._w(289);
+		var get_data = function (url_info) {
+			return get_saved_data(url_info.id);
+		}._w(301);
 		var get_data_from_url_info = function (url_info, callback) {
 			if (url_info.site === "ehentai") {
 				if (url_info.type === "gallery") {
-					get_ehentai_gallery(url_info.gid, url_info.token, callback);
-					return true;
+					rt_ehentai_gallery.add("" + url_info.gid, url_info, false, callback);
+					return;
 				}
 				if (url_info.type === "page") {
-					get_ehentai_gallery_page(url_info.gid, url_info.page_token, url_info.page, function (err, data) {
+					rt_ehentai_gallery_page.add("" + url_info.gid, url_info, false, function (err, data) {
 						if (err === null) {
-							get_ehentai_gallery(data.gid, data.token, callback);
+							url_info.token = data.token;
+							rt_ehentai_gallery.add("" + url_info.gid, url_info, false, callback);
 						}
 						else {
 							callback.call(null, err, null);
 						}
-					}._w(291));
-					return true;
+					}._w(303));
+					return;
 				}
 			}
 			else if (url_info.site === "nhentai") {
 				if (url_info.type === "gallery") {
-					get_nhentai_gallery(url_info.gid, callback);
-					return true;
+					rt_nhentai_gallery.add("" + url_info.gid, url_info, false, callback);
+					return;
 				}
 			}
 			else if (url_info.site === "hitomi") {
 				if (url_info.type === "gallery") {
-					get_hitomi_gallery(url_info.gid, callback);
-					return true;
+					rt_hitomi_gallery.add("" + url_info.gid, url_info, false, callback);
+					return;
 				}
 			}
 
-			return false;
-		}._w(290);
+			// Custom
+			var i = url_info._custom_id,
+				fn;
+
+			if (typeof(i) === "number" && (fn = url_info_to_data_registrations[i]) !== undefined) {
+				fn(url_info, callback);
+				return;
+			}
+
+			callback.call(null, "Malformed data", null);
+		}._w(302);
 
 		var cached_thumbnail_urls = {};
 		var get_thumbnail = function (thumbnail_url, flags, callback) {
@@ -4285,8 +4468,8 @@
 				else {
 					callback.call(null, err, null);
 				}
-			}._w(293));
-		}._w(292);
+			}._w(305));
+		}._w(304);
 
 		var lookup_on_ehentai = function (url, md5, use_similar, callback, progress_callback) {
 			if (use_similar) {
@@ -4312,7 +4495,7 @@
 					else {
 						callback.call(null, err, null);
 					}
-				}._w(295);
+				}._w(307);
 
 				if (sha1 !== null) {
 					rt_ehentai_lookup.add(url, {
@@ -4330,7 +4513,7 @@
 							// Load image
 							get_image(url, get_image_callback, progress_callback);
 						}
-					}._w(296));
+					}._w(308));
 				}
 				else {
 					// Load image
@@ -4355,14 +4538,14 @@
 					else {
 						callback.call(null, err, null);
 					}
-				}._w(297));
+				}._w(309));
 			}
-		}._w(294);
+		}._w(306);
 
 		var init = function () {
 			// Clean
 			cache_init();
-		}._w(298);
+		}._w(310);
 
 
 
@@ -4373,19 +4556,16 @@
 			get_url_info: get_url_info,
 			get_url_info_saved: get_url_info_saved,
 			get_tag_from_domain: get_tag_from_domain,
-			get_ehentai_gallery: get_ehentai_gallery,
-			get_ehentai_gallery_page: get_ehentai_gallery_page,
 			get_ehentai_gallery_full: get_ehentai_gallery_full,
 			get_ehentai_gallery_page_thumb: get_ehentai_gallery_page_thumb,
-			get_nhentai_gallery: get_nhentai_gallery,
 			get_nhentai_gallery_page_thumb: get_nhentai_gallery_page_thumb,
-			get_hitomi_gallery: get_hitomi_gallery,
 			get_hitomi_gallery_page_thumb: get_hitomi_gallery_page_thumb,
 			get_data: get_data,
 			get_data_from_url_info: get_data_from_url_info,
 			get_thumbnail: get_thumbnail,
 			lookup_on_ehentai: lookup_on_ehentai,
 			cache_clear: cache_clear,
+			cache_get_prefix: cache_get_prefix,
 			get_category: get_category,
 			get_category_sort_rank: get_category_sort_rank,
 			is_fjording: is_fjording,
@@ -4393,7 +4573,7 @@
 			init: init
 		};
 
-	}._w(159))();
+	}._w(174))();
 	var SHA1 = (function () {
 
 		// SHA-1 JS implementation originally created by Chris Verness; http://movable-type.co.uk/scripts/sha1.html
@@ -4405,10 +4585,10 @@
 				case 2: return (x & y) ^ (x & z) ^ (y & z);
 				case 3: return x ^ y ^ z;
 			}
-		}._w(300);
+		}._w(312);
 		var rotl = function (x, n) {
 			return (x << n) | (x >>> (32 - n));
-		}._w(301);
+		}._w(313);
 		var hex = function (str) {
 			var s = "",
 				v, i;
@@ -4417,7 +4597,7 @@
 				s += v.toString(16);
 			}
 			return s;
-		}._w(302);
+		}._w(314);
 
 		// Public
 		var hash = function (data, data_length) {
@@ -4485,14 +4665,14 @@
 			}
 
 			return hex(H0) + hex(H1) + hex(H2) + hex(H3) + hex(H4);
-		}._w(303);
+		}._w(315);
 
 		// Exports
 		return {
 			hash: hash
 		};
 
-	}._w(299))();
+	}._w(311))();
 	var Sauce = (function () {
 
 		// Private
@@ -4511,7 +4691,7 @@
 			}
 
 			return null;
-		}._w(305);
+		}._w(317);
 
 		var on_sauce_click = function (event) {
 			event.preventDefault();
@@ -4531,7 +4711,7 @@
 					hover.classList.add("xl-exsauce-hover-hidden");
 				}
 			}
-		}._w(306);
+		}._w(318);
 		var on_sauce_click_error = function (event) {
 			event.preventDefault();
 
@@ -4545,8 +4725,8 @@
 			setTimeout(function () {
 				Linkifier.change_link_events(link, events);
 				link.click();
-			}._w(308), 1);
-		}._w(307);
+			}._w(320), 1);
+		}._w(319);
 		var on_sauce_mouseover = $.wrap_mouseenterleave_event(function () {
 			var results = get_exresults_from_exsauce(this),
 				hover, err;
@@ -4562,13 +4742,13 @@
 
 				hover.classList.remove("xl-exsauce-hover-hidden");
 			}
-		}._w(309));
+		}._w(321));
 		var on_sauce_mouseout = $.wrap_mouseenterleave_event(function () {
 			var hover = hover_nodes[this.getAttribute("data-xl-sauce-hover-id") || ""];
 			if (hover !== undefined) {
 				hover.classList.add("xl-exsauce-hover-hidden");
 			}
-		}._w(310));
+		}._w(322));
 		var on_sauce_mousemove = function (event) {
 			var hover = hover_nodes[this.getAttribute("data-xl-sauce-hover-id") || ""];
 
@@ -4594,7 +4774,7 @@
 
 			hover.style.left = x + "px";
 			hover.style.top = y + "px";
-		}._w(311);
+		}._w(323);
 
 		var create_hover = function (id, data) {
 			var results = data.results,
@@ -4613,7 +4793,7 @@
 			hover_nodes[id] = hover;
 
 			return hover;
-		}._w(312);
+		}._w(324);
 		var format = function (a, data) {
 			var count = data.results.length,
 				theme = Theme.classes,
@@ -4670,7 +4850,7 @@
 
 				Linkifier.change_link_events(a, "exsauce_toggle");
 			}
-		}._w(313);
+		}._w(325);
 		var label = function () {
 			var label = config.sauce.label;
 
@@ -4679,7 +4859,7 @@
 			}
 
 			return label;
-		}._w(314);
+		}._w(326);
 
 		var create_error = function (node, error) {
 			var id = hover_nodes_id,
@@ -4702,7 +4882,7 @@
 
 			// Done
 			return hover;
-		}._w(315);
+		}._w(327);
 		var set_error = function (node, error) {
 			// Create hover
 			create_error(node, error);
@@ -4714,7 +4894,7 @@
 
 			// Events
 			Linkifier.change_link_events(node, "exsauce_error");
-		}._w(316);
+		}._w(328);
 		var remove_error = function (node) {
 			var events = Linkifier.get_link_events(node),
 				id = node.getAttribute("data-xl-sauce-hover-id"),
@@ -4729,7 +4909,7 @@
 				if (hover.parentNode !== null) $.remove(hover);
 				delete hover_nodes[id];
 			}
-		}._w(317);
+		}._w(329);
 
 		var fetch_generic = function (link, use_similar) {
 			var url = link.href,
@@ -4749,7 +4929,7 @@
 					else if (state === "download") {
 						link.textContent = "Checking";
 					}
-				}._w(319);
+				}._w(331);
 			}
 			else {
 				link.textContent = "Downloading";
@@ -4761,7 +4941,7 @@
 					else if (state === "upload") {
 						link.textContent = "Checking";
 					}
-				}._w(320);
+				}._w(332);
 			}
 
 			remove_error(link);
@@ -4773,21 +4953,21 @@
 				else {
 					set_error(link, err);
 				}
-			}._w(321), progress);
-		}._w(318);
+			}._w(333), progress);
+		}._w(330);
 		var fetch = function (event) {
 			event.preventDefault();
 			fetch_generic(this, false);
-		}._w(322);
+		}._w(334);
 		var fetch_similar = function (event) {
 			event.preventDefault();
 			fetch_generic(this, true);
-		}._w(323);
+		}._w(335);
 
 		// Public
 		var find_link = function (container) {
 			return $(".xl-exsauce-link", container);
-		}._w(324);
+		}._w(336);
 		var create_link = function (file_info, index) {
 			var event = "exsauce_fetch",
 				sauce, err;
@@ -4814,7 +4994,7 @@
 			Linkifier.change_link_events(sauce, event);
 
 			return sauce;
-		}._w(325);
+		}._w(337);
 		var init = function () {
 			Linkifier.register_link_events({
 				exsauce_fetch: fetch,
@@ -4832,7 +5012,7 @@
 					mousemove: on_sauce_mousemove
 				},
 			});
-		}._w(326);
+		}._w(338);
 
 		// Exports
 		return {
@@ -4841,7 +5021,7 @@
 			init: init
 		};
 
-	}._w(304))();
+	}._w(316))();
 	var Linkifier = (function () {
 
 		// Private
@@ -4857,7 +5037,7 @@
 				this.text_offset = text_offset;
 				this.node = node;
 				this.node_text_length = node.nodeValue.length;
-			}._w(329);
+			}._w(341);
 
 
 
@@ -5119,7 +5299,7 @@
 
 				// Done
 				return count;
-			}._w(330);
+			}._w(342);
 
 
 
@@ -5133,11 +5313,11 @@
 			// Return the function
 			return deep_dom_wrap;
 
-		}._w(328))();
+		}._w(340))();
 
 		var linkify_groups = [{
 			regex: re_url,
-			prefix_index: 1,
+			prefix_group: 1,
 			prefix: "http://",
 			prefix_replace: [ /^\/+/, "" ],
 			tag: "a",
@@ -5153,13 +5333,13 @@
 					var m = re_url.exec(text);
 					if (m === null) return null;
 					return [ m.index , m.index + m[0].length, "a", m ];
-				}._w(332);
+				}._w(344);
 				node_setup = function (node, match) {
 					var url = match[3][0];
 					if (match[3][1] === undefined) url = "http://" + url.replace(/^\/+/, "");
 					result_nodes.push(node);
 					result_urls.push(url);
-				}._w(333);
+				}._w(345);
 			}
 			else {
 				// Multiple
@@ -5169,6 +5349,7 @@
 
 					for (i = 0, ii = linkify_groups.length; i < ii; ++i) {
 						group = linkify_groups[i];
+
 						if ((m = group.match) === null || m.index < pos) {
 							group.regex.lastIndex = pos;
 							group.match = m = group.regex.exec(text);
@@ -5179,13 +5360,13 @@
 					}
 
 					return res;
-				}._w(334);
+				}._w(346);
 				node_setup = function (node, match) {
 					var url = match[3][0],
 						group = match[4],
 						re;
 
-					if (match[3][group.prefix_index] === undefined) {
+					if (match[3][group.prefix_group] === undefined) {
 						if ((re = group.prefix_replace) !== null) {
 							url = url.replace(re[0], re[1]);
 						}
@@ -5194,11 +5375,11 @@
 
 					result_nodes.push(node);
 					result_urls.push(url);
-				}._w(335);
+				}._w(347);
 			}
 
 			deep_dom_wrap(container, match_fn, linkify_element_checker, node_setup, false);
-		}._w(331);
+		}._w(343);
 		var linkify_element_checker = function (node) {
 			if (node.tagName === "BR" || node.tagName === "A") {
 				return deep_dom_wrap.EL_TYPE_NO_PARSE | deep_dom_wrap.EL_TYPE_LINE_BREAK;
@@ -5213,7 +5394,7 @@
 				return deep_dom_wrap.EL_TYPE_LINE_BREAK;
 			}
 			return deep_dom_wrap.EL_TYPE_PARSE;
-		}._w(336);
+		}._w(348);
 		var linkify_test = function (text) {
 			var group, re, i, ii, m;
 			for (i = 0, ii = linkify_groups.length; i < ii; ++i) {
@@ -5221,7 +5402,7 @@
 				re = group.regex;
 				re.lastIndex = 0;
 				if ((m = re.exec(text)) !== null) {
-					if (m[group.prefix_index] === undefined) {
+					if (m[group.prefix_group] === undefined) {
 						if ((re = group.prefix_replace) !== null) {
 							text = text.replace(re[0], re[1]);
 						}
@@ -5231,7 +5412,7 @@
 				}
 			}
 			return null;
-		}._w(337);
+		}._w(349);
 		var linkify_register = function (regex, prefix_group, prefix, prefix_replace_regex, prefix_replace_with) {
 			var prefix_replace = null;
 
@@ -5241,13 +5422,13 @@
 
 			linkify_groups.push({
 				regex: regex,
-				prefix_index: prefix_group,
+				prefix_group: prefix_group,
 				prefix: prefix,
 				prefix_replace: prefix_replace,
 				tag: "a",
 				match: null
 			});
-		}._w(338);
+		}._w(350);
 
 		var parse_text_for_urls = function (text) {
 			var urls = [],
@@ -5260,7 +5441,7 @@
 			}
 
 			return urls;
-		}._w(339);
+		}._w(351);
 
 		// Link creation and processing
 		var create_link = function (parent, next, url, text, auto_process) {
@@ -5271,12 +5452,12 @@
 			preprocess_link(link, url, false, auto_process);
 
 			return link;
-		}._w(340);
+		}._w(352);
 		var preprocess_link = function (node, url, update_on_fail, auto_load) {
-			if (node.parentNode === null) return;
-
 			API.get_url_info(url, function (err, info) {
-				if (info === null || !config.sites[info.site]) {
+				if (node.parentNode === null) return;
+
+				if (info === null || (config.sites[info.site] === false || Config.get_custom("sites", info.site) === false)) {
 					if (update_on_fail) {
 						node.href = url;
 						node.target = "_blank";
@@ -5308,8 +5489,8 @@
 				UI.setup_link(node, url, info);
 
 				if (auto_load) load_link(node, info);
-			}._w(342));
-		}._w(341);
+			}._w(354));
+		}._w(353);
 		var load_link = function (link, info) {
 			API.get_data_from_url_info(info, function (err, data) {
 				if (link.parentNode !== null) {
@@ -5323,8 +5504,8 @@
 						UI.format_link_error(link, err, info);
 					}
 				}
-			}._w(344));
-		}._w(343);
+			}._w(356));
+		}._w(355);
 
 		// Post queue
 		var post_queue = {
@@ -5361,7 +5542,7 @@
 					dequeue_posts();
 				}
 			}
-		}._w(345);
+		}._w(357);
 		queue_posts.Flags = {
 			None: 0x0,
 			UseDelay: 0x1,
@@ -5382,7 +5563,7 @@
 				// Timer for next
 				post_queue.timer = setTimeout(dequeue_posts, post_queue.delay);
 			}
-		}._w(346);
+		}._w(358);
 
 		var setup_post_exsauce = function (post) {
 			var index = 0,
@@ -5403,7 +5584,7 @@
 					++index;
 				}
 			}
-		}._w(347);
+		}._w(359);
 		var parse_post = function (post) {
 			var auto_load_links = config.general.automatic_processing,
 				post_body, post_links, link_nodes, link_urls, link, url, i, ii;
@@ -5453,7 +5634,7 @@
 				// Mark
 				post.classList.add("xl-post-linkified");
 			}
-		}._w(348);
+		}._w(360);
 		var parse_posts = function (posts) {
 			var post, i, ii;
 
@@ -5471,7 +5652,7 @@
 			}
 
 			Debug.log("Total posts=" + posts.length + "; time=" + Debug.timer("process"));
-		}._w(349);
+		}._w(361);
 
 		// Link events
 		var link_events = {};
@@ -5487,10 +5668,10 @@
 			}
 
 			return count;
-		}._w(350);
+		}._w(362);
 		var get_link_events = function (node) {
 			return node.getAttribute("data-xl-link-events") || null;
-		}._w(351);
+		}._w(363);
 		var set_link_events = function (node, new_events) {
 			var events = link_events[new_events],
 				k;
@@ -5506,7 +5687,7 @@
 					}
 				}
 			}
-		}._w(352);
+		}._w(364);
 		var apply_link_events = function (node, check_children) {
 			var nodes = check_children ? $$("a.xl-link-events", node) : [ node ],
 				events, i, ii;
@@ -5516,7 +5697,7 @@
 				events = node.getAttribute("data-xl-link-events");
 				set_link_events(node, events);
 			}
-		}._w(353);
+		}._w(365);
 		var change_link_events = function (node, new_events) {
 			var old_events = node.getAttribute("data-xl-link-events"),
 				events, k;
@@ -5543,12 +5724,12 @@
 				node.setAttribute("data-xl-link-events", new_events);
 				set_link_events(node, new_events);
 			}
-		}._w(354);
+		}._w(366);
 
 		// Links
 		var get_links_formatted = function (parent) {
 			return $$("a.xl-link.xl-link-formatted", parent);
-		}._w(355);
+		}._w(367);
 
 		// Events
 		var event_listeners = {
@@ -5559,7 +5740,7 @@
 			if (!listeners) return false;
 			listeners.push(callback);
 			return true;
-		}._w(356);
+		}._w(368);
 		var off = function (event_name, callback) {
 			var listeners = event_listeners[event_name],
 				i, ii;
@@ -5572,13 +5753,13 @@
 				}
 			}
 			return false;
-		}._w(357);
+		}._w(369);
 		var trigger = function (listeners, data) {
 			var i, ii;
 			for (i = 0, ii = listeners.length; i < ii; ++i) {
 				listeners[i].call(null, data);
 			}
-		}._w(358);
+		}._w(370);
 
 		// Fixing
 		var relinkify_posts = function (posts) {
@@ -5603,7 +5784,7 @@
 			}
 
 			queue_posts(posts, queue_posts.Flags.Flush | queue_posts.Flags.FlushNoParse | queue_posts.Flags.UseDelay);
-		}._w(359);
+		}._w(371);
 		var fix_broken_4chanx_linkification = function (node, event_links) {
 			// Somehow one of the links gets cloned, and then they all get wrapped inside another link
 			var fix = [],
@@ -5638,7 +5819,7 @@
 				link = fix[i];
 				preprocess_link(link, link.href || "", false, config.general.automatic_processing);
 			}
-		}._w(360);
+		}._w(372);
 
 		// Exports
 		return {
@@ -5657,23 +5838,25 @@
 			off: off
 		};
 
-	}._w(327))();
+	}._w(339))();
 	var Settings = (function () {
 
 		// Private
 		var config_temp = null,
+			config_custom_temp = null,
+			config_exts_temp = null,
 			export_url = null,
 			popup = null;
 
 		var html_filter_guide = function () {
 			return '<div class="xl-settings-group xl-settings-filter-guide xl-theme">Lines starting with <code>/</code> will be treated as <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions" target="_blank" rel="noreferrer nofollow">regular expressions</a>. <span style="opacity: 0.75">(This is very similar to 4chan-x style filtering)</span><br>Lines starting with <code>#</code> are comments and will be ignored.<br>Lines starting with neither <code>#</code> nor <code>/</code> will be treated as a case-insensitive string to match anywhere.<br>For example, <code>/touhou/i</code> will highlight entries containing the string `<code>touhou</code>`, case-insensitive.<br><br>The lower a filter appears in this list, the greater its priority will be.<br><br>You can use these additional settings with each regular expression, separating them with semicolons:<br><ul><li><strong>Apply the filter to different scopes:</strong><br><code>tags;</code>, <code>title;</code> or <code>uploader;</code>. By default the scope is <code>title;tags;</code><br></li><li><strong>Force a gallery to not be highlighted:</strong> <span style="opacity: 0.75">If omitted, the gallery will be highlighted as normal</span><br><code>bad:no;</code>, <code>bad:yes;</code>, or just <code>bad;</code></li><li><strong>Only apply the filter to certain categories:</strong><br><code>only:doujinshi,manga;</code>.<div style="font-size: 0.9em; margin-top: 0.1em; opacity: 0.75">Categories: <span>artistcg, asianporn, cosplay, doujinshi, gamecg, imageset, manga, misc, <span style="white-space: nowrap">non-h</span>, private, western</span></div></li><li><strong>Only apply the filter if it <em>is not</em> a certain category:</strong><br><code>not:western,non-h;</code>.</li><li><strong>Only apply the filter to certain sites:</strong><br><code>only:ehentai;</code>.<div style="font-size: 0.9em; margin-top: 0.1em; opacity: 0.75">Sites: <span>ehentai, nhentai, hitomi</span></div></li><li><strong>Apply a colored decoration to the matched text:</strong><br><code>color:red;</code>, <code>underline:#0080f0;</code>, or <code>background:rgba(0,255,0,0.5);</code></li><li><strong>Apply a colored decoration to the [Ex] or [EH] tag:</strong><br><code>link-color:blue;</code>, <code>link-underline:#bf48b5;</code>, or <code>link-background:rgba(220,200,20,0.5);</code></li><li><strong>Apply a colored decoration to <em>BOTH</em> the matched text and tag:</strong><br><code>colors:blue;</code>, <code>underlines:#bf48b5;</code>, or <code>backgrounds:rgba(220,200,20,0.5);</code></li><li><strong>Disable any coloring, including the default:</strong><br><code>no-colors;</code> or <code>nocolor;</code></li></ul>Additionally, some settings have aliases. If multiple are used, only the main one will be used.<br><ul><li><code>tags: tag</code></li><li><code>only: category, cat</code></li><li class="xl-settings-li-no-space"><code>not: no</code></li><li class="xl-settings-li-no-space"><code>site: sites</code></li><li><code>colors: cs</code></li><li class="xl-settings-li-no-space"><code>underlines: us</code></li><li class="xl-settings-li-no-space"><code>backgrounds: bgs</code></li><li><code>color: c</code></li><li class="xl-settings-li-no-space"><code>underline: u</code></li><li class="xl-settings-li-no-space"><code>background: bg</code></li><li><code>link-color: link-c, lc</code></li><li class="xl-settings-li-no-space"><code>link-underline: link-u, lu</code></li><li class="xl-settings-li-no-space"><code>link-background: link-bg, lbg</code></li><li><code>no-colors: no-color, nocolors, nocolor</code></li></ul>For easy <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value#Color_keywords" target="_blank" rel="noreferrer nofollow">HTML color</a> selection, you can use the following helper to select a color:<br><br><div><input type="color" value="#808080" class="xl-settings-color-input"><input type="text" value="#808080" class="xl-settings-color-input" readonly="readonly"><input type="text" value="rgba(128,128,128,1)" class="xl-settings-color-input" readonly="readonly"></div></div>';
-		}._w(362);
+		}._w(374);
 		var create_export_data = function () {
 			return {
 				config: Config.get_saved_settings(),
 				easy_list: EasyList.get_saved_settings()
 			};
-		}._w(363);
+		}._w(375);
 		var import_settings = function (data) {
 			if (data !== null && typeof(data) === "object") {
 				var v = data.config;
@@ -5684,124 +5867,188 @@
 				if (typeof(v) !== "object") v = null;
 				EasyList.set_saved_settings(v);
 			}
-		}._w(364);
-		var gen = function (container, option_type, title, message, pre) {
-			var config_scope = config_temp[option_type],
-				theme = Theme.classes,
-				entry, table, row, cell, label, input, event,
-				args, values, id, name, desc, type, value, obj, label_text, ext, i, ii, j, jj, n, n2, n3, v;
+		}._w(376);
 
-			// [ name, default, label, description, old_name, formatter, info? ]
-			args = options[option_type];
-			if (arguments.length > 5) args = Array.prototype.concat.call(args, Array.prototype.slice.call(arguments, 5));
+		var generate_section_header = function (title, message) {
+			var theme = Theme.classes,
+				n1, n2, n3;
 
-			n = $.node("div", "xl-settings-heading" + theme);
-			$.add(n, n2 = $.node("div", "xl-settings-heading-inner" + theme));
+			n1 = $.node("div", "xl-settings-heading" + theme);
+			$.add(n1, n2 = $.node("div", "xl-settings-heading-inner" + theme));
 			$.add(n2, $.node("div", "xl-settings-heading-cell xl-settings-heading-title" + theme, title));
 			if (message !== undefined) {
 				$.add(n2, n3 = $.node("div", "xl-settings-heading-cell xl-settings-heading-subtitle" + theme));
 				$.add(n3, message);
 			}
 
-			$.add(container, n);
-			if (pre !== undefined) $.add(container, pre);
+			return n1;
+		}._w(377);
+		var generate_section = function () {
+			return $.node("div", "xl-settings-group " + Theme.classes);
+		}._w(378);
+		var generate_section_options = function (section, namespace, config_descriptor, config_scope) {
+			var type, info, d, i, ii;
+			for (i = 0, ii = config_descriptor.length; i < ii; ++i) {
+				d = config_descriptor[i]; // [ name, default, label, description, old_name, info? ]
+				info = (d.length > 5 ? d[5] : null);
+				if (info === null || (type = info.type) === undefined) type = "checkbox";
+				generate_section_option(
+					section,
+					config_scope,
+					"xl-settings-" + namespace + "-" + i, // id
+					d[0], // name
+					d[2], // label
+					d[3], // description
+					type, // type
+					config_scope !== null ? config_scope[d[0]] : null, // value
+					info // info
+				);
+			}
+		}._w(379);
+		var generate_section_options_custom = function (section, namespace, custom_descriptor, custom_config) {
+			var config_descriptor = custom_descriptor[namespace];
+			if (config_descriptor === undefined) return;
 
-			n = $.node("div", "xl-settings-group xl-settings-group-" + option_type + theme);
+			generate_section_options(section, namespace + "-custom", config_descriptor, custom_config[namespace]);
+		}._w(380);
+		var generate_section_option = function (section, config_scope, id, name, label_text, description, type, value, info) {
+			var event = "change",
+				theme = Theme.classes,
+				values, entry, table, row, cell, label, input, fn, n, i, ii, v;
 
-			for (i = 0, ii = args.length; i < ii; ++i) {
-				obj = args[i];
-				name = obj[0];
-				label_text = obj[2];
-				desc = obj[3];
-				ext = (obj.length > 5 ? obj[5] : null);
-				if (ext === null || (type = ext.type) === undefined) type = "checkbox";
-				value = (name === null ? null : config_scope[name]);
-				id = "xl-settings-" + option_type + "-" + i;
-				event = "change";
+			// Create label/description
+			$.add(section, entry = $.node("div", "xl-settings-entry" + theme));
+			$.add(entry, table = $.node("div", "xl-settings-entry-table"));
+			$.add(table, row = $.node("div", "xl-settings-entry-row"));
 
-				$.add(n, entry = $.node("div", "xl-settings-entry" + theme));
-				$.add(entry, table = $.node("div", "xl-settings-entry-table"));
-				$.add(table, row = $.node("div", "xl-settings-entry-row"));
-
-				$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
-				$.add(cell, label = $.node("label", "xl-settings-entry-label"));
-				label.htmlFor = id;
-				$.add(label, $.node("strong", "xl-settings-entry-label-name", label_text + ":"));
-				if (desc.length > 0) {
-					n2 = $.node("span", "xl-settings-entry-label-description");
-					n2.innerHTML = " " + desc;
-					$.add(label, n2);
-				}
-
-				if (type === "checkbox") {
-					$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
-					$.add(cell, input = $.node("input", "xl-settings-entry-input" + theme));
-					input.type = "checkbox";
-					input.id = id;
-					input.checked = value;
-				}
-				else if (type === "select") {
-					$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
-					$.add(cell, input = $.node("select", "xl-settings-entry-input" + theme));
-
-					values = ext.options;
-					for (j = 0, jj = values.length; j < jj; ++j) {
-						v = values[j];
-						$.add(input, n2 = $.node("option", "xl-settings-entry-input-option", v[1]));
-						n2.value = v[0];
-						n2.selected = (v[0] === value);
-						if (v.length > 2) n2.title = v[2];
-					}
-				}
-				else if (type === "textbox") {
-					$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
-					$.add(cell, input = $.node("input", "xl-settings-entry-input" + theme));
-					input.type = "text";
-					input.id = id;
-					input.value = value;
-				}
-				else if (type === "textarea") {
-					$.add(table, row = $.node("div", "xl-settings-entry-row"));
-					$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
-					$.add(cell, input = $.node("textarea", "xl-settings-entry-input" + theme));
-					input.wrap = "off";
-					input.spellcheck = false;
-					input.id = id;
-					input.value = value;
-				}
-				else if (type === "button") {
-					$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
-					$.add(cell, input = $.node("button", "xl-settings-entry-input" + theme, ext.text || ""));
-					event = "click";
-				}
-
-				$.on(input, event, $.bind(on_change, input, type, option_type, name, ext));
+			$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
+			$.add(cell, label = $.node("label", "xl-settings-entry-label"));
+			label.htmlFor = id;
+			$.add(label, $.node("strong", "xl-settings-entry-label-name", label_text + ":"));
+			if (description) {
+				$.add(label, $.node("span", "xl-settings-entry-label-description", " " + description));
 			}
 
-			$.add(container, n);
-		}._w(365);
+			// Value edit
+			if (info !== null && (fn = info.get) !== undefined) {
+				value = fn.call(null, value);
+			}
 
-		var on_change = function (option_type, scope, name, extra, event) {
+			if (type === "checkbox") {
+				$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
+				$.add(cell, input = $.node("input", "xl-settings-entry-input" + theme));
+				input.type = "checkbox";
+				input.id = id;
+				input.checked = value;
+			}
+			else if (type === "select") {
+				$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
+				$.add(cell, input = $.node("select", "xl-settings-entry-input" + theme));
+
+				values = (info !== null ? info.options : []);
+				for (i = 0, ii = values.length; i < ii; ++i) {
+					v = values[i];
+					$.add(input, n = $.node("option", "xl-settings-entry-input-option", v[1]));
+					n.value = v[0];
+					n.selected = (v[0] === value);
+					if (v.length > 2) n.title = v[2];
+				}
+			}
+			else if (type === "textbox") {
+				$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
+				$.add(cell, input = $.node("input", "xl-settings-entry-input" + theme));
+				input.type = "text";
+				input.id = id;
+				input.value = value;
+			}
+			else if (type === "textarea") {
+				$.add(table, row = $.node("div", "xl-settings-entry-row"));
+				$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
+				$.add(cell, input = $.node("textarea", "xl-settings-entry-input" + theme));
+				input.wrap = "off";
+				input.spellcheck = false;
+				input.id = id;
+				input.value = value;
+			}
+			else if (type === "button") {
+				$.add(row, cell = $.node("span", "xl-settings-entry-cell"));
+				$.add(cell, input = $.node("button", "xl-settings-entry-input" + theme, (info !== null ? info.text || "" : "")));
+				event = "click";
+			}
+			else {
+				// Skip event
+				return;
+			}
+
+			// Event
+			if (config_scope === null) name = null;
+			$.on(input, event, $.bind(on_change, input, type, config_scope, name, info));
+		}._w(381);
+
+		var generate_extensions = function (container) {
+			var exts = ExtensionAPI.get_registered_extensions(),
+				descriptor, data, section, e, i, ii, v;
+
+			if (exts.length === 0) return null;
+
+			$.add(container, generate_section_header("Extensions"));
+			section = generate_section();
+
+			descriptor = [];
+			data = [];
+			for (i = 0, ii = exts.length; i < ii; ++i) {
+				e = exts[i];
+				v = e[0];
+				data.push(v);
+				descriptor.push([
+					i,
+					v,
+					e[1] + (e[2].length > 0 ? (" by " + e[2]) : ""),
+					e[3],
+					null
+				]);
+			}
+
+			generate_section_options(section, "extensions", descriptor, data);
+			$.add(container, section);
+
+			return data;
+		}._w(382);
+
+		var titlify_custom_namespace = function (namespace) {
+			return namespace.replace(/[_\W]+/g, " ").replace(/\b\w/g, function (m) { return m.toUpperCase(); }._w(384));
+		}._w(383);
+
+		var on_change = function (type, config_scope, name, info, event) {
 			var fn, v;
 
 			if (name !== null) {
-				if (option_type === "checkbox") {
+				if (type === "checkbox") {
 					v = this.checked;
 				}
-				else if (option_type === "select" || option_type === "textbox" || option_type === "textarea") {
+				else if (type === "select" || type === "textbox" || type === "textarea") {
 					v = this.value;
 				}
 
-				fn = (extra === null ? undefined : extra.set);
-				if (fn !== undefined) fn.call(null, v);
+				fn = (info === null ? undefined : info.set);
+				if (fn !== undefined) {
+					v = fn.call(null, v);
+					fn = info.get;
+					if (type === "textbox" || type === "textarea") {
+						this.value = (fn === undefined ? v : fn.call(null, v));
+					}
+					else if (type === "checkbox") {
+						this.value = !!(fn === undefined ? v : fn.call(null, v));
+					}
+				}
 
-				config_temp[scope][name] = v;
+				config_scope[name] = v;
 			}
 
-			if (extra !== null && (fn = extra.on_change) !== undefined) {
+			if (info !== null && (fn = info.on_change) !== undefined) {
 				fn.call(this, event);
 			}
-		}._w(366);
+		}._w(385);
 		var on_cache_clear_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
@@ -5810,39 +6057,40 @@
 				Debug.log("Cleared cache; entries_removed=" + clears);
 				this.textContent = "Cleared!";
 			}
-		}._w(367);
+		}._w(386);
 		var on_changelog_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				close(event);
 				Changelog.open(null);
 			}
-		}._w(368);
+		}._w(387);
 		var on_export_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				close();
 				open_export();
 			}
-		}._w(369);
+		}._w(388);
 		var on_save_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 
 				config = config_temp;
-				config_temp = null;
+				Config.load_custom_from_clone(config_custom_temp);
+				ExtensionAPI.set_extensions_enabled(config_exts_temp);
 
 				Config.save();
 				close();
 			}
-		}._w(370);
+		}._w(389);
 		var on_cancel_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 
 				close();
 			}
-		}._w(371);
+		}._w(390);
 		var on_toggle_filter_guide = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
@@ -5855,7 +6103,7 @@
 				}
 				catch (e) {}
 			}
-		}._w(372);
+		}._w(391);
 		var on_color_helper_change = function () {
 			var n = this.nextSibling,
 				m;
@@ -5870,14 +6118,14 @@
 					}
 				}
 			}
-		}._w(373);
+		}._w(392);
 		var on_settings_open_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 
 				open();
 			}
-		}._w(374);
+		}._w(393);
 
 		// Public
 		var ready = function () {
@@ -5886,13 +6134,15 @@
 			var n = $.link(Main.homepage, "xl-nav-link", "X-links Settings");
 			$.on(n, "click", on_settings_open_click);
 			HeaderBar.insert_menu_link(n);
-		}._w(375);
+		}._w(394);
 		var open = function () {
 			var theme = Theme.classes,
-				content_container, n, n2;
+				custom_options = Config.get_custom_settings_descriptor(),
+				content_container, k, n;
 
 			// Config
 			config_temp = JSON.parse(JSON.stringify(config));
+			config_custom_temp = Config.get_custom_clone();
 
 			// Popup
 			popup = Popup.create("settings", [[{
@@ -5902,7 +6152,7 @@
 					$.add(container, $.link(Main.homepage, "xl-settings-title" + theme, "X-links"));
 					$.add(container, n = $.link(Changelog.url, "xl-settings-version" + theme, Main.version.join(".")));
 					$.on(n, "click", on_changelog_click);
-				}._w(377)
+				}._w(396)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -5925,34 +6175,83 @@
 					$.add(container, n = $.link("#", "xl-settings-button" + theme));
 					$.add(n, $.node("span", "xl-settings-button-text", "Cancel"));
 					$.on(n, "click", on_cancel_click);
-				}._w(378)
+				}._w(397)
 			}], {
 				body: true,
 				setup: function (container) {
 					content_container = container;
-				}._w(379)
+				}._w(398)
 			}]);
 
 			// Settings
 			n = $.tnode("Note: you must reload the page after saving for some changes to take effect");
-			gen(content_container, "general", "General", n);
-			gen(content_container, "sites", "Sites");
-			gen(content_container, "details", "Gallery Details");
-			gen(content_container, "actions", "Gallery Actions");
-			gen(content_container, "sauce", "ExSauce");
+			$.add(content_container, generate_section_header("General", n));
+			n = generate_section();
+			generate_section_options(n, "general", options.general, config_temp.general);
+			generate_section_options_custom(n, "general", custom_options, config_custom_temp);
+			$.add(content_container, n);
+
+			$.add(content_container, generate_section_header("Sites"));
+			n = generate_section();
+			generate_section_options(n, "sites", options.sites, config_temp.sites);
+			generate_section_options_custom(n, "sites", custom_options, config_custom_temp);
+			$.add(content_container, n);
+
+			$.add(content_container, generate_section_header("Details"));
+			n = generate_section();
+			generate_section_options(n, "details", options.details, config_temp.details);
+			generate_section_options_custom(n, "details", custom_options, config_custom_temp);
+			$.add(content_container, n);
+
+			$.add(content_container, generate_section_header("Actions"));
+			n = generate_section();
+			generate_section_options(n, "actions", options.actions, config_temp.actions);
+			generate_section_options_custom(n, "actions", custom_options, config_custom_temp);
+			$.add(content_container, n);
+
+			$.add(content_container, generate_section_header("ExSauce"));
+			n = generate_section();
+			generate_section_options(n, "sauce", options.sauce, config_temp.sauce);
+			generate_section_options_custom(n, "sauce", custom_options, config_custom_temp);
+			$.add(content_container, n);
+
 			n = $.link("#", "xl-settings-filter-guide-toggle", "Click here to toggle the guide");
-			n2 = $.frag(html_filter_guide());
 			$.on(n, "click", on_toggle_filter_guide);
-			$.on($("input.xl-settings-color-input[type=color]", n2), "change", on_color_helper_change);
-			Theme.apply(n2);
-			gen(content_container, "filter", "Filtering", n, n2);
-			gen(content_container, "debug", "Debugging", undefined, undefined,
+			$.add(content_container, generate_section_header("Filtering", n));
+			n = $.frag(html_filter_guide());
+			Theme.apply(n);
+			$.on($("input.xl-settings-color-input[type=color]", n), "change", on_color_helper_change);
+			$.add(content_container, n);
+			n = generate_section();
+			generate_section_options(n, "filter", options.filter, config_temp.filter);
+			generate_section_options_custom(n, "filter", custom_options, config_custom_temp);
+			$.add(content_container, n);
+
+			$.add(content_container, generate_section_header("Debugging"));
+			n = generate_section();
+			generate_section_options(n, "debug", options.debug, config_temp.debug);
+			generate_section_options(n, "debug-ext", [
 				[ null, null,
 					"Clear cache data", "Clear all cached gallery data",
 					null,
 					{ type: "button", text: "Clear", on_change: on_cache_clear_click },
 				]
-			);
+			], null);
+			generate_section_options_custom(n, "debug", custom_options, config_custom_temp);
+			$.add(content_container, n);
+
+			// Custom
+			for (k in custom_options) {
+				if (!Object.prototype.hasOwnProperty.call(config_temp, k)) {
+					$.add(content_container, generate_section_header(titlify_custom_namespace(k)));
+					n = generate_section();
+					generate_section_options(n, k + "-custom", custom_options[k], config_custom_temp[k]);
+					$.add(content_container, n);
+				}
+			}
+
+			// Extensions
+			config_exts_temp = generate_extensions(content_container);
 
 			// Events
 			$.on(popup, "click", on_cancel_click);
@@ -5963,7 +6262,7 @@
 			// Focus
 			n = $(".xl-popup-cell-size-scroll", popup);
 			if (n !== null) $.scroll_focus(n);
-		}._w(376);
+		}._w(395);
 		var open_export = function () {
 			var theme = Theme.classes,
 				nodes = {
@@ -5981,7 +6280,7 @@
 				setup: function (container) {
 					$.add(container, $.link(Main.homepage, "xl-settings-title" + theme, "X-links"));
 					$.add(container, $.node("span", "xl-settings-title-info" + theme, " - Settings export"));
-				}._w(381)
+				}._w(400)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -5992,7 +6291,7 @@
 						s = "" + s;
 						while (s.length < len) s = "0" + s;
 						return s;
-					}._w(383);
+					}._w(402);
 
 					fn = $.node("input", "xl-settings-file-input");
 					fn.type = "file";
@@ -6009,18 +6308,18 @@
 									nodes.textarea.value = JSON.stringify(d, null, 2);
 									nodes.textarea.classList.add("xl-settings-export-textarea-changed");
 								}
-							}._w(385), false);
+							}._w(404), false);
 							reader.readAsText(files[0]);
 						}
 						this.value = null;
-					}._w(384));
+					}._w(403));
 
 					$.add(container, n = $.link(undefined, "xl-settings-button" + theme));
 					$.add(n, $.node("span", "xl-settings-button-text", "Import"));
 					$.on(n, "click", function (event) {
 						event.preventDefault();
 						fn.click();
-					}._w(386));
+					}._w(405));
 
 					$.add(container, n = $.link(export_url, "xl-settings-button" + theme));
 					n.removeAttribute("target");
@@ -6050,12 +6349,12 @@
 							}
 							nodes.textarea.classList.remove("xl-settings-export-textarea-changed");
 						}
-					}._w(387));
+					}._w(406));
 
 					$.add(container, n = $.link("#", "xl-settings-button" + theme));
 					$.add(n, $.node("span", "xl-settings-button-text", "Cancel"));
 					$.on(n, "click", on_cancel_click);
-				}._w(382)
+				}._w(401)
 			}], {
 				padding: false,
 				setup: function (container) {
@@ -6071,12 +6370,12 @@
 					n3.checked = false;
 					$.on(n3, "change", function () {
 						nodes.textarea.readOnly = !this.checked;
-					}._w(389));
+					}._w(408));
 
 					$.add(n1, $.tnode(")"));
 
 					$.add(container, n1);
-				}._w(388)
+				}._w(407)
 			}, {
 				body: true,
 				padding: false,
@@ -6090,12 +6389,12 @@
 					n.readOnly = true;
 					$.on(n, "input", function () {
 						this.classList.add("xl-settings-export-textarea-changed");
-					}._w(391));
+					}._w(410));
 
 					nodes.textarea = n;
 
 					$.add(container, n);
-				}._w(390)
+				}._w(409)
 			}]);
 			$.on(popup, "click", on_cancel_click);
 
@@ -6105,9 +6404,11 @@
 			// Focus
 			n = $(".xl-settings-export-textarea", popup);
 			if (n !== null) n.focus();
-		}._w(380);
+		}._w(399);
 		var close = function () {
 			config_temp = null;
+			config_custom_temp = null;
+			config_exts_temp = null;
 			if (popup !== null) {
 				Popup.close(popup);
 				popup = null;
@@ -6116,7 +6417,7 @@
 				window.URL.revokeObjectURL(export_url);
 				export_url = null;
 			}
-		}._w(392);
+		}._w(411);
 
 		// Exports
 		return {
@@ -6126,11 +6427,13 @@
 			close: close
 		};
 
-	}._w(361))();
+	}._w(373))();
 	var Config = (function () {
 
 		// Private
-		var settings_key = "xlinks-settings";
+		var settings_key = "xlinks-settings",
+			custom = {},
+			custom_descriptor = null;
 
 		// Public
 		var storage = (function () {
@@ -6151,25 +6454,25 @@
 			return {
 				getItem: function (key) {
 					return GM_getValue(key, null);
-				}._w(395),
+				}._w(414),
 				setItem: function (key, value) {
 					GM_setValue(key, value);
-				}._w(396),
+				}._w(415),
 				key: function (index) {
 					return GM_listValues()[index];
-				}._w(397),
+				}._w(416),
 				removeItem: function (key) {
 					GM_deleteValue(key);
-				}._w(398),
+				}._w(417),
 				clear: function () {
 					var v = GM_listValues(), i, ii;
 					for (i = 0, ii = v.length; i < ii; ++i) GM_deleteValue(v[i]);
-				}._w(399),
+				}._w(418),
 				get length() {
 					return GM_listValues().length;
 				}
 			};
-		}._w(394))();
+		}._w(413))();
 
 		var init = function () {
 			var update = false,
@@ -6238,7 +6541,7 @@
 
 			// Save changes
 			if (update) save();
-		}._w(400);
+		}._w(419);
 		var ready = function () {
 			var domain = $.get_domain(window.location.href);
 
@@ -6278,15 +6581,15 @@
 			}
 
 			return true;
-		}._w(401);
+		}._w(420);
 		var save = function () {
 			config.version = Main.version;
 			storage.setItem(settings_key, JSON.stringify(config));
 			config.version = null;
-		}._w(402);
+		}._w(421);
 		var get_saved_settings = function () {
 			return $.json_parse_safe(storage.getItem(settings_key), null);
-		}._w(403);
+		}._w(422);
 		var set_saved_settings = function (data) {
 			if (data === null) {
 				storage.removeItem(settings_key);
@@ -6294,7 +6597,95 @@
 			else {
 				storage.setItem(settings_key, JSON.stringify(data));
 			}
-		}._w(404);
+		}._w(423);
+
+		var load_custom = function () {
+			var saved = $.json_parse_safe(storage.getItem(settings_key + "-custom"), null),
+				obj, k1, k2, v;
+
+			if (saved === null || typeof(saved) !== "object") return;
+
+			for (k1 in saved) {
+				obj = saved[k1];
+				if (obj !== null && typeof(obj) === "object") {
+					for (k2 in obj) {
+						if (!Object.prototype.hasOwnProperty.call(custom, k1)) {
+							v = custom[k1] = {};
+						}
+						else {
+							v = custom[k1];
+						}
+						v[k2] = obj[k2];
+					}
+				}
+			}
+		}._w(424);
+		var save_custom = function () {
+			storage.setItem(settings_key + "-custom", JSON.stringify(custom));
+		}._w(425);
+
+		var register_custom_setting = function (namespace, name, default_value, title, description, descriptor) {
+			// Already exists
+			if (Object.prototype.hasOwnProperty.call(config, namespace) && Object.prototype.hasOwnProperty.call(config[namespace], name)) {
+				return undefined;
+			}
+
+			// Load custom
+			if (custom_descriptor === null) {
+				custom_descriptor = {};
+				load_custom();
+			}
+
+			// Get value
+			var update = init_custom(namespace, name, default_value),
+				d, v;
+
+			// Descriptor
+			d = [ name, default_value, title, description, null ];
+			if (descriptor !== null) d.push(descriptor);
+
+			v = custom_descriptor[namespace];
+			if (v === undefined) custom_descriptor[namespace] = v = [];
+			v.push(d);
+
+			// Save
+			if (update[0]) save_custom();
+
+			// Return value
+			return update[1];
+		}._w(426);
+		var init_custom = function (namespace, name, default_value) {
+			var v = custom[namespace],
+				val;
+
+			if (v === undefined) {
+				custom[namespace] = v = {};
+				v[name] = default_value;
+				return [ true, default_value ];
+			}
+
+			val = v[name];
+			if (val === undefined) {
+				v[name] = default_value;
+				return [ true, default_value ];
+			}
+
+			return [ false, val ];
+		}._w(427);
+		var get_custom_settings_descriptor = function () {
+			return custom_descriptor === null ? {} : custom_descriptor;
+		}._w(428);
+		var get_custom = function (namespace, name) {
+			var v = custom[namespace];
+			return (v !== undefined) ? v[name] : undefined;
+		}._w(429);
+		var get_custom_clone = function () {
+			return JSON.parse(JSON.stringify(custom));
+		}._w(430);
+		var load_custom_from_clone = function (clone) {
+			custom = clone;
+			save_custom();
+		}._w(431);
 
 		// Exports
 		var Module = {
@@ -6313,12 +6704,17 @@
 			ready: ready,
 			save: save,
 			get_saved_settings: get_saved_settings,
-			set_saved_settings: set_saved_settings
+			set_saved_settings: set_saved_settings,
+			register_custom_setting: register_custom_setting,
+			get_custom_settings_descriptor: get_custom_settings_descriptor,
+			get_custom: get_custom,
+			get_custom_clone: get_custom_clone,
+			load_custom_from_clone: load_custom_from_clone
 		};
 
 		return Module;
 
-	}._w(393))();
+	}._w(412))();
 	var Filter = (function () {
 
 		// Private
@@ -6331,7 +6727,7 @@
 			this.regex = regex;
 			this.flags = flags;
 			this.priority = priority;
-		}._w(406);
+		}._w(433);
 		var FilterFlags = function () {
 			this.title = true;
 			this.tags = true;
@@ -6348,7 +6744,7 @@
 			this.link_color = this.color;
 			this.link_underline = null;
 			this.link_background = null;
-		}._w(407);
+		}._w(434);
 		FilterFlags.scope_fn = function (name) {
 			return function (value, state) {
 				if (!state.scope) {
@@ -6359,8 +6755,8 @@
 				}
 
 				this[name] = (good_values.indexOf(value.trim().toLowerCase()) >= 0);
-			}._w(409);
-		}._w(408);
+			}._w(436);
+		}._w(435);
 		FilterFlags.color_fn = function (fn) {
 			return function (value, state) {
 				if (!state.color) {
@@ -6374,8 +6770,8 @@
 				}
 
 				fn.call(this, value.trim());
-			}._w(411);
-		}._w(410);
+			}._w(438);
+		}._w(437);
 		FilterFlags.names = {
 			"tags": FilterFlags.scope_fn("tags"),
 			"title": FilterFlags.scope_fn("title"),
@@ -6383,50 +6779,50 @@
 
 			"bad": FilterFlags.color_fn(function (value) {
 				this.bad = (good_values.indexOf(value.toLowerCase()) >= 0);
-			}._w(412)),
+			}._w(439)),
 
 			"only": function (value) {
 				this.only = this.split(value);
-			}._w(413),
+			}._w(440),
 			"not": function (value) {
 				this.not = this.split(value);
-			}._w(414),
+			}._w(441),
 			"site": function (value) {
 				this.site = this.split(value);
-			}._w(415),
+			}._w(442),
 
 			"colors": FilterFlags.color_fn(function (value) {
 				this.color = value;
 				this.link_color = value;
-			}._w(416)),
+			}._w(443)),
 			"underlines": FilterFlags.color_fn(function (value) {
 				this.underline = value;
 				this.link_underline = value;
-			}._w(417)),
+			}._w(444)),
 			"backgrounds": FilterFlags.color_fn(function (value) {
 				this.background = value;
 				this.link_background = value;
-			}._w(418)),
+			}._w(445)),
 
 			"color": FilterFlags.color_fn(function (value) {
 				this.color = value;
-			}._w(419)),
+			}._w(446)),
 			"underline": FilterFlags.color_fn(function (value) {
 				this.underline = value;
-			}._w(420)),
+			}._w(447)),
 			"background": FilterFlags.color_fn(function (value) {
 				this.background = value;
-			}._w(421)),
+			}._w(448)),
 
 			"link-color": FilterFlags.color_fn(function (value) {
 				this.link_color = value;
-			}._w(422)),
+			}._w(449)),
 			"link-underline": FilterFlags.color_fn(function (value) {
 				this.link_underline = value;
-			}._w(423)),
+			}._w(450)),
 			"link-background": FilterFlags.color_fn(function (value) {
 				this.link_background = value;
-			}._w(424)),
+			}._w(451)),
 
 			"no-colors": function (value, state) {
 				state.color = true;
@@ -6438,7 +6834,7 @@
 				this.link_color = value;
 				this.link_underline = value;
 				this.link_background = value;
-			}._w(425),
+			}._w(452),
 
 			"tag": "tags",
 
@@ -6489,7 +6885,7 @@
 					fn.call(this, flags_obj[k], state);
 				}
 			}
-		}._w(426);
+		}._w(453);
 		FilterFlags.prototype.split = function (text) {
 			var array, i, ii;
 
@@ -6502,22 +6898,22 @@
 			}
 
 			return array;
-		}._w(427);
+		}._w(454);
 		var Match = function (start, end, filter) {
 			this.start = start;
 			this.end = end;
 			this.filter = filter;
-		}._w(428);
+		}._w(455);
 		var MatchSegment = function (start, end, data) {
 			this.start = start;
 			this.end = end;
 			this.data = data;
-		}._w(429);
+		}._w(456);
 		var MatchInfo = function () {
 			this.matches = [];
 			this.any = false;
 			this.bad = false;
-		}._w(430);
+		}._w(457);
 
 		var create_regex = function (pattern, flags) {
 			if (flags.indexOf("g") < 0) flags += "g";
@@ -6528,7 +6924,7 @@
 			catch (e) {
 				return null;
 			}
-		}._w(431);
+		}._w(458);
 		var create_flags = function (text) {
 			var flaglist = text.split(";"),
 				flags = {},
@@ -6546,7 +6942,7 @@
 			f = new FilterFlags();
 			f.setup(flags);
 			return f;
-		}._w(432);
+		}._w(459);
 		var matches_to_segments = function (text, matches) {
 			var segments = [ new MatchSegment(0, text.length, []) ],
 				hit, m, s, i, ii, j, jj;
@@ -6574,7 +6970,7 @@
 			}
 
 			return segments;
-		}._w(433);
+		}._w(460);
 		var update_segments = function (segments, pos, match, segment) {
 			var data = segment.data.slice(0),
 				s1, s2;
@@ -6612,7 +7008,7 @@
 			}
 
 			return pos;
-		}._w(434);
+		}._w(461);
 		var apply_styles = function (node, styles) {
 			var color = null,
 				background = null,
@@ -6640,7 +7036,7 @@
 			}
 
 			apply_styling(node, color, background, underline);
-		}._w(435);
+		}._w(462);
 		var apply_styling = function (node, color, background, underline) {
 			if (color !== null) {
 				node.style.setProperty("color", color, "important");
@@ -6651,12 +7047,12 @@
 			if (underline !== null) {
 				node.style.setProperty("border-bottom", "0.125em solid " + underline, "important");
 			}
-		}._w(436);
+		}._w(463);
 		var append_match_datas = function (matchinfo, target) {
 			for (var i = 0, ii = matchinfo.matches.length; i < ii; ++i) {
 				target.push(matchinfo.matches[i].filter);
 			}
-		}._w(437);
+		}._w(464);
 		var remove_non_bad = function (list) {
 			for (var i = 0; i < list.length; ) {
 				if (!list[i].bad) {
@@ -6665,7 +7061,7 @@
 				}
 				++i;
 			}
-		}._w(438);
+		}._w(465);
 		var check_multiple = function (type, text, filters, category, site_type) {
 			var info = new MatchInfo(),
 				filter, match, i, ii;
@@ -6687,7 +7083,7 @@
 			}
 
 			return info;
-		}._w(439);
+		}._w(466);
 		var check_single = function (text, filter, category, site_type) {
 			// return null if no match
 			// return a new Match if a match was found
@@ -6717,7 +7113,7 @@
 			// Text filter
 			m = filter.regex.exec(text);
 			return (m === null) ? null : new Match(m.index, m.index + m[0].length, filter);
-		}._w(440);
+		}._w(467);
 		var hl_return = function (bad, node) {
 			if (bad) {
 				node.classList.add("xl-filter-bad");
@@ -6727,10 +7123,10 @@
 				node.classList.add("xl-filter-good");
 				return Status.Good;
 			}
-		}._w(441);
+		}._w(468);
 		var init_filters = function () {
 			active_filters = config.filter.enabled ? parse(config.filter.filters, 0) : [];
-		}._w(442);
+		}._w(469);
 
 		// Public
 		var parse = function (input, start_priority) {
@@ -6781,7 +7177,7 @@
 			}
 
 			return filters;
-		}._w(443);
+		}._w(470);
 		var highlight = function (type, node, data, input_state, results, extras) {
 			if (active_filters === null) init_filters();
 
@@ -6885,7 +7281,7 @@
 				c[text] = [ info, node ];
 			}
 			return hl_return(bad, node);
-		}._w(444);
+		}._w(471);
 		var highlight_tag = function (node, link, filter_data) {
 			if (filter_data[0] === Status.Bad) {
 				node.classList.add("xl-filter-bad");
@@ -6924,7 +7320,7 @@
 						p3 = p;
 					}
 				}
-			}._w(446);
+			}._w(473);
 
 			get_style(filter_data[1].uploader);
 			get_style(filter_data[1].title);
@@ -6944,7 +7340,7 @@
 				$.add(node, n1);
 				apply_styling(n1, color, background, underline);
 			}
-		}._w(445);
+		}._w(472);
 		var check = function (titlenode, data, extras) {
 			if (active_filters === null) init_filters();
 
@@ -6997,7 +7393,7 @@
 					// Remove dups
 					result.tags = result.tags.filter(function (item, pos, self) {
 						return (self.indexOf(item) === pos);
-					}._w(448));
+					}._w(475));
 				}
 			}
 
@@ -7013,7 +7409,7 @@
 			}
 
 			return [ status , (status === Status.None ? null : result) ];
-		}._w(447);
+		}._w(474);
 
 		// Export
 		return {
@@ -7026,18 +7422,19 @@
 			highlight_tag: highlight_tag
 		};
 
-	}._w(405))();
+	}._w(432))();
 	var Theme = (function () {
 
 		// Private
 		var current = "light",
-			post_bg = "#ffffff";
+			post_bg = "#ffffff",
+			post_bg_opac = "rgba(255,255,255,";
 
 		var to_hex2 = function (n) {
 			n = n.toString(16);
 			if (n.length < 2) n = "0" + n;
 			return n;
-		}._w(450);
+		}._w(477);
 		var detect = function () {
 			var doc_el = d.documentElement,
 				body = d.body,
@@ -7081,9 +7478,10 @@
 
 			return [
 				(color[0] + color[1] + color[2] < 384) ? "dark" : "light",
-				"#" + to_hex2(colors[1][0]) + to_hex2(colors[1][1]) + to_hex2(colors[1][2])
+				"#" + to_hex2(colors[1][0]) + to_hex2(colors[1][1]) + to_hex2(colors[1][2]),
+				"rgba(" + colors[1][0] + "," + colors[1][1] + "," + colors[1][2] + ","
 			];
-		}._w(451);
+		}._w(478);
 		var update = function (change_nodes) {
 			var new_theme = detect();
 			if (new_theme !== null) {
@@ -7094,12 +7492,13 @@
 				}
 				if (new_theme[1] !== post_bg) {
 					post_bg = new_theme[1];
+					post_bg_opac = new_theme[2];
 					if (change_nodes) update_nodes_bg();
 				}
 				return true;
 			}
 			return false;
-		}._w(452);
+		}._w(479);
 		var update_nodes = function (new_theme) {
 			var nodes = $$(".xl-theme"),
 				ii = nodes.length,
@@ -7116,14 +7515,16 @@
 					nodes[i].classList.add(cls);
 				}
 			}
-		}._w(453);
+		}._w(480);
 		var update_nodes_bg = function () {
 			var nodes = $$(".xl-theme-post-bg"),
-				i, ii;
+				opacity, node, i, ii;
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
-				nodes[i].style.backgroundColor = post_bg;
+				node = nodes[i];
+				opacity = node.getAttribute("data-xl-theme-post-bg-opacity");
+				node.style.backgroundColor = (opacity ? post_bg_opac + opacity + ")" : post_bg);
 			}
-		}._w(454);
+		}._w(481);
 
 		var on_head_mutate = function (records) {
 			var nodes, node, tag, i, ii, j, jj;
@@ -7150,7 +7551,7 @@
 					}
 				}
 			}
-		}._w(455);
+		}._w(482);
 
 		// Public
 		var ready = function () {
@@ -7159,11 +7560,18 @@
 			if (d.head) {
 				new MutationObserver(on_head_mutate).observe(d.head, { childList: true });
 			}
-		}._w(456);
-		var bg = function (node) {
+		}._w(483);
+		var bg = function (node, opacity) {
 			node.classList.add("xl-theme-post-bg");
-			node.style.backgroundColor = post_bg;
-		}._w(457);
+			if (opacity === undefined || opacity === 1) {
+				node.style.backgroundColor = post_bg;
+				node.removeAttribute("data-xl-theme-post-bg-opacity");
+			}
+			else {
+				node.style.backgroundColor = post_bg_opac + opacity + ")";
+				node.setAttribute("data-xl-theme-post-bg-opacity", opacity);
+			}
+		}._w(484);
 		var apply = function (node) {
 			if (current !== "light") {
 				var nodes = $$(".xl-theme", node),
@@ -7177,7 +7585,7 @@
 					node.classList.add("xl-theme-dark");
 				}
 			}
-		}._w(458);
+		}._w(485);
 		var get_computed_style = function (node) {
 			try {
 				// Don't use window.getComputedStyle: https://code.google.com/p/chromium/issues/detail?id=538650
@@ -7186,7 +7594,7 @@
 			catch (e) {
 				return node.style || {};
 			}
-		}._w(459);
+		}._w(486);
 		var parse_css_color = function (color) {
 			if (color && color !== "transparent") {
 				var m;
@@ -7219,7 +7627,7 @@
 			}
 
 			return [ 0 , 0 , 0 , 0 ];
-		}._w(460);
+		}._w(487);
 
 		// Exports
 		var Module =  {
@@ -7233,13 +7641,14 @@
 
 		return Module;
 
-	}._w(449))();
+	}._w(476))();
 	var EasyList = (function () {
 
-		var Entry = function (info) {
+		var Entry = function (info, data) {
 			this.info = info;
+			this.data = data;
 			this.node = null;
-		}._w(462);
+		}._w(489);
 
 		// Private
 		var settings_key = "xlinks-easylist-settings",
@@ -7266,7 +7675,7 @@
 			custom_links_text = "",
 			node_sort_order_keys = {
 				thread: [ "data-xl-index", 1 ],
-				upload: [ "data-xl-date-uploaded", -1 ],
+				upload: [ "data-xl-date-created", -1 ],
 				rating: [ "data-xl-rating", -1 ]
 			},
 			display_mode_names = [
@@ -7285,7 +7694,7 @@
 
 		var settings_save = function () {
 			Config.storage.setItem(settings_key, JSON.stringify(settings));
-		}._w(463);
+		}._w(490);
 		var settings_load = function () {
 			// Load
 			var value = get_saved_settings(),
@@ -7305,7 +7714,7 @@
 
 			// Load filters
 			load_filters();
-		}._w(464);
+		}._w(491);
 		var create = function () {
 			popup = Popup.create("easylist", function (container) {
 				var theme = Theme.classes,
@@ -7345,13 +7754,13 @@
 				$.add(container, contents[content_current].container);
 
 				content_container = container;
-			}._w(466));
+			}._w(493));
 
 			$.on(popup, "click", on_overlay_click);
 
 			// Setup
 			update_display_mode(true);
-		}._w(465);
+		}._w(492);
 		var create_options = function (theme) {
 			var fn, n1, n2, n3, n4, n5;
 
@@ -7380,7 +7789,7 @@
 				$.on(n2, "change", on_option_change.sort_by);
 
 				return n1;
-			}._w(468);
+			}._w(495);
 			$.add(n4, fn("thread", "Appearance in thread"));
 			$.add(n4, fn("upload", "Upload date"));
 			$.add(n4, fn("rating", "Rating"));
@@ -7404,7 +7813,7 @@
 				$.on(n2, "change", change_fn);
 
 				return n1;
-			}._w(469);
+			}._w(496);
 			$.add(n4, fn(settings.group_by_filters, "Filters", on_option_change.group_by_filters));
 			$.add(n4, fn(settings.group_by_category, "Category", on_option_change.group_by_category));
 
@@ -7430,7 +7839,7 @@
 				$.on(n2, "change", on_option_change.display_mode);
 
 				return n1;
-			}._w(470);
+			}._w(497);
 			$.add(n4, fn(0, "Full"));
 			$.add(n4, fn(1, "Compact"));
 			$.add(n4, fn(2, "Minimal"));
@@ -7457,7 +7866,7 @@
 				$.on(n2, "change", on_option_change.filter_visibility);
 
 				return n1;
-			}._w(471);
+			}._w(498);
 			$.add(n4, fn(0, "Show all"));
 			$.add(n4, fn(1, "Hide bad"));
 			$.add(n4, fn(2, "Only show matches"));
@@ -7496,7 +7905,7 @@
 			$.add(n1, $.node("div", "xl-easylist-title-line"));
 
 			return n1;
-		}._w(467);
+		}._w(494);
 		var create_gallery_nodes = function (data, index, info) {
 			var domain = info.domain,
 				url = CreateURL.to_gallery(data, domain),
@@ -7504,10 +7913,10 @@
 				n1, n2, n3, n4, n5, n6, n7, i, t;
 
 			n1 = $.node("div", "xl-easylist-item" + theme);
-			n1.setAttribute("data-xl-id", info.site + "_" + info.gid);
+			n1.setAttribute("data-xl-id", info.id);
 			n1.setAttribute("data-xl-index", index);
 			n1.setAttribute("data-xl-rating", data.rating);
-			n1.setAttribute("data-xl-date-uploaded", data.upload_date);
+			n1.setAttribute("data-xl-date-created", data.date_created);
 			n1.setAttribute("data-xl-category", data.category);
 
 			$.add(n1, n2 = $.node("div", "xl-easylist-item-table-container" + theme));
@@ -7537,7 +7946,7 @@
 							par.style.height = "100%";
 						}
 					}
-				}._w(473), n7));
+				}._w(500), n7));
 			}
 			else {
 				n6.style.width = "100%";
@@ -7570,7 +7979,7 @@
 			$.add(n5, n6 = $.link(CreateURL.to_uploader(data, domain), "xl-easylist-item-uploader" + theme, data.uploader));
 			n6.setAttribute("data-xl-original", n6.textContent);
 			$.add(n5, $.tnode(" on "));
-			$.add(n5, $.node("span", "xl-easylist-item-upload-date" + theme, UI.format_date(new Date(data.upload_date))));
+			$.add(n5, $.node("span", "xl-easylist-item-upload-date" + theme, UI.format_date(data.date_created)));
 
 			$.add(n4, n5 = $.node("div", "xl-easylist-item-tags" + theme));
 
@@ -7616,7 +8025,7 @@
 			update_filters(n1, data, true, false);
 
 			return n1;
-		}._w(472);
+		}._w(499);
 		var create_full_tags = function (data, info) {
 			var theme = Theme.classes,
 				n1 = $.node("div", "xl-easylist-item-tag-table" + theme),
@@ -7661,14 +8070,14 @@
 			}
 
 			return n1;
-		}._w(474);
+		}._w(501);
 		var add_gallery_update_timer = null;
 		var add_gallery = function (content_index, entry, index, force_reorder) {
 			var info = entry.info,
-				data = API.get_data(info.site, info.gid),
+				data = entry.data,
 				entries, n;
 
-			if (data !== null) {
+			if (data.subtype === "gallery") {
 				entries = contents[content_index].entries;
 				n = create_gallery_nodes(data, index, info);
 				n.setAttribute("data-xl-easylist-item-parity", (contents[content_index].visible % 2) === 0 ? "odd" : "even");
@@ -7692,14 +8101,14 @@
 						if (add_gallery_update_timer !== null) clearTimeout(add_gallery_update_timer);
 						add_gallery_update_timer = setTimeout(function () {
 							update_ordering();
-						}._w(476), 1);
+						}._w(503), 1);
 					}
 					else {
 						set_empty(contents[content_index].visible === 0);
 					}
 				}
 			}
-		}._w(475);
+		}._w(502);
 		var set_empty = function (empty) {
 			if (empty_notification !== null) {
 				var cls = "xl-easylist-empty-notification-visible";
@@ -7707,10 +8116,10 @@
 					empty_notification.classList.toggle(cls);
 				}
 			}
-		}._w(477);
+		}._w(504);
 		var get_options_visible = function () {
 			return options_container.classList.contains("xl-easylist-options-visible");
-		}._w(478);
+		}._w(505);
 		var set_options_visible = function (visible) {
 			var n = $(".xl-easylist-control-link-options", popup),
 				cl, cls;
@@ -7724,25 +8133,25 @@
 			cl = options_container.classList;
 			cls = "xl-easylist-options-visible";
 			if (cl.contains(cls) !== visible) cl.toggle(cls);
-		}._w(479);
+		}._w(506);
 
 		var get_node_filter_group = function (node) {
 			var v = get_node_filters_bad(node);
 			return (v > 0) ? -v : get_node_filters_good(node);
-		}._w(480);
+		}._w(507);
 		var get_node_filters_good = function (node) {
 			return (parseInt(node.getAttribute("data-xl-filter-matches-title"), 10) || 0) +
 				(parseInt(node.getAttribute("data-xl-filter-matches-uploader"), 10) || 0) +
 				(parseInt(node.getAttribute("data-xl-filter-matches-tags"), 10) || 0);
-		}._w(481);
+		}._w(508);
 		var get_node_filters_bad = function (node) {
 			return (parseInt(node.getAttribute("data-xl-filter-matches-title-bad"), 10) || 0) +
 				(parseInt(node.getAttribute("data-xl-filter-matches-uploader-bad"), 10) || 0) +
 				(parseInt(node.getAttribute("data-xl-filter-matches-tags-bad"), 10) || 0);
-		}._w(482);
+		}._w(509);
 		var get_node_category_group = function (node) {
 			return API.get_category_sort_rank(node.getAttribute("data-xl-category"));
-		}._w(483);
+		}._w(510);
 		var update_display_mode = function (first) {
 			var mode = display_mode_names[settings.display_mode] || "",
 				cl = content_container.classList,
@@ -7755,7 +8164,7 @@
 			}
 
 			cl.add("xl-easylist-" + mode);
-		}._w(484);
+		}._w(511);
 		var update_ordering = function () {
 			var items = [],
 				mode = settings.sort_by,
@@ -7772,24 +8181,24 @@
 				if (settings.group_by_category) {
 					base_array = function (node) {
 						return [ get_node_category_group(node), get_node_filter_group(node) ];
-					}._w(486);
+					}._w(513);
 					ordering = [ 1, -1 ];
 				}
 				else {
 					base_array = function (node) {
 						return [ get_node_filter_group(node) ];
-					}._w(487);
+					}._w(514);
 					ordering = [ -1 ];
 				}
 			}
 			else if (settings.group_by_category) {
 				base_array = function (node) {
 					return [ get_node_category_group(node) ];
-				}._w(488);
+				}._w(515);
 				ordering = [ 1 ];
 			}
 			else {
-				base_array = function () { return []; }._w(489);
+				base_array = function () { return []; }._w(516);
 				ordering = [];
 			}
 
@@ -7822,7 +8231,7 @@
 					if (x > y) return ordering[i];
 				}
 				return 0;
-			}._w(490));
+			}._w(517));
 
 			// Re-insert
 			// Maybe eventually add labels
@@ -7856,12 +8265,12 @@
 
 			contents[content_index].visible = current_visible_count;
 			set_empty(current_visible_count === 0);
-		}._w(485);
+		}._w(512);
 		var reset_filter_state = function (node, content_node) {
 			content_node.textContent = node.getAttribute("data-xl-original") || "";
 			node.classList.remove("xl-filter-good");
 			node.classList.remove("xl-filter-bad");
-		}._w(491);
+		}._w(518);
 		var update_filters_targets = [
 			[ ".xl-easylist-item-title-link,.xl-easylist-item-title-jp", "title" ],
 			[ ".xl-easylist-item-uploader", "uploader" ],
@@ -7903,7 +8312,7 @@
 					}
 				}
 			}
-		}._w(492);
+		}._w(519);
 		var update_all_filters = function () {
 			var content_index = content_current,
 				entries = contents[content_index].entries,
@@ -7911,7 +8320,7 @@
 
 			for (i = 0, ii = entries.length; i < ii; ++i) {
 				info = entries[i].info;
-				data = API.get_data(info.site, info.gid);
+				data = API.get_data(info);
 				if (data !== null) {
 					update_filters(entries[i].node, data, false, false);
 				}
@@ -7921,29 +8330,45 @@
 			if (settings.group_by_filters || settings.filter_visibility !== 0) {
 				update_ordering();
 			}
-		}._w(493);
+		}._w(520);
 		var load_filters = function () {
 			custom_filters = Filter.parse(settings.custom_filters, undefined);
-		}._w(494);
+		}._w(521);
 		var add_links = function (links) {
-			var info, key, entry, i, ii;
+			var immediate = true,
+				i, ii;
+
+			var cb = function (err, data) {
+				add_entry(immediate, err, data);
+			}._w(523);
 
 			for (i = 0, ii = links.length; i < ii; ++i) {
-				info = API.get_url_info_saved(links[i].href);
-				if (info !== null) {
-					key = info.site + "_" + info.gid;
-					if (data_map[key] === undefined) {
-						entry = new Entry(info);
-						queue.push(entry);
-						data_map[key] = entry;
-					}
-				}
+				API.get_url_info(links[i].href, cb);
 			}
 
+			immediate = false;
 			if (queue.length > 0 && queue_timer === null) {
 				on_timer();
 			}
-		}._w(495);
+		}._w(522);
+		var add_entry = function (immediate, err, info) {
+			var key;
+			if (err !== null || data_map[(key = info.id)] !== undefined) return;
+
+			API.get_data_from_url_info(info, function (err, data) {
+				if (err === null) {
+					if (data_map[key] === undefined) {
+						var entry = new Entry(info, data);
+						queue.push(entry);
+						data_map[key] = entry;
+
+						if (!immediate && queue.length > 0 && queue_timer === null) {
+							on_timer();
+						}
+					}
+				}
+			}._w(525));
+		}._w(524);
 
 		var set_content_index = function (content_index) {
 			if (content_index === content_current) return;
@@ -7963,7 +8388,7 @@
 				update_all_filters();
 				update_ordering();
 			}
-		}._w(496);
+		}._w(526);
 
 		var enable_custom_links = function (text) {
 			custom_links = [];
@@ -7979,62 +8404,56 @@
 				set_content_index(1);
 				parse_custom_urls(text);
 			}
-		}._w(497);
+		}._w(527);
 		var parse_custom_urls = function (text) {
 			var urls = Linkifier.parse_text_for_urls(text),
-				info, i, ii;
-
-			var cb = function (i, err, info) {
-				if (info !== null) {
-					parse_custom_url_info(i, info);
-				}
-			}._w(499);
+				i, ii;
 
 			for (i = 0, ii = urls.length; i < ii; ++i) {
-				info = API.get_url_info(urls[i], $.bind(cb, null, i));
+				API.get_url_info(urls[i], $.bind(parse_custom_url_info, null, i));
 			}
-		}._w(498);
-		var parse_custom_url_info = function (index, info) {
+		}._w(528);
+		var parse_custom_url_info = function (index, err, info) {
+			var key;
+			if (err !== null || custom_links_map[(key = info.id)] !== undefined) return;
+
 			API.get_data_from_url_info(info, function (err, data) {
 				if (err === null) {
-					var key = data.type + "_" + data.gid,
-						entry;
-
 					if (custom_links_map[key] === undefined) {
-						entry = new Entry(info);
+						var entry = new Entry(info, data);
 						custom_links_map[key] = entry;
 						add_gallery(1, entry, index, true);
 					}
 				}
-			}._w(501));
-		}._w(500);
+			}._w(530));
+		}._w(529);
 
 		var on_option_change = {
 			sort_by: function () {
 				settings.sort_by = this.value;
 				settings_save();
 				update_ordering();
-			}._w(502),
+			}._w(531),
 			group_by_category: function () {
 				settings.group_by_category = this.checked;
 				settings_save();
 				update_ordering();
-			}._w(503),
+			}._w(532),
 			group_by_filters: function () {
 				settings.group_by_filters = this.checked;
 				settings_save();
 				update_ordering();
-			}._w(504),
+			}._w(533),
 			display_mode: function () {
 				settings.display_mode = parseInt(this.value, 10) || 0;
 				settings_save();
 				update_display_mode(false);
-			}._w(505),
+			}._w(534),
 			filter_visibility: function () {
 				settings.filter_visibility = parseInt(this.value, 10) || 0;
 				settings_save();
 				update_ordering();
-			}._w(506),
+			}._w(535),
 			custom_filters: function () {
 				if (settings.custom_filters !== this.value) {
 					settings.custom_filters = this.value;
@@ -8042,7 +8461,7 @@
 					load_filters();
 					update_all_filters();
 				}
-			}._w(507),
+			}._w(536),
 			custom_filters_input: function () {
 				var node = this;
 				if (on_option_change.custom_filters_input_delay_timer !== null) {
@@ -8052,17 +8471,17 @@
 					function () {
 						on_option_change.custom_filters_input_delay_timer = null;
 						on_option_change.custom_filters.call(node);
-					}._w(509),
+					}._w(538),
 					1000
 				);
-			}._w(508),
+			}._w(537),
 			custom_filters_input_delay_timer: null,
 			custom_links: function () {
 				var t = this.value.trim();
 				if (t !== custom_links_text) {
 					enable_custom_links(t);
 				}
-			}._w(510),
+			}._w(539),
 			custom_links_input: function () {
 				var node = this;
 				if (on_option_change.custom_links_input_delay_timer !== null) {
@@ -8072,10 +8491,10 @@
 					function () {
 						on_option_change.custom_links_input_delay_timer = null;
 						on_option_change.custom_links.call(node);
-					}._w(512),
+					}._w(541),
 					1000
 				);
-			}._w(511),
+			}._w(540),
 			custom_links_input_delay_timer: null
 		};
 		var on_gallery_mouseover = $.wrap_mouseenterleave_event(function () {
@@ -8087,9 +8506,9 @@
 			if (
 				(id = this.getAttribute("data-xl-id")) &&
 				(entry = data_map[id]) !== undefined &&
-				(data = API.get_data(entry.info.site, entry.info.gid)) !== null
+				(data = API.get_data(entry.info)) !== null
 			) {
-				API.get_ehentai_gallery_full(entry.info.domain, data, function (err, data) {
+				API.get_ehentai_gallery_full(entry.info, data, function (err, data) {
 					var tags_container, n;
 
 					if (
@@ -8102,9 +8521,9 @@
 
 						update_filters(node, data, false, true);
 					}
-				}._w(514));
+				}._w(543));
 			}
-		}._w(513));
+		}._w(542));
 		var on_thumbnail_error = function () {
 			$.off(this, "error", on_thumbnail_error);
 
@@ -8113,10 +8532,10 @@
 			par.style.width = "100%";
 			par.style.height = "100%";
 			this.style.visibility = "hidden";
-		}._w(515);
+		}._w(544);
 		var on_linkify = function (event) {
 			add_links([ event.link ]);
-		}._w(516);
+		}._w(545);
 		var on_timer = function () {
 			queue_timer = null;
 
@@ -8131,7 +8550,7 @@
 			if (queue.length > 0) {
 				queue_timer = setTimeout(on_timer, 50);
 			}
-		}._w(517);
+		}._w(546);
 		var on_open_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				open();
@@ -8139,7 +8558,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(518);
+		}._w(547);
 		var on_close_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				close();
@@ -8147,7 +8566,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(519);
+		}._w(548);
 		var on_toggle_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				if (is_open()) {
@@ -8160,7 +8579,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(520);
+		}._w(549);
 		var on_options_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				set_options_visible(!get_options_visible());
@@ -8168,7 +8587,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(521);
+		}._w(550);
 		var on_overlay_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				close();
@@ -8176,12 +8595,12 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(522);
+		}._w(551);
 
 		// Public
 		var get_saved_settings = function () {
 			return $.json_parse_safe(Config.storage.getItem(settings_key), null);
-		}._w(523);
+		}._w(552);
 		var set_saved_settings = function (data) {
 			if (data === null) {
 				Config.storage.removeItem(settings_key);
@@ -8189,7 +8608,7 @@
 			else {
 				Config.storage.setItem(settings_key, JSON.stringify(data));
 			}
-		}._w(524);
+		}._w(553);
 		var ready = function () {
 			Navigation.insert_link("normal", "Easy List", Main.homepage, " xl-nav-link-easylist", on_open_click);
 
@@ -8205,9 +8624,9 @@
 						"M 47.316173,40.278702 c -1.977441,10.244331 -5.318272,21.474541 -5.662805,29.784036 -0.242507,5.848836 2.420726,7.5586 5.348383,2.078223 5.586237,-10.45706 7.896687,-21.139251 10.839979,-32.018641 -1.376342,0.732535 -2.33581,0.805482 -3.567752,1.104816 2.20065,-1.826801 1.797963,-1.259845 4.683397,-4.356147 3.702042,-3.972588 11.505701,-7.842675 15.187296,-4.490869 4.597776,4.185917 3.4537,13.920509 -0.431829,18.735387 -1.301987,5.219157 -3.278232,10.993981 -4.691055,14.211545 1.650129,0.951997 7.1775,2.647886 8.723023,6.808838 1.818473,4.895806 0.447993,8.335081 -3.207776,12.929618 8.781279,-6.214409 9.875004,-12.24852 10.586682,-20.251062 C 85.596887,59.244915 85.615915,54.42819 83.82437,47.181873 82.032825,39.935556 77.484187,30.527275 73.806105,23.780748 70.128023,17.034221 68.465076,12.376515 60.467734,7.5782428 54.534892,4.0186364 44.006601,5.3633006 39.960199,11.716546 c -4.046402,6.353245 -2.052295,11.417199 0.339979,17.673546 -0.06795,1.969646 -1.145015,4.295256 0.105508,5.751383 1.875243,-0.914979 2.772108,-1.957655 4.421995,-2.639606 -0.01451,1.529931 0.320921,4.192236 -1.17535,5.722167 1.758316,1.116252 1.80495,1.414307 3.663842,2.054666 z"
 					);
 					$.add(svg, path);
-				}._w(526)
+				}._w(555)
 			);
-		}._w(525);
+		}._w(554);
 		var open = function () {
 			if (popup === null) {
 				settings_load();
@@ -8219,17 +8638,17 @@
 
 			Popup.open(popup);
 			$.scroll_focus(popup);
-		}._w(527);
+		}._w(556);
 		var close = function () {
 			Popup.close(popup);
 
 			set_options_visible(false);
 
 			Linkifier.off("format", on_linkify);
-		}._w(528);
+		}._w(557);
 		var is_open = function () {
 			return (popup !== null && Popup.is_open(popup));
-		}._w(529);
+		}._w(558);
 
 		// Exports
 		return {
@@ -8241,7 +8660,7 @@
 			is_open: is_open
 		};
 
-	}._w(461))();
+	}._w(488))();
 	var Popup = (function () {
 
 		// Private
@@ -8252,14 +8671,14 @@
 			if ($.is_left_mouse(event)) {
 				event.stopPropagation();
 			}
-		}._w(531);
+		}._w(560);
 		var on_overlay_event = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				event.stopPropagation();
 				return false;
 			}
-		}._w(532);
+		}._w(561);
 
 		// Public
 		var create = function (class_ns, setup) {
@@ -8320,7 +8739,7 @@
 			}
 
 			return n1;
-		}._w(533);
+		}._w(562);
 		var open = function (overlay) {
 			if (active !== null && active.parentNode !== null) {
 				$.remove(active);
@@ -8328,17 +8747,17 @@
 			d.documentElement.classList.add("xl-popup-overlaying");
 			hovering(overlay);
 			active = overlay;
-		}._w(534);
+		}._w(563);
 		var close = function (overlay) {
 			d.documentElement.classList.remove("xl-popup-overlaying");
 			if (overlay.parentNode !== null) {
 				$.remove(overlay);
 			}
 			active = null;
-		}._w(535);
+		}._w(564);
 		var is_open = function (overlay) {
 			return (overlay.parentNode !== null);
-		}._w(536);
+		}._w(565);
 		var hovering = function (node) {
 			if (hovering_container === null) {
 				hovering_container = $.node("div", "xl-hovering-elements");
@@ -8351,7 +8770,7 @@
 				}
 			}
 			$.add(hovering_container, node);
-		}._w(537);
+		}._w(566);
 
 		// Exports
 		return {
@@ -8362,7 +8781,7 @@
 			hovering: hovering
 		};
 
-	}._w(530))();
+	}._w(559))();
 	var Changelog = (function () {
 
 		// Private
@@ -8421,7 +8840,7 @@
 				error: null,
 				log_data: versions
 			};
-		}._w(539);
+		}._w(568);
 		var display = function (container, theme) {
 			var versions, authors, changes,
 				e, n1, n2, n3, n4, n5, i, ii, j, jj, k, kk;
@@ -8461,7 +8880,7 @@
 			}
 
 			$.add(container, n1);
-		}._w(540);
+		}._w(569);
 		var acquire = function (callback) {
 			HttpRequest({
 				method: "GET",
@@ -8473,15 +8892,15 @@
 					else {
 						callback.call(null, "Response error " + xhr.status, null);
 					}
-				}._w(542),
+				}._w(571),
 				onerror: function () {
 					callback.call(null, "Connection error", null);
-				}._w(543),
+				}._w(572),
 				onabort: function () {
 					callback.call(null, "Connection aborted", null);
-				}._w(544)
+				}._w(573)
 			});
-		}._w(541);
+		}._w(570);
 
 		var on_changelog_get = function (err, data) {
 			if (err !== null) {
@@ -8498,17 +8917,17 @@
 					display(n, Theme.classes);
 				}
 			}
-		}._w(545);
+		}._w(574);
 		var on_close_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				close();
 			}
-		}._w(546);
+		}._w(575);
 		var on_change_save = function () {
 			config.general.changelog_on_update = this.checked;
 			Config.save();
-		}._w(547);
+		}._w(576);
 
 		// Public
 		var open = function (message) {
@@ -8531,7 +8950,7 @@
 						}
 					}
 					$.add(container, $.link(Module.url, "xl-settings-version" + cls + theme, Main.version.join(".")));
-				}._w(549)
+				}._w(578)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -8547,25 +8966,25 @@
 					$.add(container, n1 = $.link("#", "xl-settings-button" + theme));
 					$.add(n1, $.node("span", "xl-settings-button-text", "Close"));
 					$.on(n1, "click", on_close_click);
-				}._w(550)
+				}._w(579)
 			}], {
 				body: true,
 				padding: false,
 				setup: function (container) {
 					container.classList.add("xl-changelog-content");
 					display(container, theme);
-				}._w(551)
+				}._w(580)
 			}]);
 
 			$.on(popup, "click", on_close_click);
 			Popup.open(popup);
-		}._w(548);
+		}._w(577);
 		var close = function () {
 			if (popup !== null) {
 				Popup.close(popup);
 				popup = null;
 			}
-		}._w(552);
+		}._w(581);
 
 		// Exports
 		var Module = {
@@ -8576,7 +8995,7 @@
 
 		return Module;
 
-	}._w(538))();
+	}._w(567))();
 	var HeaderBar = (function () {
 
 		// Private
@@ -8634,7 +9053,7 @@
 				}
 				n2.setAttribute("data-xl-color", color);
 			}
-		}._w(554);
+		}._w(583);
 
 		var on_header_bar_detected = function (node) {
 			header_bar = node;
@@ -8659,7 +9078,7 @@
 			if (shortcut_icons.length > 0) {
 				add_svg_icons(shortcut_icons);
 			}
-		}._w(555);
+		}._w(584);
 		var on_icon_mouseover = $.wrap_mouseenterleave_event(function () {
 			var n = $("svg", this),
 				c;
@@ -8672,13 +9091,13 @@
 				}
 				n.style.fill = c;
 			}
-		}._w(556));
+		}._w(585));
 		var on_icon_mouseout = $.wrap_mouseenterleave_event(function () {
 			var n = $("svg", this);
 			if (n !== null) {
 				n.style.fill = this.getAttribute("data-xl-color");
 			}
-		}._w(557));
+		}._w(586));
 		var on_menu_item_mouseover = $.wrap_mouseenterleave_event(function () {
 			var entries = $$(".entry", this.parent),
 				i, ii;
@@ -8686,16 +9105,16 @@
 				entries[i].classList.remove("focused");
 			}
 			this.classList.add("focused");
-		}._w(558));
+		}._w(587));
 		var on_menu_item_mouseout = $.wrap_mouseenterleave_event(function () {
 			this.classList.remove("focused");
-		}._w(559));
+		}._w(588));
 		var on_menu_item_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				d.documentElement.click();
 			}
-		}._w(560);
+		}._w(589);
 		var on_body_observe = function (records) {
 			var nodes, node, i, ii, j, jj;
 
@@ -8711,7 +9130,7 @@
 					}
 				}
 			}
-		}._w(561);
+		}._w(590);
 		var on_header_observe = function (records) {
 			var nodes, node, i, ii, j, jj;
 
@@ -8732,7 +9151,7 @@
 					}
 				}
 			}
-		}._w(562);
+		}._w(591);
 
 		// Public
 		var ready = function () {
@@ -8743,7 +9162,7 @@
 			else {
 				new MutationObserver(on_body_observe).observe(d.body, { childList: true, subtree: false });
 			}
-		}._w(563);
+		}._w(592);
 		var insert_shortcut_icon = function (namespace, title, url, on_click, svg_setup) {
 			var svgns = "http://www.w3.org/2000/svg",
 				n1, svg;
@@ -8763,7 +9182,7 @@
 			shortcut_icons.push(n1);
 
 			if (header_bar !== null) add_svg_icons([ n1 ]);
-		}._w(564);
+		}._w(593);
 		var insert_menu_link = function (menu_node) {
 			menu_node.classList.add("entry");
 			menu_node.style.order = 112;
@@ -8773,7 +9192,7 @@
 			$.on(menu_node, "click", on_menu_item_click);
 
 			menu_nodes.push(menu_node);
-		}._w(565);
+		}._w(594);
 
 		// Exports
 		return {
@@ -8782,7 +9201,7 @@
 			insert_menu_link: insert_menu_link
 		};
 
-	}._w(553))();
+	}._w(582))();
 	var Navigation = (function () {
 
 		// Private
@@ -8818,7 +9237,7 @@
 					}
 					$.remove(link);
 				}
-			}._w(567)
+			}._w(596)
 		};
 
 		var on_observe_all = function (records) {
@@ -8860,7 +9279,7 @@
 				this.disconnect();
 				waiting_observer = null;
 			}
-		}._w(568);
+		}._w(597);
 
 		var LocationData = function (text, url, class_name, on_click) {
 			this.nodes = [];
@@ -8868,7 +9287,7 @@
 			this.url = url;
 			this.class_name = class_name;
 			this.on_click = on_click;
-		}._w(569);
+		}._w(598);
 		LocationData.prototype.add = function (selector, flags, separator) {
 			var node = $(selector);
 			if (node !== null) {
@@ -8886,10 +9305,10 @@
 					waiting_observer.observe(d.body, { childList: true, subtree: true });
 				}
 			}
-		}._w(570);
+		}._w(599);
 		LocationData.prototype.add_node = function (node, flags, separator) {
 			this.nodes.push(node, flags, separator);
-		}._w(571);
+		}._w(600);
 		LocationData.prototype.add_all = function (selector, flags, separator) {
 			var nodes = $$(selector),
 				i, ii;
@@ -8897,7 +9316,7 @@
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				this.nodes.push(nodes[i], flags, separator);
 			}
-		}._w(572);
+		}._w(601);
 		LocationData.prototype.insert = function () {
 			var first_mobile = true,
 				container, flags, node, par, pre, next, sep, i, ii, n1, t, t2, t_opt;
@@ -9003,7 +9422,7 @@
 			}
 
 			this.nodes = null;
-		}._w(573);
+		}._w(602);
 
 		// Public
 		var insert_link = function (mode, text, url, class_name, on_click) {
@@ -9052,14 +9471,14 @@
 			}
 
 			locations.insert();
-		}._w(574);
+		}._w(603);
 
 		// Exports
 		return {
 			insert_link: insert_link
 		};
 
-	}._w(566))();
+	}._w(595))();
 	var ExtensionAPI = (function () {
 
 		// Private
@@ -9072,11 +9491,83 @@
 				s += random_string_alphabet[Math.floor(Math.random() * alpha_len)];
 			}
 			return s;
-		}._w(576);
+		}._w(605);
 
 		var is_object = function (obj) {
 			return (obj !== null && typeof(obj) === "object");
-		}._w(577);
+		}._w(606);
+
+		var get_shared_node = function (selector) {
+			var par, n;
+
+			if (
+				selector === null ||
+				(par = $(".xl-extension-sharing-elements")) === null
+			) {
+				return null;
+			}
+
+			try {
+				n = $("[data-xl-sharing-id='" + selector + "']", par);
+			}
+			catch (e) {
+				return null;
+			}
+
+			if (n !== null) {
+				n.removeAttribute("data-xl-sharing-id");
+				$.remove(n);
+				if (par.firstChild === null) $.remove(par);
+			}
+			return n;
+		}._w(607);
+
+		var disabled_extensions_key = "xlinks-extensions-disabled";
+		var disabled_extensions;
+		var save_extensions_enabled_states = function () {
+			var save_data = [],
+				i, ii, r;
+
+			for (i = 0, ii = registered.length; i < ii; ++i) {
+				r = registered[i];
+				if (!r[0]) {
+					save_data.push([ r[1], r[2], r[3] ]);
+				}
+			}
+
+			if (save_data.length > 0) {
+				Config.storage.setItem(disabled_extensions_key, JSON.stringify(save_data));
+				disabled_extensions = save_data;
+			}
+			else {
+				Config.storage.removeItem(disabled_extensions_key);
+				disabled_extensions = null;
+			}
+		}._w(608);
+		var set_extensions_enabled = function (enabled_array) {
+			if (enabled_array === null) return;
+
+			for (var i = 0, ii = Math.min(registered.length, enabled_array.length); i < ii; ++i) {
+				registered[i][0] = enabled_array[i];
+			}
+			save_extensions_enabled_states();
+		}._w(609);
+		var extension_is_enabled = function (name, author, description) {
+			if (disabled_extensions === undefined) {
+				disabled_extensions = $.json_parse_safe(Config.storage.getItem(disabled_extensions_key), null);
+			}
+			if (disabled_extensions === null) return true;
+
+			var i, ii, r;
+			for (i = 0, ii = disabled_extensions.length; i < ii; ++i) {
+				r = disabled_extensions[i];
+				if (r[0] === name && r[1] === author && r[2] === description) return false;
+			}
+
+			return true;
+		}._w(610);
+
+		var registered = [];
 
 		var api = null;
 		var ExtensionAPI = function () {
@@ -9096,9 +9587,9 @@
 			var self = this;
 			this.on_window_message_bind = function (event) {
 				return self.on_window_message(event);
-			}._w(579);
+			}._w(612);
 			window.addEventListener("message", this.on_window_message_bind, false);
-		}._w(578);
+		}._w(611);
 		ExtensionAPI.prototype.on_window_message = function (event) {
 			var data = event.data,
 				handlers, action_data, reply_id, fn;
@@ -9133,7 +9624,7 @@
 						fn.call(this, action_data);
 					}
 					else if (this.reply_id !== null) {
-						this.send(this.action, { err: "Invalid call" }, this.reply_id);
+						this.send(this.action, { err: "Invalid extension call" }, this.reply_id);
 					}
 				}
 
@@ -9144,7 +9635,7 @@
 			this.action = null;
 			this.api_key = null;
 			this.api_name = null;
-		}._w(580);
+		}._w(613);
 		ExtensionAPI.prototype.send = function (action, data, reply_to, on_reply) {
 			var self = this,
 				id = null,
@@ -9163,7 +9654,7 @@
 					}
 
 					on_reply.apply(this, arguments);
-				}._w(582);
+				}._w(615);
 
 				this.reply_callbacks[id] = cb;
 				cb = null;
@@ -9173,7 +9664,7 @@
 						timeout = null;
 						delete self.reply_callbacks[id];
 						on_reply.call(self, "Response timeout");
-					}._w(583), this.timeout_delay);
+					}._w(616), this.timeout_delay);
 				}
 			}
 
@@ -9186,7 +9677,7 @@
 				name: this.api_name,
 				data: data
 			}, this.origin);
-		}._w(581);
+		}._w(614);
 		ExtensionAPI.prototype.request_api_fn = function (fn_id) {
 			var self = this,
 				api_name = this.api_name,
@@ -9218,8 +9709,8 @@
 				}, null, self.request_api_fn_callback(callback));
 				self.api_name = null;
 				self.api_key = null;
-			}._w(585);
-		}._w(584);
+			}._w(618);
+		}._w(617);
 		ExtensionAPI.prototype.request_api_fn_callback = function (callback) {
 			return function (err, data) {
 				var args;
@@ -9227,14 +9718,308 @@
 					callback.call(null, err, null);
 				}
 				else if (!is_object(data) || !Array.isArray((args = data.args))) {
-					callback.call(null, "Invalid response", null);
+					callback.call(null, "Invalid extension response", null);
 				}
 				else {
 					args = JSON.parse(JSON.stringify(args));
 					callback.apply(null, args);
 				}
-			}._w(587);
-		}._w(586);
+			}._w(620);
+		}._w(619);
+		ExtensionAPI.prototype.register_settings = function (reg_info) {
+			var response = {},
+				name, default_value, title, description, descriptor,
+				res, value, k, i, ii, a, v;
+
+			if (is_object(reg_info)) {
+				for (k in reg_info) {
+					a = reg_info[k];
+					if (!Array.isArray(a)) continue;
+
+					response[k] = res = {};
+					for (i = 0, ii = a.length; i < ii; ++i) {
+						v = a[i];
+						if (!Array.isArray(v) || typeof((name = v[0])) !== "string") continue;
+
+						default_value = v[1];
+						if (default_value === undefined) default_value = null;
+						title = v[2];
+						if (typeof(title) !== "string") title = name;
+						description = v[3];
+						if (typeof(description) !== "string") description = "";
+						descriptor = this.register_settings_descriptor_info(v[4]);
+
+						value = Config.register_custom_setting(k, name, default_value, title, description, descriptor);
+						if (value === undefined) {
+							value = config[k][name];
+						}
+
+						res[name] = value;
+					}
+				}
+			}
+
+			return response;
+		}._w(621);
+		ExtensionAPI.prototype.register_settings_descriptor_info = function (input) {
+			if (!is_object(input)) return null;
+
+			var info = {},
+				opt, label, desc, a, i, ii, v;
+
+			if (typeof(input.type) === "string") {
+				info.type = input.type;
+			}
+			if (Array.isArray((a = input.options))) {
+				info.options = [];
+				for (i = 0, ii = a.length; i < ii; ++i) {
+					v = a[i];
+					if (
+						Array.isArray(v) &&
+						v.length >= 2 &&
+						typeof((label = v[1])) === "string"
+					) {
+						opt = [ v[0], v[1] ];
+						if (typeof((desc = v[2])) === "string") {
+							opt.push(desc);
+						}
+						info.options.push(opt);
+					}
+				}
+			}
+
+			return info;
+		}._w(622);
+		ExtensionAPI.prototype.register_request_api = function (reg_info) {
+			if (!is_object(reg_info)) return "Invalid";
+
+			var req_group = "other",
+				req_namespace = "other",
+				req_type = "other",
+				req_count = 1,
+				req_concurrent = 1,
+				req_delay_okay = 200,
+				req_delay_error = 5000,
+				req_functions = {},
+				req_function_ids = {},
+				fns, fn_id, req, i, ii, k, o, v;
+
+			// Settings
+			if (typeof((v = reg_info.group)) === "string") req_group = v;
+			if (typeof((v = reg_info.namespace)) === "string") req_namespace = v;
+			if (typeof((v = reg_info.type)) === "string") req_type = v;
+			if (typeof((v = reg_info.count)) === "number") req_count = Math.max(1, v);
+			if (typeof((v = reg_info.concurrent)) === "number") req_concurrent = Math.max(1, v);
+			if (typeof((v = reg_info.delay_okay)) === "number") req_delay_okay = Math.max(0, v);
+			if (typeof((v = reg_info.delay_error)) === "number") req_delay_error = Math.max(0, v);
+
+			// Functions
+			if (Array.isArray((fns = reg_info.functions))) {
+				for (i = 0, ii = fns.length; i < ii; ++i) {
+					v = fns[i];
+					if (Object.prototype.hasOwnProperty.call(ExtensionAPI.request_api_functions, v)) {
+						fn_id = random_string(32);
+						req_functions[ExtensionAPI.request_api_functions[v]] = this.request_api_fn(fn_id, v);
+						req_function_ids[v] = fn_id;
+					}
+				}
+			}
+
+			// Validate
+			for (i = 0, ii = ExtensionAPI.request_api_functions_required.length; i < ii; ++i) {
+				if (!Object.prototype.hasOwnProperty.call(req_functions, ExtensionAPI.request_api_functions_required[i])) break;
+			}
+			if (i < ii) return "Missing functions";
+
+			// Check to see if the namespace/type is unique
+			if (
+				(o = this.request_apis[req_namespace]) !== undefined &&
+				o[req_type] !== undefined
+			) {
+				return "Already exists";
+			}
+
+			// Create
+			req = new API.RequestType(
+				req_count,
+				req_concurrent,
+				req_delay_okay,
+				req_delay_error,
+				req_group,
+				req_namespace,
+				req_type
+			);
+			for (k in req_functions) {
+				req[k] = req_functions[k];
+			}
+			req.request_init = api_request_init_fn;
+			req.request_complete = create_api_request_complete_fn(this.api_name, this.api_key);
+
+			if (o === undefined) {
+				this.request_apis[req_namespace] = o = {};
+			}
+			o[req_type] = {
+				req: req,
+				api_name: this.api_name,
+				api_key: this.api_key
+			};
+
+			return req_function_ids;
+		}._w(623);
+		ExtensionAPI.prototype.register_linkifier = function (reg_info) {
+			if (!is_object(reg_info)) return "Invalid";
+
+			var regex,
+				prefix_group = 0,
+				prefix = "",
+				flags, v, v2;
+
+			// Regex
+			if (
+				!Array.isArray((v = reg_info.regex)) ||
+				typeof((v2 = v[0])) !== "string"
+			) {
+				return "Invalid regex";
+			}
+			if (typeof((flags = v[1])) === "string") {
+				if (flags.indexOf("g") < 0) flags += "g";
+			}
+			else {
+				flags = "g";
+			}
+			regex = $.create_regex_safe(v2, flags);
+			if (regex === null) return "Invalid regex";
+
+			// Prefix
+			if (typeof((v = reg_info.prefix_group)) === "number") prefix_group = v;
+			if (typeof((v = reg_info.prefix)) === "string") prefix = v;
+
+			// Register
+			Linkifier.linkify_register(regex, prefix_group, prefix, null, null);
+			return null;
+		}._w(624);
+		ExtensionAPI.prototype.register_command = function (reg_info) {
+			if (!is_object(reg_info) || reg_info.url_info !== true || reg_info.to_data !== true) {
+				return "Invalid";
+			}
+
+			var id_data = { id: random_string(32), url: null },
+				index;
+
+			index = API.register_url_info_function(
+				this.register_command_fn("url_info", id_data, 1000),
+				this.register_command_fn("url_info_to_data", id_data, -1)
+			);
+
+			if (reg_info.details === true) {
+				UI.register_details_creation(index, this.register_details_actions_fn("create_details", { id: id_data.id, info: null, data: null }, ExtensionAPI.details_validator));
+			}
+			if (reg_info.actions === true) {
+				UI.register_actions_creation(index, this.register_details_actions_fn("create_actions", { id: id_data.id, info: null, data: null }, ExtensionAPI.actions_validator));
+			}
+
+			return id_data;
+		}._w(625);
+		ExtensionAPI.prototype.register_command_fn = function (event, send_data, delay) {
+			var api_name = this.api_name,
+				api_key = this.api_key,
+				self = this;
+
+			return function (url_info, cb) {
+				var d = self.timeout_delay;
+				self.timeout_delay = delay;
+				self.api_name = api_name;
+				self.api_key = api_key;
+
+				send_data.url = url_info;
+
+				self.send(event, send_data, null, function (err, data) {
+					if (err !== null) {
+						cb(err, null);
+					}
+					else if (!is_object(data)) {
+						cb("Invalid extension data", null);
+					}
+					else if ((err = data.err) !== null) {
+						cb(err, null);
+					}
+					else if (!is_object(data.data)) {
+						cb("Invalid extension data", null);
+					}
+					else {
+						cb(null, data.data);
+					}
+				}._w(628));
+
+				self.api_name = null;
+				self.api_key = null;
+				self.timeout_delay = d;
+			}._w(627);
+		}._w(626);
+		ExtensionAPI.prototype.register_details_actions_fn = function (event, send_data, validator) {
+			var api_name = this.api_name,
+				api_key = this.api_key,
+				self = this;
+
+			return function (data, info, cb) {
+				self.api_name = api_name;
+				self.api_key = api_key;
+
+				send_data.data = data;
+				send_data.info = info;
+
+				self.send(event, send_data, null, function (err, data) {
+					if (err !== null) {
+						cb(err, null);
+					}
+					else if (!is_object(data)) {
+						cb("Invalid extension data", null);
+					}
+					else if ((err = data.err) !== null) {
+						cb(err, null);
+					}
+					else {
+						validator(data.data, cb);
+					}
+				}._w(631));
+
+				self.api_name = null;
+				self.api_key = null;
+			}._w(630);
+		}._w(629);
+
+		ExtensionAPI.details_validator = function (data, cb) {
+			if (typeof(data) !== "string") {
+				cb("Invalid extension response", null);
+			}
+			else {
+				data = get_shared_node(data);
+				if (data === null) {
+					cb("Invalid extension node", null);
+				}
+				else {
+					cb(null, data);
+				}
+			}
+		}._w(632);
+		ExtensionAPI.actions_validator = function (data, cb) {
+			if (!Array.isArray(data)) {
+				cb("Invalid extension response", null);
+			}
+			else {
+				var response = [],
+					d, i, ii;
+
+				for (i = 0, ii = data.length; i < ii; ++i) {
+					d = data[i];
+					if (d === null || Array.isArray(d)) {
+						response.push(d);
+					}
+				}
+
+				cb(null, response);
+			}
+		}._w(633);
 
 		ExtensionAPI.request_api_functions_required = [
 			"setup_xhr",
@@ -9260,114 +10045,91 @@
 							key: reply_key,
 							apis: []
 						};
-						reply_data = { key: reply_key };
+						reply_data = {
+							key: reply_key,
+							cache_prefix: API.cache_get_prefix(),
+							cache_mode: config.debug.cache_mode
+						};
 						break;
 					}
 				}
 
 				this.send(this.action, reply_data, this.reply_id);
-			}._w(588),
+			}._w(634),
 		};
 		ExtensionAPI.handlers = {
 			register: function (data) {
 				if (!is_object(data)) {
 					// Failure
-					this.send(this.action, {
-						err: "Invalid data"
-					}, this.reply_id);
+					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
 					return;
 				}
 
 				// Register
 				var response = {
-						settings: {},
-						request_apis: []
+						settings: null,
+						request_apis: [],
+						linkifiers: [],
+						commands: [],
 					},
-					req, fns, fn_id, a, o, o2, v, i, ii, j, jj, k;
+					de = document.documentElement,
+					complete = false,
+					enabled, name, author, description,
+					k, o, i, ii;
+
+				// Decrease register count
+				if (de) {
+					k = "data-xlinks-extensions-waiting";
+					o = de.getAttribute(k);
+					if (o) {
+						o = (parseInt(o, 10) || 0) - 1;
+						if (o > 0) {
+							de.setAttribute(k, o);
+						}
+						else {
+							de.removeAttribute(k);
+							complete = true;
+						}
+					}
+				}
+
+				// Add to list
+				if (
+					typeof((name = data.name)) !== "string" ||
+					typeof((author = data.author)) !== "string" ||
+					typeof((description = data.description)) !== "string"
+				) {
+					this.send(this.action, { err: "Missing extension identification", response: null }, this.reply_id);
+					return;
+				}
+				enabled = extension_is_enabled(name, author, description);
+				registered.push([ enabled, name, author, description ]);
+				if (!enabled) {
+					this.send(this.action, { err: "Extension disabled", response: null }, this.reply_id);
+					return;
+				}
+
+				// Settings
+				response.settings = this.register_settings(data.settings);
 
 				// Request APIs
 				if (Array.isArray((o = data.request_apis))) {
 					for (i = 0, ii = o.length; i < ii; ++i) {
-						a = o[i];
-						if (is_object(a)) {
-							var req_group = "other",
-								req_namespace = "other",
-								req_type = "other",
-								req_count = 1,
-								req_concurrent = 1,
-								req_delay_okay = 200,
-								req_delay_error = 5000,
-								req_functions = {},
-								req_function_ids = {};
+						response.request_apis.push(this.register_request_api(o[i]));
+					}
+				}
 
-							// Settings
-							if (typeof((v = a.group)) === "string") req_group = v;
-							if (typeof((v = a.namespace)) === "string") req_namespace = v;
-							if (typeof((v = a.type)) === "string") req_type = v;
-							if (typeof((v = a.count)) === "number") req_count = Math.max(1, v);
-							if (typeof((v = a.concurrent)) === "number") req_concurrent = Math.max(1, v);
-							if (typeof((v = a.delay_okay)) === "number") req_delay_okay = Math.max(0, v);
-							if (typeof((v = a.delay_error)) === "number") req_delay_error = Math.max(0, v);
+				// Linkifiers
+				if (Array.isArray((o = data.linkifiers))) {
+					for (i = 0, ii = o.length; i < ii; ++i) {
+						response.linkifiers.push(this.register_linkifier(o[i]));
+					}
+				}
 
-							// Functions
-							if (Array.isArray((fns = a.functions))) {
-								for (j = 0, jj = fns.length; j < jj; ++j) {
-									v = fns[j];
-									if (Object.prototype.hasOwnProperty.call(ExtensionAPI.request_api_functions, v)) {
-										fn_id = random_string(32);
-										req_functions[ExtensionAPI.request_api_functions[v]] = this.request_api_fn(fn_id, v);
-										req_function_ids[v] = fn_id;
-									}
-								}
-							}
-
-							// Validate
-							for (j = 0, jj = ExtensionAPI.request_api_functions_required.length; j < jj; ++j) {
-								if (!Object.prototype.hasOwnProperty.call(req_functions, ExtensionAPI.request_api_functions_required[j])) break;
-							}
-							if (j < jj) {
-								response.request_apis.push([ "Missing functions" ]);
-							}
-							else {
-								// Check to see if the namespace/type is unique
-								if (
-									(o2 = this.request_apis[req_namespace]) !== undefined &&
-									o2[req_type] !== undefined
-								) {
-									response.request_apis.push([ "Already exists" ]);
-								}
-								else {
-									req = new API.RequestType(
-										req_count,
-										req_concurrent,
-										req_delay_okay,
-										req_delay_error,
-										req_group,
-										req_namespace,
-										req_type
-									);
-									for (k in req_functions) {
-										req[k] = req_functions[k];
-									}
-									req.request_init = api_request_init_fn;
-									req.request_complete = create_api_request_complete_fn(this.api_name, this.api_key);
-
-									if (o2 === undefined) {
-										this.request_apis[req_namespace] = o2 = {};
-									}
-									o2[req_type] = {
-										req: req,
-										api_name: this.api_name,
-										api_key: this.api_key
-									};
-
-									response.request_apis.push([ null, req_function_ids ]);
-								}
-							}
-						}
-						else {
-							response.request_apis.push([ "Invalid" ]);
-						}
+				// URL info function
+				if (Array.isArray((o = data.commands))) {
+					for (i = 0, ii = o.length; i < ii; ++i) {
+						response.commands.push(this.register_command(o[i]));
 					}
 				}
 
@@ -9376,7 +10138,10 @@
 					err: null,
 					response: response
 				}, this.reply_id);
-			}._w(589),
+
+				// Done
+				Main.start_processing(!complete);
+			}._w(635),
 			request: function (data) {
 				var self = this,
 					action = this.action,
@@ -9393,9 +10158,7 @@
 					(info = data.info) === undefined
 				) {
 					// Failure
-					this.send(this.action, {
-						err: "Invalid data"
-					}, this.reply_id);
+					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
 					return;
 				}
 
@@ -9414,8 +10177,8 @@
 
 					self.api_key = null;
 					self.api_name = null;
-				}._w(591));
-			}._w(590),
+				}._w(637));
+			}._w(636),
 		};
 
 		var api_request_init_fn = function (req) {
@@ -9423,7 +10186,7 @@
 				id: random_string(32),
 				sent: false
 			};
-		}._w(592);
+		}._w(638);
 		var create_api_request_complete_fn = function (api_name, api_key) {
 			return function (req) {
 				api.api_name = api_name;
@@ -9431,49 +10194,62 @@
 				api.send("request_end", { id: req.data.id });
 				api.api_name = null;
 				api.api_key = null;
-			}._w(594);
-		}._w(593);
+			}._w(640);
+		}._w(639);
 
 
 		// Public
 		var init = function () {
 			if (api === null) api = new ExtensionAPI();
-		}._w(595);
+		}._w(641);
 
 		var request = function (namespace, type, unique_id, info, callback) {
-			var req_data, req;
+			var req_data;
 			if (
 				api === null ||
 				(req_data = api.request_apis[namespace]) === undefined ||
 				(req_data = req_data[type]) === undefined
 			) {
-				callback.call(null, "Invalid API", null);
+				callback.call(null, "Invalid extension request API", null);
 				return;
 			}
 
 			return req_data.req.add(unique_id, info, false, callback);
-		}._w(596);
+		}._w(642);
+
+		var should_defer_processing = function () {
+			return document.documentElement.hasAttribute("data-xlinks-extensions-waiting");
+		}._w(643);
+
+		var get_registered_extensions = function () {
+			return registered;
+		}._w(644);
 
 
 		// Exports
 		return {
 			init: init,
-			request: request
+			request: request,
+			should_defer_processing: should_defer_processing,
+			get_registered_extensions: get_registered_extensions,
+			set_extensions_enabled: set_extensions_enabled
 		};
 
-	}._w(575))();
+	}._w(604))();
 	var Main = (function () {
 
 		// Private
 		var fonts_inserted = false,
-			all_posts_reloaded = false;
+			all_posts_reloaded = false,
+			processing_started = false,
+			processing_start_timer = null;
 
 		var reload_all_posts = function () {
 			if (all_posts_reloaded) return;
 			all_posts_reloaded = true;
 
 			Linkifier.relinkify_posts(Post.get_all_posts(d));
-		}._w(598);
+		}._w(646);
 
 		var on_ready = function () {
 			Debug.timer("init");
@@ -9481,10 +10257,9 @@
 			if (!Config.ready()) return;
 			Settings.ready();
 
-			var style = $.node_simple("style"),
-				updater;
+			var style = $.node_simple("style");
 
-			style.textContent = ".xl-button,.xl-star{display:inline-block}.xl-easylist-subtitle,.xl-link-page,.xl-link.xl-link-error{font-style:italic}.xl-actions:before,.xl-changelog-message-container:before,.xl-easylist-item-image-container:after,.xl-popup-aligner:before,.xl-site-tag-bg-inner:after{content:\"\"}.xl-stars-container{position:relative;z-index:0;white-space:nowrap}.xl-stars-container.xl-stars-container-na{opacity:.5}.xl-star-none{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAQAAADYBBcfAAAA5UlEQVR4AZ2VwQmEMBBFfx0S5iwWJCIhhSwhRXgSEesQCVuIzbgCGiLJ4GTzbupjvvqNYFcDd9KgcBFmHCczqEzUOC50meiC6Eo0hS2IG5Rc7HFE9HLRPkQrf6L+IXpQ/n0ZuJigxap7YEAhViEa+Pwr1tDwRZKHvu+asIi15ZZudRJpEyhty/CqDfkWVWixs9KOFpWg3AmuoDNMf/ivkEHLgwrDEr6M8hLWJBd6PiwfdASdjO9hFdZoVg91He2juWuuAF04PYPSrfKiS0WbK3FQF34bMcm03FST3/ItanCrho1/CT96LV7iyUEWwgAAAABJRU5ErkJggg==)}.xl-star-half{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAADA0lEQVR4AbWWA7PkQBRG+9m28ubZNta2bdu2bdu2bdu2rZ/w7e2t9DKTHVS66gySyZy6X5MZ2/JjWTwx1MWBTbW1ZslMy0YiictyI2zham8BGyu2ki5LWgqbclnDkg7wdbeEnTUDXW6smVBUN6yFH0L9bYRwqJZxLuXC2X10iAqxE8KDRLBmcfZq4IujC9OREu0MVydLLuQ01CzO8V10uLuzOLIS3eDuYiWEgzWLc9moRDw6UAbZyR7wcrcRwsOEZMy8akoM1YeQTe4VjctbS+H58crISfFEgI+dEArpUBWaEpKICv9jSu9oXN1RDq/P1iRqIDfNC8H+DkJmKI3/ENJndKnpgZFtAjCmQzD1Vygmdg/HirEp4LI35+vi/aUGRF3kpXubLBSRLhVz7MCsJFzfmM8HB/VXWYqwCnhlXPbxelN8ut4A+Rk+CA4wWHiYywhJcdniFdLQl4VlwPuMx8gr47Jvt+qR0NtQ4VIhUl0rezbwwaKhMTi3rhDPjlbAq9NV8O5CDXy4UhufrtYkoUF9uFCvTEnKmdBNhwsbC/HiRAW8PlMZ785zcWXkpXmS0F5NNtPQFUhImxJHuXTZyFg8PVwaL46XxcuT5fDqVDnkpnog2E9R+JCoSwSasbpIeLi3KB4fLIGnh4jDJZCT7IYgPzsl4VCzV5cFg8JxZ3se7u3Kx/3dBXiwJx/Zia4I9LXVNyIlkxfr7nU8cGhuAq6tz8DNTZm4uSULt4jMBGcE+tjqnW+m733NvXFuSQIuLE/CpVXJODgnDnP7hvDtCX6e1vqEQ02Oc3IHHxyfE41T82Kwe3IEhrf0hjhiuDmL7cnMWEWc7So6YN3AAGwcGoRJ7b3RuZqzWAKXOtmzc/IGbH6sIs5e1R2xopc3+tb5IRKyoYTkbM+ibKzZUhXhUKPj7F7FAT2qOkJUJc/Nn1HZ2TCdvNsfVhDuJ4INjrNWrjWal7D7oyqVxyRisYK0vqFxcom6TFH6T8SDDa3QcJl6pU0NPsrLxDPjW6xc2VDin+e/Azq4LxX5iaTWAAAAAElFTkSuQmCC)}.xl-star-full{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAADhElEQVR4AbWWg3IsURRF82zbtm3btm3btmPbtm3btvEJ+93TlbmVigapSVV3D3tlr4NEQdqf5VMVprPjdf0xXdrvSwsbTaClEzqDjnroaHkCTxPo+PpudIigp+UJFNK9OTcEr88O5inlqVOXIMqPxkL54RgRUJdrlYfOB8cGw1dzPnw05uH+0YFcq9x0fr01FqmOa5HisBpfbo7iWuWmU+/DTGR5bEKm+0bovJsqrVY+V6f5bDV/CLCfDyYj2nYD8v13Is93GyIsV+L73bEcKuYexBjNVYk7fj2cjFiHLSgO3c+OfSgK3oWCgG2IJOidMWK/z2vdaJBxa38/vL80DJ+ujWT1GsMSjIfB5zkCrCT8MMqjjrHjMMoi9qE4ZCcK/Dcj3HwZdN5MxOfrw/Hh8hC8PTcQL0/2xbUd3emejYFcqa5oxjyUZiHecjk1B6vXZqZwFyUTYJXxp1EVfwwVMQdRFr4LhYFbkOu1DunOK5BoswjRxnMQqjUVtp9G49nRXlw3V9rM2qKE1Pr1wE1UM9JIyQRYXdIRVMXuZyl3oiiIAb3XIcNlOZIYMMZ4Nlx+TcDLU/3Er7+G0PvHBkHr9RSEma2kBqGakUZKJsAqonejNGw7CgM2IsdrDdKdlsFfexZUH43EnQO9G8GkWNDf7oylbqQGoZqRRkpGMJaO6fZdh2z3lQgymIvP14ZChsXOoeTcV5i991OZto3UIFQz0igkE2Aeq5HhvAxaL/h4+PJ6yb5dRiPTdTWyPddRg1DNSCMlE2Aptovw6epQnqzN20XjxXik2C9DmtNy6kZqEKoZa6olSLZZiHjzuVB5NKJNy5wv67uH+sFLdQbizBcg0Wohtb7QjYnWC5BgOQ+xprMRZTgDLr/H49Y+PganZf/bd3YgwnRmIEJ/FqKMZsNTZRpUH48SutFDcTLCdacjRHMyApTH48WJPlyrzDp/XhsEf5XJCFKbAuefE/D2/EDeiW/ODYDj19HwVRwHr5+j8PVCH5m0cp1XtneD2fNhsHw9Aj+uDsTNPT35DUW/0PXdPRioL0yeDoLhg364tKWL1Fq5zgd7u8PgwUA8PtSzyXw1nteH+7pD53Y/3NvdnX9Oap13d3XjN2i8DxvNK//8nR3dpNLKdR5Y2hFn13WRaGs0THt2bWfsX9JRYq1cJ7s2DxMHbfRdiROKhYmB8oTy/Vde/Pf/AxrB4Rr+1b9fAAAAAElFTkSuQmCC)}.xl-star{width:1.2em;height:1.4em;margin-left:-.1em;margin-right:-.1em;margin-bottom:-.2em;background-repeat:no-repeat;background-size:cover;background-position:-.1em 0;position:relative}.xl-star-1{z-index:4;width:1.3em;background-position:0 0}.xl-star-2{z-index:3}.xl-star-3{z-index:2}.xl-star-4{z-index:1}.xl-star-5{z-index:0;width:1.3em}.xl-button{padding:.3em 1em;font-size:inherit;line-height:1.6em;color:#333;text-align:center;text-shadow:0 .08em .08em rgba(255,255,255,.75);vertical-align:middle;cursor:pointer;background-color:#f5f5f5;background-image:-webkit-gradient(linear,0 0,0 100%,from(#fff),to(#e6e6e6));background-image:-webkit-linear-gradient(top,#fff,#e6e6e6);background-image:-o-linear-gradient(top,#fff,#e6e6e6);background-image:linear-gradient(to bottom,#fff,#e6e6e6);background-image:-moz-linear-gradient(top,#fff,#e6e6e6);background-repeat:repeat-x;border:1px solid #bbb;border-color:#e6e6e6 #e6e6e6 #bfbfbf;border-bottom-color:#a2a2a2;border-radius:.3em;box-shadow:inset 0 .08em 0 rgba(255,255,255,.2),0 .08em .16em rgba(0,0,0,.05)}.xl-button-eh{font-family:'Source Sans Pro',Tahoma,sans-serif!important;font-weight:900;font-size:.86em;width:100%;padding:.15em 0;color:#FFF!important;box-shadow:0 0 .5em rgba(0,0,0,.5);text-shadow:.09em .09em 0 rgba(0,0,0,.5),0 0 .3em #000;-webkit-font-smoothing:antialiased}.xl-button-doujinshi{background-color:#840505!important;background-image:-khtml-gradient(linear,left top,left bottom,from(#f74040),to(#840505));background-image:-moz-linear-gradient(top,#f74040,#840505);background-image:-ms-linear-gradient(top,#f74040,#840505);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#f74040),color-stop(100%,#840505));background-image:-webkit-linear-gradient(top,#f74040,#840505);background-image:-o-linear-gradient(top,#f74040,#840505);background-image:linear-gradient(#f74040,#840505);border-color:#840505 #840505 hsl(0,92%,18.5%)}.xl-button-manga{background-color:#7a2800!important;background-image:-khtml-gradient(linear,left top,left bottom,from(#ff7632),to(#7a2800));background-image:-moz-linear-gradient(top,#ff7632,#7a2800);background-image:-ms-linear-gradient(top,#ff7632,#7a2800);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#ff7632),color-stop(100%,#7a2800));background-image:-webkit-linear-gradient(top,#ff7632,#7a2800);background-image:-o-linear-gradient(top,#ff7632,#7a2800);background-image:linear-gradient(#ff7632,#7a2800);border-color:#7a2800 #7a2800 #4c1900}.xl-button-artistcg{background-color:#7a6a00!important;background-image:-khtml-gradient(linear,left top,left bottom,from(#ffe95b),to(#7a6a00));background-image:-moz-linear-gradient(top,#ffe95b,#7a6a00);background-image:-ms-linear-gradient(top,#ffe95b,#7a6a00);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#ffe95b),color-stop(100%,#7a6a00));background-image:-webkit-linear-gradient(top,#ffe95b,#7a6a00);background-image:-o-linear-gradient(top,#ffe95b,#7a6a00);background-image:linear-gradient(#ffe95b,#7a6a00);border-color:#7a6a00 #7a6a00 #423900}.xl-button-gamecg{background-color:#273214!important;background-image:-moz-linear-gradient(top,#96ba58,#273214);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#96ba58),color-stop(100%,#273214));background-image:-webkit-linear-gradient(top,#96ba58,#273214);background-image:-o-linear-gradient(top,#96ba58,#273214);background-image:linear-gradient(#96ba58,#273214);border-color:#273214 #273214 #0b0e05}.xl-button-western{background-color:#4d7a00!important;background-image:-moz-linear-gradient(top,#c3ff5b,#4d7a00);background-image:-ms-linear-gradient(top,#c3ff5b,#4d7a00);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#c3ff5b),color-stop(100%,#4d7a00));background-image:-webkit-linear-gradient(top,#c3ff5b,#4d7a00);background-image:-o-linear-gradient(top,#c3ff5b,#4d7a00);background-image:linear-gradient(#c3ff5b,#4d7a00);border-color:#4d7a00 #4d7a00 #294200}.xl-button-non-h{background-color:#225358!important;background-image:-moz-linear-gradient(top,#73c1c8,#225358);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#73c1c8),color-stop(100%,#225358));background-image:-webkit-linear-gradient(top,#73c1c8,#225358);background-image:-o-linear-gradient(top,#73c1c8,#225358);background-image:linear-gradient(#73c1c8,#225358);border-color:#225358 #225358 hsl(185,44%,14.5%)}.xl-button-imageset{background-color:#0e3961!important;background-image:-moz-linear-gradient(top,#56a0e5,#0e3961);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#56a0e5),color-stop(100%,#0e3961));background-image:-webkit-linear-gradient(top,#56a0e5,#0e3961);background-image:-o-linear-gradient(top,#56a0e5,#0e3961);background-image:linear-gradient(#56a0e5,#0e3961);border-color:#0e3961 #0e3961 #071f35}.xl-button-cosplay{background-color:#3a2861!important;background-image:-moz-linear-gradient(top,#a996d3,#3a2861);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#a996d3),color-stop(100%,#3a2861));background-image:-webkit-linear-gradient(top,#a996d3,#3a2861);background-image:-o-linear-gradient(top,#a996d3,#3a2861);background-image:linear-gradient(#a996d3,#3a2861);border-color:#3a2861 #3a2861 #221839}.xl-button-asianporn{background-color:#740f51!important;background-image:-moz-linear-gradient(top,#ec78c3,#740f51);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#ec78c3),color-stop(100%,#740f51));background-image:-webkit-linear-gradient(top,#ec78c3,#740f51);background-image:-o-linear-gradient(top,#ec78c3,#740f51);background-image:linear-gradient(#ec78c3,#740f51);border-color:#740f51 #740f51 #43092e}.xl-button-misc{background-color:#353535!important;background-image:-moz-linear-gradient(top,#bfbfbf,#353535);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#bfbfbf),color-stop(100%,#353535));background-image:-webkit-linear-gradient(top,#bfbfbf,#353535);background-image:-o-linear-gradient(top,#bfbfbf,#353535);background-image:linear-gradient(#bfbfbf,#353535);border-color:#353535 #353535 hsl(321,0%,7.5%)}.xl-noise{color:#fff!important;margin:0 0 -.25em;padding:.125em 0;border-radius:.25em;position:relative;top:-.125em;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAMAAACd646MAAAAG1BMVEUAAAAfHx8/Pz9fX19/f3+fn5+/v7/f39////8NX9jPAAAACXRSTlMICAgICAgICAWHgaIXAAAErklEQVR42rWXOZIlNBBEn2rLd/8TYxBDANEsA78dGSpDqi0XGmDL04cKanRWhrWBvHqbUoemvHZscN5EVMV1KzTXzfMYtGVvkemNHVWiNitiC++ww3M5McNsFxaKkYcotEyUCKccLXvyXGFVfU/uYA2oWq/L9eapmsOmQd7BE7BcFEbWQp/jNE9jr6OjYYaAJ9K01LrCrCOc2Im2wVLsfjKHsHIttCn0DlYpU0tBSQMM9gRXpr8pLaRdGzUPpVefT1Dv7aFZ1wGL6OHPtRKg9BW1GCktCxq9ePZjhcsJCorYCOZgHdccomwrb1FL0fPQJ1lYuKfalqjeDVFMj+bUZ0d7BSHCPhnqeX0CKlqv11FlhbXAju0YmodWTo2otue1V84WPlT6PWtvRUGZS634CskGj4sogqJTDY1Bt8EM+VglKRWgR32nwhrIk/Gp/3sAAVen3hPvRpVwr5QD0eeqVgCNyvS6WrQC1JN+y7hA06qKLfC3wVWDrVZbvSDvjaTUKle0qBUZjWifntuN5TXI25oweKzOtEjZtmcclanhClMILtEmrT5ReKbUZzX6RxxBlTXdLZAdkRR2FbTPt17sU0kpLddnLH1IqaqoAMTcqZo6CgW/uytPtZVxIpYW0oNxH3gqZ0QQdyXeiOB6CyvaxQSgrDXkzlhvMePcySj71Oc4ilwVAoNiZb31dTzTI/vssNWxhzpvFHCRHQ0A4gOtOcLR7nNpQUV846ryYi3yVID1+U7sx/y4NSqzFqMVzUM+vt5fACVoFsyRZ+s2IIyISyaMjh5yyLqrIuZ8fY2LzKSe1698IojmNahUo891Vp3sQ1XfCMCbFUvrkBPvVhlD4Uoprw4dHFlltNSRs3wvnX6eF80inB6g57y2FR17T0QzDBifpe+y6rJImsiUcD9S+taxclb5axLwtnGkZwIct4K4pyCtJQ+PU1WjbBrDLD4V8R8FTW+ebzLq2A3GYWqRqDy0kQbPQ17jKefd8HUR+6BUP4Nq4KAOurFBzDzeOqL6+gkall6T97Nzj8/8epSOr4TVolhElXZGLi3oMjeqgjLPWhEkfRocTBqCzz4+q0vSCq+3geOpehTyeNvS0y2KmC7xVubpuz1XyZlVtH5CG7CKwvU5LiJNLTz0wfWUUsDqvhbRx4toKfokNMU2rlZ55nrP4TFleXOqqNDv9d19UPXxKTgvwozCG/WppSPrIRYAPXiCiWpjXe6cRtTu/8zUfNtISXScQdKWhuiIsocNZmdwoFQ5TN2VitkprVX7lsJzDlChARzENZy/mcc76duguKmZnfaMBw9Apwza2vGGiarj044exFsCAbUMNsB+ZcA+6oc/iR4iumKrv+NbvtOP/igH3yGB/rwzv1FkKHXVXhj1aEX0UJoFOeAAdME5xZLdoxHoVYiKNT5h3TOeqveGpihwRG12PKPIqH1cCjG8+OB1k4gQRnV2dVRRFKKA4strjYMqZQTK4tRRn08BBMT+d+aDD+iE14LKqRW+4Nr/ghNniexqONNKuyDiaXRTo4JiYIl22ZlDJ+/DxvsvHj9OBtW9d2alRrtAFTeiU5aD0UJEZIu2obEpQPlgYb7+2y84P1jASwAjowAAAABJRU5ErkJggg==)}.xl-exsauce-link{white-space:nowrap;text-transform:lowercase}.xl-exsauce-hover-link{text-decoration:none!important}a.xl-exsauce-link.xl-exsauce-link-disabled{text-decoration:line-through!important;cursor:default!important}.xl-exsauce-results{display:block;white-space:nowrap}.xl-exsauce-results.xl-exsauce-results-hidden{display:none}.xl-exsauce-results-inner{display:table;margin:.25em 0;border-radius:.375em;background-color:rgba(0,0,0,.05);padding:.5em;white-space:normal}.xl-details-page-thumbnail,.xl-details-rating,.xl-details-side-box>div,.xl-exsauce-results-label,.xl-exsauce-results-link{white-space:nowrap}.xl-exsauce-results-inner.xl-theme-dark{background-color:rgba(255,255,255,.05)}.xl-exsauce-results-sep{display:inline-block;margin:0 .5em}.xl-exsauce-results-link{text-decoration:none!important;vertical-align:top;margin:0 .375em;text-transform:lowercase}.xl-exsauce-results-group+.xl-exsauce-results-group{margin-top:.25em}.xl-details,.xl-exsauce-hover{opacity:.93;font-size:inherit;margin:0;overflow:visible}.xl-exsauce-hover{display:block;position:fixed;z-index:993;padding:.5em;border-radius:.25em;width:auto}.xl-actions.xl-actions-hidden,.xl-exsauce-hover.xl-exsauce-hover-hidden{display:none}.xl-actions,.xl-actions:before{position:absolute;border-radius:.25em}.xl-actions{z-index:5;box-sizing:border-box;-moz-box-sizing:border-box}.xl-actions:before{display:block;left:0;top:0;bottom:0;right:0;background-color:rgba(0,0,0,.05)}.xl-actions.xl-theme-dark:before{background-color:rgba(255,255,255,.05)}.xl-actions[data-xl-actions-vpos=above]:not([data-xl-actions-hpos=left]),.xl-actions[data-xl-actions-vpos=above]:not([data-xl-actions-hpos=left]):before{border-bottom-left-radius:0}.xl-actions[data-xl-actions-vpos=below]:not([data-xl-actions-hpos=left]),.xl-actions[data-xl-actions-vpos=below]:not([data-xl-actions-hpos=left]):before{border-top-left-radius:0}.xl-actions[data-xl-actions-vpos=above]:not([data-xl-actions-hpos=right]),.xl-actions[data-xl-actions-vpos=above]:not([data-xl-actions-hpos=right]):before{border-bottom-right-radius:0}.xl-actions[data-xl-actions-vpos=below]:not([data-xl-actions-hpos=right]),.xl-actions[data-xl-actions-vpos=below]:not([data-xl-actions-hpos=right]):before{border-top-right-radius:0}.xl-actions-inner{position:relative;padding:.5em 0}.xl-actions-table{display:table}.xl-actions-table-row{display:table-row}.xl-actions-table-cell{display:table-cell;height:100%;vertical-align:middle;text-align:left}.xl-actions-table-cell:first-of-type{width:0;white-space:nowrap;text-align:right}.xl-actions-table-sep{height:.25em}.xl-actions-table-header{font-weight:700;padding:0 .25em 0 1em;line-height:1.325em}.xl-actions-option{padding:0 1em 0 .25em;line-height:1.325em;display:block}.xl-actions-option:hover{background-color:rgba(0,0,0,.05)}.xl-actions-option.xl-theme-dark:hover{background-color:rgba(255,255,255,.05)}.xl-details{display:block;position:fixed;z-index:994;padding:.5em;border-radius:.5em;text-align:center;width:60%;min-width:600px;box-sizing:border-box;-moz-box-sizing:border-box}.xl-details.xl-details-hidden{display:none}.xl-details-thumbnail{float:left;margin-right:.625em;width:140px;height:200px;background-color:rgba(0,0,0,.03125);background-repeat:no-repeat;background-size:contain;background-position:center center}.xl-details-thumbnail.xl-details-thumbnail-full{background-size:cover;background-position:25% 0}.xl-details-thumbnail.xl-theme-dark{background-color:rgba(255,255,255,.03125)}.xl-details-page-thumbnail{display:none;visibility:hidden;position:absolute;left:0;top:0;width:100%;height:100%;background-color:#fff;text-align:center;transform-origin:100% 50%;-moz-transform-origin:100% 50%;-webkit-transform-origin:100% 50%;transform:rotateY(35deg) translate(1em,0);-moz-transform:rotateY(35deg) translate(1em,0);-webkit-transform:rotateY(35deg) translate(1em,0);backface-visibility:hidden;-moz-backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;transition:transform .25s ease-out 0s,opacity .25s ease-out 0s;-moz-transition:-moz-transform .25s ease-out 0s,opacity .25s ease-out 0s;-webkit-transition:-webkit-transform .25s ease-out 0s,opacity .25s ease-out 0s}.xl-details-page-thumbnail-size{position:absolute;width:100%;height:100%;transform-origin:50% 50%}.xl-site-tag,.xl-tag{position:relative;text-decoration:none!important}.xl-details-page-thumbnail-image{width:100%;height:100%;background-repeat:no-repeat;background-size:contain;background-position:center center}.xl-details.xl-details-has-thumbnail>.xl-details-thumbnail{margin-right:1em}.xl-details.xl-details-has-thumbnail.xl-details-has-thumbnail-visible>.xl-details-thumbnail{perspective:500px;-moz-perspective:500px;-webkit-perspective:500px;perspective-origin:100% 50%;-moz-perspective-origin:100% 50%;-webkit-perspective-origin:100% 50%;transform-style:preserve-3d;-moz-transform-style:preserve-3d;-webkit-transform-style:preserve-3d}.xl-details.xl-details-has-thumbnail>.xl-details-thumbnail>.xl-details-page-thumbnail{display:block}.xl-details.xl-details-has-thumbnail.xl-details-has-thumbnail-visible>.xl-details-thumbnail>.xl-details-page-thumbnail{visibility:visible;opacity:1}.xl-details.xl-details-has-thumbnail:not(.xl-details-has-thumbnail-visible)>.xl-details-thumbnail>.xl-details-page-thumbnail{transform:none;-moz-transform:none;-webkit-transform:none;opacity:0}.xl-details-side-panel{float:right;margin-left:.5em;font-size:1.0625em!important;line-height:1em!important}.xl-details-side-box{width:100%;min-width:6em;font-size:.8em;padding:.5em 0;margin:.8em 0 .4em;border-radius:.5em;background-clip:padding-box;background-color:rgba(0,0,0,.125);box-shadow:0 0 .5em rgba(0,0,0,.125);text-shadow:0 .1em 0 rgba(255,255,255,.5)}.xl-details-side-box.xl-theme-dark{background-color:rgba(255,255,255,.125);box-shadow:0 0 .5em rgba(255,255,255,.125);text-shadow:0 .1em 0 rgba(0,0,0,.5)}.xl-details-side-box-error{color:#e00000}.xl-details-side-box-error.xl-theme-dark{color:#ff1f1f}.xl-details-title{font-size:1.5em!important;font-weight:700!important;text-shadow:.1em .1em .4em rgba(0,0,0,.15)!important;text-decoration:none!important}.xl-details-title-jp{margin-top:.25em;opacity:.5;font-size:1.1em;text-shadow:.1em .1em .5em rgba(0,0,0,.2)}.xl-details-title-jp.xl-theme-dark{text-shadow:.1em .1em .5em rgba(255,255,255,.2)}.xl-details-rating{text-align:center;display:inline-block;vertical-align:middle}.xl-details-file-size,.xl-details-rating-text{opacity:.65;font-size:.95em}.xl-details-upload-info{font-size:1em;margin:1em 0}.xl-details-uploader{font-size:1em!important;margin:0 .625em}.xl-details-upload-date{font-size:1em!important;margin-left:.625em}.xl-details-tag-block{font-size:1.075em!important;display:inline!important;line-height:1.4em}.xl-tag-block,.xl-tag-namespace-first{display:inline-block}.xl-details-tag-block-label{margin-right:.25em!important}.xl-details-clear{clear:both}.xl-tag-block{margin:0 .125em}.xl-tag{white-space:nobreak}.xl-tag.xl-tag-color-inherit{color:inherit!important}.xl-tag-block.xl-tag-block-last-of-namespace{margin-right:.5em}.xl-tag-block.xl-tag-block-last{margin-right:0}.xl-tag-namespace-first>.xl-tag-block{display:inline}.xl-tag-namespace-block{display:inline-block;margin:0 .125em}.xl-tag-namespace{display:inline-block;border:1px solid rgba(0,0,0,.4);border-radius:.25em;padding:0 .25em;line-height:normal}.xl-tag-namespace-block.xl-tag-namespace-block-no-outline>.xl-tag-namespace{border-style:none}.xl-tag-namespace-block.xl-theme-dark>.xl-tag-namespace{border-color:rgba(255,255,255,.4)}.xl-tag-namespace-block.xl-tag-namespace-language>.xl-tag-namespace{color:#6721c6}.xl-tag-namespace-block.xl-tag-namespace-group>.xl-tag-namespace{color:#9f8636}.xl-tag-namespace-block.xl-tag-namespace-artist>.xl-tag-namespace{color:#c47525}.xl-tag-namespace-block.xl-tag-namespace-parody>.xl-tag-namespace{color:#0ea79e}.xl-tag-namespace-block.xl-tag-namespace-character>.xl-tag-namespace{color:#288028}.xl-tag-namespace-block.xl-tag-namespace-male>.xl-tag-namespace{color:#0659ae}.xl-tag-namespace-block.xl-tag-namespace-female>.xl-tag-namespace{color:#e0338d}.xl-tag-namespace-block.xl-tag-namespace-language.xl-theme-dark>.xl-tag-namespace{color:#895cc6}.xl-tag-namespace-block.xl-tag-namespace-group.xl-theme-dark>.xl-tag-namespace{color:#e8c44f}.xl-tag-namespace-block.xl-tag-namespace-artist.xl-theme-dark>.xl-tag-namespace{color:#e89c4f}.xl-tag-namespace-block.xl-tag-namespace-parody.xl-theme-dark>.xl-tag-namespace{color:#21eda2}.xl-tag-namespace-block.xl-tag-namespace-character.xl-theme-dark>.xl-tag-namespace{color:#6ce769}.xl-tag-namespace-block.xl-tag-namespace-male.xl-theme-dark>.xl-tag-namespace{color:#23add0}.xl-tag-namespace-block.xl-tag-namespace-female.xl-theme-dark>.xl-tag-namespace{color:#e89cc4}.xl-actions-uploader.xl-filter-good,.xl-details-uploader.xl-filter-good,.xl-link.xl-filter-good,.xl-site-tag.xl-filter-good,.xl-tag.xl-filter-good{font-weight:700}.xl-filter-text{display:inline}.xl-site-tag{white-space:nowrap;display:inline-block;margin-right:.25em;outline:0!important}.xl-site-tag-bg,.xl-site-tag-bg-shadow{display:none;position:absolute;left:-.25em;top:-.25em;bottom:-.25em;right:-.25em;border-radius:.25em;pointer-events:none}.xl-site-tag.xl-site-tag-active>.xl-site-tag-bg-shadow{z-index:4}.xl-site-tag.xl-site-tag-active>.xl-site-tag-bg>.xl-site-tag-bg-inner,.xl-site-tag.xl-site-tag-active>.xl-site-tag-text{z-index:6}.xl-site-tag.xl-site-tag-active>.xl-site-tag-bg,.xl-site-tag.xl-site-tag-active>.xl-site-tag-bg-shadow{display:block}.xl-site-tag-bg-inner,.xl-site-tag-bg-inner:after{display:block;position:absolute;left:0;top:0;bottom:0;right:0;border-radius:.25em}.xl-popup-align,.xl-popup-aligner:before{display:inline-block;vertical-align:middle}.xl-site-tag-bg-inner:after{background-color:rgba(0,0,0,.05)}.xl-site-tag-bg-inner.xl-theme-dark:after{background-color:rgba(255,255,255,.05)}.xl-site-tag[data-xl-actions-vpos=above]>.xl-site-tag-bg,.xl-site-tag[data-xl-actions-vpos=above]>.xl-site-tag-bg-shadow,.xl-site-tag[data-xl-actions-vpos=above]>.xl-site-tag-bg>.xl-site-tag-bg-inner,.xl-site-tag[data-xl-actions-vpos=above]>.xl-site-tag-bg>.xl-site-tag-bg-inner:after{border-top-left-radius:0;border-top-right-radius:0}.xl-site-tag[data-xl-actions-vpos=below]>.xl-site-tag-bg,.xl-site-tag[data-xl-actions-vpos=below]>.xl-site-tag-bg-shadow,.xl-site-tag[data-xl-actions-vpos=below]>.xl-site-tag-bg>.xl-site-tag-bg-inner,.xl-site-tag[data-xl-actions-vpos=below]>.xl-site-tag-bg>.xl-site-tag-bg-inner:after{border-bottom-left-radius:0;border-bottom-right-radius:0}.xl-site-tag-text{position:relative}.xl-link.xl-link-formatted{text-decoration:none!important}.xl-link-error-message{opacity:.75}.xl-link-page{font-weight:400;white-space:nowrap}.xl-nav-extras-mobile{text-align:center;margin:.5em 0}.xl-nav-link{cursor:pointer}.xl-hover-shadow{box-shadow:0 0 .125em 0 rgba(0,0,0,.5)}.xl-hover-shadow.xl-theme-dark{box-shadow:0 0 .125em 0 rgba(255,255,255,.5)}:root.xl-popup-overlaying,:root.xl-popup-overlaying body{overflow-x:hidden!important;overflow-y:hidden!important}.xl-popup-overlay{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(255,255,255,.5);z-index:400;overflow-x:auto;overflow-y:scroll}.xl-popup-overlay.xl-theme-dark{background:rgba(0,0,0,.5)}.xl-popup-aligner{position:absolute;left:0;top:0;right:0;bottom:0;white-space:nowrap;line-height:0;text-align:center}.xl-popup-aligner:before{width:0;height:100%}.xl-popup-align{white-space:normal;line-height:normal;text-align:left;padding:1em;margin:0;width:800px;min-width:60%;max-width:100%;box-sizing:border-box;-moz-box-sizing:border-box}.xl-popup-content{display:block;padding:1em;margin:0;width:100%;border:none;box-sizing:border-box;-moz-box-sizing:border-box;position:relative;border-radius:.5em;overflow:visible}.xl-popup-table{display:table;width:100%;height:100%}.xl-popup-row{display:table-row;width:100%;height:0}.xl-popup-row.xl-popup-row-body,.xl-popup-row.xl-popup-row-body>.xl-popup-cell{height:100%}.xl-popup-cell{display:table-cell;width:100%;height:0;vertical-align:top;text-align:left}.xl-popup-cell.xl-popup-cell-small{width:0;white-space:nowrap}.xl-popup-cell.xl-popup-cell-center{text-align:center}.xl-popup-cell.xl-popup-cell-right{text-align:right}.xl-popup-cell.xl-popup-cell-middle{vertical-align:middle}.xl-popup-cell.xl-popup-cell-bottom{vertical-align:bottom}.xl-popup-cell-size{position:relative;width:100%;height:100%}.xl-popup-cell-size-scroll{position:absolute;left:0;top:0;right:0;bottom:0;overflow:auto}.xl-popup-cell-size-padding{position:relative;padding:.375em;width:100%;min-height:100%;box-sizing:border-box;-moz-box-sizing:border-box}.xl-settings-popup-align{min-height:80%;height:200px}.xl-settings-popup-content{position:relative;height:100%}.xl-settings-button{margin:0 .25em;display:inline-block!important;vertical-align:middle;padding:.25em;background:rgba(0,0,0,.05);border-radius:.2em;text-decoration:none!important;cursor:pointer;font-size:inherit!important;line-height:normal!important;white-space:nowrap!important}.xl-settings-button.xl-theme-dark{background:rgba(255,255,255,.05)}.xl-settings-button-checkbox,.xl-settings-button-checkbox+.riceCheck{margin:0!important;padding:0!important;vertical-align:middle}.xl-settings-button-checkbox-text{display:none}.xl-settings-button-checkbox:checked~.xl-settings-button-checkbox-text:nth-of-type(1),.xl-settings-button-checkbox:not(:checked)~.xl-settings-button-checkbox-text:nth-of-type(2){display:inline}.xl-settings-title{font-size:2em!important;font-weight:700!important;text-decoration:none!important}.xl-settings-version{margin:0 .25em;opacity:.9;vertical-align:75%;text-decoration:none!important;color:inherit!important}.xl-settings-title-info,.xl-settings-version.xl-settings-version-large{margin:0;font-size:1.8em;vertical-align:baseline;opacity:1}.xl-settings-heading{display:table;width:100%;padding:.25em 0}.xl-settings-heading>div{display:table-row;height:100%}.xl-settings-heading-cell{display:table-cell;height:100%;width:100%}.xl-settings-heading-title{vertical-align:top;text-align:left;font-size:1.5em;font-weight:700;font-family:sans-serif;white-space:nowrap;width:0}.xl-settings-heading-subtitle{vertical-align:bottom;text-align:right;padding-left:.5em;opacity:.6}.xl-settings-group{border:1px solid rgba(0,0,0,.2);border-radius:.25em;padding:.125em;box-sizing:border-box;-moz-box-sizing:border-box}.xl-settings-group.xl-theme-dark{border-color:rgba(255,255,255,.2)}.xl-settings-group+.xl-settings-heading{margin-top:.75em}.xl-settings-entry-table{display:table;width:100%;padding:.375em .25em;box-sizing:border-box;-moz-box-sizing:border-box}.xl-settings-entry-row{display:table-row;height:100%}.xl-settings-entry-cell{vertical-align:middle;text-align:left;display:table-cell;width:100%;height:100%}.xl-settings-entry-cell:last-of-type:not(:first-of-type){vertical-align:middle;text-align:right;width:0}.xl-settings-entry+.xl-settings-entry{border-top:.125em solid transparent}.xl-settings-entry:nth-child(even)>.xl-settings-entry-table{background-color:rgba(0,0,0,.05)}.xl-settings-entry:nth-child(odd)>.xl-settings-entry-table{background-color:rgba(0,0,0,.025)}.xl-settings-entry.xl-theme-dark:nth-child(even)>.xl-settings-entry-table{background-color:rgba(255,255,255,.05)}.xl-settings-entry.xl-theme-dark:nth-child(odd)>.xl-settings-entry-table{background-color:rgba(255,255,255,.025)}input.xl-settings-entry-input[type=text]{width:8em}button.xl-settings-entry-input,input.xl-settings-entry-input[type=text],select.xl-settings-entry-input{min-width:8em;box-sizing:border-box;-moz-box-sizing:border-box;padding:.0625em .125em!important;margin:0!important;font-size:inherit!important;font-family:inherit!important;line-height:1.3em!important}select.xl-settings-entry-input{width:auto;height:auto}label.xl-settings-entry-label{cursor:pointer;margin-bottom:0}.xl-settings-filter-guide-toggle{cursor:pointer;text-decoration:none!important}.xl-settings-filter-guide{margin-bottom:.25em;padding:.375em}.xl-settings-filter-guide:not(.xl-settings-filter-guide-visible){display:none}.xl-settings-popup-content ul{padding:0;margin:1em 0;list-style-type:disc!important}.xl-settings-popup-content ul>li{margin:0 .5em 0 2em}.xl-settings-popup-content ul>li+li{margin-top:1em}.xl-settings-popup-content ul>li.xl-settings-li-no-space{margin-top:0}.xl-settings-popup-content code{color:#000;background-color:#fff;font-family:Courier,monospace!important}.xl-settings-popup-content.xl-theme-dark code{color:#fff;background-color:#000;font-family:Courier,monospace!important}.xl-settings-color-input{padding:.25em!important;margin:0 1em 0 0!important;display:inline-block;vertical-align:middle!important;line-height:1.5em!important;height:2em!important;width:8em!important;box-sizing:border-box!important;-moz-box-sizing:border-box!important;cursor:text!important}.xl-settings-color-input:first-of-type{cursor:pointer!important}.xl-settings-color-input:last-of-type{width:11em!important}.xl-settings-export-textarea,textarea.xl-settings-entry-input{display:block;width:100%;height:15em;line-height:1.3em;padding:.5em!important;margin:0!important;box-sizing:border-box;-moz-box-sizing:border-box;resize:vertical;font-size:.9em!important;font-family:Courier,monospace!important}button.xl-settings-entry-input{float:right;padding:.125em .25em;margin:0;box-sizing:border-box;-moz-box-sizing:border-box;background-color:transparent;border:1px solid rgba(0,0,0,.25);border-radius:.25em;font-size:inherit;font-family:inherit;color:inherit;cursor:pointer}button.xl-settings-entry-input:hover{border-color:rgba(0,0,0,.5)}button.xl-settings-entry-input.xl-theme-dark{border-color:rgba(255,255,255,.25)}button.xl-settings-entry-input.xl-theme-dark:hover{border-color:rgba(255,255,255,.5)}.xl-settings-export-textarea{height:100%;resize:none}.xl-settings-export-textarea.xl-settings-export-textarea-error{border-color:#f00000!important;color:#f00000!important}.xl-settings-export-textarea.xl-settings-export-textarea-changed{color:#0080f0!important}.xl-settings-export-textarea.xl-settings-export-textarea-changed.xl-theme-dark{color:#80b0ff!important}.xl-settings-file-input{display:inline-block;display:none;visibility:hidden;opacity:0;width:0;height:0}.xl-settings-export-message{line-height:1.6em}.xl-settings-export-label{display:inline-block;margin:0;padding:0}.xl-settings-export-checkbox,.xl-settings-export-checkbox:checked~.xl-settings-export-label-text:first-of-type,.xl-settings-export-checkbox:not(:checked)~.xl-settings-export-label-text:not(:first-of-type){display:none}.xl-settings-export-label-text:first-of-type{opacity:.6}.xl-easylist-title{margin-left:-2em}.xl-easylist-title-text{display:inline-block;font-size:2em;font-weight:700;margin-left:1em}.xl-easylist-subtitle{display:inline-block;opacity:.8;margin-left:2em}.xl-easylist-title-line{border-bottom:1px solid grey;margin:.5em 0}.xl-easylist-control-links{position:absolute;top:0;right:0}.xl-easylist-control-link{display:inline-block;padding:.5em;cursor:pointer;opacity:.5;text-decoration:none!important}.xl-easylist-empty-notification.xl-easylist-empty-notification-visible+.xl-easylist-items,.xl-easylist-empty-notification:not(.xl-easylist-empty-notification-visible),.xl-easylist-item.xl-easylist-item-hidden{display:none}.xl-easylist-control-link.xl-easylist-control-link-focus,.xl-easylist-control-link:hover{opacity:1}.xl-easylist-control-link+.xl-easylist-control-link{margin-left:.5em}.xl-easylist-empty-notification{text-align:center;font-size:2em;font-style:italic;padding:2em}.xl-easylist-items{border-radius:.5em;border:1px solid rgba(0,0,0,.25);box-sizing:border-box;-moz-box-sizing:border-box;overflow:hidden}.xl-easylist-items.xl-theme-dark{border:1px solid rgba(255,255,255,.25)}.xl-easylist-item{background-color:rgba(0,0,0,.03125)}.xl-easylist-item[data-xl-easylist-item-parity=even]{background-color:rgba(0,0,0,.0625)}.xl-easylist-item.xl-theme-dark{background-color:rgba(255,255,255,.03125)}.xl-easylist-item.xl-theme-dark[data-xl-easylist-item-parity=even]{background-color:rgba(255,255,255,.0625)}.xl-easylist-item-table-container{padding:.5em;position:relative;box-sizing:border-box;-moz-box-sizing:border-box}.xl-easylist-item-table{display:table;width:100%}.xl-easylist-item-row{display:table-row}.xl-easylist-item-cell{display:table-cell;width:100%;vertical-align:top;padding:0 .5em}.xl-easylist-item-cell.xl-easylist-item-cell-image,.xl-easylist-item-cell.xl-easylist-item-cell-side{width:0;padding:0}.xl-easylist-item-image-container{display:block;margin:0;padding:0;border:none;width:140px;height:200px;background-color:rgba(0,0,0,.03125);text-align:center;white-space:nowrap;line-height:0}.xl-easylist-item-image-container:after{display:inline-block;vertical-align:middle;width:0;height:100%}.xl-easylist-item-image-container.xl-theme-dark{background-color:rgba(255,255,255,.03125)}.xl-easylist-item-image-outer{display:inline-block;vertical-align:middle;position:relative;line-height:normal;white-space:normal}.xl-easylist-item-image{margin:0!important;padding:0!important;border:none!important;display:inline-block;vertical-align:middle;max-width:140px;max-height:200px}.xl-easylist-item-image-index{display:block;position:absolute;left:0;top:0;padding:.25em;color:#000;text-shadow:0 0 .125em #fff,0 0 .25em #fff}.xl-easylist-item-image-index.xl-theme-dark{color:#fff;text-shadow:0 0 .125em #000,0 0 .25em #000}.xl-easylist-item-info{display:inline-block;padding:0 0 .5em .5em;width:4.8em}.xl-easylist-item-info-item{font-size:.825em;margin-top:1em;text-align:center;max-width:100%;border-radius:.5em;padding:.375em 0;background-color:rgba(0,0,0,.125);box-shadow:0 0 .5em rgba(0,0,0,.125);text-shadow:0 .1em 0 rgba(255,255,255,.5)}.xl-easylist-item-tags,.xl-easylist-item-upload-info,.xl-easylist-option-group+.xl-easylist-option-group{margin-top:.5em}.xl-easylist-item-info-item.xl-theme-dark{background-color:rgba(255,255,255,.125);box-shadow:0 0 .5em rgba(255,255,255,.125);text-shadow:0 .1em 0 rgba(0,0,0,.5)}.xl-easylist-item-info-light{opacity:.8}.xl-easylist-item-info-button{text-decoration:none!important}.xl-easylist-item-title{font-size:1.5em;font-weight:700}.xl-easylist-item-title:hover{text-shadow:0 0 .25em #fff}.xl-easylist-item-title.xl-theme-dark:hover{text-shadow:0 0 .25em #000}.xl-easylist-item-title-link{text-decoration:none!important}.xl-easylist-item-title-tag-link{text-decoration:none!important;margin-right:.25em;display:none}.xl-easylist-item-title-jp{opacity:.5;font-size:1.1em;display:block}.xl-easylist-item-upload-date,.xl-easylist-item-uploader{font-weight:700;display:inline-block;padding:0 .25em}.xl-easylist-item-tag-table{display:table;width:100%}.xl-easylist-item-tag-row{display:table-row}.xl-easylist-item-tag-row+.xl-easylist-item-tag-row>.xl-easylist-item-tag-cell{padding-top:.25em}.xl-easylist-item-tag-cell{display:table-cell;width:100%}.xl-easylist-compact .xl-easylist-item-info-item.xl-easylist-item-info-item-files>:not(:first-child),.xl-easylist-compact .xl-easylist-item-info-item.xl-easylist-item-info-item-rating>:not(:first-child),.xl-easylist-compact .xl-easylist-item-title-jp,.xl-easylist-compact .xl-easylist-item-upload-info{display:none}.xl-easylist-item-tag-cell.xl-easylist-item-tag-cell-label{width:0;white-space:nowrap;text-align:right;padding-right:.25em}.xl-easylist-compact .xl-easylist-item-image-container{width:70px;height:100px}.xl-easylist-compact .xl-easylist-item-image{max-width:70px;max-height:100px}.xl-easylist-compact .xl-easylist-item-title{font-size:1em;line-height:1.25em;max-height:2.5em;overflow:hidden;position:relative}.xl-easylist-compact .xl-easylist-item-title:hover{overflow:visible;z-index:1}.xl-easylist-compact .xl-easylist-item-tags{font-size:.9em}.xl-easylist-compact .xl-easylist-item-tag-row+.xl-easylist-item-tag-row>.xl-easylist-item-tag-cell{padding-top:0}.xl-easylist-compact .xl-easylist-item-tag-table{display:block;line-height:1.4em}.xl-easylist-compact .xl-easylist-item-tag-row{display:inline}.xl-easylist-compact .xl-easylist-item-tag-row+.xl-easylist-item-tag-row:before{content:\"\";display:inline-block;width:1em;height:0}.xl-easylist-compact .xl-easylist-item-tag-cell{display:inline;width:auto}.xl-easylist-minimal .xl-easylist-item-cell-image,.xl-easylist-minimal .xl-easylist-item-info-item,.xl-easylist-minimal .xl-easylist-item-tags,.xl-easylist-minimal .xl-easylist-item-title-jp,.xl-easylist-minimal .xl-easylist-item-upload-info{display:none}.xl-easylist-compact .xl-easylist-item-tag-cell>.xl-tag-namespace-block.xl-tag-namespace-block-no-outline>.xl-tag-namespace{border-width:1px;border-style:solid}.xl-easylist-minimal .xl-easylist-item-cell{padding-left:0;vertical-align:middle}.xl-easylist-minimal .xl-easylist-item-cell-side{vertical-align:top}.xl-easylist-minimal .xl-easylist-item-title{font-size:1em;line-height:1.25em}.xl-easylist-minimal .xl-easylist-item-title-tag-link{display:inline-block}.xl-easylist-options:not(.xl-easylist-options-visible){display:none}.xl-easylist-option-table{display:table;width:100%}.xl-easylist-option-row{display:table-row}.xl-easylist-option-row+.xl-easylist-option-row>.xl-easylist-option-cell{padding-top:.5em}.xl-easylist-option-cell{display:table-cell;width:100%;vertical-align:top}.xl-easylist-option-cell:first-of-type{width:0;text-align:right}.xl-easylist-option-title{font-weight:700;margin-right:1em;display:inline-block;padding:.25em 0;border-top:1px solid transparent;border-bottom:1px solid transparent;white-space:nowrap}.xl-easylist-option-title-sub{max-width:100%;margin-right:1em;opacity:.9;white-space:normal}.xl-easylist-option-title-sub-text{font-size:.875em;line-height:1.1em}.xl-easylist-option-label{display:inline-block}.xl-easylist-option-label+.xl-easylist-option-label{margin-left:.5em}.xl-easylist-option-input,.xl-easylist-option-input+.riceCheck{display:none}.xl-easylist-option-button{display:inline-block;padding:.25em .5em;border-radius:.25em;background-color:rgba(255,255,255,.125);border:1px solid rgba(0,0,0,.0625);cursor:pointer}.xl-easylist-option-button:hover{border-color:rgba(0,0,0,.25)}.xl-easylist-option-button.xl-theme-dark{background-color:rgba(0,0,0,.125);border:1px solid rgba(255,255,255,.0625)}.xl-easylist-option-button.xl-theme-dark:hover{border-color:rgba(255,255,255,.25)}.xl-easylist-option-input:checked~.xl-easylist-option-button{background-color:rgba(255,255,255,.5);border-color:rgba(0,0,0,.25);color:#000}.xl-easylist-option-input:checked~.xl-easylist-option-button.xl-theme-dark{background-color:rgba(0,0,0,.5);border-color:rgba(255,255,255,.25);color:#fff}.xl-easylist-option-textarea{background-color:rgba(255,255,255,.125)!important;border:1px solid rgba(0,0,0,.0625)!important;margin:0!important;padding:.25em!important;box-sizing:border-box;-moz-box-sizing:border-box;width:100%;line-height:1.4em;height:4.8em;min-height:2em;resize:vertical;font-family:Courier,monospace!important}.xl-easylist-option-textarea:focus,.xl-easylist-option-textarea:hover{background-color:rgba(255,255,255,.5)!important;border-color:rgba(0,0,0,.25)!important}.xl-easylist-option-textarea.xl-theme-dark{background-color:rgba(0,0,0,.125)!important;border:1px solid rgba(255,255,255,.0625)!important;margin:0!important;padding:.25em!important}.xl-easylist-option-textarea.xl-theme-dark:focus,.xl-easylist-option-textarea.xl-theme-dark:hover{background-color:rgba(0,0,0,.5)!important;border-color:rgba(255,255,255,.25)!important}.xl-changelog-popup-align{min-height:80%;height:200px}.xl-changelog-popup-content{position:relative;height:100%}.xl-changelog-message-container{position:absolute;left:0;top:0;right:0;bottom:0;text-align:center;line-height:0;white-space:nowrap}.xl-changelog-message-container:before{display:inline-block;vertical-align:middle;width:0;height:100%}.xl-changelog-message{text-align:left;line-height:normal;white-space:normal;display:inline-block;vertical-align:middle}.xl-changelog-entry-user-name,.xl-changelog-entry-version{font-weight:700;line-height:1.4em}.xl-changelog-entries{padding:.375em}.xl-changelog-entry+.xl-changelog-entry{margin-top:1em}.xl-changelog-entry-version{font-size:1.25em}.xl-changelog-entry-users{margin-left:1em}.xl-changelog-entry-user+.xl-changelog-entry-user{margin-top:.5em}.xl-changelog-entry-changes{margin:0 0 0 1.5em!important;padding:0!important;list-style-type:disc!important}.xl-changelog-entry-change{margin:0!important;padding:0!important}.xl-changelog-entry-change+.xl-changelog-entry-change{margin-top:.5em!important}.xl-header-bar-link{vertical-align:bottom;cursor:pointer}.xl-header-bar-link.xl-appchanx,.xl-header-bar-svg{vertical-align:middle}.xl-header-bar-svg{width:1.2em;height:1.16em;display:inline-block;fill:#000;stroke:none}.xl-header-bar-link.xl-appchanx>.xl-header-bar-svg{width:100%;height:100%}";
+			style.textContent = ".xl-button,.xl-star{display:inline-block}.xl-actions:before,.xl-changelog-message-container:before,.xl-easylist-item-image-container:after,.xl-popup-aligner:before,.xl-site-tag-bg-inner:after{content:\"\"}.xl-easylist-subtitle,.xl-link-page,.xl-link.xl-link-error{font-style:italic}.xl-stars-container{position:relative;z-index:0;white-space:nowrap}.xl-stars-container.xl-stars-container-na{opacity:.5}.xl-star-none{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAQAAADYBBcfAAAA5UlEQVR4AZ2VwQmEMBBFfx0S5iwWJCIhhSwhRXgSEesQCVuIzbgCGiLJ4GTzbupjvvqNYFcDd9KgcBFmHCczqEzUOC50meiC6Eo0hS2IG5Rc7HFE9HLRPkQrf6L+IXpQ/n0ZuJigxap7YEAhViEa+Pwr1tDwRZKHvu+asIi15ZZudRJpEyhty/CqDfkWVWixs9KOFpWg3AmuoDNMf/ivkEHLgwrDEr6M8hLWJBd6PiwfdASdjO9hFdZoVg91He2juWuuAF04PYPSrfKiS0WbK3FQF34bMcm03FST3/ItanCrho1/CT96LV7iyUEWwgAAAABJRU5ErkJggg==)}.xl-star-half{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAADA0lEQVR4AbWWA7PkQBRG+9m28ubZNta2bdu2bdu2bdu2rZ/w7e2t9DKTHVS66gySyZy6X5MZ2/JjWTwx1MWBTbW1ZslMy0YiictyI2zham8BGyu2ki5LWgqbclnDkg7wdbeEnTUDXW6smVBUN6yFH0L9bYRwqJZxLuXC2X10iAqxE8KDRLBmcfZq4IujC9OREu0MVydLLuQ01CzO8V10uLuzOLIS3eDuYiWEgzWLc9moRDw6UAbZyR7wcrcRwsOEZMy8akoM1YeQTe4VjctbS+H58crISfFEgI+dEArpUBWaEpKICv9jSu9oXN1RDq/P1iRqIDfNC8H+DkJmKI3/ENJndKnpgZFtAjCmQzD1Vygmdg/HirEp4LI35+vi/aUGRF3kpXubLBSRLhVz7MCsJFzfmM8HB/VXWYqwCnhlXPbxelN8ut4A+Rk+CA4wWHiYywhJcdniFdLQl4VlwPuMx8gr47Jvt+qR0NtQ4VIhUl0rezbwwaKhMTi3rhDPjlbAq9NV8O5CDXy4UhufrtYkoUF9uFCvTEnKmdBNhwsbC/HiRAW8PlMZ785zcWXkpXmS0F5NNtPQFUhImxJHuXTZyFg8PVwaL46XxcuT5fDqVDnkpnog2E9R+JCoSwSasbpIeLi3KB4fLIGnh4jDJZCT7IYgPzsl4VCzV5cFg8JxZ3se7u3Kx/3dBXiwJx/Zia4I9LXVNyIlkxfr7nU8cGhuAq6tz8DNTZm4uSULt4jMBGcE+tjqnW+m733NvXFuSQIuLE/CpVXJODgnDnP7hvDtCX6e1vqEQ02Oc3IHHxyfE41T82Kwe3IEhrf0hjhiuDmL7cnMWEWc7So6YN3AAGwcGoRJ7b3RuZqzWAKXOtmzc/IGbH6sIs5e1R2xopc3+tb5IRKyoYTkbM+ibKzZUhXhUKPj7F7FAT2qOkJUJc/Nn1HZ2TCdvNsfVhDuJ4INjrNWrjWal7D7oyqVxyRisYK0vqFxcom6TFH6T8SDDa3QcJl6pU0NPsrLxDPjW6xc2VDin+e/Azq4LxX5iaTWAAAAAElFTkSuQmCC)}.xl-star-full{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAADhElEQVR4AbWWg3IsURRF82zbtm3btm3btmPbtm3btvEJ+93TlbmVigapSVV3D3tlr4NEQdqf5VMVprPjdf0xXdrvSwsbTaClEzqDjnroaHkCTxPo+PpudIigp+UJFNK9OTcEr88O5inlqVOXIMqPxkL54RgRUJdrlYfOB8cGw1dzPnw05uH+0YFcq9x0fr01FqmOa5HisBpfbo7iWuWmU+/DTGR5bEKm+0bovJsqrVY+V6f5bDV/CLCfDyYj2nYD8v13Is93GyIsV+L73bEcKuYexBjNVYk7fj2cjFiHLSgO3c+OfSgK3oWCgG2IJOidMWK/z2vdaJBxa38/vL80DJ+ujWT1GsMSjIfB5zkCrCT8MMqjjrHjMMoi9qE4ZCcK/Dcj3HwZdN5MxOfrw/Hh8hC8PTcQL0/2xbUd3emejYFcqa5oxjyUZiHecjk1B6vXZqZwFyUTYJXxp1EVfwwVMQdRFr4LhYFbkOu1DunOK5BoswjRxnMQqjUVtp9G49nRXlw3V9rM2qKE1Pr1wE1UM9JIyQRYXdIRVMXuZyl3oiiIAb3XIcNlOZIYMMZ4Nlx+TcDLU/3Er7+G0PvHBkHr9RSEma2kBqGakUZKJsAqonejNGw7CgM2IsdrDdKdlsFfexZUH43EnQO9G8GkWNDf7oylbqQGoZqRRkpGMJaO6fZdh2z3lQgymIvP14ZChsXOoeTcV5i991OZto3UIFQz0igkE2Aeq5HhvAxaL/h4+PJ6yb5dRiPTdTWyPddRg1DNSCMlE2Aptovw6epQnqzN20XjxXik2C9DmtNy6kZqEKoZa6olSLZZiHjzuVB5NKJNy5wv67uH+sFLdQbizBcg0Wohtb7QjYnWC5BgOQ+xprMRZTgDLr/H49Y+PganZf/bd3YgwnRmIEJ/FqKMZsNTZRpUH48SutFDcTLCdacjRHMyApTH48WJPlyrzDp/XhsEf5XJCFKbAuefE/D2/EDeiW/ODYDj19HwVRwHr5+j8PVCH5m0cp1XtneD2fNhsHw9Aj+uDsTNPT35DUW/0PXdPRioL0yeDoLhg364tKWL1Fq5zgd7u8PgwUA8PtSzyXw1nteH+7pD53Y/3NvdnX9Oap13d3XjN2i8DxvNK//8nR3dpNLKdR5Y2hFn13WRaGs0THt2bWfsX9JRYq1cJ7s2DxMHbfRdiROKhYmB8oTy/Vde/Pf/AxrB4Rr+1b9fAAAAAElFTkSuQmCC)}.xl-star{width:1.2em;height:1.4em;margin-left:-.1em;margin-right:-.1em;margin-bottom:-.2em;background-repeat:no-repeat;background-size:cover;background-position:-.1em 0;position:relative}.xl-star-1{z-index:4;width:1.3em;background-position:0 0}.xl-star-2{z-index:3}.xl-star-3{z-index:2}.xl-star-4{z-index:1}.xl-star-5{z-index:0;width:1.3em}.xl-button{padding:.3em 1em;font-size:inherit;line-height:1.6em;color:#333;text-align:center;text-shadow:0 .08em .08em rgba(255,255,255,.75);vertical-align:middle;cursor:pointer;background-color:#f5f5f5;background-image:-webkit-gradient(linear,0 0,0 100%,from(#fff),to(#e6e6e6));background-image:-webkit-linear-gradient(top,#fff,#e6e6e6);background-image:-o-linear-gradient(top,#fff,#e6e6e6);background-image:linear-gradient(to bottom,#fff,#e6e6e6);background-image:-moz-linear-gradient(top,#fff,#e6e6e6);background-repeat:repeat-x;border:1px solid #bbb;border-color:#e6e6e6 #e6e6e6 #bfbfbf;border-bottom-color:#a2a2a2;border-radius:.3em;box-shadow:inset 0 .08em 0 rgba(255,255,255,.2),0 .08em .16em rgba(0,0,0,.05)}.xl-button-eh{font-family:'Source Sans Pro',Tahoma,sans-serif!important;font-weight:900;font-size:.86em;width:100%;padding:.15em 0;color:#FFF!important;box-shadow:0 0 .5em rgba(0,0,0,.5);text-shadow:.09em .09em 0 rgba(0,0,0,.5),0 0 .3em #000;-webkit-font-smoothing:antialiased}.xl-button-doujinshi{background-color:#840505!important;background-image:-khtml-gradient(linear,left top,left bottom,from(#f74040),to(#840505));background-image:-moz-linear-gradient(top,#f74040,#840505);background-image:-ms-linear-gradient(top,#f74040,#840505);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#f74040),color-stop(100%,#840505));background-image:-webkit-linear-gradient(top,#f74040,#840505);background-image:-o-linear-gradient(top,#f74040,#840505);background-image:linear-gradient(#f74040,#840505);border-color:#840505 #840505 hsl(0,92%,18.5%)}.xl-button-manga{background-color:#7a2800!important;background-image:-khtml-gradient(linear,left top,left bottom,from(#ff7632),to(#7a2800));background-image:-moz-linear-gradient(top,#ff7632,#7a2800);background-image:-ms-linear-gradient(top,#ff7632,#7a2800);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#ff7632),color-stop(100%,#7a2800));background-image:-webkit-linear-gradient(top,#ff7632,#7a2800);background-image:-o-linear-gradient(top,#ff7632,#7a2800);background-image:linear-gradient(#ff7632,#7a2800);border-color:#7a2800 #7a2800 #4c1900}.xl-button-artistcg{background-color:#7a6a00!important;background-image:-khtml-gradient(linear,left top,left bottom,from(#ffe95b),to(#7a6a00));background-image:-moz-linear-gradient(top,#ffe95b,#7a6a00);background-image:-ms-linear-gradient(top,#ffe95b,#7a6a00);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#ffe95b),color-stop(100%,#7a6a00));background-image:-webkit-linear-gradient(top,#ffe95b,#7a6a00);background-image:-o-linear-gradient(top,#ffe95b,#7a6a00);background-image:linear-gradient(#ffe95b,#7a6a00);border-color:#7a6a00 #7a6a00 #423900}.xl-button-gamecg{background-color:#273214!important;background-image:-moz-linear-gradient(top,#96ba58,#273214);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#96ba58),color-stop(100%,#273214));background-image:-webkit-linear-gradient(top,#96ba58,#273214);background-image:-o-linear-gradient(top,#96ba58,#273214);background-image:linear-gradient(#96ba58,#273214);border-color:#273214 #273214 #0b0e05}.xl-button-western{background-color:#4d7a00!important;background-image:-moz-linear-gradient(top,#c3ff5b,#4d7a00);background-image:-ms-linear-gradient(top,#c3ff5b,#4d7a00);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#c3ff5b),color-stop(100%,#4d7a00));background-image:-webkit-linear-gradient(top,#c3ff5b,#4d7a00);background-image:-o-linear-gradient(top,#c3ff5b,#4d7a00);background-image:linear-gradient(#c3ff5b,#4d7a00);border-color:#4d7a00 #4d7a00 #294200}.xl-button-non-h{background-color:#225358!important;background-image:-moz-linear-gradient(top,#73c1c8,#225358);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#73c1c8),color-stop(100%,#225358));background-image:-webkit-linear-gradient(top,#73c1c8,#225358);background-image:-o-linear-gradient(top,#73c1c8,#225358);background-image:linear-gradient(#73c1c8,#225358);border-color:#225358 #225358 hsl(185,44%,14.5%)}.xl-button-imageset{background-color:#0e3961!important;background-image:-moz-linear-gradient(top,#56a0e5,#0e3961);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#56a0e5),color-stop(100%,#0e3961));background-image:-webkit-linear-gradient(top,#56a0e5,#0e3961);background-image:-o-linear-gradient(top,#56a0e5,#0e3961);background-image:linear-gradient(#56a0e5,#0e3961);border-color:#0e3961 #0e3961 #071f35}.xl-button-cosplay{background-color:#3a2861!important;background-image:-moz-linear-gradient(top,#a996d3,#3a2861);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#a996d3),color-stop(100%,#3a2861));background-image:-webkit-linear-gradient(top,#a996d3,#3a2861);background-image:-o-linear-gradient(top,#a996d3,#3a2861);background-image:linear-gradient(#a996d3,#3a2861);border-color:#3a2861 #3a2861 #221839}.xl-button-asianporn{background-color:#740f51!important;background-image:-moz-linear-gradient(top,#ec78c3,#740f51);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#ec78c3),color-stop(100%,#740f51));background-image:-webkit-linear-gradient(top,#ec78c3,#740f51);background-image:-o-linear-gradient(top,#ec78c3,#740f51);background-image:linear-gradient(#ec78c3,#740f51);border-color:#740f51 #740f51 #43092e}.xl-button-misc{background-color:#353535!important;background-image:-moz-linear-gradient(top,#bfbfbf,#353535);background-image:-webkit-gradient(linear,left top,left bottom,color-stop(0,#bfbfbf),color-stop(100%,#353535));background-image:-webkit-linear-gradient(top,#bfbfbf,#353535);background-image:-o-linear-gradient(top,#bfbfbf,#353535);background-image:linear-gradient(#bfbfbf,#353535);border-color:#353535 #353535 hsl(321,0%,7.5%)}.xl-noise{color:#fff!important;margin:0 0 -.25em;padding:.125em 0;border-radius:.25em;position:relative;top:-.125em;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAMAAACd646MAAAAG1BMVEUAAAAfHx8/Pz9fX19/f3+fn5+/v7/f39////8NX9jPAAAACXRSTlMICAgICAgICAWHgaIXAAAErklEQVR42rWXOZIlNBBEn2rLd/8TYxBDANEsA78dGSpDqi0XGmDL04cKanRWhrWBvHqbUoemvHZscN5EVMV1KzTXzfMYtGVvkemNHVWiNitiC++ww3M5McNsFxaKkYcotEyUCKccLXvyXGFVfU/uYA2oWq/L9eapmsOmQd7BE7BcFEbWQp/jNE9jr6OjYYaAJ9K01LrCrCOc2Im2wVLsfjKHsHIttCn0DlYpU0tBSQMM9gRXpr8pLaRdGzUPpVefT1Dv7aFZ1wGL6OHPtRKg9BW1GCktCxq9ePZjhcsJCorYCOZgHdccomwrb1FL0fPQJ1lYuKfalqjeDVFMj+bUZ0d7BSHCPhnqeX0CKlqv11FlhbXAju0YmodWTo2otue1V84WPlT6PWtvRUGZS634CskGj4sogqJTDY1Bt8EM+VglKRWgR32nwhrIk/Gp/3sAAVen3hPvRpVwr5QD0eeqVgCNyvS6WrQC1JN+y7hA06qKLfC3wVWDrVZbvSDvjaTUKle0qBUZjWifntuN5TXI25oweKzOtEjZtmcclanhClMILtEmrT5ReKbUZzX6RxxBlTXdLZAdkRR2FbTPt17sU0kpLddnLH1IqaqoAMTcqZo6CgW/uytPtZVxIpYW0oNxH3gqZ0QQdyXeiOB6CyvaxQSgrDXkzlhvMePcySj71Oc4ilwVAoNiZb31dTzTI/vssNWxhzpvFHCRHQ0A4gOtOcLR7nNpQUV846ryYi3yVID1+U7sx/y4NSqzFqMVzUM+vt5fACVoFsyRZ+s2IIyISyaMjh5yyLqrIuZ8fY2LzKSe1698IojmNahUo891Vp3sQ1XfCMCbFUvrkBPvVhlD4Uoprw4dHFlltNSRs3wvnX6eF80inB6g57y2FR17T0QzDBifpe+y6rJImsiUcD9S+taxclb5axLwtnGkZwIct4K4pyCtJQ+PU1WjbBrDLD4V8R8FTW+ebzLq2A3GYWqRqDy0kQbPQ17jKefd8HUR+6BUP4Nq4KAOurFBzDzeOqL6+gkall6T97Nzj8/8epSOr4TVolhElXZGLi3oMjeqgjLPWhEkfRocTBqCzz4+q0vSCq+3geOpehTyeNvS0y2KmC7xVubpuz1XyZlVtH5CG7CKwvU5LiJNLTz0wfWUUsDqvhbRx4toKfokNMU2rlZ55nrP4TFleXOqqNDv9d19UPXxKTgvwozCG/WppSPrIRYAPXiCiWpjXe6cRtTu/8zUfNtISXScQdKWhuiIsocNZmdwoFQ5TN2VitkprVX7lsJzDlChARzENZy/mcc76duguKmZnfaMBw9Apwza2vGGiarj044exFsCAbUMNsB+ZcA+6oc/iR4iumKrv+NbvtOP/igH3yGB/rwzv1FkKHXVXhj1aEX0UJoFOeAAdME5xZLdoxHoVYiKNT5h3TOeqveGpihwRG12PKPIqH1cCjG8+OB1k4gQRnV2dVRRFKKA4strjYMqZQTK4tRRn08BBMT+d+aDD+iE14LKqRW+4Nr/ghNniexqONNKuyDiaXRTo4JiYIl22ZlDJ+/DxvsvHj9OBtW9d2alRrtAFTeiU5aD0UJEZIu2obEpQPlgYb7+2y84P1jASwAjowAAAABJRU5ErkJggg==)}.xl-exsauce-link{white-space:nowrap;text-transform:lowercase}.xl-exsauce-hover-link{text-decoration:none!important}a.xl-exsauce-link.xl-exsauce-link-disabled{text-decoration:line-through!important;cursor:default!important}.xl-exsauce-results{display:block;white-space:nowrap}.xl-exsauce-results.xl-exsauce-results-hidden{display:none}.xl-exsauce-results-inner{display:table;margin:.25em 0;border-radius:.375em;background-color:rgba(0,0,0,.05);padding:.5em;white-space:normal}.xl-details-page-thumbnail,.xl-details-rating,.xl-details-side-box>div,.xl-exsauce-results-label,.xl-exsauce-results-link{white-space:nowrap}.xl-exsauce-results-inner.xl-theme-dark{background-color:rgba(255,255,255,.05)}.xl-exsauce-results-sep{display:inline-block;margin:0 .5em}.xl-exsauce-results-link{text-decoration:none!important;vertical-align:top;margin:0 .375em;text-transform:lowercase}.xl-exsauce-results-group+.xl-exsauce-results-group{margin-top:.25em}.xl-details,.xl-exsauce-hover{font-size:inherit;margin:0;overflow:visible}.xl-exsauce-hover{opacity:.93;display:block;position:fixed;z-index:993;padding:.5em;border-radius:.25em;width:auto}.xl-actions.xl-actions-hidden,.xl-exsauce-hover.xl-exsauce-hover-hidden{display:none}.xl-actions,.xl-actions:before{position:absolute;border-radius:.25em}.xl-actions{z-index:5;box-sizing:border-box;-moz-box-sizing:border-box}.xl-actions:before{display:block;left:0;top:0;bottom:0;right:0;background-color:rgba(0,0,0,.05)}.xl-actions.xl-theme-dark:before{background-color:rgba(255,255,255,.05)}.xl-actions[data-xl-actions-vpos=above]:not([data-xl-actions-hpos=left]),.xl-actions[data-xl-actions-vpos=above]:not([data-xl-actions-hpos=left]):before{border-bottom-left-radius:0}.xl-actions[data-xl-actions-vpos=below]:not([data-xl-actions-hpos=left]),.xl-actions[data-xl-actions-vpos=below]:not([data-xl-actions-hpos=left]):before{border-top-left-radius:0}.xl-actions[data-xl-actions-vpos=above]:not([data-xl-actions-hpos=right]),.xl-actions[data-xl-actions-vpos=above]:not([data-xl-actions-hpos=right]):before{border-bottom-right-radius:0}.xl-actions[data-xl-actions-vpos=below]:not([data-xl-actions-hpos=right]),.xl-actions[data-xl-actions-vpos=below]:not([data-xl-actions-hpos=right]):before{border-top-right-radius:0}.xl-actions-inner{position:relative;padding:.5em 0}.xl-actions-table{display:table}.xl-actions-table-row{display:table-row}.xl-actions-table-cell{display:table-cell;height:100%;vertical-align:middle;text-align:left}.xl-actions-table-cell:first-of-type{width:0;white-space:nowrap;text-align:right}.xl-actions-table-sep{height:.25em}.xl-actions-table-header{font-weight:700;padding:0 .25em 0 1em;line-height:1.325em}.xl-actions-table-cell.xl-actions-table-cell-full>.xl-actions-table-header{padding-right:1em}.xl-actions-option{padding:0 1em 0 .25em;line-height:1.325em;display:block}.xl-actions-option:hover{background-color:rgba(0,0,0,.05)}.xl-actions-option.xl-theme-dark:hover{background-color:rgba(255,255,255,.05)}.xl-details{opacity:1;display:block;position:fixed;z-index:994;padding:.5em;border-radius:.5em;text-align:center;width:60%;min-width:600px;box-sizing:border-box;-moz-box-sizing:border-box}.xl-details.xl-details-hidden{display:none}.xl-details.xl-details-limited-size{max-height:16em;overflow:hidden;text-align:left}.xl-details-thumbnail{float:left;margin-right:.625em;width:140px;height:200px;background-color:rgba(0,0,0,.03125);background-repeat:no-repeat;background-size:contain;background-position:center center}.xl-details-thumbnail.xl-details-thumbnail-full{background-size:cover;background-position:25% 0}.xl-details-thumbnail.xl-theme-dark{background-color:rgba(255,255,255,.03125)}.xl-details-page-thumbnail{display:none;visibility:hidden;position:absolute;left:0;top:0;width:100%;height:100%;background-color:#fff;text-align:center;transform-origin:100% 50%;-moz-transform-origin:100% 50%;-webkit-transform-origin:100% 50%;transform:rotateY(35deg) translate(1em,0);-moz-transform:rotateY(35deg) translate(1em,0);-webkit-transform:rotateY(35deg) translate(1em,0);backface-visibility:hidden;-moz-backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;transition:transform .25s ease-out 0s,opacity .25s ease-out 0s;-moz-transition:-moz-transform .25s ease-out 0s,opacity .25s ease-out 0s;-webkit-transition:-webkit-transform .25s ease-out 0s,opacity .25s ease-out 0s}.xl-details-page-thumbnail-size{position:absolute;width:100%;height:100%;transform-origin:50% 50%}.xl-site-tag,.xl-tag{position:relative;text-decoration:none!important}.xl-details-page-thumbnail-image{width:100%;height:100%;background-repeat:no-repeat;background-size:contain;background-position:center center}.xl-details.xl-details-has-thumbnail>.xl-details-thumbnail{margin-right:1em}.xl-details.xl-details-has-thumbnail.xl-details-has-thumbnail-visible>.xl-details-thumbnail{perspective:500px;-moz-perspective:500px;-webkit-perspective:500px;perspective-origin:100% 50%;-moz-perspective-origin:100% 50%;-webkit-perspective-origin:100% 50%;transform-style:preserve-3d;-moz-transform-style:preserve-3d;-webkit-transform-style:preserve-3d}.xl-details.xl-details-has-thumbnail>.xl-details-thumbnail>.xl-details-page-thumbnail{display:block}.xl-details.xl-details-has-thumbnail.xl-details-has-thumbnail-visible>.xl-details-thumbnail>.xl-details-page-thumbnail{visibility:visible;opacity:1}.xl-details.xl-details-has-thumbnail:not(.xl-details-has-thumbnail-visible)>.xl-details-thumbnail>.xl-details-page-thumbnail{transform:none;-moz-transform:none;-webkit-transform:none;opacity:0}.xl-details-side-panel{float:right;margin-left:.5em;font-size:1.0625em!important;line-height:1em!important}.xl-details-side-box{width:100%;min-width:6em;font-size:.8em;padding:.5em 0;margin:.8em 0 .4em;border-radius:.5em;background-clip:padding-box;background-color:rgba(0,0,0,.125);box-shadow:0 0 .5em rgba(0,0,0,.125);text-shadow:0 .1em 0 rgba(255,255,255,.5)}.xl-details-side-box.xl-theme-dark{background-color:rgba(255,255,255,.125);box-shadow:0 0 .5em rgba(255,255,255,.125);text-shadow:0 .1em 0 rgba(0,0,0,.5)}.xl-details-side-box-error{color:#e00000}.xl-details-side-box-error.xl-theme-dark{color:#ff1f1f}.xl-details-title{font-size:1.5em!important;font-weight:700!important;text-shadow:.1em .1em .4em rgba(0,0,0,.15)!important;text-decoration:none!important}.xl-details-title-jp{margin-top:.25em;opacity:.5;font-size:1.1em;text-shadow:.1em .1em .5em rgba(0,0,0,.2)}.xl-details-title-jp.xl-theme-dark{text-shadow:.1em .1em .5em rgba(255,255,255,.2)}.xl-details-rating{text-align:center;display:inline-block;vertical-align:middle}.xl-details-file-size,.xl-details-rating-text{opacity:.65;font-size:.95em}.xl-details-upload-info{font-size:1em;margin:1em 0}.xl-details-uploader{font-size:1em!important;margin:0 .625em}.xl-details-upload-date{font-size:1em!important;margin-left:.625em}.xl-details-tag-block{font-size:1.075em!important;display:inline!important;line-height:1.4em}.xl-tag-block,.xl-tag-namespace-first{display:inline-block}.xl-details-tag-block-label{margin-right:.25em!important}.xl-details-clear{clear:both}.xl-tag-block{margin:0 .125em}.xl-tag{white-space:nobreak}.xl-tag.xl-tag-color-inherit{color:inherit!important}.xl-tag-block.xl-tag-block-last-of-namespace{margin-right:.5em}.xl-tag-block.xl-tag-block-last{margin-right:0}.xl-tag-namespace-first>.xl-tag-block{display:inline}.xl-tag-namespace-block{display:inline-block;margin:0 .125em}.xl-tag-namespace{display:inline-block;border:1px solid rgba(0,0,0,.4);border-radius:.25em;padding:0 .25em;line-height:normal}.xl-tag-namespace-block.xl-tag-namespace-block-no-outline>.xl-tag-namespace{border-style:none}.xl-tag-namespace-block.xl-theme-dark>.xl-tag-namespace{border-color:rgba(255,255,255,.4)}.xl-tag-namespace-block.xl-tag-namespace-language>.xl-tag-namespace{color:#6721c6}.xl-tag-namespace-block.xl-tag-namespace-group>.xl-tag-namespace{color:#9f8636}.xl-tag-namespace-block.xl-tag-namespace-artist>.xl-tag-namespace{color:#c47525}.xl-tag-namespace-block.xl-tag-namespace-parody>.xl-tag-namespace{color:#0ea79e}.xl-tag-namespace-block.xl-tag-namespace-character>.xl-tag-namespace{color:#288028}.xl-tag-namespace-block.xl-tag-namespace-male>.xl-tag-namespace{color:#0659ae}.xl-tag-namespace-block.xl-tag-namespace-female>.xl-tag-namespace{color:#e0338d}.xl-tag-namespace-block.xl-tag-namespace-language.xl-theme-dark>.xl-tag-namespace{color:#895cc6}.xl-tag-namespace-block.xl-tag-namespace-group.xl-theme-dark>.xl-tag-namespace{color:#e8c44f}.xl-tag-namespace-block.xl-tag-namespace-artist.xl-theme-dark>.xl-tag-namespace{color:#e89c4f}.xl-tag-namespace-block.xl-tag-namespace-parody.xl-theme-dark>.xl-tag-namespace{color:#21eda2}.xl-tag-namespace-block.xl-tag-namespace-character.xl-theme-dark>.xl-tag-namespace{color:#6ce769}.xl-tag-namespace-block.xl-tag-namespace-male.xl-theme-dark>.xl-tag-namespace{color:#23add0}.xl-tag-namespace-block.xl-tag-namespace-female.xl-theme-dark>.xl-tag-namespace{color:#e89cc4}.xl-actions-uploader.xl-filter-good,.xl-details-uploader.xl-filter-good,.xl-link.xl-filter-good,.xl-site-tag.xl-filter-good,.xl-tag.xl-filter-good{font-weight:700}.xl-filter-text{display:inline}.xl-site-tag{white-space:nowrap;display:inline-block;margin-right:.25em;outline:0!important}.xl-site-tag-bg,.xl-site-tag-bg-shadow{display:none;position:absolute;left:-.25em;top:-.25em;bottom:-.25em;right:-.25em;border-radius:.25em;pointer-events:none}.xl-site-tag.xl-site-tag-active>.xl-site-tag-bg-shadow{z-index:4}.xl-site-tag.xl-site-tag-active>.xl-site-tag-bg>.xl-site-tag-bg-inner,.xl-site-tag.xl-site-tag-active>.xl-site-tag-text{z-index:6}.xl-site-tag.xl-site-tag-active>.xl-site-tag-bg,.xl-site-tag.xl-site-tag-active>.xl-site-tag-bg-shadow{display:block}.xl-site-tag-bg-inner,.xl-site-tag-bg-inner:after{display:block;position:absolute;left:0;top:0;bottom:0;right:0;border-radius:.25em}.xl-popup-align,.xl-popup-aligner:before{display:inline-block;vertical-align:middle}.xl-site-tag-bg-inner:after{background-color:rgba(0,0,0,.05)}.xl-site-tag-bg-inner.xl-theme-dark:after{background-color:rgba(255,255,255,.05)}.xl-site-tag[data-xl-actions-vpos=above]>.xl-site-tag-bg,.xl-site-tag[data-xl-actions-vpos=above]>.xl-site-tag-bg-shadow,.xl-site-tag[data-xl-actions-vpos=above]>.xl-site-tag-bg>.xl-site-tag-bg-inner,.xl-site-tag[data-xl-actions-vpos=above]>.xl-site-tag-bg>.xl-site-tag-bg-inner:after{border-top-left-radius:0;border-top-right-radius:0}.xl-site-tag[data-xl-actions-vpos=below]>.xl-site-tag-bg,.xl-site-tag[data-xl-actions-vpos=below]>.xl-site-tag-bg-shadow,.xl-site-tag[data-xl-actions-vpos=below]>.xl-site-tag-bg>.xl-site-tag-bg-inner,.xl-site-tag[data-xl-actions-vpos=below]>.xl-site-tag-bg>.xl-site-tag-bg-inner:after{border-bottom-left-radius:0;border-bottom-right-radius:0}.xl-site-tag-text{position:relative}.xl-link.xl-link-formatted{text-decoration:none!important}.xl-link-error-message{opacity:.75}.xl-link-page{font-weight:400;white-space:nowrap}.xl-nav-extras-mobile{text-align:center;margin:.5em 0}.xl-nav-link{cursor:pointer}.xl-hover-shadow{box-shadow:0 0 .125em 0 rgba(0,0,0,.5)}.xl-hover-shadow.xl-theme-dark{box-shadow:0 0 .125em 0 rgba(255,255,255,.5)}:root.xl-popup-overlaying,:root.xl-popup-overlaying body{overflow-x:hidden!important;overflow-y:hidden!important}.xl-popup-overlay{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(255,255,255,.5);z-index:400;overflow-x:auto;overflow-y:scroll}.xl-popup-overlay.xl-theme-dark{background:rgba(0,0,0,.5)}.xl-popup-aligner{position:absolute;left:0;top:0;right:0;bottom:0;white-space:nowrap;line-height:0;text-align:center}.xl-popup-aligner:before{width:0;height:100%}.xl-popup-align{white-space:normal;line-height:normal;text-align:left;padding:1em;margin:0;width:800px;min-width:60%;max-width:100%;box-sizing:border-box;-moz-box-sizing:border-box}.xl-popup-content{display:block;padding:1em;margin:0;width:100%;border:none;box-sizing:border-box;-moz-box-sizing:border-box;position:relative;border-radius:.5em;overflow:visible}.xl-popup-table{display:table;width:100%;height:100%}.xl-popup-row{display:table-row;width:100%;height:0}.xl-popup-row.xl-popup-row-body,.xl-popup-row.xl-popup-row-body>.xl-popup-cell{height:100%}.xl-popup-cell{display:table-cell;width:100%;height:0;vertical-align:top;text-align:left}.xl-popup-cell.xl-popup-cell-small{width:0;white-space:nowrap}.xl-popup-cell.xl-popup-cell-center{text-align:center}.xl-popup-cell.xl-popup-cell-right{text-align:right}.xl-popup-cell.xl-popup-cell-middle{vertical-align:middle}.xl-popup-cell.xl-popup-cell-bottom{vertical-align:bottom}.xl-popup-cell-size{position:relative;width:100%;height:100%}.xl-popup-cell-size-scroll{position:absolute;left:0;top:0;right:0;bottom:0;overflow:auto}.xl-popup-cell-size-padding{position:relative;padding:.375em;width:100%;min-height:100%;box-sizing:border-box;-moz-box-sizing:border-box}.xl-settings-popup-align{min-height:80%;height:200px}.xl-settings-popup-content{position:relative;height:100%}.xl-settings-button{margin:0 .25em;display:inline-block!important;vertical-align:middle;padding:.25em;background:rgba(0,0,0,.05);border-radius:.2em;text-decoration:none!important;cursor:pointer;font-size:inherit!important;line-height:normal!important;white-space:nowrap!important}.xl-settings-button.xl-theme-dark{background:rgba(255,255,255,.05)}.xl-settings-button-checkbox,.xl-settings-button-checkbox+.riceCheck{margin:0!important;padding:0!important;vertical-align:middle}.xl-settings-button-checkbox-text{display:none}.xl-settings-button-checkbox:checked~.xl-settings-button-checkbox-text:nth-of-type(1),.xl-settings-button-checkbox:not(:checked)~.xl-settings-button-checkbox-text:nth-of-type(2){display:inline}.xl-settings-title{font-size:2em!important;font-weight:700!important;text-decoration:none!important}.xl-settings-version{margin:0 .25em;opacity:.9;vertical-align:75%;text-decoration:none!important;color:inherit!important}.xl-settings-title-info,.xl-settings-version.xl-settings-version-large{margin:0;font-size:1.8em;vertical-align:baseline;opacity:1}.xl-settings-heading{display:table;width:100%;padding:.25em 0}.xl-settings-heading>div{display:table-row;height:100%}.xl-settings-heading-cell{display:table-cell;height:100%;width:100%}.xl-settings-heading-title{vertical-align:top;text-align:left;font-size:1.5em;font-weight:700;font-family:sans-serif;white-space:nowrap;width:0}.xl-settings-heading-subtitle{vertical-align:bottom;text-align:right;padding-left:.5em;opacity:.6}.xl-settings-group{border:1px solid rgba(0,0,0,.2);border-radius:.25em;padding:.125em;box-sizing:border-box;-moz-box-sizing:border-box}.xl-settings-group.xl-theme-dark{border-color:rgba(255,255,255,.2)}.xl-settings-group+.xl-settings-heading{margin-top:.75em}.xl-settings-entry-table{display:table;width:100%;padding:.375em .25em;box-sizing:border-box;-moz-box-sizing:border-box}.xl-settings-entry-row{display:table-row;height:100%}.xl-settings-entry-cell{vertical-align:middle;text-align:left;display:table-cell;width:100%;height:100%}.xl-settings-entry-cell:last-of-type:not(:first-of-type){vertical-align:middle;text-align:right;width:0}.xl-settings-entry+.xl-settings-entry{border-top:.125em solid transparent}.xl-settings-entry:nth-child(even)>.xl-settings-entry-table{background-color:rgba(0,0,0,.05)}.xl-settings-entry:nth-child(odd)>.xl-settings-entry-table{background-color:rgba(0,0,0,.025)}.xl-settings-entry.xl-theme-dark:nth-child(even)>.xl-settings-entry-table{background-color:rgba(255,255,255,.05)}.xl-settings-entry.xl-theme-dark:nth-child(odd)>.xl-settings-entry-table{background-color:rgba(255,255,255,.025)}input.xl-settings-entry-input[type=text]{width:8em}button.xl-settings-entry-input,input.xl-settings-entry-input[type=text],select.xl-settings-entry-input{min-width:8em;box-sizing:border-box;-moz-box-sizing:border-box;padding:.0625em .125em!important;margin:0!important;font-size:inherit!important;font-family:inherit!important;line-height:1.3em!important}select.xl-settings-entry-input{width:auto;height:auto}label.xl-settings-entry-label{cursor:pointer;margin-bottom:0}.xl-settings-filter-guide-toggle{cursor:pointer;text-decoration:none!important}.xl-settings-filter-guide{margin-bottom:.25em;padding:.375em}.xl-settings-filter-guide:not(.xl-settings-filter-guide-visible){display:none}.xl-settings-popup-content ul{padding:0;margin:1em 0;list-style-type:disc!important}.xl-settings-popup-content ul>li{margin:0 .5em 0 2em}.xl-settings-popup-content ul>li+li{margin-top:1em}.xl-settings-popup-content ul>li.xl-settings-li-no-space{margin-top:0}.xl-settings-popup-content code{color:#000;background-color:#fff;font-family:Courier,monospace!important}.xl-settings-popup-content.xl-theme-dark code{color:#fff;background-color:#000;font-family:Courier,monospace!important}.xl-settings-color-input{padding:.25em!important;margin:0 1em 0 0!important;display:inline-block;vertical-align:middle!important;line-height:1.5em!important;height:2em!important;width:8em!important;box-sizing:border-box!important;-moz-box-sizing:border-box!important;cursor:text!important}.xl-settings-color-input:first-of-type{cursor:pointer!important}.xl-settings-color-input:last-of-type{width:11em!important}.xl-settings-export-textarea,textarea.xl-settings-entry-input{display:block;width:100%;height:15em;line-height:1.3em;padding:.5em!important;margin:0!important;box-sizing:border-box;-moz-box-sizing:border-box;resize:vertical;font-size:.9em!important;font-family:Courier,monospace!important}button.xl-settings-entry-input{float:right;padding:.125em .25em;margin:0;box-sizing:border-box;-moz-box-sizing:border-box;background-color:transparent;border:1px solid rgba(0,0,0,.25);border-radius:.25em;font-size:inherit;font-family:inherit;color:inherit;cursor:pointer}button.xl-settings-entry-input:hover{border-color:rgba(0,0,0,.5)}button.xl-settings-entry-input.xl-theme-dark{border-color:rgba(255,255,255,.25)}button.xl-settings-entry-input.xl-theme-dark:hover{border-color:rgba(255,255,255,.5)}.xl-settings-export-textarea{height:100%;resize:none}.xl-settings-export-textarea.xl-settings-export-textarea-error{border-color:#f00000!important;color:#f00000!important}.xl-settings-export-textarea.xl-settings-export-textarea-changed{color:#0080f0!important}.xl-settings-export-textarea.xl-settings-export-textarea-changed.xl-theme-dark{color:#80b0ff!important}.xl-settings-file-input{display:inline-block;display:none;visibility:hidden;opacity:0;width:0;height:0}.xl-settings-export-message{line-height:1.6em}.xl-settings-export-label{display:inline-block;margin:0;padding:0}.xl-settings-export-checkbox,.xl-settings-export-checkbox:checked~.xl-settings-export-label-text:first-of-type,.xl-settings-export-checkbox:not(:checked)~.xl-settings-export-label-text:not(:first-of-type){display:none}.xl-settings-export-label-text:first-of-type{opacity:.6}.xl-easylist-title{margin-left:-2em}.xl-easylist-title-text{display:inline-block;font-size:2em;font-weight:700;margin-left:1em}.xl-easylist-subtitle{display:inline-block;opacity:.8;margin-left:2em}.xl-easylist-title-line{border-bottom:1px solid grey;margin:.5em 0}.xl-easylist-control-links{position:absolute;top:0;right:0}.xl-easylist-control-link{display:inline-block;padding:.5em;cursor:pointer;opacity:.5;text-decoration:none!important}.xl-easylist-empty-notification.xl-easylist-empty-notification-visible+.xl-easylist-items,.xl-easylist-empty-notification:not(.xl-easylist-empty-notification-visible),.xl-easylist-item.xl-easylist-item-hidden{display:none}.xl-easylist-control-link.xl-easylist-control-link-focus,.xl-easylist-control-link:hover{opacity:1}.xl-easylist-control-link+.xl-easylist-control-link{margin-left:.5em}.xl-easylist-empty-notification{text-align:center;font-size:2em;font-style:italic;padding:2em}.xl-easylist-items{border-radius:.5em;border:1px solid rgba(0,0,0,.25);box-sizing:border-box;-moz-box-sizing:border-box;overflow:hidden}.xl-easylist-items.xl-theme-dark{border:1px solid rgba(255,255,255,.25)}.xl-easylist-item{background-color:rgba(0,0,0,.03125)}.xl-easylist-item[data-xl-easylist-item-parity=even]{background-color:rgba(0,0,0,.0625)}.xl-easylist-item.xl-theme-dark{background-color:rgba(255,255,255,.03125)}.xl-easylist-item.xl-theme-dark[data-xl-easylist-item-parity=even]{background-color:rgba(255,255,255,.0625)}.xl-easylist-item-table-container{padding:.5em;position:relative;box-sizing:border-box;-moz-box-sizing:border-box}.xl-easylist-item-table{display:table;width:100%}.xl-easylist-item-row{display:table-row}.xl-easylist-item-cell{display:table-cell;width:100%;vertical-align:top;padding:0 .5em}.xl-easylist-item-cell.xl-easylist-item-cell-image,.xl-easylist-item-cell.xl-easylist-item-cell-side{width:0;padding:0}.xl-easylist-item-image-container{display:block;margin:0;padding:0;border:none;width:140px;height:200px;background-color:rgba(0,0,0,.03125);text-align:center;white-space:nowrap;line-height:0}.xl-easylist-item-image-container:after{display:inline-block;vertical-align:middle;width:0;height:100%}.xl-easylist-item-image-container.xl-theme-dark{background-color:rgba(255,255,255,.03125)}.xl-easylist-item-image-outer{display:inline-block;vertical-align:middle;position:relative;line-height:normal;white-space:normal}.xl-easylist-item-image{margin:0!important;padding:0!important;border:none!important;display:inline-block;vertical-align:middle;max-width:140px;max-height:200px}.xl-easylist-item-image-index{display:block;position:absolute;left:0;top:0;padding:.25em;color:#000;text-shadow:0 0 .125em #fff,0 0 .25em #fff}.xl-easylist-item-image-index.xl-theme-dark{color:#fff;text-shadow:0 0 .125em #000,0 0 .25em #000}.xl-easylist-item-info{display:inline-block;padding:0 0 .5em .5em;width:4.8em}.xl-easylist-item-info-item{font-size:.825em;margin-top:1em;text-align:center;max-width:100%;border-radius:.5em;padding:.375em 0;background-color:rgba(0,0,0,.125);box-shadow:0 0 .5em rgba(0,0,0,.125);text-shadow:0 .1em 0 rgba(255,255,255,.5)}.xl-easylist-item-tags,.xl-easylist-item-upload-info,.xl-easylist-option-group+.xl-easylist-option-group{margin-top:.5em}.xl-easylist-item-info-item.xl-theme-dark{background-color:rgba(255,255,255,.125);box-shadow:0 0 .5em rgba(255,255,255,.125);text-shadow:0 .1em 0 rgba(0,0,0,.5)}.xl-easylist-item-info-light{opacity:.8}.xl-easylist-item-info-button{text-decoration:none!important}.xl-easylist-item-title{font-size:1.5em;font-weight:700}.xl-easylist-item-title:hover{text-shadow:0 0 .25em #fff}.xl-easylist-item-title.xl-theme-dark:hover{text-shadow:0 0 .25em #000}.xl-easylist-item-title-link{text-decoration:none!important}.xl-easylist-item-title-tag-link{text-decoration:none!important;margin-right:.25em;display:none}.xl-easylist-item-title-jp{opacity:.5;font-size:1.1em;display:block}.xl-easylist-item-upload-date,.xl-easylist-item-uploader{font-weight:700;display:inline-block;padding:0 .25em}.xl-easylist-item-tag-table{display:table;width:100%}.xl-easylist-item-tag-row{display:table-row}.xl-easylist-item-tag-row+.xl-easylist-item-tag-row>.xl-easylist-item-tag-cell{padding-top:.25em}.xl-easylist-item-tag-cell{display:table-cell;width:100%}.xl-easylist-compact .xl-easylist-item-info-item.xl-easylist-item-info-item-files>:not(:first-child),.xl-easylist-compact .xl-easylist-item-info-item.xl-easylist-item-info-item-rating>:not(:first-child),.xl-easylist-compact .xl-easylist-item-title-jp,.xl-easylist-compact .xl-easylist-item-upload-info{display:none}.xl-easylist-item-tag-cell.xl-easylist-item-tag-cell-label{width:0;white-space:nowrap;text-align:right;padding-right:.25em}.xl-easylist-compact .xl-easylist-item-image-container{width:70px;height:100px}.xl-easylist-compact .xl-easylist-item-image{max-width:70px;max-height:100px}.xl-easylist-compact .xl-easylist-item-title{font-size:1em;line-height:1.25em;max-height:2.5em;overflow:hidden;position:relative}.xl-easylist-compact .xl-easylist-item-title:hover{overflow:visible;z-index:1}.xl-easylist-compact .xl-easylist-item-tags{font-size:.9em}.xl-easylist-compact .xl-easylist-item-tag-row+.xl-easylist-item-tag-row>.xl-easylist-item-tag-cell{padding-top:0}.xl-easylist-compact .xl-easylist-item-tag-table{display:block;line-height:1.4em}.xl-easylist-compact .xl-easylist-item-tag-row{display:inline}.xl-easylist-compact .xl-easylist-item-tag-row+.xl-easylist-item-tag-row:before{content:\"\";display:inline-block;width:1em;height:0}.xl-easylist-compact .xl-easylist-item-tag-cell{display:inline;width:auto}.xl-easylist-minimal .xl-easylist-item-cell-image,.xl-easylist-minimal .xl-easylist-item-info-item,.xl-easylist-minimal .xl-easylist-item-tags,.xl-easylist-minimal .xl-easylist-item-title-jp,.xl-easylist-minimal .xl-easylist-item-upload-info{display:none}.xl-easylist-compact .xl-easylist-item-tag-cell>.xl-tag-namespace-block.xl-tag-namespace-block-no-outline>.xl-tag-namespace{border-width:1px;border-style:solid}.xl-easylist-minimal .xl-easylist-item-cell{padding-left:0;vertical-align:middle}.xl-easylist-minimal .xl-easylist-item-cell-side{vertical-align:top}.xl-easylist-minimal .xl-easylist-item-title{font-size:1em;line-height:1.25em}.xl-easylist-minimal .xl-easylist-item-title-tag-link{display:inline-block}.xl-easylist-options:not(.xl-easylist-options-visible){display:none}.xl-easylist-option-table{display:table;width:100%}.xl-easylist-option-row{display:table-row}.xl-easylist-option-row+.xl-easylist-option-row>.xl-easylist-option-cell{padding-top:.5em}.xl-easylist-option-cell{display:table-cell;width:100%;vertical-align:top}.xl-easylist-option-cell:first-of-type{width:0;text-align:right}.xl-easylist-option-title{font-weight:700;margin-right:1em;display:inline-block;padding:.25em 0;border-top:1px solid transparent;border-bottom:1px solid transparent;white-space:nowrap}.xl-easylist-option-title-sub{max-width:100%;margin-right:1em;opacity:.9;white-space:normal}.xl-easylist-option-title-sub-text{font-size:.875em;line-height:1.1em}.xl-easylist-option-label{display:inline-block}.xl-easylist-option-label+.xl-easylist-option-label{margin-left:.5em}.xl-easylist-option-input,.xl-easylist-option-input+.riceCheck{display:none}.xl-easylist-option-button{display:inline-block;padding:.25em .5em;border-radius:.25em;background-color:rgba(255,255,255,.125);border:1px solid rgba(0,0,0,.0625);cursor:pointer}.xl-easylist-option-button:hover{border-color:rgba(0,0,0,.25)}.xl-easylist-option-button.xl-theme-dark{background-color:rgba(0,0,0,.125);border:1px solid rgba(255,255,255,.0625)}.xl-easylist-option-button.xl-theme-dark:hover{border-color:rgba(255,255,255,.25)}.xl-easylist-option-input:checked~.xl-easylist-option-button{background-color:rgba(255,255,255,.5);border-color:rgba(0,0,0,.25);color:#000}.xl-easylist-option-input:checked~.xl-easylist-option-button.xl-theme-dark{background-color:rgba(0,0,0,.5);border-color:rgba(255,255,255,.25);color:#fff}.xl-easylist-option-textarea{background-color:rgba(255,255,255,.125)!important;border:1px solid rgba(0,0,0,.0625)!important;margin:0!important;padding:.25em!important;box-sizing:border-box;-moz-box-sizing:border-box;width:100%;line-height:1.4em;height:4.8em;min-height:2em;resize:vertical;font-family:Courier,monospace!important}.xl-easylist-option-textarea:focus,.xl-easylist-option-textarea:hover{background-color:rgba(255,255,255,.5)!important;border-color:rgba(0,0,0,.25)!important}.xl-easylist-option-textarea.xl-theme-dark{background-color:rgba(0,0,0,.125)!important;border:1px solid rgba(255,255,255,.0625)!important;margin:0!important;padding:.25em!important}.xl-easylist-option-textarea.xl-theme-dark:focus,.xl-easylist-option-textarea.xl-theme-dark:hover{background-color:rgba(0,0,0,.5)!important;border-color:rgba(255,255,255,.25)!important}.xl-changelog-popup-align{min-height:80%;height:200px}.xl-changelog-popup-content{position:relative;height:100%}.xl-changelog-message-container{position:absolute;left:0;top:0;right:0;bottom:0;text-align:center;line-height:0;white-space:nowrap}.xl-changelog-message-container:before{display:inline-block;vertical-align:middle;width:0;height:100%}.xl-changelog-message{text-align:left;line-height:normal;white-space:normal;display:inline-block;vertical-align:middle}.xl-changelog-entry-user-name,.xl-changelog-entry-version{font-weight:700;line-height:1.4em}.xl-changelog-entries{padding:.375em}.xl-changelog-entry+.xl-changelog-entry{margin-top:1em}.xl-changelog-entry-version{font-size:1.25em}.xl-changelog-entry-users{margin-left:1em}.xl-changelog-entry-user+.xl-changelog-entry-user{margin-top:.5em}.xl-changelog-entry-changes{margin:0 0 0 1.5em!important;padding:0!important;list-style-type:disc!important}.xl-changelog-entry-change{margin:0!important;padding:0!important}.xl-changelog-entry-change+.xl-changelog-entry-change{margin-top:.5em!important}.xl-header-bar-link{vertical-align:bottom;cursor:pointer}.xl-header-bar-link.xl-appchanx,.xl-header-bar-svg{vertical-align:middle}.xl-header-bar-svg{width:1.2em;height:1.16em;display:inline-block;fill:#000;stroke:none}.xl-header-bar-link.xl-appchanx>.xl-header-bar-svg{width:100%;height:100%}";
 			$.add(d.head, style);
 
 			Theme.ready();
@@ -9492,12 +10267,7 @@
 
 			Debug.timer_log("init.ready duration", "init");
 
-			Linkifier.queue_posts(Post.get_all_posts(d), Linkifier.queue_posts.Flags.UseDelay);
-
-			if (Config.dynamic) {
-				updater = new MutationObserver(on_body_observe);
-				updater.observe(d.body, { childList: true, subtree: true });
-			}
+			start_processing(ExtensionAPI.should_defer_processing());
 
 			HeaderBar.ready();
 
@@ -9506,7 +10276,7 @@
 			}
 
 			Debug.timer_log("init.ready.full duration", "init");
-		}._w(599);
+		}._w(647);
 		var on_body_observe = function (records) {
 			var post_list = [],
 				reload_all = false,
@@ -9588,7 +10358,7 @@
 			if (reload_all) {
 				reload_all_posts();
 			}
-		}._w(600);
+		}._w(648);
 		var check_removed_nodes = function (nodes) {
 			var node, ns, i, ii, j, jj;
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
@@ -9605,10 +10375,10 @@
 					}
 				}
 			}
-		}._w(601);
+		}._w(649);
 		var is_post_group_container = function (node) {
 			return node.id === "qp" || node.classList.contains("thread") || node.classList.contains("inline");
-		}._w(602);
+		}._w(650);
 
 		// Public
 		var init = function () {
@@ -9626,7 +10396,7 @@
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
 			$.ready(on_ready);
-		}._w(603);
+		}._w(651);
 		var version_compare = function (v1, v2) {
 			// Returns: -1 if v1<v2, 0 if v1==v2, 1 if v1>v2
 			var ii = Math.min(v1.length, v2.length),
@@ -9659,7 +10429,7 @@
 			}
 
 			return 0;
-		}._w(604);
+		}._w(652);
 		var insert_custom_fonts = function () {
 			if (fonts_inserted) return;
 			fonts_inserted = true;
@@ -9671,21 +10441,49 @@
 			font.type = "text/css";
 			font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
 			$.add(d.head, font);
-		}._w(605);
+		}._w(653);
+		var start_processing = function (defer) {
+			if (processing_started) return;
+
+			// Stop timer
+			if (processing_start_timer !== null) {
+				clearTimeout(processing_start_timer);
+				processing_start_timer = null;
+			}
+
+			if (defer) {
+				// Wait
+				processing_start_timer = setTimeout(function () {
+					start_processing(false);
+				}._w(655), 5000);
+			}
+			else {
+				// Start processing
+				processing_started = true;
+
+				Linkifier.queue_posts(Post.get_all_posts(d), Linkifier.queue_posts.Flags.UseDelay);
+
+				if (Config.dynamic) {
+					var updater = new MutationObserver(on_body_observe);
+					updater.observe(d.body, { childList: true, subtree: true });
+				}
+			}
+		}._w(654);
 
 		// Exports
 		var Module = {
 			homepage: "https://dnsev-h.github.io/x-links/",
-			version: [1,2,1,2,0xDB],
+			version: [1,2,2,0xDB],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
-			insert_custom_fonts: insert_custom_fonts
+			insert_custom_fonts: insert_custom_fonts,
+			start_processing: start_processing
 		};
 
 		return Module;
 
-	}._w(597))();
+	}._w(645))();
 
 	Main.init();
 	Debug.timer_log("init.full duration", timing.start);
