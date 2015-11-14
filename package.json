@@ -23,32 +23,5 @@
 	"bugs": {
 		"url": "https://github.com/dnsev-h/x-links/issues"
 	},
-	"homepage": "https://dnsev-h.github.io/x-links/",
-	"custom": {
-		"name_short": "X",
-		"namespace": "dnsev-h",
-		"settings_prefix": "xlinks-",
-		"update_url_base": "https://raw.githubusercontent.com/dnsev-h/x-links/stable/",
-		"changelog_url": "https://raw.githubusercontent.com/dnsev-h/x-links/stable/changelog",
-		"targets": [
-			"http://boards.4chan.org/*",
-			"https://boards.4chan.org/*",
-			"http://8ch.net/*",
-			"https://8ch.net/*",
-			"http://desustorage.org/*",
-			"https://desustorage.org/*",
-			"http://fgts.jp/*",
-			"https://fgts.jp/*",
-			"http://boards.38chan.net/*",
-			"http://forums.e-hentai.org/*",
-			"https://forums.e-hentai.org/*"
-		],
-		"gm_permissions": [
-			"GM_xmlhttpRequest",
-			"GM_setValue",
-			"GM_getValue",
-			"GM_deleteValue",
-			"GM_listValues"
-		]
-	}
+	"homepage": "https://dnsev-h.github.io/x-links/"
 }
