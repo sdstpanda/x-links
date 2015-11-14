@@ -1,0 +1,38 @@
+{
+	"name": "X-links",
+	"version": "@:../package.json#version",
+	"author": "dnsev-h",
+	"description": "Making your browsing experience on 4chan and friends more pleasurable",
+	"namespace": "dnsev-h",
+	"urls": {
+		"homepage": "https://dnsev-h.github.io/x-links/",
+		"support": "https://github.com/dnsev-h/x-links/issues",
+		"update_base": "https://raw.githubusercontent.com/dnsev-h/x-links/stable/",
+		"changelog": "https://raw.githubusercontent.com/dnsev-h/x-links/stable/changelog"
+	},
+	"inputs": [ "./x-links.js" ],
+	"output": "../builds/x-links.user.js",
+	"icon48": "../resources/images/icon48.png",
+	"icon64": "../resources/images/icon64.png",
+	"targets": [
+		"http://boards.4chan.org/*",
+		"https://boards.4chan.org/*",
+		"http://8ch.net/*",
+		"https://8ch.net/*",
+		"http://desustorage.org/*",
+		"https://desustorage.org/*",
+		"http://fgts.jp/*",
+		"https://fgts.jp/*",
+		"http://boards.38chan.net/*",
+		"http://forums.e-hentai.org/*",
+		"https://forums.e-hentai.org/*"
+	],
+	"gm_permissions": [
+		"GM_xmlhttpRequest",
+		"GM_setValue",
+		"GM_getValue",
+		"GM_deleteValue",
+		"GM_listValues"
+	],
+	"settings_prefix": "xlinks-"
+}

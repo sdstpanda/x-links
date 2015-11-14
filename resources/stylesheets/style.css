@@ -9,13 +9,13 @@
 }
 
 .xl-star-none {
-	background-image: url("#RESOURCE_BASE64:images/star-none.png#");
+	background-image: url("#{data:../images/star-none.png}#");
 }
 .xl-star-half {
-	background-image: url("#RESOURCE_BASE64:images/star-half.png#");
+	background-image: url("#{data:../images/star-half.png}#");
 }
 .xl-star-full {
-	background-image: url("#RESOURCE_BASE64:images/star-full.png#");
+	background-image: url("#{data:../images/star-full.png}#");
 }
 
 .xl-star {
@@ -81,7 +81,7 @@
 	font-size: 0.86em;
 	width: 100%;
 	padding: 0.15em 0;
-	color: #FFFFFF !important;
+	color: #ffffff !important;
 	box-shadow: 0 0 0.5em rgba(0,0,0,0.5);
 	text-shadow: 0.09em 0.09em 0 rgba(0,0,0,0.5), 0 0 0.3em #000;
 	-webkit-font-smoothing: antialiased;
@@ -193,7 +193,7 @@
 	border-radius: 0.25em;
 	position: relative;
 	top: -0.125em;
-	background-image: url("#RESOURCE_BASE64:images/noise.png#");
+	background-image: url("#{data:../images/noise.png}#");
 }
 
 /* Sauce */

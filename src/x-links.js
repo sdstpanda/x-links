@@ -681,7 +681,7 @@
 
 			timer_names = {};
 			log = function () {
-				var args = [ "#TITLE# " + Main.version.join(".") + ":" ].concat(Array.prototype.slice.call(arguments));
+				var args = [ Main.title + " " + Main.version.join(".") + ":" ].concat(Array.prototype.slice.call(arguments));
 				console.log.apply(console, args);
 			};
 			Module.log = log;
@@ -2219,7 +2219,7 @@
 	var API = (function () {
 
 		// Caching
-		var cache_prefix = "#PREFIX#cache-",
+		var cache_prefix = "#{json:#settings_prefix}#cache-",
 			cache_storage = window.localStorage,
 			cache_objects = {
 				md5_to_hash: {},
@@ -5653,7 +5653,7 @@
 			popup = null;
 
 		var html_filter_guide = function () {
-			return '#FILTER_GUIDE#';
+			return "#{html:../resources/html/filter_guide.html}#";
 		};
 		var create_export_data = function () {
 			return {
@@ -5933,9 +5933,9 @@
 
 		// Public
 		var ready = function () {
-			Navigation.insert_link("main", "#TITLE#", Main.homepage, " xl-nav-link-settings", on_settings_open_click);
+			Navigation.insert_link("main", Main.title, Main.homepage, " xl-nav-link-settings", on_settings_open_click);
 
-			var n = $.link(Main.homepage, "xl-nav-link", "#TITLE# Settings");
+			var n = $.link(Main.homepage, "xl-nav-link", Main.title + " Settings");
 			$.on(n, "click", on_settings_open_click);
 			HeaderBar.insert_menu_link(n);
 		};
@@ -5953,7 +5953,7 @@
 				small: true,
 				setup: function (container) {
 					var n;
-					$.add(container, $.link(Main.homepage, "xl-settings-title" + theme, "#TITLE#"));
+					$.add(container, $.link(Main.homepage, "xl-settings-title" + theme, Main.title));
 					$.add(container, n = $.link(Changelog.url, "xl-settings-version" + theme, Main.version.join(".")));
 					$.on(n, "click", on_changelog_click);
 				}
@@ -5961,7 +5961,7 @@
 				align: "right",
 				setup: function (container) {
 					var n;
-					$.add(container, n = $.link("#ISSUES#", "xl-settings-button" + theme));
+					$.add(container, n = $.link(Main.support_url, "xl-settings-button" + theme));
 					$.add(n, $.node("span", "xl-settings-button-text", "Issues"));
 
 					$.add(container, n = $.link(Changelog.url, "xl-settings-button" + theme));
@@ -6082,7 +6082,7 @@
 			popup = Popup.create("settings", [[{
 				small: true,
 				setup: function (container) {
-					$.add(container, $.link(Main.homepage, "xl-settings-title" + theme, "#TITLE#"));
+					$.add(container, $.link(Main.homepage, "xl-settings-title" + theme, Main.title));
 					$.add(container, $.node("span", "xl-settings-title-info" + theme, " - Settings export"));
 				}
 			}, {
@@ -6128,7 +6128,7 @@
 					$.add(container, n = $.link(export_url, "xl-settings-button" + theme));
 					n.removeAttribute("target");
 					n.setAttribute("download",
-						"#TITLE#".toLowerCase() + "-settings-" +
+						Main.title.toLowerCase() + "-settings-" +
 						Main.version.join(".") + "-" +
 						pad(d.getFullYear(), 4) + "." +
 						pad(d.getMonth() + 1, 2) + "." +
@@ -6235,7 +6235,7 @@
 	var Config = (function () {
 
 		// Private
-		var settings_key = "#PREFIX#settings",
+		var settings_key = "#{json:#settings_prefix}#settings",
 			custom = {},
 			custom_descriptor = null;
 
@@ -7455,7 +7455,7 @@
 		};
 
 		// Private
-		var settings_key = "#PREFIX#easylist-settings",
+		var settings_key = "#{json:#settings_prefix}#easylist-settings",
 			popup = null,
 			options_container = null,
 			empty_notification = null,
@@ -7527,7 +7527,7 @@
 				// Overlay
 				$.add(container, n1 = $.node("div", "xl-easylist-title"));
 
-				$.add(n1, $.node("span", "xl-easylist-title-text", "#TITLE# Easy List"));
+				$.add(n1, $.node("span", "xl-easylist-title-text", Main.title + " Easy List"));
 				$.add(n1, $.node("span", "xl-easylist-subtitle", "More porn, less hassle"));
 
 				// Close
@@ -8418,7 +8418,7 @@
 
 			HeaderBar.insert_shortcut_icon(
 				"panda",
-				"#TITLE# Easy List",
+				Main.title + " Easy List",
 				Main.homepage,
 				on_toggle_click,
 				function (svg, svgns) {
@@ -8746,7 +8746,7 @@
 				small: true,
 				setup: function (container) {
 					var cls = "";
-					$.add(container, $.link(Main.homepage, "xl-settings-title" + theme, "#TITLE#"));
+					$.add(container, $.link(Main.homepage, "xl-settings-title" + theme, Main.title));
 					if (message !== null) {
 						$.add(container, $.node("span", "xl-settings-title-info" + theme, message));
 						if (/\s+$/.test(message)) {
@@ -8792,7 +8792,7 @@
 
 		// Exports
 		var Module = {
-			url: "#CHANGELOG#",
+			url: "#{json:#urls.changelog}#",
 			open: open,
 			close: close
 		};
@@ -9326,7 +9326,7 @@
 			return n;
 		};
 
-		var disabled_extensions_key = "#PREFIX#extensions-disabled";
+		var disabled_extensions_key = "#{json:#settings_prefix}#extensions-disabled";
 		var disabled_extensions;
 		var save_extensions_enabled_states = function () {
 			var save_data = [],
@@ -10063,7 +10063,7 @@
 
 			var style = $.node_simple("style");
 
-			style.textContent = "#STYLESHEET#";
+			style.textContent = "#{style:../resources/stylesheets/style.css}#";
 			$.add(d.head, style);
 
 			Theme.ready();
@@ -10276,8 +10276,10 @@
 
 		// Exports
 		var Module = {
-			homepage: "#HOMEPAGE#",
-			version: [/*#VERSION#*/],
+			title: "#{json:#name}#",
+			homepage: "#{json:#urls.homepage}#",
+			support_url: "#{json:#urls.support}#",
+			version: [/*#{version:,}#*/],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
