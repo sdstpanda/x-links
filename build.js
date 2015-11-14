@@ -142,12 +142,13 @@
 
 		process.stdout.write("Build successful!\n");
 
-		var cmd = null,
+		var post_build = "post_build",
+			cmd = null,
 			f;
-		if (fs.existsSync((f = "./post_build.bat"))) {
+		if (fs.existsSync((f = "./" + post_build + ".bat"))) {
 			cmd = [ "cmd", "/s", "/c", f.replace(/\//g, "\\") ];
 		}
-		else if (fs.existsSync((f = "./post_build.sh"))) {
+		else if (fs.existsSync((f = "./" + post_build + ".sh"))) {
 			cmd = [ f ];
 		}
 
