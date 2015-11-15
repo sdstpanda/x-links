@@ -869,12 +869,6 @@ var xlinks_api = (function () {
 		return true;
 	};
 
-	var select = function (selector, root) {
-		return (root || document).querySelector(selector);
-	};
-	var select_all = function (selector, root) {
-		return (root || document).querySelectorAll(selector);
-	};
 	var parse_json = function (text, def) {
 		try {
 			return JSON.parse(text);
@@ -906,8 +900,6 @@ var xlinks_api = (function () {
 		register: register,
 		request: request,
 		insert_styles: insert_styles,
-		select: select,
-		select_all: select_all,
 		parse_json: parse_json,
 		parse_html: parse_html,
 		get_domain: get_domain,
