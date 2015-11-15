@@ -1266,11 +1266,11 @@
 			mouseout: $.wrap_mouseenterleave_event(function () {
 				var details = details_nodes[get_node_id_full(this)];
 
+				gallery_link_events_data.link = null;
+
 				if (details === undefined) return;
 
 				details.classList.add("xl-details-hidden");
-
-				gallery_link_events_data.link = null;
 			}),
 			mousemove: function (event) {
 				var details = details_nodes[get_node_id_full(this)];
