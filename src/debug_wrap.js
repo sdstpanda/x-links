@@ -56,7 +56,15 @@
 			var fn = function (callback) {
 				var key = random_gen(4);
 				callbacks[key] = callback;
-				window.postMessage({ set_timeout_0ms: key }, origin);
+				try {
+					window.postMessage({ set_timeout_0ms: key }, origin);
+				}
+				catch (e) {
+					delete callbacks[key];
+					setTimeout(function () {
+						callback.call(null);
+					}, 1);
+				}
 				return key;
 			};
 			fn.clear = function (key) {

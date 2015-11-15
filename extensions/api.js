@@ -274,7 +274,7 @@ var xlinks_api = (function () {
 			}
 		}
 
-		window.postMessage({
+		this.post_message({
 			xlinks_action: action,
 			extension: true,
 			id: id,
@@ -282,7 +282,22 @@ var xlinks_api = (function () {
 			key: this.api_key,
 			name: this.api_name,
 			data: data
-		}, this.origin);
+		});
+	};
+	API.prototype.post_message = function (msg) {
+		try {
+			window.postMessage(msg, this.origin);
+		}
+		catch (e) {
+			// Tampermonkey bug
+			try {
+				unsafeWindow.postMessage(msg, this.origin);
+			}
+			catch (e2) {
+				console.log("window.postMessage failed! Your userscript manager may need to be updated!");
+				console.log("window.postMessage exception:", e, e2);
+			}
+		}
 	};
 	API.prototype.init = function (callback) {
 		if (this.init_state !== 0) {

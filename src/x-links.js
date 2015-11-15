@@ -1,5 +1,5 @@
 /* jshint eqnull:true, noarg:true, noempty:true, eqeqeq:true, bitwise:false, strict:true, undef:true, curly:false, browser:true, devel:true, newcap:false, maxerr:50 */
-/* globals GM_xmlhttpRequest, GM_setValue, GM_getValue, GM_deleteValue, GM_listValues */
+/* globals unsafeWindow, GM_xmlhttpRequest, GM_setValue, GM_getValue, GM_deleteValue, GM_listValues */
 (function () {
 	"use strict";
 
@@ -9487,7 +9487,7 @@
 				}
 			}
 
-			window.postMessage({
+			this.post_message({
 				xlinks_action: action,
 				extension: false,
 				id: id,
@@ -9495,7 +9495,22 @@
 				key: this.api_key,
 				name: this.api_name,
 				data: data
-			}, this.origin);
+			});
+		};
+		ExtensionAPI.prototype.post_message = function (msg) {
+			try {
+				window.postMessage(msg, this.origin);
+			}
+			catch (e) {
+				// Tampermonkey bug
+				try {
+					unsafeWindow.postMessage(msg, this.origin);
+				}
+				catch (e2) {
+					console.log("window.postMessage failed! Your userscript manager may need to be updated!");
+					console.log("window.postMessage exception:", e, e2);
+				}
+			}
 		};
 		ExtensionAPI.prototype.request_api_fn = function (fn_id) {
 			var self = this,
