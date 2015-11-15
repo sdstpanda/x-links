@@ -1442,6 +1442,19 @@
 			custom_actions_functions[custom_id] = callback;
 		};
 
+		var highlight_nodes = function (container, data) {
+			var ns = $$(".xl-highlight", container),
+				i, ii, n, type;
+
+			for (i = 0, ii = ns.length; i < ii; ++i) {
+				n = ns[i];
+				type = n.getAttribute("data-xl-highlight");
+				if (type === "title" || type === "uploader" || type === "tags") {
+					Filter.highlight(type, n, data, Filter.None);
+				}
+			}
+		};
+
 		var create_details = function (data, info, callback) {
 			var category = API.get_category(data.category),
 				theme = Theme.classes,
@@ -1462,6 +1475,7 @@
 							content.style.opacity = config.details.opacity;
 							Theme.bg(content, config.details.opacity_bg);
 							Theme.apply(content);
+							highlight_nodes(content, data);
 							Popup.hovering(content);
 							callback(null, content);
 						}
