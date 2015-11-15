@@ -5259,7 +5259,7 @@
 		};
 		var preprocess_link = function (node, url, update_on_fail, auto_load) {
 			API.get_url_info(url, function (err, info) {
-				if (node.parentNode === null) return;
+				if (node.parentNode === null || node.classList.contains("xl-linkified")) return;
 
 				if (info === null || (config.sites[info.site] === false || Config.get_custom("sites", info.site) === false)) {
 					if (update_on_fail) {
@@ -5621,6 +5621,7 @@
 
 			for (i = 0, ii = fix.length; i < ii; i += 2) {
 				link = fix[i];
+				link.classList.remove("xl-linkified");
 				preprocess_link(link, link.href || "", false, config.general.automatic_processing);
 			}
 		};
