@@ -187,13 +187,13 @@ var xlinks_api = (function () {
 	var config = {};
 
 	var api = null;
-	var API = function (api_name, api_key) {
+	var API = function (info) {
 		this.origin = window.location.protocol + "//" + window.location.host;
 		this.timeout_delay = 1000;
 
 		this.init_state = 0;
-		this.api_name = api_name;
-		this.api_key = api_key;
+		this.api_name = info.namespace || info.name || "";
+		this.api_key = random_string(64);
 		this.action = null;
 		this.reply_id = null;
 		this.reply_callbacks = {};
@@ -299,9 +299,9 @@ var xlinks_api = (function () {
 			}
 		}
 	};
-	API.prototype.init = function (callback) {
+	API.prototype.init = function (info, callback) {
 		if (this.init_state !== 0) {
-			callback.call(null, this.init_state === 1 ? "Init active" : "Already started");
+			if (typeof(callback) === "function") callback.call(null, this.init_state === 1 ? "Init active" : "Already started");
 			return;
 		}
 
@@ -309,45 +309,71 @@ var xlinks_api = (function () {
 
 		var self = this,
 			de = document.documentElement,
-			a;
+			count = info.registrations,
+			send_info = {},
+			a, v, i;
+
+		if (typeof((v = info.name)) === "string") send_info.name = v;
+		if (typeof((v = info.author)) === "string") send_info.author = v;
+		if (typeof((v = info.description)) === "string") send_info.description = v;
+		if (Array.isArray((v = info.version))) {
+			for (i = 0; i < v.length; ++i) {
+				if (typeof(v[i]) !== "number") break;
+			}
+			if (i === v.length) send_info.version = v.slice(0);
+		}
+
+		if (typeof(count) !== "number" || count < 0) {
+			count = 1;
+		}
 
 		if (de) {
 			a = de.getAttribute("data-xlinks-extensions-waiting");
-			a = (a ? (parseInt(a, 10) || 0) : 0) + 1;
+			a = (a ? (parseInt(a, 10) || 0) : 0) + count;
 			de.setAttribute("data-xlinks-extensions-waiting", a);
 			de = null;
 		}
 
 		ready(function () {
-			self.send("start", null, null, function (err, data) {
-				self.on_init(err, data);
-				callback.call(null, err);
+			self.send("start", send_info, null, function (err, data) {
+				err = self.on_init(err, data);
+				if (typeof(callback) === "function") callback.call(null, err);
 			});
 		});
 	};
 	API.prototype.on_init = function (err, data) {
 		var v;
 
-		if (err === null && is_object(data) && typeof(data.key) === "string") {
-			this.init_state = 2;
-			this.api_key = data.key;
-			this.handlers = API.handlers;
+		if (err === null) {
+			if (!is_object(data)) {
+				err = "Could not generate extension key";
+			}
+			else if (typeof((err = data.err)) !== "string") {
+				if (typeof((v = data.key)) !== "string") {
+					err = "Could not generate extension key";
+				}
+				else {
+					err = null;
+					this.api_key = v;
+					this.handlers = API.handlers;
 
-			if (typeof((v = data.cache_prefix)) === "string") {
-				cache_prefix = v;
-			}
-			if (typeof((v = data.cache_mode)) === "string") {
-				if (v === "session") {
-					cache_storage = window.sessionStorage;
-				}
-				else if (v === "none") {
-					cache_storage = create_temp_storage();
+					if (typeof((v = data.cache_prefix)) === "string") {
+						cache_prefix = v;
+					}
+					if (typeof((v = data.cache_mode)) === "string") {
+						if (v === "session") {
+							cache_storage = window.sessionStorage;
+						}
+						else if (v === "none") {
+							cache_storage = create_temp_storage();
+						}
+					}
 				}
 			}
 		}
-		else {
-			this.init_state = 0;
-		}
+
+		this.init_state = (err === null) ? 2 : 0;
+		return err;
 	};
 	API.prototype.register = function (data, callback) {
 		if (this.init_state !== 2) {
@@ -369,11 +395,6 @@ var xlinks_api = (function () {
 		var request_apis_response = [],
 			command_fns = [],
 			array, entry, fn_map, a_data, a, i, ii, k, o, v;
-
-		// Name
-		if (typeof((v = data.name)) === "string") send_data.name = v;
-		if (typeof((v = data.author)) === "string") send_data.author = v;
-		if (typeof((v = data.description)) === "string") send_data.description = v;
 
 		// Settings
 		o = data.settings;
@@ -828,9 +849,9 @@ var xlinks_api = (function () {
 
 
 	// Public
-	var init = function (name, callback) {
-		if (api === null) api = new API(name, random_string(64));
-		api.init(callback);
+	var init = function (info, callback) {
+		if (api === null) api = new API(info);
+		api.init(info, callback);
 	};
 
 	var register = function (data, callback) {

@@ -594,13 +594,16 @@
 		callback(null, container);
 	};
 
-	xlinks_api.init("test", function (err) {
+	xlinks_api.init({
+		namespace: "nyaa_torrents",
+		name: "Nyaa Torrents",
+		author: "#{json:#author}#",
+		description: "#{json:#description}#",
+		version: [/*#{version:,}#*/],
+		registrations: 1
+	}, function (err) {
 		if (err === null) {
 			xlinks_api.register({
-				name: "#{json:#name}#",
-				author: "#{json:#author}#",
-				description: "#{json:#description}#",
-				version: [/*#{version:,}#*/],
 				settings: {
 					sites: [ // namespace
 						// name, default, title, description, descriptor?

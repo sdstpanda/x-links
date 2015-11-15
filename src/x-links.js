@@ -5806,7 +5806,7 @@
 
 		var generate_extensions = function (container) {
 			var exts = ExtensionAPI.get_registered_extensions(),
-				descriptor, data, section, e, i, ii, v;
+				descriptor, data, section, label, e, i, ii, v;
 
 			if (exts.length === 0) return null;
 
@@ -5819,10 +5819,13 @@
 				e = exts[i];
 				v = e[0];
 				data.push(v);
+				label = e[1];
+				if (e[4] !== null && e[4].length > 0) label += " (v" + e[4].join(".") + ")";
+				if (e[2].length > 0) label += " by " + e[2];
 				descriptor.push([
 					i,
 					v,
-					e[1] + (e[2].length > 0 ? (" by " + e[2]) : ""),
+					label,
 					e[3],
 					null
 				]);
@@ -9867,10 +9870,35 @@
 		};
 
 		ExtensionAPI.handlers_init = {
-			start: function () {
+			start: function (data) {
 				var reply_data = null,
+					reg, enabled, name, author, description, version,
 					reply_key, i;
 
+				// Add to list
+				if (
+					typeof((name = data.name)) !== "string" ||
+					typeof((author = data.author)) !== "string" ||
+					typeof((description = data.description)) !== "string"
+				) {
+					this.send(this.action, { err: "Missing extension identification" }, this.reply_id);
+					return;
+				}
+				enabled = extension_is_enabled(name, author, description);
+				reg = [ enabled, name, author, description, null ];
+				if (Array.isArray((version = data.version))) {
+					for (i = 0; i < version.length; ++i) {
+						if (typeof(version[i]) !== "number") break;
+					}
+					if (i === version.length) reg[4] = version.slice(0);
+				}
+				registered.push(reg);
+				if (!enabled) {
+					this.send(this.action, { err: "Extension disabled" }, this.reply_id);
+					return;
+				}
+
+				// Get unique ID
 				for (i = 0; i < 10; ++i) {
 					reply_key = random_string(64);
 					if (!Object.prototype.hasOwnProperty.call(this.registrations, reply_key)) {
@@ -9880,6 +9908,7 @@
 							apis: []
 						};
 						reply_data = {
+							err: null,
 							key: reply_key,
 							cache_prefix: API.cache_get_prefix(),
 							cache_mode: config.debug.cache_mode
@@ -9888,6 +9917,7 @@
 					}
 				}
 
+				// Send reply
 				this.send(this.action, reply_data, this.reply_id);
 			},
 		};
@@ -9908,7 +9938,6 @@
 					},
 					de = document.documentElement,
 					complete = false,
-					enabled, name, author, description,
 					k, o, i, ii;
 
 				// Decrease register count
@@ -9925,22 +9954,6 @@
 							complete = true;
 						}
 					}
-				}
-
-				// Add to list
-				if (
-					typeof((name = data.name)) !== "string" ||
-					typeof((author = data.author)) !== "string" ||
-					typeof((description = data.description)) !== "string"
-				) {
-					this.send(this.action, { err: "Missing extension identification", response: null }, this.reply_id);
-					return;
-				}
-				enabled = extension_is_enabled(name, author, description);
-				registered.push([ enabled, name, author, description ]);
-				if (!enabled) {
-					this.send(this.action, { err: "Extension disabled", response: null }, this.reply_id);
-					return;
 				}
 
 				// Settings
