@@ -1,5 +1,10 @@
 ﻿master
 
+1.0.0.1
+- dnsev-h
+  + Update init format
+  + Use a namespace that isn't "test"
+
 1.0
 - dnsev-h
   + Initial release

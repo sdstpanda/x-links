@@ -1,5 +1,10 @@
 ﻿master
 
+1.2.2.2
+- dnsev-h
+  + Extensions can now show a version number in the settings
+  + Some changes to how extensions are registered
+
 1.2.2.1
 - dnsev-h
   + Fixed a bug that could cause extension details to remain open when not hovering a link
