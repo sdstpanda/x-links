@@ -7,7 +7,21 @@
 
 	// begin_debug
 
-	var timing = function () { return 0; };
+	var window = {};
+	var timing_fn = function () {
+		var perf = window.performance,
+			now, fn;
+
+		if (!perf || !(now = perf.now || perf.mozNow || perf.msNow || perf.oNow || perf.webkitNow)) {
+			perf = Date;
+			now = perf.now;
+		}
+
+		fn = function () { return now.call(perf); };
+		fn.start = now.call(perf);
+		return fn;
+	};
+	var timing = timing_fn();
 
 	var wrap_setup = function (simple) {
 		var error_node = null,
@@ -152,7 +166,7 @@
 			console.log("[Debug Function Call Counter] Init+" + time_diff + ": call_count=" + count + ";", sortable);
 		};
 
-		var last_error = undefined;
+		var last_error;
 		var last_error_clear_timer = false;
 		var last_error_clear = function () {
 			last_error = undefined;
@@ -185,6 +199,21 @@
 		return fn.toString().replace(/\n\t/g, "\n" + indent);
 	};
 
+	var to_args = function (text) {
+		var args = {},
+			m, i;
+		if (text !== null) {
+			text = text.split("&");
+			for (i = 0; i < text.length; ++i) {
+				if (text[i].length > 0) {
+					m = text[i].split("=");
+					args[m[0]] = (m.length > 1) ? m.slice(1).join("=") : null;
+				}
+			}
+		}
+		return args;
+	};
+
 	var debug_wrap_code = function (source, simple) {
 		var instance = new Complexion(),
 			parens = 0,
@@ -195,7 +224,7 @@
 			output = "",
 			function_names = [],
 			function_name_pos = -1,
-			tokens, token, before, after, indent, name, fs, t, c, i;
+			tokens, token, before, after, indent, name, args, fs, m, t, c, i;
 
 		ComplexionJS(instance);
 		tokens = instance.tokenize(source);
@@ -249,12 +278,19 @@
 
 				token_pre = token;
 			}
-			else if (start_parens < 0 && token.isType("SINGLE_LINE_COMMENT")) {
-				if (/\/\/\s*begin_debug\s*/.test(c)) {
+			else if (start_parens < 0 && token.isType("MULTI_LINE_COMMENT")) {
+				if ((m = /\/\*\#\{begin_debug(?::(.*))?\}\#\*\//.exec(c)) !== null) {
 					start_parens = parens;
 					indent = /(?:^|\n)([\t ]*)$/.exec(output);
 					indent = (indent === null) ? "" : indent[1];
-					c = "(" + stringify_function(wrap_setup, indent) + ")(" + simple + ");";
+					c = "";
+					if (m[1] !== undefined) {
+						args = to_args(m[1]);
+						if (args.timing === "true") {
+							c += "var timing = (" + stringify_function(timing_fn, indent) + ")();\n" + indent;
+						}
+					}
+					c += "(" + stringify_function(wrap_setup, indent) + ")(" + simple + ");";
 
 					// Position
 					if (!simple) {

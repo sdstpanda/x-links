@@ -181,13 +181,21 @@
 				tabstr = "",
 				i, v;
 
-			if ((v = args.tab) !== undefined && !isNaN((v = parseInt(v, 10)))) {
+			settings.comment = false;
+
+			if ((v = args.tabs) !== undefined && !isNaN((v = parseInt(v, 10)))) {
 				for (i = 0; i < v; ++i) {
 					tabstr += tabchar;
 				}
 			}
 			if (tabstr.length > 0) {
-				src = tabstr + src.replace(/\n/g, "\n" + tabstr);
+				src = src.split("\n");
+				for (i = 1; i < src.length; ++i) {
+					if (src[i].length > 0 && src[i] !== "\r") {
+						src[i] = tabstr + src[i];
+					}
+				}
+				src = src.join("\n");
 			}
 
 			settings.data.files.push(file[0]);
@@ -231,10 +239,10 @@
 				}
 
 				m = opener + m + closer;
-
-				settings.quote = null;
-				settings.comment = false;
 			}
+
+			settings.quote = null;
+			settings.comment = false;
 
 			return m;
 		});

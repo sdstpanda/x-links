@@ -17,7 +17,7 @@
 		return fn;
 	})();
 
-	// begin_debug
+	/*#{begin_debug}#*/
 
 	var d = document;
 	var browser = {
