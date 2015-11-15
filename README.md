@@ -24,5 +24,20 @@ To quickly install, here are the links to the different userscript versions:
 * Install [Node.js](https://nodejs.org/)
 * Clone the repository
 * Run `npm install` in the repository directory to install the required modules
-* Run `node build.js` to build the userscript
-* Run `node build.js dev` for continous builds when relevant script files are updated
+
+#### build.js usage
+
+```batch
+node build.js [options] <meta files...>
+
+Available options:
+  --dev   Enable continous builds when relevant script files are updated
+  --full  Build with full debugging information
+
+If no meta files are specified, "./src/main.json" is used.
+Otherwise, <meta files> is a list of .json files that act as build descriptors.
+```
+
+#### Post-build
+
+You can also add a custom `post_build.bat` or `post_build.sh` file which is executed after a build is complete.
