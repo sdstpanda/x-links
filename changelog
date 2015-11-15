@@ -1,5 +1,12 @@
 ﻿master
 
+1.2.2.1
+- dnsev-h
+  + Fixed a bug that could cause extension details to remain open when not hovering a link
+  + Fixed a bug that could cause double linkification
+  + Added highlighting to extension details
+  + Build environment updates
+
 1.2.2
 - dnsev-h
   + Added options to change the opacity of the details hover
