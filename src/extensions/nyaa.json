@@ -1,0 +1,19 @@
+{
+	"name": "X-links Extension - Nyaa Torrents",
+	"version": "1.0",
+	"author": "dnsev-h",
+	"description": "Linkify and format nyaa.se links",
+	"namespace": "dnsev-h",
+	"urls": {
+		"homepage": "https://dnsev-h.github.io/x-links/",
+		"support": "https://github.com/dnsev-h/x-links/issues",
+		"update_base": "https://raw.githubusercontent.com/dnsev-h/x-links/stable/",
+		"changelog": "https://raw.githubusercontent.com/dnsev-h/x-links/stable/src/extensions/nyaa_changelog"
+	},
+	"inputs": [ "./nyaa.js" ],
+	"output": "../../builds/x-links-ext-nyaa.user.js",
+	"icon48": "../../resources/images/icon-ext48.png",
+	"icon64": "../../resources/images/icon-ext64.png",
+	"targets": "@:../main.json#targets",
+	"gm_permissions": []
+}
