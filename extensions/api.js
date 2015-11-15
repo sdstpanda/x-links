@@ -837,6 +837,11 @@ var xlinks_api = (function () {
 		Save: 2
 	};
 
+	var ImageFlags = {
+		None: 0x0,
+		NoLeech: 0x1
+	};
+
 	var requests_active = {};
 	var Request = function () {
 	};
@@ -927,14 +932,42 @@ var xlinks_api = (function () {
 		return (m === null) ? [ "", "" ] : [ m[1].toLowerCase(), m[2].toLowerCase() ];
 	};
 
+	var get_image = function (url, flags, callback) {
+		if (api === null || api.init_state !== 2) {
+			callback.call(null, "API not init'd", null);
+			return;
+		}
+
+		// Send
+		var d = api.timeout_delay;
+		api.timeout_delay = 10000;
+		api.send("get_image", { url: url, flags: flags }, null, function (err, data) {
+			if (err !== null) {
+				data = null;
+			}
+			else if (!is_object(data)) {
+				err = "Invalid data";
+			}
+			else if (typeof((err = data.err)) !== "string" && typeof((data = data.url)) !== "string") {
+				data = null;
+				err = "Invalid data";
+			}
+
+			callback.call(null, err, data);
+		});
+		api.timeout_delay = d;
+	};
+
 
 	// Exports
 	return {
 		RequestErrorMode: RequestErrorMode,
+		ImageFlags: ImageFlags,
 		init: init,
 		config: config,
 		register: register,
 		request: request,
+		get_image: get_image,
 		insert_styles: insert_styles,
 		parse_json: parse_json,
 		parse_html: parse_html,

@@ -10026,6 +10026,34 @@
 					self.api_name = null;
 				});
 			},
+			get_image: function (data) {
+				var self = this,
+					action = this.action,
+					reply_id = this.reply_id,
+					api_key = this.api_key,
+					api_name = this.api_name,
+					url, flags;
+
+				if (
+					!is_object(data) ||
+					typeof((url = data.url)) !== "string" ||
+					typeof((flags = data.flags)) !== "number"
+				) {
+					// Failure
+					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
+					return;
+				}
+
+				API.get_thumbnail(url, flags, function (err, url) {
+					self.api_key = api_key;
+					self.api_name = api_name;
+
+					self.send(action, { err: err, url: url }, reply_id);
+
+					self.api_key = null;
+					self.api_name = null;
+				});
+			},
 		};
 
 		var api_request_init_fn = function (req) {
