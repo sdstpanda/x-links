@@ -3746,14 +3746,15 @@
 
 				var n1 = $(".gtb>.gpc", html),
 					small = false,
+					re_comma = /,/g,
 					start, end, total, m, n2, url, t;
 
 				if (n1 !== null) {
-					m = /(\d+)\s*-\s*(\d+)\s*of\s*(\d+)/i.exec(n1.textContent);
+					m = /([\d,]+)\s*-\s*([\d,]+)\s*of\s*([\d,]+)/i.exec(n1.textContent);
 					if (m !== null) {
-						start = parseInt(m[1], 10);
-						end = parseInt(m[2], 10);
-						total = parseInt(m[3], 10);
+						start = parseInt(m[1].replace(re_comma, ""), 10);
+						end = parseInt(m[2].replace(re_comma, ""), 10);
+						total = parseInt(m[3].replace(re_comma, ""), 10);
 
 						if (info.page >= start && info.page <= end) {
 							n1 = $("#gdt", html);
