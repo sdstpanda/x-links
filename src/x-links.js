@@ -5600,6 +5600,11 @@
 				for (j = 0, jj = links.length; j < jj; ++j) {
 					change_link_events(links[j], null);
 				}
+
+				links = $$(".xl-linkified", post);
+				for (j = 0, jj = links.length; j < jj; ++j) {
+					links[j].classList.remove("xl-linkified");
+				}
 			}
 
 			queue_posts(posts, queue_posts.Flags.Flush | queue_posts.Flags.FlushNoParse | queue_posts.Flags.UseDelay);
