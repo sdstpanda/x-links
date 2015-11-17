@@ -2,7 +2,7 @@
 // @name        X-links (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.2.2.-0xDB
+// @version     1.2.2.3.-0xDB
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -3950,14 +3950,15 @@
 
 				var n1 = $(".gtb>.gpc", html),
 					small = false,
+					re_comma = /,/g,
 					start, end, total, m, n2, url, t;
 
 				if (n1 !== null) {
-					m = /(\d+)\s*-\s*(\d+)\s*of\s*(\d+)/i.exec(n1.textContent);
+					m = /([\d,]+)\s*-\s*([\d,]+)\s*of\s*([\d,]+)/i.exec(n1.textContent);
 					if (m !== null) {
-						start = parseInt(m[1], 10);
-						end = parseInt(m[2], 10);
-						total = parseInt(m[3], 10);
+						start = parseInt(m[1].replace(re_comma, ""), 10);
+						end = parseInt(m[2].replace(re_comma, ""), 10);
+						total = parseInt(m[3].replace(re_comma, ""), 10);
 
 						if (info.page >= start && info.page <= end) {
 							n1 = $("#gdt", html);
@@ -5802,6 +5803,11 @@
 				links = $$(".xl-link-events", post);
 				for (j = 0, jj = links.length; j < jj; ++j) {
 					change_link_events(links[j], null);
+				}
+
+				links = $$(".xl-linkified", post);
+				for (j = 0, jj = links.length; j < jj; ++j) {
+					links[j].classList.remove("xl-linkified");
 				}
 			}
 
@@ -10230,6 +10236,34 @@
 					self.api_name = null;
 				}._w(639));
 			}._w(638),
+			get_image: function (data) {
+				var self = this,
+					action = this.action,
+					reply_id = this.reply_id,
+					api_key = this.api_key,
+					api_name = this.api_name,
+					url, flags;
+
+				if (
+					!is_object(data) ||
+					typeof((url = data.url)) !== "string" ||
+					typeof((flags = data.flags)) !== "number"
+				) {
+					// Failure
+					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
+					return;
+				}
+
+				API.get_thumbnail(url, flags, function (err, url) {
+					self.api_key = api_key;
+					self.api_name = api_name;
+
+					self.send(action, { err: err, url: url }, reply_id);
+
+					self.api_key = null;
+					self.api_name = null;
+				}._w(641));
+			}._w(640),
 		};
 
 		var api_request_init_fn = function (req) {
@@ -10237,7 +10271,7 @@
 				id: random_string(32),
 				sent: false
 			};
-		}._w(640);
+		}._w(642);
 		var create_api_request_complete_fn = function (api_name, api_key) {
 			return function (req) {
 				api.api_name = api_name;
@@ -10245,14 +10279,14 @@
 				api.send("request_end", { id: req.data.id });
 				api.api_name = null;
 				api.api_key = null;
-			}._w(642);
-		}._w(641);
+			}._w(644);
+		}._w(643);
 
 
 		// Public
 		var init = function () {
 			if (api === null) api = new ExtensionAPI();
-		}._w(643);
+		}._w(645);
 
 		var request = function (namespace, type, unique_id, info, callback) {
 			var req_data;
@@ -10266,15 +10300,15 @@
 			}
 
 			return req_data.req.add(unique_id, info, false, callback);
-		}._w(644);
+		}._w(646);
 
 		var should_defer_processing = function () {
 			return document.documentElement.hasAttribute("data-xlinks-extensions-waiting");
-		}._w(645);
+		}._w(647);
 
 		var get_registered_extensions = function () {
 			return registered;
-		}._w(646);
+		}._w(648);
 
 
 		// Exports
@@ -10300,7 +10334,7 @@
 			all_posts_reloaded = true;
 
 			Linkifier.relinkify_posts(Post.get_all_posts(d));
-		}._w(648);
+		}._w(650);
 
 		var on_ready = function () {
 			Debug.timer("init");
@@ -10327,7 +10361,7 @@
 			}
 
 			Debug.timer_log("init.ready.full duration", "init");
-		}._w(649);
+		}._w(651);
 		var on_body_observe = function (records) {
 			var post_list = [],
 				reload_all = false,
@@ -10409,7 +10443,7 @@
 			if (reload_all) {
 				reload_all_posts();
 			}
-		}._w(650);
+		}._w(652);
 		var check_removed_nodes = function (nodes) {
 			var node, ns, i, ii, j, jj;
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
@@ -10426,10 +10460,10 @@
 					}
 				}
 			}
-		}._w(651);
+		}._w(653);
 		var is_post_group_container = function (node) {
 			return node.id === "qp" || node.classList.contains("thread") || node.classList.contains("inline");
-		}._w(652);
+		}._w(654);
 
 		// Public
 		var init = function () {
@@ -10447,7 +10481,7 @@
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
 			$.ready(on_ready);
-		}._w(653);
+		}._w(655);
 		var version_compare = function (v1, v2) {
 			// Returns: -1 if v1<v2, 0 if v1==v2, 1 if v1>v2
 			var ii = Math.min(v1.length, v2.length),
@@ -10480,7 +10514,7 @@
 			}
 
 			return 0;
-		}._w(654);
+		}._w(656);
 		var insert_custom_fonts = function () {
 			if (fonts_inserted) return;
 			fonts_inserted = true;
@@ -10492,7 +10526,7 @@
 			font.type = "text/css";
 			font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
 			$.add(d.head, font);
-		}._w(655);
+		}._w(657);
 		var start_processing = function (defer) {
 			if (processing_started) return;
 
@@ -10506,7 +10540,7 @@
 				// Wait
 				processing_start_timer = setTimeout(function () {
 					start_processing(false);
-				}._w(657), 5000);
+				}._w(659), 5000);
 			}
 			else {
 				// Start processing
@@ -10519,14 +10553,14 @@
 					updater.observe(d.body, { childList: true, subtree: true });
 				}
 			}
-		}._w(656);
+		}._w(658);
 
 		// Exports
 		var Module = {
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,2,2,-0xDB],
+			version: [1,2,2,3,-0xDB],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
@@ -10536,7 +10570,7 @@
 
 		return Module;
 
-	}._w(647))();
+	}._w(649))();
 
 	Main.init();
 	Debug.timer_log("init.full duration", timing.start);

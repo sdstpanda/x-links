@@ -1,5 +1,9 @@
 ﻿master
 
+1.0.0.2
+- dnsev-h
+  + Use updated api.js
+
 1.0.0.1
 - dnsev-h
   + Update init format

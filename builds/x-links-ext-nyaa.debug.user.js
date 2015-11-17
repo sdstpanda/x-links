@@ -2,7 +2,7 @@
 // @name        X-links Extension - Nyaa Torrents (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.0.1.-0xDB
+// @version     1.0.0.2.-0xDB
 // @description Linkify and format nyaa.se links
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -1056,6 +1056,11 @@
 			Save: 2
 		};
 
+		var ImageFlags = {
+			None: 0x0,
+			NoLeech: 0x1
+		};
+
 		var requests_active = {};
 		var Request = function () {
 		}._w(42);
@@ -1146,14 +1151,42 @@
 			return (m === null) ? [ "", "" ] : [ m[1].toLowerCase(), m[2].toLowerCase() ];
 		}._w(51);
 
+		var get_image = function (url, flags, callback) {
+			if (api === null || api.init_state !== 2) {
+				callback.call(null, "API not init'd", null);
+				return;
+			}
+
+			// Send
+			var d = api.timeout_delay;
+			api.timeout_delay = 10000;
+			api.send("get_image", { url: url, flags: flags }, null, function (err, data) {
+				if (err !== null) {
+					data = null;
+				}
+				else if (!is_object(data)) {
+					err = "Invalid data";
+				}
+				else if (typeof((err = data.err)) !== "string" && typeof((data = data.url)) !== "string") {
+					data = null;
+					err = "Invalid data";
+				}
+
+				callback.call(null, err, data);
+			}._w(53));
+			api.timeout_delay = d;
+		}._w(52);
+
 
 		// Exports
 		return {
 			RequestErrorMode: RequestErrorMode,
+			ImageFlags: ImageFlags,
 			init: init,
 			config: config,
 			register: register,
 			request: request,
+			get_image: get_image,
 			insert_styles: insert_styles,
 			parse_json: parse_json,
 			parse_html: parse_html,
@@ -1174,21 +1207,21 @@
 
 	var $$ = function (selector, root) {
 		return (root || document).querySelectorAll(selector);
-	}._w(52);
+	}._w(54);
 	var $ = (function () {
 
 		var d = document;
 
 		var Module = function (selector, root) {
 			return (root || d).querySelector(selector);
-		}._w(54);
+		}._w(56);
 
 		Module.add = function (parent, child) {
 			return parent.appendChild(child);
-		}._w(55);
+		}._w(57);
 		Module.tnode = function (text) {
 			return d.createTextNode(text);
-		}._w(56);
+		}._w(58);
 		Module.node = function (tag, class_name, text) {
 			var elem = d.createElement(tag);
 			elem.className = class_name;
@@ -1196,19 +1229,19 @@
 				elem.textContent = text;
 			}
 			return elem;
-		}._w(57);
+		}._w(59);
 		Module.node_ns = function (namespace, tag, class_name) {
 			var elem = d.createElementNS(namespace, tag);
 			elem.setAttribute("class", class_name);
 			return elem;
-		}._w(58);
+		}._w(60);
 		Module.node_simple = function (tag) {
 			return d.createElement(tag);
-		}._w(59);
+		}._w(61);
 
 		return Module;
 
-	}._w(53))();
+	}._w(55))();
 
 	var re_html = /[<>&]/g,
 		re_html_full = /[<>&'"]/g,
@@ -1223,8 +1256,8 @@
 	var escape_html = function (text, regex) {
 		return text.replace(regex, function (m) {
 			return html_replace_map[m];
-		}._w(61));
-	}._w(60);
+		}._w(63));
+	}._w(62);
 
 	var innerhtml_to_safe_text = function (node) {
 		var text = "",
@@ -1303,7 +1336,7 @@
 		}
 
 		return text;
-	}._w(62);
+	}._w(64);
 	var apply_safe_text_to_node = function (node, safe_text) {
 		// Safe version of: node.innerHTML = safe_text;
 		// Cannot inject any <script> tags or similar
@@ -1319,7 +1352,7 @@
 		var entity_replace_fn = function (m, entity) {
 			var e = apply_safe_text_to_node.entities[entity];
 			return (e === undefined) ? m : e;
-		}._w(64);
+		}._w(66);
 
 		while (true) {
 			re_start.lastIndex = pos;
@@ -1404,7 +1437,7 @@
 		if (text.length > 0) {
 			current.appendChild(document.createTextNode(text));
 		}
-	}._w(63);
+	}._w(65);
 	apply_safe_text_to_node.tags = {
 		a: { href: true },
 		b: {},
@@ -1439,16 +1472,16 @@
 					}
 				}
 			}
-		}._w(65),
+		}._w(67),
 		information: function (node, data) {
 			data.information = innerhtml_to_safe_text(node);
-		}._w(66),
+		}._w(68),
 		stardom: function (node, data) {
 			var n = node.querySelector("b");
 			if (n !== null) {
 				data.fans = parseInt(n.textContent.trim(), 10) || 0;
 			}
-		}._w(67),
+		}._w(69),
 		date: function (node, data) {
 			var m = /(\d+)-(\d+)-(\d+),\s*(\d+):(\d+)/.exec(node.textContent);
 			if (m !== null) {
@@ -1462,7 +1495,7 @@
 					0
 				).getTime();
 			}
-		}._w(68),
+		}._w(70),
 		seeders: function (node, data) {
 			if ($("b", node) !== null) {
 				data.seeders = -1;
@@ -1470,7 +1503,7 @@
 			else {
 				data.seeders = parseInt(node.textContent.trim(), 10) || 0;
 			}
-		}._w(69),
+		}._w(71),
 		leechers: function (node, data) {
 			if ($("b", node) !== null) {
 				data.leechers = -1;
@@ -1478,18 +1511,18 @@
 			else {
 				data.leechers = parseInt(node.textContent.trim(), 10) || 0;
 			}
-		}._w(70),
+		}._w(72),
 		downloads: function (node, data) {
 			data.downloads = parseInt(node.textContent.trim(), 10) || 0;
-		}._w(71),
+		}._w(73),
 		"file size": function (node, data) {
 			data.file_size = file_size_text_to_number(node.textContent.trim());
-		}._w(72)
+		}._w(74)
 	};
 
 	var pad = function (n, sep) {
 		return (n < 10 ? "0" : "") + n + sep;
-	}._w(73);
+	}._w(75);
 	var format_date = function (timestamp) {
 		var d = new Date(timestamp);
 		return d.getUTCFullYear() + "-" +
@@ -1497,7 +1530,7 @@
 			pad(d.getUTCDate(), " ") +
 			pad(d.getUTCHours(), ":") +
 			pad(d.getUTCMinutes(), "");
-	}._w(74);
+	}._w(76);
 
 	var file_size_scale = {
 		k: 1024,
@@ -1520,7 +1553,7 @@
 		}
 
 		return v;
-	}._w(75);
+	}._w(77);
 	var file_size_number_to_text = function (size) {
 		var scale = 1024,
 			i, ii;
@@ -1530,7 +1563,7 @@
 		}
 
 		return size.toFixed(3).replace(/\.?0+$/, "") + " " + file_size_labels[i];
-	}._w(76);
+	}._w(78);
 
 	var category_to_button_style_map = {
 		"english-translated anime": "cosplay",
@@ -1555,23 +1588,23 @@
 		if (data.sukebei) return "doujinshi";
 		var subcat = category_to_button_style_map[data.subcategory.toLowerCase()];
 		return (subcat === undefined ? "misc" : subcat);
-	}._w(77);
+	}._w(79);
 
 	var nyaa_get_data = function (info, callback) {
 		var data = xlinks_api.cache_get(info.id);
 		callback(null, data);
-	}._w(78);
+	}._w(80);
 	var nyaa_set_data = function (data, info, callback) {
 		xlinks_api.cache_set(info.id, data, xlinks_api.ttl_1_day);
 		callback(null);
-	}._w(79);
+	}._w(81);
 	var nyaa_setup_xhr = function (callback) {
 		var info = this.infos[0];
 		callback(null, {
 			method: "GET",
 			url: "http://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/?page=view&tid=" + info.gid + "&showfiles=1"
 		});
-	}._w(80);
+	}._w(82);
 	var nyaa_parse_response = function (xhr, callback) {
 		var html = xlinks_api.parse_html(xhr.responseText),
 			info = this.infos[0],
@@ -1681,7 +1714,7 @@
 		}
 
 		callback(null, [ data ]);
-	}._w(81);
+	}._w(83);
 
 	var url_get_info = function (url, callback) {
 		var m = /^(?:https?:\/*)?((www\.|sukebei\.)?nyaa\.se)(?:\/[^\?\#]*)?(\?[^\#]*)?(?:\#[^\w\W]*)?/i.exec(url),
@@ -1700,10 +1733,10 @@
 		else {
 			callback(null, null);
 		}
-	}._w(82);
+	}._w(84);
 	var url_info_to_data = function (url_info, callback) {
 		xlinks_api.request("nyaa", "torrent", url_info.id, url_info, callback);
-	}._w(83);
+	}._w(85);
 	var create_actions = function (data, info, callback) {
 		var urls = [],
 			url_base = "http://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/";
@@ -1715,7 +1748,7 @@
 		urls.push([ null, url_base + "?page=download&tid=" + info.gid + "&txt=1", "Txt File" ]);
 
 		callback(null, urls);
-	}._w(84);
+	}._w(86);
 	var create_details = function (data, info, callback) {
 		var container = $.node("div", "xl-details-limited-size"),
 			n1, n2;
@@ -1757,14 +1790,14 @@
 
 		// Done
 		callback(null, container);
-	}._w(85);
+	}._w(87);
 
 	xlinks_api.init({
 		namespace: "nyaa_torrents",
 		name: "Nyaa Torrents",
 		author: "dnsev-h",
 		description: "Linkify and format nyaa.se links",
-		version: [1,0,0,1,-0xDB],
+		version: [1,0,0,2,-0xDB],
 		registrations: 1
 	}, function (err) {
 		if (err === null) {
@@ -1805,7 +1838,7 @@
 				}]
 			});
 		}
-	}._w(86));
+	}._w(88));
 
 })();
 

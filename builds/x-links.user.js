@@ -2,7 +2,7 @@
 // @name        X-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.2.2
+// @version     1.2.2.3
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -3774,14 +3774,15 @@
 
 				var n1 = $(".gtb>.gpc", html),
 					small = false,
+					re_comma = /,/g,
 					start, end, total, m, n2, url, t;
 
 				if (n1 !== null) {
-					m = /(\d+)\s*-\s*(\d+)\s*of\s*(\d+)/i.exec(n1.textContent);
+					m = /([\d,]+)\s*-\s*([\d,]+)\s*of\s*([\d,]+)/i.exec(n1.textContent);
 					if (m !== null) {
-						start = parseInt(m[1], 10);
-						end = parseInt(m[2], 10);
-						total = parseInt(m[3], 10);
+						start = parseInt(m[1].replace(re_comma, ""), 10);
+						end = parseInt(m[2].replace(re_comma, ""), 10);
+						total = parseInt(m[3].replace(re_comma, ""), 10);
 
 						if (info.page >= start && info.page <= end) {
 							n1 = $("#gdt", html);
@@ -5626,6 +5627,11 @@
 				links = $$(".xl-link-events", post);
 				for (j = 0, jj = links.length; j < jj; ++j) {
 					change_link_events(links[j], null);
+				}
+
+				links = $$(".xl-linkified", post);
+				for (j = 0, jj = links.length; j < jj; ++j) {
+					links[j].classList.remove("xl-linkified");
 				}
 			}
 
@@ -10054,6 +10060,34 @@
 					self.api_name = null;
 				});
 			},
+			get_image: function (data) {
+				var self = this,
+					action = this.action,
+					reply_id = this.reply_id,
+					api_key = this.api_key,
+					api_name = this.api_name,
+					url, flags;
+
+				if (
+					!is_object(data) ||
+					typeof((url = data.url)) !== "string" ||
+					typeof((flags = data.flags)) !== "number"
+				) {
+					// Failure
+					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
+					return;
+				}
+
+				API.get_thumbnail(url, flags, function (err, url) {
+					self.api_key = api_key;
+					self.api_name = api_name;
+
+					self.send(action, { err: err, url: url }, reply_id);
+
+					self.api_key = null;
+					self.api_name = null;
+				});
+			},
 		};
 
 		var api_request_init_fn = function (req) {
@@ -10350,7 +10384,7 @@
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,2,2],
+			version: [1,2,2,3],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,

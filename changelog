@@ -1,5 +1,11 @@
 ﻿master
 
+1.2.2.3
+- dnsev-h
+  + Fixed a bug that would break linkification using the 4chan-inline extension
+  + Fixed a bug that could cause certain gallery page thumbnails to not load
+  + Extension API updates
+
 1.2.2.2
 - dnsev-h
   + Extensions can now show a version number in the settings

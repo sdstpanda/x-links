@@ -2,7 +2,7 @@
 // @name        X-links Extension - Nyaa Torrents
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.0.1
+// @version     1.0.0.2
 // @description Linkify and format nyaa.se links
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -867,6 +867,11 @@
 			Save: 2
 		};
 
+		var ImageFlags = {
+			None: 0x0,
+			NoLeech: 0x1
+		};
+
 		var requests_active = {};
 		var Request = function () {
 		};
@@ -957,14 +962,42 @@
 			return (m === null) ? [ "", "" ] : [ m[1].toLowerCase(), m[2].toLowerCase() ];
 		};
 
+		var get_image = function (url, flags, callback) {
+			if (api === null || api.init_state !== 2) {
+				callback.call(null, "API not init'd", null);
+				return;
+			}
+
+			// Send
+			var d = api.timeout_delay;
+			api.timeout_delay = 10000;
+			api.send("get_image", { url: url, flags: flags }, null, function (err, data) {
+				if (err !== null) {
+					data = null;
+				}
+				else if (!is_object(data)) {
+					err = "Invalid data";
+				}
+				else if (typeof((err = data.err)) !== "string" && typeof((data = data.url)) !== "string") {
+					data = null;
+					err = "Invalid data";
+				}
+
+				callback.call(null, err, data);
+			});
+			api.timeout_delay = d;
+		};
+
 
 		// Exports
 		return {
 			RequestErrorMode: RequestErrorMode,
+			ImageFlags: ImageFlags,
 			init: init,
 			config: config,
 			register: register,
 			request: request,
+			get_image: get_image,
 			insert_styles: insert_styles,
 			parse_json: parse_json,
 			parse_html: parse_html,
@@ -1575,7 +1608,7 @@
 		name: "Nyaa Torrents",
 		author: "dnsev-h",
 		description: "Linkify and format nyaa.se links",
-		version: [1,0,0,1],
+		version: [1,0,0,2],
 		registrations: 1
 	}, function (err) {
 		if (err === null) {
