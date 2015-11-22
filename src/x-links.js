@@ -4043,7 +4043,7 @@
 			remaining = match[2];
 
 			if ((is_ex = (domain === domains.exhentai)) || domain === domains.gehentai) {
-				m = /^\/g\/(\d+)\/([0-9a-f]+)/.exec(remaining);
+				m = /^\/(?:g|mpv)\/(\d+)\/([0-9a-f]+)/.exec(remaining);
 				if (m !== null) {
 					data = {
 						id: "ehentai_" + m[1],
@@ -4054,6 +4054,8 @@
 						domain: domain,
 						tag: get_tag_from_domain(domain)
 					};
+					m = /#page(\d+)/.exec(remaining);
+					if (m !== null) data.page = parseInt(m[1], 10);
 				}
 				else {
 					m = /^\/s\/([0-9a-f]+)\/(\d+)\-(\d+)/.exec(remaining);
