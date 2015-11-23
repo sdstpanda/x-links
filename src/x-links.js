@@ -2069,6 +2069,36 @@
 			}
 		};
 
+		// Events
+		var event_listeners = {
+			format: []
+		};
+		var on = function (event_name, callback) {
+			var listeners = event_listeners[event_name];
+			if (listeners === undefined) return false;
+			listeners.push(callback);
+			return true;
+		};
+		var off = function (event_name, callback) {
+			var listeners = event_listeners[event_name],
+				i, ii;
+			if (listeners !== undefined) {
+				for (i = 0, ii = listeners.length; i < ii; ++i) {
+					if (listeners[i] === callback) {
+						listeners.splice(i, 1);
+						return true;
+					}
+				}
+			}
+			return false;
+		};
+		var trigger = function (listeners, data) {
+			var i, ii;
+			for (i = 0, ii = listeners.length; i < ii; ++i) {
+				listeners[i].call(null, data);
+			}
+		};
+
 		// Public
 		var create_rating_stars = function (rating) {
 			var frag = d.createDocumentFragment(),
@@ -2100,7 +2130,14 @@
 				pad(d.getUTCMinutes(), "");
 		};
 
-		var setup_link = function (link, url, info) {
+		var resetup_link = function (link) {
+			API.get_url_info(link.href || "", function (err, info) {
+				if (err === null && info !== null) {
+					load_link(link, info);
+				}
+			});
+		};
+		var setup_link = function (link, url, info, auto_load) {
 			var button = $.link(url, "xl-site-tag" + Theme.classes),
 				text = $.node("span", "xl-site-tag-text", button_text(info));
 
@@ -2112,6 +2149,23 @@
 			Linkifier.change_link_events(button, "gallery_fetch");
 
 			$.before(link.parentNode, link, button);
+
+			if (auto_load) load_link(link, info);
+		};
+		var load_link = function (link, info) {
+			API.get_data_from_url_info(info, function (err, data) {
+				if (link.parentNode !== null) {
+					if (err === null) {
+						format_link(link, data, info);
+						if (event_listeners.format.length > 0) {
+							trigger(event_listeners.format, { link: link });
+						}
+					}
+					else {
+						format_link_error(link, err, info);
+					}
+				}
+			});
 		};
 		var format_link = function (link, data, info) {
 			var button = get_tag_button_from_link(link),
@@ -2163,7 +2217,7 @@
 				button.classList.add("xl-link-error");
 			}
 
-			link.classList.add("xl-link-error");
+			link.classList.add("xl-link-formatted", "xl-link-error");
 			n = $(".xl-link-error-message", link);
 			if (n === null) {
 				$.add(link, $.node("span", "xl-link-error-message", text));
@@ -2171,6 +2225,9 @@
 			else {
 				n.textContent = text;
 			}
+		};
+		var get_links_formatted = function (parent) {
+			return $$("a.xl-link.xl-link-formatted", parent);
 		};
 
 		var cleanup_post = function (post) {
@@ -2188,6 +2245,10 @@
 				n = nodes[i];
 				n.classList.remove("xl-site-tag-active");
 				n.removeAttribute("xl-actions-index");
+			}
+			nodes = $$(".xl-linkified:not(.xl-link-formatted)", post);
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				resetup_link(nodes[i]);
 			}
 		};
 		var cleanup_post_removed = function (post) {
@@ -2216,8 +2277,7 @@
 		// Exports
 		return {
 			setup_link: setup_link,
-			format_link: format_link,
-			format_link_error: format_link_error,
+			get_links_formatted: get_links_formatted,
 			create_rating_stars: create_rating_stars,
 			button_get_inner: button_get_inner,
 			button_text: button_text,
@@ -2226,7 +2286,9 @@
 			cleanup_post_removed: cleanup_post_removed,
 			register_details_creation: register_details_creation,
 			register_actions_creation: register_actions_creation,
-			init: init
+			init: init,
+			on: on,
+			off: off
 		};
 
 	})();
@@ -5278,7 +5340,7 @@
 			API.get_url_info(url, function (err, info) {
 				if (node.parentNode === null || node.classList.contains("xl-linkified")) return;
 
-				if (info === null || (config.sites[info.site] === false || Config.get_custom("sites", info.site) === false)) {
+				if (err !== null || info === null || (config.sites[info.site] === false || Config.get_custom("sites", info.site) === false)) {
 					if (update_on_fail) {
 						node.href = url;
 						node.target = "_blank";
@@ -5307,24 +5369,7 @@
 				node.classList.add("xl-link");
 				node.classList.add("xl-linkified");
 
-				UI.setup_link(node, url, info);
-
-				if (auto_load) load_link(node, info);
-			});
-		};
-		var load_link = function (link, info) {
-			API.get_data_from_url_info(info, function (err, data) {
-				if (link.parentNode !== null) {
-					if (err === null) {
-						UI.format_link(link, data, info);
-						if (event_listeners.format.length > 0) {
-							trigger(event_listeners.format, { link: link });
-						}
-					}
-					else {
-						UI.format_link_error(link, err, info);
-					}
-				}
+				UI.setup_link(node, url, info, auto_load);
 			});
 		};
 
@@ -5547,41 +5592,6 @@
 			}
 		};
 
-		// Links
-		var get_links_formatted = function (parent) {
-			return $$("a.xl-link.xl-link-formatted", parent);
-		};
-
-		// Events
-		var event_listeners = {
-			format: []
-		};
-		var on = function (event_name, callback) {
-			var listeners = event_listeners[event_name];
-			if (!listeners) return false;
-			listeners.push(callback);
-			return true;
-		};
-		var off = function (event_name, callback) {
-			var listeners = event_listeners[event_name],
-				i, ii;
-			if (listeners) {
-				for (i = 0, ii = listeners.length; i < ii; ++i) {
-					if (listeners[i] === callback) {
-						listeners.splice(i, 1);
-						return true;
-					}
-				}
-			}
-			return false;
-		};
-		var trigger = function (listeners, data) {
-			var i, ii;
-			for (i = 0, ii = listeners.length; i < ii; ++i) {
-				listeners[i].call(null, data);
-			}
-		};
-
 		// Fixing
 		var relinkify_posts = function (posts) {
 			var cls = "xl-post-linkified",
@@ -5652,17 +5662,13 @@
 		return {
 			parse_text_for_urls: parse_text_for_urls,
 			create_link: create_link,
-			load_link: load_link,
 			queue_posts: queue_posts,
 			get_link_events: get_link_events,
 			change_link_events: change_link_events,
 			register_link_events: register_link_events,
-			get_links_formatted: get_links_formatted,
 			relinkify_posts: relinkify_posts,
 			fix_broken_4chanx_linkification: fix_broken_4chanx_linkification,
-			linkify_register: linkify_register,
-			on: on,
-			off: off
+			linkify_register: linkify_register
 		};
 
 	})();
@@ -8363,7 +8369,7 @@
 			par.style.height = "100%";
 			this.style.visibility = "hidden";
 		};
-		var on_linkify = function (event) {
+		var on_link_format = function (event) {
 			add_links([ event.link ]);
 		};
 		var on_timer = function () {
@@ -8463,8 +8469,8 @@
 				create();
 			}
 
-			add_links(Linkifier.get_links_formatted());
-			Linkifier.on("format", on_linkify);
+			add_links(UI.get_links_formatted());
+			UI.on("format", on_link_format);
 
 			Popup.open(popup);
 			$.scroll_focus(popup);
@@ -8474,7 +8480,7 @@
 
 			set_options_visible(false);
 
-			Linkifier.off("format", on_linkify);
+			UI.off("format", on_link_format);
 		};
 		var is_open = function () {
 			return (popup !== null && Popup.is_open(popup));
