@@ -10101,7 +10101,7 @@
 		};
 
 		var should_defer_processing = function () {
-			return document.documentElement.hasAttribute("data-xlinks-extensions-waiting");
+			return d.documentElement.hasAttribute("data-xlinks-extensions-waiting");
 		};
 
 		var get_registered_extensions = function () {
@@ -10122,7 +10122,8 @@
 	var Main = (function () {
 
 		// Private
-		var fonts_inserted = false,
+		var ready = false,
+			fonts_inserted = false,
 			all_posts_reloaded = false,
 			processing_started = false,
 			processing_start_timer = null;
@@ -10135,6 +10136,7 @@
 		};
 
 		var on_ready = function () {
+			ready = true;
 			Debug.timer("init");
 
 			if (!Config.ready()) return;
@@ -10326,7 +10328,7 @@
 			$.add(d.head, font);
 		};
 		var start_processing = function (defer) {
-			if (processing_started) return;
+			if (processing_started || !ready) return;
 
 			// Stop timer
 			if (processing_start_timer !== null) {
