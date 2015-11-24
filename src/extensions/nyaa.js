@@ -408,7 +408,7 @@
 		});
 	};
 	var nyaa_parse_response = function (xhr, callback) {
-		var html = xlinks_api.parse_html(xhr.responseText),
+		var html = xlinks_api.parse_html(xhr.responseText, null),
 			info = this.infos[0],
 			data, fn, n1, n2, ns, i, ii, m, t;
 
