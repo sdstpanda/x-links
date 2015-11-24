@@ -2166,17 +2166,40 @@
 		var load_link = function (link, info) {
 			API.get_data_from_url_info(info, function (err, data) {
 				if (link.parentNode !== null) {
-					if (err === null) {
-						format_link(link, data, info);
-						if (event_listeners.format.length > 0) {
-							trigger(event_listeners.format, { link: link });
-						}
-					}
-					else {
-						format_link_error(link, err, info);
-					}
+					format_link_generic(link, err, data, info);
 				}
 			});
+		};
+		var format_link_generic = function (link, err, data, info) {
+			var attr;
+
+			// Observer disconnect trigger on re-format
+			if (info.monitor === true) {
+				attr = "data-xl-remove-monitor";
+				if (link.hasAttribute(attr)) {
+					link.setAttribute(attr, "");
+				}
+				else {
+					link.removeAttribute(attr);
+				}
+			}
+
+			// Format
+			if (err === null) {
+				format_link(link, data, info);
+				if (event_listeners.format.length > 0) {
+					trigger(event_listeners.format, { link: link });
+				}
+			}
+			else {
+				format_link_error(link, err, info);
+			}
+
+			// Monitor changes from external sources
+			if (info.monitor === true) {
+				link.removeAttribute(attr);
+				new MutationObserver($.bind(on_formatter_link_change, link)).observe(link, { childList: true, attributes: true });
+			}
 		};
 		var format_link = function (link, data, info) {
 			var button = get_tag_button_from_link(link),
@@ -2212,6 +2235,12 @@
 				Linkifier.change_link_events(button, "gallery_toggle_actions");
 			}
 
+			// URL node
+			if (Config.is_4chan && !Config.is_4chan_x3) {
+				// This is for certain 4chan-inline functionality
+				$.before(link, link.firstChild, $.node("span", "xl-link-url-text", link.href + " "));
+			}
+
 			// Page
 			if (info.page !== undefined) {
 				n = $.node("span", "xl-link-page", " (page " + info.page + ")");
@@ -2239,6 +2268,31 @@
 		};
 		var get_links_formatted = function (parent) {
 			return $$("a.xl-link.xl-link-formatted", parent);
+		};
+		var on_formatter_link_change = function (records, mo) {
+			var change = false,
+				info, r, i, ii;
+
+			for (i = 0, ii = records.length; i < ii; ++i) {
+				r = records[i];
+				if (r.type === "attributes") {
+					if (r.attributeName === "data-xl-remove-monitor") {
+						mo.disconnect();
+						return;
+					}
+				}
+				else {
+					change = true;
+				}
+			}
+
+			if (
+				change &&
+				(info = API.get_url_info_saved(this.href)) !== null
+			) {
+				mo.disconnect();
+				load_link(this, info);
+			}
 		};
 
 		var cleanup_post = function (post) {

@@ -745,6 +745,9 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 	font-style: italic;
 	white-space: nowrap;
 }
+.xl-link-url-text {
+	display: none !important;
+}
 
 /* Nav */
 .xl-nav-extras-mobile {
