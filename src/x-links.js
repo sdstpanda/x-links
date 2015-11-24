@@ -2256,6 +2256,10 @@
 				n = $.node("span", "xl-link-page", " (page " + info.page + ")");
 				link.appendChild(n);
 			}
+			else if (info.title_extra !== undefined) {
+				n = $.node("span", "xl-link-extra", " " + info.title_extra);
+				link.appendChild(n);
+			}
 		};
 		var format_link_error = function (link, error) {
 			var text = " (" + error.trim().replace(/\.$/, "") + ")",
@@ -3584,6 +3588,7 @@
 		};
 		Request.prototype.on_xhr_setup = function (err, xhr_data) {
 			var self = this,
+				any_status = (xhr_data.any_status === true),
 				i, ii, ev;
 
 			// Error
@@ -3594,7 +3599,7 @@
 
 			// Load handler
 			xhr_data.onload = function (xhr) {
-				if (xhr.status === 200) {
+				if (xhr.status === 200 || any_status) {
 					self.type.parse_response.call(self, xhr, function (err, response) {
 						self.on_response_parse(err, response);
 					});
