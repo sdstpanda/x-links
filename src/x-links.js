@@ -2220,6 +2220,16 @@
 				}
 			}
 
+			// Class changes
+			hl = info.classes_remove;
+			if (hl !== undefined && Array.isArray(hl)) {
+				link.classList.remove.apply(link.classList, hl);
+			}
+			hl = info.classes_add;
+			if (hl !== undefined && Array.isArray(hl)) {
+				link.classList.add.apply(link.classList, hl);
+			}
+
 			// Link title
 			link.textContent = data.title;
 			link.classList.add("xl-link-formatted");
