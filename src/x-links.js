@@ -1669,7 +1669,7 @@
 			// Empty
 			if (!created) {
 				fn = custom_actions_functions[info._custom_id];
-				if (fn !== null) {
+				if (fn !== undefined) {
 					fn(data, info, function (err, gen_info) {
 						if (err === null) {
 							var ii = gen_info.length,
