@@ -2300,6 +2300,8 @@
 				change &&
 				(info = API.get_url_info_saved(this.href)) !== null
 			) {
+				// Limit monitoring to only once
+				info.monitor = false;
 				mo.disconnect();
 				load_link(this, info);
 			}
