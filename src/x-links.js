@@ -1219,6 +1219,7 @@
 
 		// Private
 		var details_nodes = {},
+			details_nodes_creating = {},
 			actions_nodes = {},
 			actions_nodes_active = {},
 			actions_nodes_active_count = 0,
@@ -1247,15 +1248,10 @@
 						if (details !== undefined) {
 							details_hover_start(data, info, self, details);
 						}
-						else if (self.getAttribute("data-xl-details-creating") !== "true") {
-							self.setAttribute("data-xl-details-creating", "true");
+						else {
 							create_details(data, info, function (err, details) {
-								self.removeAttribute("data-xl-details-creating");
-								if (err === null) {
-									details_nodes[info.id] = details;
-									if (gallery_link_events_data.link === self) {
-										details_hover_start(data, info, self, details);
-									}
+								if (err === null && gallery_link_events_data.link === self) {
+									details_hover_start(data, info, self, details);
 								}
 							});
 						}
@@ -1461,6 +1457,13 @@
 				file_size = (data.total_size / 1024 / 1024).toFixed(2),
 				content, n1, n2, n3, fn;
 
+			// Creating check
+			if (details_nodes_creating[info.id] === true) {
+				callback("In progress", null);
+				return;
+			}
+			details_nodes_creating[info.id] = true;
+
 			// Fonts
 			Main.insert_custom_fonts();
 
@@ -1470,13 +1473,18 @@
 				if (fn !== undefined) {
 					// Add to container
 					fn(data, info, function (err, content) {
+						delete details_nodes_creating[info.id];
+
 						if (err === null) {
 							content.className = (content.className + " xl-details xl-details-hidden xl-hover-shadow" + theme).trim();
 							content.style.opacity = config.details.opacity;
 							Theme.bg(content, config.details.opacity_bg);
 							Theme.apply(content);
 							highlight_nodes(content, data);
+
 							Popup.hovering(content);
+							details_nodes[info.id] = content;
+
 							callback(null, content);
 						}
 						else {
@@ -1485,6 +1493,7 @@
 					});
 				}
 				else {
+					delete details_nodes_creating[info.id];
 					callback("Could not create details", null);
 				}
 				return;
@@ -1585,6 +1594,8 @@
 
 			// Add to container
 			Popup.hovering(content);
+			details_nodes[info.id] = content;
+			delete details_nodes_creating[info.id];
 
 			// Done
 			callback(null, content);
