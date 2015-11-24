@@ -501,11 +501,12 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 }
 
 .xl-details-title-container {
+	margin-bottom: 1em;
 }
 .xl-details-title {
-	font-size: 1.5em !important;
-	font-weight: bold !important;
-	text-shadow: 0.1em 0.1em 0.4em rgba(0,0,0,0.15) !important;
+	font-size: 1.5em;
+	font-weight: bold;
+	text-shadow: 0.1em 0.1em 0.4em rgba(0,0,0,0.15);
 	text-decoration: none !important;
 }
 .xl-details-title-jp {
@@ -538,7 +539,7 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 
 .xl-details-upload-info {
 	font-size: 1em;
-	margin: 1em 0;
+	margin-bottom: 1em;
 }
 .xl-details-uploader {
 	font-size: 1em !important;
