@@ -1349,7 +1349,7 @@
 					(link = get_link_from_tag_button(this)) !== null &&
 					(info = API.get_url_info_saved(link.href)) !== null
 				) {
-					Linkifier.load_link(link, info);
+					load_link(link, info);
 				}
 			}
 		};
