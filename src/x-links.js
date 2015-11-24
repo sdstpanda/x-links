@@ -3523,28 +3523,26 @@
 			this.type.setup_xhr.call(this, $.bind(this.on_xhr_setup, this));
 		};
 		Request.prototype.process_response = function (err, response, delay) {
-			var self = this,
-				total = this.infos.length,
+			var total = this.infos.length,
 				responses = Math.min(response.length, total),
 				set_data = this.type.set_data,
 				complete = 0,
-				data = null,
-				entry, err_mode, i;
+				data, entry, err_mode, i;
 
 			// Save
-			var save_callback = function () {
+			var save_callback = function (entry, err, data) {
 				for (var i = 0, ii = entry.callbacks.length; i < ii; ++i) {
-					entry.callbacks[i].call(self, err, data);
+					entry.callbacks[i].call(this, err, data);
 				}
 
-				if (++complete >= total) self.complete(delay);
+				if (++complete >= total) this.complete(delay);
 			};
 
 			// Save errors
 			for (i = responses; i < total; ++i) {
 				entry = this.entries[i];
 				set_saved_error([ this.type.namespace, this.type.type, entry.id ], err, false);
-				save_callback();
+				save_callback.call(this, entry, err, null);
 			}
 
 			// Save datas
@@ -3554,15 +3552,15 @@
 				if (typeof((err = data.error)) === "string") {
 					if (typeof((err_mode = data.error_mode)) !== "number") err_mode = RequestErrorMode.Save;
 					set_saved_error([ this.type.namespace, this.type.type, entry.id ], err, (err_mode === RequestErrorMode.Save));
-					save_callback();
+					save_callback.call(this, entry, err, data);
 				}
 				else {
 					err = null;
 					if (set_data !== null) {
-						set_data.call(this, data, entry.info, save_callback);
+						set_data.call(this, data, entry.info, $.bind(save_callback, this, entry, null, data));
 					}
 					else {
-						save_callback();
+						save_callback.call(this, entry, null, data);
 					}
 				}
 			}
