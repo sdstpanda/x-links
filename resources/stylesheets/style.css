@@ -372,10 +372,13 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 	display: none;
 }
 
+.xl-details.xl-details-sized,
 .xl-details.xl-details-limited-size {
-	max-height: 16em;
 	overflow: hidden;
 	text-align: left;
+}
+.xl-details.xl-details-limited-size {
+	max-height: 16em;
 }
 
 .xl-details-thumbnail {
@@ -744,6 +747,10 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 	font-weight: normal;
 	font-style: italic;
 	white-space: nowrap;
+}
+.xl-link-extra {
+	font-weight: normal;
+	font-style: italic;
 }
 .xl-link-url-text {
 	display: none !important;
