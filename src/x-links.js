@@ -499,11 +499,19 @@
 		};
 		Module.bind = function (fn, self) {
 			if (arguments.length > 2) {
-				var args = Array.prototype.slice.call(arguments, 2);
+				var i = 0,
+					ii = arguments.length - 2,
+					args = new Array(ii);
+
+				for (; i < ii; ++i) args[i] = arguments[i + 2];
 
 				return function () {
-					var full_args = Array.prototype.slice.call(args);
-					Array.prototype.push.apply(full_args, arguments);
+					var full_args = args.slice(),
+						i, ii;
+
+					for (i = 0, ii = arguments.length; i < ii; ++i) {
+						full_args.push(arguments[i]);
+					}
 
 					return fn.apply(self, full_args);
 				};
@@ -681,7 +689,13 @@
 
 			timer_names = {};
 			log = function () {
-				var args = [ Main.title + " " + Main.version.join(".") + ":" ].concat(Array.prototype.slice.call(arguments));
+				var args = [ Main.title + " " + Main.version.join(".") + ":" ],
+					i, ii;
+
+				for (i = 0, ii = arguments.length; i < ii; ++i) {
+					args.push(arguments[i]);
+				}
+
 				console.log.apply(console, args);
 			};
 			Module.log = log;
@@ -9622,9 +9636,13 @@
 				api_key = this.api_key;
 
 			return function () {
-				var callback = arguments[arguments.length - 1],
-					args = Array.prototype.splice.call(arguments, 0, arguments.length - 1),
-					state = null;
+				var state = null,
+					i = 0,
+					ii = arguments.length - 1,
+					args = new Array(ii),
+					callback = arguments[ii];
+
+				for (; i < ii; ++i) args[i] = arguments[i];
 
 				if (this !== null) {
 					state = {
