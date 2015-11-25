@@ -519,8 +519,9 @@
 	};
 
 	var url_get_info = function (url, callback) {
-		var m = /^(?:https?:\/*)?((www\.|sukebei\.)?nyaa\.se)(?:\/[^\?\#]*)?(\?[^\#]*)?(?:\#[^\w\W]*)?/i.exec(url),
+		var m = /^(?:https?:\/*)?((www\.|sukebei\.)?nyaa\.se)(\/[\w\W]*)?/i.exec(url),
 			s, m2;
+
 		if (m !== null && m[3] !== undefined && (m2 = /[\?\&]tid=(\d+)/.exec(m[3])) !== null) {
 			s = (m[2] === "sukebei.");
 			callback(null, {
@@ -628,7 +629,7 @@
 					},
 				}],
 				linkifiers: [{
-					regex: /(https?:\/*)?(?:www\.|sukebei\.)?nyaa\.se(?:\/[^<>\s\'\"]*)?/i,
+					regex: /(https?:\/*)?(?:www\.|sukebei\.)?nyaa\.se(?:\/[^<>()\s\'\"]*)?/i,
 					prefix_group: 1,
 					prefix: "http://",
 				}],
