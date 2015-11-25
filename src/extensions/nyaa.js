@@ -404,7 +404,8 @@
 		var info = this.infos[0];
 		callback(null, {
 			method: "GET",
-			url: "http://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/?page=view&tid=" + info.gid + "&showfiles=1"
+			url: "http://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/?page=view&tid=" + info.gid + "&showfiles=1",
+			headers: { "Cookie": "" }
 		});
 	};
 	var nyaa_parse_response = function (xhr, callback) {
