@@ -2152,7 +2152,13 @@
 			var button = $.link(url, "xl-site-tag" + Theme.classes),
 				text = $.node("span", "xl-site-tag-text", button_text(info));
 
+			button.setAttribute("data-xl-site", info.site);
+
 			set_node_id(link, info);
+
+			if (info.icon !== undefined) {
+				$.add(button, $.node("span", "xl-site-tag-icon " + info.icon));
+			}
 
 			$.add(button, text);
 

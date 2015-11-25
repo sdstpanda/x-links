@@ -694,7 +694,8 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 	z-index: 4;
 }
 .xl-site-tag.xl-site-tag-active>.xl-site-tag-bg>.xl-site-tag-bg-inner,
-.xl-site-tag.xl-site-tag-active>.xl-site-tag-text {
+.xl-site-tag.xl-site-tag-active>.xl-site-tag-text,
+.xl-site-tag.xl-site-tag-active>.xl-site-tag-icon {
 	z-index: 6;
 }
 .xl-site-tag.xl-site-tag-active>.xl-site-tag-bg,
@@ -734,6 +735,20 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 }
 .xl-site-tag-text {
 	position: relative;
+	vertical-align: bottom;
+}
+.xl-site-tag-icon {
+	display: inline-block;
+	vertical-align: bottom;
+	position: relative;
+	color: rgba(0,0,0,0);
+	width: 1.5em;
+	height: 1.25em;
+	text-align: center;
+	background-color: transparent;
+	background-repeat: no-repeat;
+	background-size: contain;
+	background-position: 50% 50%;
 }
 .xl-link.xl-link-formatted {
 	text-decoration: none !important;
