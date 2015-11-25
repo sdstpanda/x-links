@@ -690,9 +690,15 @@ var xlinks_api = (function () {
 			args = Array.prototype.slice.call(args);
 			args.push(function () {
 				// Err
+				var i = 0,
+					ii = arguments.length,
+					arguments_copy = new Array(ii);
+
+				for (; i < ii; ++i) arguments_copy[i] = arguments[i];
+
 				self.send(action, {
 					err: null,
-					args: Array.prototype.slice.call(arguments)
+					args: arguments_copy
 				}, reply_id);
 			});
 
