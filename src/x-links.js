@@ -2171,10 +2171,11 @@
 			});
 		};
 		var format_link_generic = function (link, err, data, info) {
-			var attr;
+			var monitor = (info.monitor === true) && Config.is_4chan_x3,
+				attr;
 
 			// Observer disconnect trigger on re-format
-			if (info.monitor === true) {
+			if (monitor) {
 				attr = "data-xl-remove-monitor";
 				if (link.hasAttribute(attr)) {
 					link.setAttribute(attr, "");
@@ -2196,7 +2197,7 @@
 			}
 
 			// Monitor changes from external sources
-			if (info.monitor === true) {
+			if (monitor) {
 				link.removeAttribute(attr);
 				new MutationObserver($.bind(on_formatter_link_change, link)).observe(link, { childList: true, attributes: true });
 			}
@@ -4988,7 +4989,7 @@
 	var Linkifier = (function () {
 
 		// Private
-		var re_url = /(https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)(?:\/[^<>\s\'\"]*)?/ig,
+		var re_url = /(https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)(?:\/[^<>()\s\'\"]*)?/ig,
 			re_url_class_ignore = /(?:\binlined?\b|\bxl-)/,
 			re_deferrer = /^(?:https?:)?\/\/sys\.4chan\.org\/derefer\?url=([\w\W]*)$/i;
 
