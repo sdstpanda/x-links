@@ -2,7 +2,7 @@
 // @name        X-links Extension - Nyaa Torrents
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.0.2
+// @version     1.0.0.3
 // @description Linkify and format nyaa.se links
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -21,6 +21,7 @@
 // @downloadURL https://raw.githubusercontent.com/dnsev-h/x-links/stable/builds/x-links-ext-nyaa.user.js
 // @icon        data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAA4klEQVR4Ae2ZoQ7CMBRF+VIMBjGDwSAwmImZGcQUYoYPq32fAPK8LCSleZCmzb3JcUtzD+ndBDslHuVVQr0zJdCAQHoaQEggTQYj9C8ggRVCAqPBDfoUkMBq8HAs4J8vLZ2uEH/VSqC6QEZmMbg7ZgiWzu2wJQEJZGRmgwn+cNf9jxXcRn0BCZA/33VKb848OfbQioAEikqni+MMpRugdGADFQQkEL7rlN7c3QG+2EZgrPUEJPD7V+RgcHQcoGAXDQlIoLx0/kxKhwbahoAEPn5ZYwKU7ldAAvqLSQLNRlEU5Q1O5fOjZV4u4AAAAABJRU5ErkJggg==
 // @icon64      data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAOVBMVEUBAAAAAADmce/ml+/mje/mku/mhO/mY+/mbO/mdu/me+/mie/mXu/mm+/mpe/mf+/mqu/maO/moe9+hYmYAAAAAXRSTlMAQObYZgAAAJRJREFUeF7t1zkOAzEMBEFRe9+2//9YtzOCIOR8oEoX7GCgZEtXigWtb8qBF36ywIgD8gHcyAIHZqgHbnxwwRCPH1igEvCRCwMmZMd+cKVAjEwY0RpvgDkKAe/feANmVJxQC8TjHRssqDBHI5CPt6FihR8zjicQaD6eFW8sMEcxEI99fEG2vFrgwY4scEI/0P8X0HVf06IrwbJZHiwAAAAASUVORK5CYII=
+// @grant       none
 // @run-at      document-start
 // ==/UserScript==
 (function () {
@@ -271,7 +272,7 @@
 
 			this.action = null;
 		};
-		API.prototype.send = function (action, data, reply_to, on_reply) {
+		API.prototype.send = function (action, reply_to, timeout_delay, data, on_reply) {
 			var self = this,
 				id = null,
 				timeout = null,
@@ -295,12 +296,12 @@
 				this.reply_callbacks[id] = cb;
 				cb = null;
 
-				if (this.timeout_delay >= 0) {
+				if (timeout_delay >= 0) {
 					timeout = setTimeout(function () {
 						timeout = null;
 						delete self.reply_callbacks[id];
 						on_reply.call(self, "Response timeout");
-					}, this.timeout_delay);
+					}, timeout_delay);
 				}
 			}
 
@@ -365,10 +366,16 @@
 			}
 
 			ready(function () {
-				self.send("start", send_info, null, function (err, data) {
-					err = self.on_init(err, data);
-					if (typeof(callback) === "function") callback.call(null, err);
-				});
+				self.send(
+					"start",
+					null,
+					self.timeout_delay,
+					send_info,
+					function (err, data) {
+						err = self.on_init(err, data);
+						if (typeof(callback) === "function") callback.call(null, err);
+					}
+				);
 			});
 		};
 		API.prototype.on_init = function (err, data) {
@@ -570,19 +577,25 @@
 			}
 
 			// Send
-			this.send("register", send_data, null, function (err, data) {
-				var o;
-				if (err !== null) {
-					if (typeof(callback) === "function") callback.call(null, err, 0);
+			this.send(
+				"register",
+				null,
+				this.timeout_delay,
+				send_data,
+				function (err, data) {
+					var o;
+					if (err !== null) {
+						if (typeof(callback) === "function") callback.call(null, err, 0);
+					}
+					else if (!is_object(data) || !is_object((o = data.response))) {
+						if (typeof(callback) === "function") callback.call(null, "Invalid extension response", 0);
+					}
+					else {
+						var okay = this.register_complete(o, request_apis_response, command_fns, send_data.settings);
+						if (typeof(callback) === "function") callback.call(null, null, okay);
+					}
 				}
-				else if (!is_object(data) || !is_object((o = data.response))) {
-					if (typeof(callback) === "function") callback.call(null, "Invalid extension response", 0);
-				}
-				else {
-					var okay = this.register_complete(o, request_apis_response, command_fns, send_data.settings);
-					if (typeof(callback) === "function") callback.call(null, null, okay);
-				}
-			});
+			);
 		};
 		API.prototype.register_complete = function (data, request_apis, command_fns, settings) {
 			var reg_count = 0,
@@ -694,14 +707,24 @@
 					!Array.isArray((args = data.args))
 				) {
 					// Error
-					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
+					this.send(
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension data" }
+					);
 					return;
 				}
 
 				// Exists
 				if (!Array.prototype.hasOwnProperty.call(this.functions, id)) {
 					// Error
-					this.send(this.action, { err: "Invalid extension function" }, this.reply_id);
+					this.send(
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension function" }
+					);
 					return;
 				}
 				fn = this.functions[id];
@@ -720,10 +743,21 @@
 				args = Array.prototype.slice.call(args);
 				args.push(function () {
 					// Err
-					self.send(action, {
-						err: null,
-						args: Array.prototype.slice.call(arguments)
-					}, reply_id);
+					var i = 0,
+						ii = arguments.length,
+						arguments_copy = new Array(ii);
+
+					for (; i < ii; ++i) arguments_copy[i] = arguments[i];
+
+					self.send(
+						action,
+						reply_id,
+						self.timeout_delay,
+						{
+							err: null,
+							args: arguments_copy
+						}
+					);
 				});
 
 				// Call
@@ -741,24 +775,39 @@
 					typeof((url = data.url)) !== "string"
 				) {
 					// Error
-					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
+					this.send(
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension data" }
+					);
 					return;
 				}
 
 				// Exists
 				if (!Array.prototype.hasOwnProperty.call(this.url_info_functions, id)) {
 					// Error
-					this.send(this.action, { err: "Invalid extension function" }, this.reply_id);
+					this.send(
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension function" }
+					);
 					return;
 				}
 				fn = this.url_info_functions[id];
 
 				// Call
 				fn(url, function (err, data) {
-					self.send(action, {
-						err: err,
-						data: data
-					}, reply_id);
+					self.send(
+						action,
+						reply_id,
+						self.timeout_delay,
+						{
+							err: err,
+							data: data
+						}
+					);
 				});
 			},
 			url_info_to_data: function (data) {
@@ -773,24 +822,39 @@
 					!is_object((url_info = data.url))
 				) {
 					// Error
-					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
+					this.send(
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension data" }
+					);
 					return;
 				}
 
 				// Exists
 				if (!Array.prototype.hasOwnProperty.call(this.url_info_to_data_functions, id)) {
 					// Error
-					this.send(this.action, { err: "Invalid extension function" }, this.reply_id);
+					this.send(
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension function" }
+					);
 					return;
 				}
 				fn = this.url_info_to_data_functions[id];
 
 				// Call
 				fn(url_info, function (err, data) {
-					self.send(action, {
-						err: err,
-						data: data
-					}, reply_id);
+					self.send(
+						action,
+						reply_id,
+						self.timeout_delay,
+						{
+							err: err,
+							data: data
+						}
+					);
 				});
 			},
 			create_actions: function (data) {
@@ -806,24 +870,39 @@
 					!is_object((fn_info = data.info))
 				) {
 					// Error
-					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
+					this.send(
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension data" }
+					);
 					return;
 				}
 
 				// Exists
 				if (!Array.prototype.hasOwnProperty.call(this.actions_functions, id)) {
 					// Error
-					this.send(this.action, { err: "Invalid extension function" }, this.reply_id);
+					this.send(
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension function" }
+					);
 					return;
 				}
 				fn = this.actions_functions[id];
 
 				// Call
 				fn(fn_data, fn_info, function (err, data) {
-					self.send(action, {
-						err: err,
-						data: data
-					}, reply_id);
+					self.send(
+						action,
+						reply_id,
+						self.timeout_delay,
+						{
+							err: err,
+							data: data
+						}
+					);
 				});
 			},
 			create_details: function (data) {
@@ -839,24 +918,39 @@
 					!is_object((fn_info = data.info))
 				) {
 					// Error
-					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
+					this.send(
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension data" }
+					);
 					return;
 				}
 
 				// Exists
 				if (!Array.prototype.hasOwnProperty.call(this.details_functions, id)) {
 					// Error
-					this.send(this.action, { err: "Invalid extension function" }, this.reply_id);
+					this.send(
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension function" }
+					);
 					return;
 				}
 				fn = this.details_functions[id];
 
 				// Call
 				fn(fn_data, fn_info, function (err, data) {
-					self.send(action, {
-						err: err,
-						data: set_shared_node(data)
-					}, reply_id);
+					self.send(
+						action,
+						reply_id,
+						self.timeout_delay,
+						{
+							err: err,
+							data: set_shared_node(data)
+						}
+					);
 				});
 			},
 		};
@@ -904,30 +998,31 @@
 				return;
 			}
 
-			var d = api.timeout_delay;
-			api.timeout_delay = -1;
-
-			api.send("request", {
-				namespace: namespace,
-				type: type,
-				id: unique_id,
-				info: info
-			}, null, function (err, data) {
-				if (err !== null) {
-					data = null;
-				}
-				else {
-					if ((err = data.err) !== null) {
+			api.send(
+				"request",
+				null,
+				-1,
+				{
+					namespace: namespace,
+					type: type,
+					id: unique_id,
+					info: info
+				},
+				function (err, data) {
+					if (err !== null) {
 						data = null;
 					}
-					else if ((data = data.data) === null) {
-						err = "Invalid extension data";
+					else {
+						if ((err = data.err) !== null) {
+							data = null;
+						}
+						else if ((data = data.data) === null) {
+							err = "Invalid extension data";
+						}
 					}
+					callback.call(null, err, data);
 				}
-				callback.call(null, err, data);
-			});
-
-			api.timeout_delay = d;
+			);
 		};
 
 		var insert_styles = function (styles) {
@@ -950,7 +1045,15 @@
 		};
 		var parse_html = function (text, def) {
 			try {
-				return (new DOMParser()).parseFromString(text, "text/html");
+				return new DOMParser().parseFromString(text, "text/html");
+			}
+			catch (e) {
+				return def;
+			}
+		};
+		var parse_xml = function (text, def) {
+			try {
+				return new DOMParser().parseFromString(text, "text/xml");
 			}
 			catch (e) {
 				return def;
@@ -969,23 +1072,26 @@
 			}
 
 			// Send
-			var d = api.timeout_delay;
-			api.timeout_delay = 10000;
-			api.send("get_image", { url: url, flags: flags }, null, function (err, data) {
-				if (err !== null) {
-					data = null;
-				}
-				else if (!is_object(data)) {
-					err = "Invalid data";
-				}
-				else if (typeof((err = data.err)) !== "string" && typeof((data = data.url)) !== "string") {
-					data = null;
-					err = "Invalid data";
-				}
+			api.send(
+				"get_image",
+				null,
+				10000,
+				{ url: url, flags: flags },
+				function (err, data) {
+					if (err !== null) {
+						data = null;
+					}
+					else if (!is_object(data)) {
+						err = "Invalid data";
+					}
+					else if (typeof((err = data.err)) !== "string" && typeof((data = data.url)) !== "string") {
+						data = null;
+						err = "Invalid data";
+					}
 
-				callback.call(null, err, data);
-			});
-			api.timeout_delay = d;
+					callback.call(null, err, data);
+				}
+			);
 		};
 
 
@@ -1001,6 +1107,7 @@
 			insert_styles: insert_styles,
 			parse_json: parse_json,
 			parse_html: parse_html,
+			parse_xml: parse_xml,
 			get_domain: get_domain,
 			random_string: random_string,
 			is_object: is_object,
@@ -1413,11 +1520,12 @@
 		var info = this.infos[0];
 		callback(null, {
 			method: "GET",
-			url: "http://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/?page=view&tid=" + info.gid + "&showfiles=1"
+			url: "http://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/?page=view&tid=" + info.gid + "&showfiles=1",
+			headers: { "Cookie": "" }
 		});
 	};
 	var nyaa_parse_response = function (xhr, callback) {
-		var html = xlinks_api.parse_html(xhr.responseText),
+		var html = xlinks_api.parse_html(xhr.responseText, null),
 			info = this.infos[0],
 			data, fn, n1, n2, ns, i, ii, m, t;
 
@@ -1528,8 +1636,9 @@
 	};
 
 	var url_get_info = function (url, callback) {
-		var m = /^(?:https?:\/*)?((www\.|sukebei\.)?nyaa\.se)(?:\/[^\?\#]*)?(\?[^\#]*)?(?:\#[^\w\W]*)?/i.exec(url),
+		var m = /^(?:https?:\/*)?((www\.|sukebei\.)?nyaa\.se)(\/[\w\W]*)?/i.exec(url),
 			s, m2;
+
 		if (m !== null && m[3] !== undefined && (m2 = /[\?\&]tid=(\d+)/.exec(m[3])) !== null) {
 			s = (m[2] === "sukebei.");
 			callback(null, {
@@ -1608,7 +1717,7 @@
 		name: "Nyaa Torrents",
 		author: "dnsev-h",
 		description: "Linkify and format nyaa.se links",
-		version: [1,0,0,2],
+		version: [1,0,0,3],
 		registrations: 1
 	}, function (err) {
 		if (err === null) {
@@ -1637,7 +1746,7 @@
 					},
 				}],
 				linkifiers: [{
-					regex: /(https?:\/*)?(?:www\.|sukebei\.)?nyaa\.se(?:\/[^<>\s\'\"]*)?/i,
+					regex: /(https?:\/*)?(?:www\.|sukebei\.)?nyaa\.se(?:\/[^<>()\s\'\"]*)?/i,
 					prefix_group: 1,
 					prefix: "http://",
 				}],

@@ -2,7 +2,7 @@
 // @name        X-links Extension - Nyaa Torrents (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.0.2.-0xDB
+// @version     1.0.0.3.-0xDB
 // @description Linkify and format nyaa.se links
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -19,6 +19,7 @@
 // @supportURL  https://github.com/dnsev-h/x-links/issues
 // @icon        data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAA4klEQVR4Ae2ZoQ7CMBRF+VIMBjGDwSAwmImZGcQUYoYPq32fAPK8LCSleZCmzb3JcUtzD+ndBDslHuVVQr0zJdCAQHoaQEggTQYj9C8ggRVCAqPBDfoUkMBq8HAs4J8vLZ2uEH/VSqC6QEZmMbg7ZgiWzu2wJQEJZGRmgwn+cNf9jxXcRn0BCZA/33VKb848OfbQioAEikqni+MMpRugdGADFQQkEL7rlN7c3QG+2EZgrPUEJPD7V+RgcHQcoGAXDQlIoLx0/kxKhwbahoAEPn5ZYwKU7ldAAvqLSQLNRlEU5Q1O5fOjZV4u4AAAAABJRU5ErkJggg==
 // @icon64      data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAOVBMVEUBAAAAAADmce/ml+/mje/mku/mhO/mY+/mbO/mdu/me+/mie/mXu/mm+/mpe/mf+/mqu/maO/moe9+hYmYAAAAAXRSTlMAQObYZgAAAJRJREFUeF7t1zkOAzEMBEFRe9+2//9YtzOCIOR8oEoX7GCgZEtXigWtb8qBF36ywIgD8gHcyAIHZqgHbnxwwRCPH1igEvCRCwMmZMd+cKVAjEwY0RpvgDkKAe/feANmVJxQC8TjHRssqDBHI5CPt6FihR8zjicQaD6eFW8sMEcxEI99fEG2vFrgwY4scEI/0P8X0HVf06IrwbJZHiwAAAAASUVORK5CYII=
+// @grant       none
 // @run-at      document-start
 // ==/UserScript==
 (function () {
@@ -460,7 +461,7 @@
 
 			this.action = null;
 		}._w(19);
-		API.prototype.send = function (action, data, reply_to, on_reply) {
+		API.prototype.send = function (action, reply_to, timeout_delay, data, on_reply) {
 			var self = this,
 				id = null,
 				timeout = null,
@@ -484,12 +485,12 @@
 				this.reply_callbacks[id] = cb;
 				cb = null;
 
-				if (this.timeout_delay >= 0) {
+				if (timeout_delay >= 0) {
 					timeout = setTimeout(function () {
 						timeout = null;
 						delete self.reply_callbacks[id];
 						on_reply.call(self, "Response timeout");
-					}._w(22), this.timeout_delay);
+					}._w(22), timeout_delay);
 				}
 			}
 
@@ -554,10 +555,16 @@
 			}
 
 			ready(function () {
-				self.send("start", send_info, null, function (err, data) {
-					err = self.on_init(err, data);
-					if (typeof(callback) === "function") callback.call(null, err);
-				}._w(26));
+				self.send(
+					"start",
+					null,
+					self.timeout_delay,
+					send_info,
+					function (err, data) {
+						err = self.on_init(err, data);
+						if (typeof(callback) === "function") callback.call(null, err);
+					}._w(26)
+				);
 			}._w(25));
 		}._w(24);
 		API.prototype.on_init = function (err, data) {
@@ -759,19 +766,25 @@
 			}
 
 			// Send
-			this.send("register", send_data, null, function (err, data) {
-				var o;
-				if (err !== null) {
-					if (typeof(callback) === "function") callback.call(null, err, 0);
-				}
-				else if (!is_object(data) || !is_object((o = data.response))) {
-					if (typeof(callback) === "function") callback.call(null, "Invalid extension response", 0);
-				}
-				else {
-					var okay = this.register_complete(o, request_apis_response, command_fns, send_data.settings);
-					if (typeof(callback) === "function") callback.call(null, null, okay);
-				}
-			}._w(29));
+			this.send(
+				"register",
+				null,
+				this.timeout_delay,
+				send_data,
+				function (err, data) {
+					var o;
+					if (err !== null) {
+						if (typeof(callback) === "function") callback.call(null, err, 0);
+					}
+					else if (!is_object(data) || !is_object((o = data.response))) {
+						if (typeof(callback) === "function") callback.call(null, "Invalid extension response", 0);
+					}
+					else {
+						var okay = this.register_complete(o, request_apis_response, command_fns, send_data.settings);
+						if (typeof(callback) === "function") callback.call(null, null, okay);
+					}
+				}._w(29)
+			);
 		}._w(28);
 		API.prototype.register_complete = function (data, request_apis, command_fns, settings) {
 			var reg_count = 0,
@@ -883,14 +896,24 @@
 					!Array.isArray((args = data.args))
 				) {
 					// Error
-					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
+					this.send(
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension data" }
+					);
 					return;
 				}
 
 				// Exists
 				if (!Array.prototype.hasOwnProperty.call(this.functions, id)) {
 					// Error
-					this.send(this.action, { err: "Invalid extension function" }, this.reply_id);
+					this.send(
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension function" }
+					);
 					return;
 				}
 				fn = this.functions[id];
@@ -909,10 +932,21 @@
 				args = Array.prototype.slice.call(args);
 				args.push(function () {
 					// Err
-					self.send(action, {
-						err: null,
-						args: Array.prototype.slice.call(arguments)
-					}, reply_id);
+					var i = 0,
+						ii = arguments.length,
+						arguments_copy = new Array(ii);
+
+					for (; i < ii; ++i) arguments_copy[i] = arguments[i];
+
+					self.send(
+						action,
+						reply_id,
+						self.timeout_delay,
+						{
+							err: null,
+							args: arguments_copy
+						}
+					);
 				}._w(33));
 
 				// Call
@@ -930,24 +964,39 @@
 					typeof((url = data.url)) !== "string"
 				) {
 					// Error
-					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
+					this.send(
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension data" }
+					);
 					return;
 				}
 
 				// Exists
 				if (!Array.prototype.hasOwnProperty.call(this.url_info_functions, id)) {
 					// Error
-					this.send(this.action, { err: "Invalid extension function" }, this.reply_id);
+					this.send(
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension function" }
+					);
 					return;
 				}
 				fn = this.url_info_functions[id];
 
 				// Call
 				fn(url, function (err, data) {
-					self.send(action, {
-						err: err,
-						data: data
-					}, reply_id);
+					self.send(
+						action,
+						reply_id,
+						self.timeout_delay,
+						{
+							err: err,
+							data: data
+						}
+					);
 				}._w(35));
 			}._w(34),
 			url_info_to_data: function (data) {
@@ -962,24 +1011,39 @@
 					!is_object((url_info = data.url))
 				) {
 					// Error
-					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
+					this.send(
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension data" }
+					);
 					return;
 				}
 
 				// Exists
 				if (!Array.prototype.hasOwnProperty.call(this.url_info_to_data_functions, id)) {
 					// Error
-					this.send(this.action, { err: "Invalid extension function" }, this.reply_id);
+					this.send(
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension function" }
+					);
 					return;
 				}
 				fn = this.url_info_to_data_functions[id];
 
 				// Call
 				fn(url_info, function (err, data) {
-					self.send(action, {
-						err: err,
-						data: data
-					}, reply_id);
+					self.send(
+						action,
+						reply_id,
+						self.timeout_delay,
+						{
+							err: err,
+							data: data
+						}
+					);
 				}._w(37));
 			}._w(36),
 			create_actions: function (data) {
@@ -995,24 +1059,39 @@
 					!is_object((fn_info = data.info))
 				) {
 					// Error
-					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
+					this.send(
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension data" }
+					);
 					return;
 				}
 
 				// Exists
 				if (!Array.prototype.hasOwnProperty.call(this.actions_functions, id)) {
 					// Error
-					this.send(this.action, { err: "Invalid extension function" }, this.reply_id);
+					this.send(
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension function" }
+					);
 					return;
 				}
 				fn = this.actions_functions[id];
 
 				// Call
 				fn(fn_data, fn_info, function (err, data) {
-					self.send(action, {
-						err: err,
-						data: data
-					}, reply_id);
+					self.send(
+						action,
+						reply_id,
+						self.timeout_delay,
+						{
+							err: err,
+							data: data
+						}
+					);
 				}._w(39));
 			}._w(38),
 			create_details: function (data) {
@@ -1028,24 +1107,39 @@
 					!is_object((fn_info = data.info))
 				) {
 					// Error
-					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
+					this.send(
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension data" }
+					);
 					return;
 				}
 
 				// Exists
 				if (!Array.prototype.hasOwnProperty.call(this.details_functions, id)) {
 					// Error
-					this.send(this.action, { err: "Invalid extension function" }, this.reply_id);
+					this.send(
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension function" }
+					);
 					return;
 				}
 				fn = this.details_functions[id];
 
 				// Call
 				fn(fn_data, fn_info, function (err, data) {
-					self.send(action, {
-						err: err,
-						data: set_shared_node(data)
-					}, reply_id);
+					self.send(
+						action,
+						reply_id,
+						self.timeout_delay,
+						{
+							err: err,
+							data: set_shared_node(data)
+						}
+					);
 				}._w(41));
 			}._w(40),
 		};
@@ -1093,30 +1187,31 @@
 				return;
 			}
 
-			var d = api.timeout_delay;
-			api.timeout_delay = -1;
-
-			api.send("request", {
-				namespace: namespace,
-				type: type,
-				id: unique_id,
-				info: info
-			}, null, function (err, data) {
-				if (err !== null) {
-					data = null;
-				}
-				else {
-					if ((err = data.err) !== null) {
+			api.send(
+				"request",
+				null,
+				-1,
+				{
+					namespace: namespace,
+					type: type,
+					id: unique_id,
+					info: info
+				},
+				function (err, data) {
+					if (err !== null) {
 						data = null;
 					}
-					else if ((data = data.data) === null) {
-						err = "Invalid extension data";
+					else {
+						if ((err = data.err) !== null) {
+							data = null;
+						}
+						else if ((data = data.data) === null) {
+							err = "Invalid extension data";
+						}
 					}
-				}
-				callback.call(null, err, data);
-			}._w(47));
-
-			api.timeout_delay = d;
+					callback.call(null, err, data);
+				}._w(47)
+			);
 		}._w(46);
 
 		var insert_styles = function (styles) {
@@ -1139,17 +1234,25 @@
 		}._w(49);
 		var parse_html = function (text, def) {
 			try {
-				return (new DOMParser()).parseFromString(text, "text/html");
+				return new DOMParser().parseFromString(text, "text/html");
 			}
 			catch (e) {
 				return def;
 			}
 		}._w(50);
+		var parse_xml = function (text, def) {
+			try {
+				return new DOMParser().parseFromString(text, "text/xml");
+			}
+			catch (e) {
+				return def;
+			}
+		}._w(51);
 
 		var get_domain = function (url) {
 			var m = /^(?:[\w\-]+):\/*((?:[\w\-]+\.)*)([\w\-]+\.[\w\-]+)/i.exec(url);
 			return (m === null) ? [ "", "" ] : [ m[1].toLowerCase(), m[2].toLowerCase() ];
-		}._w(51);
+		}._w(52);
 
 		var get_image = function (url, flags, callback) {
 			if (api === null || api.init_state !== 2) {
@@ -1158,24 +1261,27 @@
 			}
 
 			// Send
-			var d = api.timeout_delay;
-			api.timeout_delay = 10000;
-			api.send("get_image", { url: url, flags: flags }, null, function (err, data) {
-				if (err !== null) {
-					data = null;
-				}
-				else if (!is_object(data)) {
-					err = "Invalid data";
-				}
-				else if (typeof((err = data.err)) !== "string" && typeof((data = data.url)) !== "string") {
-					data = null;
-					err = "Invalid data";
-				}
+			api.send(
+				"get_image",
+				null,
+				10000,
+				{ url: url, flags: flags },
+				function (err, data) {
+					if (err !== null) {
+						data = null;
+					}
+					else if (!is_object(data)) {
+						err = "Invalid data";
+					}
+					else if (typeof((err = data.err)) !== "string" && typeof((data = data.url)) !== "string") {
+						data = null;
+						err = "Invalid data";
+					}
 
-				callback.call(null, err, data);
-			}._w(53));
-			api.timeout_delay = d;
-		}._w(52);
+					callback.call(null, err, data);
+				}._w(54)
+			);
+		}._w(53);
 
 
 		// Exports
@@ -1190,6 +1296,7 @@
 			insert_styles: insert_styles,
 			parse_json: parse_json,
 			parse_html: parse_html,
+			parse_xml: parse_xml,
 			get_domain: get_domain,
 			random_string: random_string,
 			is_object: is_object,
@@ -1207,21 +1314,21 @@
 
 	var $$ = function (selector, root) {
 		return (root || document).querySelectorAll(selector);
-	}._w(54);
+	}._w(55);
 	var $ = (function () {
 
 		var d = document;
 
 		var Module = function (selector, root) {
 			return (root || d).querySelector(selector);
-		}._w(56);
+		}._w(57);
 
 		Module.add = function (parent, child) {
 			return parent.appendChild(child);
-		}._w(57);
+		}._w(58);
 		Module.tnode = function (text) {
 			return d.createTextNode(text);
-		}._w(58);
+		}._w(59);
 		Module.node = function (tag, class_name, text) {
 			var elem = d.createElement(tag);
 			elem.className = class_name;
@@ -1229,19 +1336,19 @@
 				elem.textContent = text;
 			}
 			return elem;
-		}._w(59);
+		}._w(60);
 		Module.node_ns = function (namespace, tag, class_name) {
 			var elem = d.createElementNS(namespace, tag);
 			elem.setAttribute("class", class_name);
 			return elem;
-		}._w(60);
+		}._w(61);
 		Module.node_simple = function (tag) {
 			return d.createElement(tag);
-		}._w(61);
+		}._w(62);
 
 		return Module;
 
-	}._w(55))();
+	}._w(56))();
 
 	var re_html = /[<>&]/g,
 		re_html_full = /[<>&'"]/g,
@@ -1256,8 +1363,8 @@
 	var escape_html = function (text, regex) {
 		return text.replace(regex, function (m) {
 			return html_replace_map[m];
-		}._w(63));
-	}._w(62);
+		}._w(64));
+	}._w(63);
 
 	var innerhtml_to_safe_text = function (node) {
 		var text = "",
@@ -1336,7 +1443,7 @@
 		}
 
 		return text;
-	}._w(64);
+	}._w(65);
 	var apply_safe_text_to_node = function (node, safe_text) {
 		// Safe version of: node.innerHTML = safe_text;
 		// Cannot inject any <script> tags or similar
@@ -1352,7 +1459,7 @@
 		var entity_replace_fn = function (m, entity) {
 			var e = apply_safe_text_to_node.entities[entity];
 			return (e === undefined) ? m : e;
-		}._w(66);
+		}._w(67);
 
 		while (true) {
 			re_start.lastIndex = pos;
@@ -1437,7 +1544,7 @@
 		if (text.length > 0) {
 			current.appendChild(document.createTextNode(text));
 		}
-	}._w(65);
+	}._w(66);
 	apply_safe_text_to_node.tags = {
 		a: { href: true },
 		b: {},
@@ -1472,16 +1579,16 @@
 					}
 				}
 			}
-		}._w(67),
+		}._w(68),
 		information: function (node, data) {
 			data.information = innerhtml_to_safe_text(node);
-		}._w(68),
+		}._w(69),
 		stardom: function (node, data) {
 			var n = node.querySelector("b");
 			if (n !== null) {
 				data.fans = parseInt(n.textContent.trim(), 10) || 0;
 			}
-		}._w(69),
+		}._w(70),
 		date: function (node, data) {
 			var m = /(\d+)-(\d+)-(\d+),\s*(\d+):(\d+)/.exec(node.textContent);
 			if (m !== null) {
@@ -1495,7 +1602,7 @@
 					0
 				).getTime();
 			}
-		}._w(70),
+		}._w(71),
 		seeders: function (node, data) {
 			if ($("b", node) !== null) {
 				data.seeders = -1;
@@ -1503,7 +1610,7 @@
 			else {
 				data.seeders = parseInt(node.textContent.trim(), 10) || 0;
 			}
-		}._w(71),
+		}._w(72),
 		leechers: function (node, data) {
 			if ($("b", node) !== null) {
 				data.leechers = -1;
@@ -1511,18 +1618,18 @@
 			else {
 				data.leechers = parseInt(node.textContent.trim(), 10) || 0;
 			}
-		}._w(72),
+		}._w(73),
 		downloads: function (node, data) {
 			data.downloads = parseInt(node.textContent.trim(), 10) || 0;
-		}._w(73),
+		}._w(74),
 		"file size": function (node, data) {
 			data.file_size = file_size_text_to_number(node.textContent.trim());
-		}._w(74)
+		}._w(75)
 	};
 
 	var pad = function (n, sep) {
 		return (n < 10 ? "0" : "") + n + sep;
-	}._w(75);
+	}._w(76);
 	var format_date = function (timestamp) {
 		var d = new Date(timestamp);
 		return d.getUTCFullYear() + "-" +
@@ -1530,7 +1637,7 @@
 			pad(d.getUTCDate(), " ") +
 			pad(d.getUTCHours(), ":") +
 			pad(d.getUTCMinutes(), "");
-	}._w(76);
+	}._w(77);
 
 	var file_size_scale = {
 		k: 1024,
@@ -1553,7 +1660,7 @@
 		}
 
 		return v;
-	}._w(77);
+	}._w(78);
 	var file_size_number_to_text = function (size) {
 		var scale = 1024,
 			i, ii;
@@ -1563,7 +1670,7 @@
 		}
 
 		return size.toFixed(3).replace(/\.?0+$/, "") + " " + file_size_labels[i];
-	}._w(78);
+	}._w(79);
 
 	var category_to_button_style_map = {
 		"english-translated anime": "cosplay",
@@ -1588,25 +1695,26 @@
 		if (data.sukebei) return "doujinshi";
 		var subcat = category_to_button_style_map[data.subcategory.toLowerCase()];
 		return (subcat === undefined ? "misc" : subcat);
-	}._w(79);
+	}._w(80);
 
 	var nyaa_get_data = function (info, callback) {
 		var data = xlinks_api.cache_get(info.id);
 		callback(null, data);
-	}._w(80);
+	}._w(81);
 	var nyaa_set_data = function (data, info, callback) {
 		xlinks_api.cache_set(info.id, data, xlinks_api.ttl_1_day);
 		callback(null);
-	}._w(81);
+	}._w(82);
 	var nyaa_setup_xhr = function (callback) {
 		var info = this.infos[0];
 		callback(null, {
 			method: "GET",
-			url: "http://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/?page=view&tid=" + info.gid + "&showfiles=1"
+			url: "http://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/?page=view&tid=" + info.gid + "&showfiles=1",
+			headers: { "Cookie": "" }
 		});
-	}._w(82);
+	}._w(83);
 	var nyaa_parse_response = function (xhr, callback) {
-		var html = xlinks_api.parse_html(xhr.responseText),
+		var html = xlinks_api.parse_html(xhr.responseText, null),
 			info = this.infos[0],
 			data, fn, n1, n2, ns, i, ii, m, t;
 
@@ -1714,11 +1822,12 @@
 		}
 
 		callback(null, [ data ]);
-	}._w(83);
+	}._w(84);
 
 	var url_get_info = function (url, callback) {
-		var m = /^(?:https?:\/*)?((www\.|sukebei\.)?nyaa\.se)(?:\/[^\?\#]*)?(\?[^\#]*)?(?:\#[^\w\W]*)?/i.exec(url),
+		var m = /^(?:https?:\/*)?((www\.|sukebei\.)?nyaa\.se)(\/[\w\W]*)?/i.exec(url),
 			s, m2;
+
 		if (m !== null && m[3] !== undefined && (m2 = /[\?\&]tid=(\d+)/.exec(m[3])) !== null) {
 			s = (m[2] === "sukebei.");
 			callback(null, {
@@ -1733,10 +1842,10 @@
 		else {
 			callback(null, null);
 		}
-	}._w(84);
+	}._w(85);
 	var url_info_to_data = function (url_info, callback) {
 		xlinks_api.request("nyaa", "torrent", url_info.id, url_info, callback);
-	}._w(85);
+	}._w(86);
 	var create_actions = function (data, info, callback) {
 		var urls = [],
 			url_base = "http://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/";
@@ -1748,7 +1857,7 @@
 		urls.push([ null, url_base + "?page=download&tid=" + info.gid + "&txt=1", "Txt File" ]);
 
 		callback(null, urls);
-	}._w(86);
+	}._w(87);
 	var create_details = function (data, info, callback) {
 		var container = $.node("div", "xl-details-limited-size"),
 			n1, n2;
@@ -1790,14 +1899,14 @@
 
 		// Done
 		callback(null, container);
-	}._w(87);
+	}._w(88);
 
 	xlinks_api.init({
 		namespace: "nyaa_torrents",
 		name: "Nyaa Torrents",
 		author: "dnsev-h",
 		description: "Linkify and format nyaa.se links",
-		version: [1,0,0,2,-0xDB],
+		version: [1,0,0,3,-0xDB],
 		registrations: 1
 	}, function (err) {
 		if (err === null) {
@@ -1826,7 +1935,7 @@
 					},
 				}],
 				linkifiers: [{
-					regex: /(https?:\/*)?(?:www\.|sukebei\.)?nyaa\.se(?:\/[^<>\s\'\"]*)?/i,
+					regex: /(https?:\/*)?(?:www\.|sukebei\.)?nyaa\.se(?:\/[^<>()\s\'\"]*)?/i,
 					prefix_group: 1,
 					prefix: "http://",
 				}],
@@ -1838,7 +1947,7 @@
 				}]
 			});
 		}
-	}._w(88));
+	}._w(89));
 
 })();
 

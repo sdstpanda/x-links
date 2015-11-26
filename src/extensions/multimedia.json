@@ -1,17 +1,17 @@
 {
-	"name": "X-links Extension - Nyaa Torrents",
-	"version": "1.0.0.3",
+	"name": "X-links Extension - Multimedia",
+	"version": "1.0",
 	"author": "dnsev-h",
-	"description": "Linkify and format nyaa.se links",
+	"description": "Linkify and format various multimedia links",
 	"namespace": "dnsev-h",
 	"urls": {
 		"homepage": "https://dnsev-h.github.io/x-links/",
 		"support": "https://github.com/dnsev-h/x-links/issues",
 		"update_base": "https://raw.githubusercontent.com/dnsev-h/x-links/stable/",
-		"changelog": "https://raw.githubusercontent.com/dnsev-h/x-links/stable/src/extensions/nyaa_changelog"
+		"changelog": "https://raw.githubusercontent.com/dnsev-h/x-links/stable/src/extensions/multimedia_changelog"
 	},
-	"inputs": [ "./nyaa.js" ],
-	"output": "../../builds/x-links-ext-nyaa.user.js",
+	"inputs": [ "./multimedia.js" ],
+	"output": "../../builds/x-links-ext-multimedia.user.js",
 	"icon48": "../../resources/images/extensions/icon48.png",
 	"icon64": "../../resources/images/extensions/icon64.png",
 	"targets": "@:../main.json#targets",

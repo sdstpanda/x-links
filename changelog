@@ -1,5 +1,11 @@
 ﻿master
 
+1.2.3
+- dnsev-h
+  + Fixed a bug that would cause some inlined links to not be formatted
+  + Added support for multi-page-viewer linkification
+  + Various other internal tweaks
+
 1.2.2.3
 - dnsev-h
   + Fixed a bug that would break linkification using the 4chan-inline extension
