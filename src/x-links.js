@@ -9561,7 +9561,7 @@
 						fn.call(this, action_data);
 					}
 					else if (this.reply_id !== null) {
-						this.send(this.action, { err: "Invalid extension call" }, this.reply_id);
+						this.send(this.api_name, this.api_key, this.action, { err: "Invalid extension call" }, this.reply_id);
 					}
 				}
 
@@ -9573,7 +9573,7 @@
 			this.api_key = null;
 			this.api_name = null;
 		};
-		ExtensionAPI.prototype.send = function (action, data, reply_to, on_reply) {
+		ExtensionAPI.prototype.send = function (api_name, api_key, action, data, reply_to, on_reply) {
 			var self = this,
 				id = null,
 				timeout, cb, i;
@@ -9610,8 +9610,8 @@
 				extension: false,
 				id: id,
 				reply: reply_to || null,
-				key: this.api_key,
-				name: this.api_name,
+				key: api_key,
+				name: api_name,
 				data: data
 			});
 		};
@@ -9658,7 +9658,7 @@
 
 				self.api_name = api_name;
 				self.api_key = api_key;
-				self.send("api_function", {
+				self.send(api_name, api_key, "api_function", {
 					id: fn_id,
 					args: args,
 					state: state
@@ -9889,7 +9889,7 @@
 
 				send_data.url = url_info;
 
-				self.send(event, send_data, null, function (err, data) {
+				self.send(api_name, api_key, event, send_data, null, function (err, data) {
 					if (err !== null) {
 						cb(err, null);
 					}
@@ -9924,7 +9924,7 @@
 				send_data.data = data;
 				send_data.info = info;
 
-				self.send(event, send_data, null, function (err, data) {
+				self.send(api_name, api_key, event, send_data, null, function (err, data) {
 					if (err !== null) {
 						cb(err, null);
 					}
@@ -10000,7 +10000,7 @@
 					typeof((author = data.author)) !== "string" ||
 					typeof((description = data.description)) !== "string"
 				) {
-					this.send(this.action, { err: "Missing extension identification" }, this.reply_id);
+					this.send(this.api_name, this.api_key, this.action, { err: "Missing extension identification" }, this.reply_id);
 					return;
 				}
 				enabled = extension_is_enabled(name, author, description);
@@ -10013,7 +10013,7 @@
 				}
 				registered.push(reg);
 				if (!enabled) {
-					this.send(this.action, { err: "Extension disabled" }, this.reply_id);
+					this.send(this.api_name, this.api_key, this.action, { err: "Extension disabled" }, this.reply_id);
 					return;
 				}
 
@@ -10037,14 +10037,14 @@
 				}
 
 				// Send reply
-				this.send(this.action, reply_data, this.reply_id);
+				this.send(this.api_name, this.api_key, this.action, reply_data, this.reply_id);
 			},
 		};
 		ExtensionAPI.handlers = {
 			register: function (data) {
 				if (!is_object(data)) {
 					// Failure
-					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
+					this.send(this.api_name, this.api_key, this.action, { err: "Invalid extension data" }, this.reply_id);
 					return;
 				}
 
@@ -10100,7 +10100,7 @@
 				}
 
 				// Okay
-				this.send(this.action, {
+				this.send(this.api_name, this.api_key, this.action, {
 					err: null,
 					response: response
 				}, this.reply_id);
@@ -10124,7 +10124,7 @@
 					(info = data.info) === undefined
 				) {
 					// Failure
-					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
+					this.send(this.api_name, this.api_key, this.action, { err: "Invalid extension data" }, this.reply_id);
 					return;
 				}
 
@@ -10136,7 +10136,7 @@
 						data = null;
 					}
 
-					self.send(action, {
+					self.send(api_name, api_key, action, {
 						err: err,
 						data: data
 					}, reply_id);
@@ -10159,7 +10159,7 @@
 					typeof((flags = data.flags)) !== "number"
 				) {
 					// Failure
-					this.send(this.action, { err: "Invalid extension data" }, this.reply_id);
+					this.send(this.api_name, this.api_key, this.action, { err: "Invalid extension data" }, this.reply_id);
 					return;
 				}
 
@@ -10167,7 +10167,7 @@
 					self.api_key = api_key;
 					self.api_name = api_name;
 
-					self.send(action, { err: err, url: url }, reply_id);
+					self.send(api_name, api_key, action, { err: err, url: url }, reply_id);
 
 					self.api_key = null;
 					self.api_name = null;
@@ -10185,7 +10185,7 @@
 			return function (req) {
 				api.api_name = api_name;
 				api.api_key = api_key;
-				api.send("request_end", { id: req.data.id });
+				api.send(api_name, api_key, "request_end", { id: req.data.id });
 				api.api_name = null;
 				api.api_key = null;
 			};
