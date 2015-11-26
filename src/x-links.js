@@ -9663,8 +9663,6 @@
 					}
 				}
 
-				self.api_name = api_name;
-				self.api_key = api_key;
 				self.send(
 					api_name,
 					api_key,
@@ -9678,8 +9676,6 @@
 					},
 					self.request_api_fn_callback(callback)
 				);
-				self.api_name = null;
-				self.api_key = null;
 			};
 		};
 		ExtensionAPI.prototype.request_api_fn_callback = function (callback) {
@@ -9897,11 +9893,6 @@
 				self = this;
 
 			return function (url_info, cb) {
-				var d = self.timeout_delay;
-				self.timeout_delay = delay;
-				self.api_name = api_name;
-				self.api_key = api_key;
-
 				send_data.url = url_info;
 
 				self.send(
@@ -9929,10 +9920,6 @@
 						}
 					}
 				);
-
-				self.api_name = null;
-				self.api_key = null;
-				self.timeout_delay = d;
 			};
 		};
 		ExtensionAPI.prototype.register_details_actions_fn = function (event, send_data, validator) {
@@ -9941,9 +9928,6 @@
 				self = this;
 
 			return function (data, info, cb) {
-				self.api_name = api_name;
-				self.api_key = api_key;
-
 				send_data.data = data;
 				send_data.info = info;
 
@@ -9969,9 +9953,6 @@
 						}
 					}
 				);
-
-				self.api_name = null;
-				self.api_key = null;
 			};
 		};
 
@@ -10202,9 +10183,6 @@
 				}
 
 				request(namespace, type, unique_id, info, function (err, data) {
-					self.api_key = api_key;
-					self.api_name = api_name;
-
 					if (err !== null) {
 						data = null;
 					}
@@ -10220,9 +10198,6 @@
 							data: data
 						}
 					);
-
-					self.api_key = null;
-					self.api_name = null;
 				});
 			},
 			get_image: function (data) {
@@ -10251,9 +10226,6 @@
 				}
 
 				API.get_thumbnail(url, flags, function (err, url) {
-					self.api_key = api_key;
-					self.api_name = api_name;
-
 					self.send(
 						api_name,
 						api_key,
@@ -10262,9 +10234,6 @@
 						self.timeout_delay,
 						{ err: err, url: url }
 					);
-
-					self.api_key = null;
-					self.api_name = null;
 				});
 			},
 		};
@@ -10277,8 +10246,6 @@
 		};
 		var create_api_request_complete_fn = function (api_name, api_key) {
 			return function (req) {
-				api.api_name = api_name;
-				api.api_key = api_key;
 				api.send(
 					api_name,
 					api_key,
@@ -10287,8 +10254,6 @@
 					api.timeout_delay,
 					{ id: req.data.id }
 				);
-				api.api_name = null;
-				api.api_key = null;
 			};
 		};
 
