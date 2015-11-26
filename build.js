@@ -342,10 +342,14 @@
 			header += "// @icon64      data:image/png;base64," + fs.readFileSync(f).toString("base64") + "\n";
 			requirements.push(f);
 		}
+		ii = 0;
 		if (Array.isArray((list = json.gm_permissions))) {
 			for (i = 0, ii = list.length; i < ii; ++i) {
 				header += "// @grant       " + list[i] + "\n";
 			}
+		}
+		if (ii === 0) {
+			header += "// @grant       none\n";
 		}
 		header += "// @run-at      document-start\n";
 		header += "// ==/UserScript==";
