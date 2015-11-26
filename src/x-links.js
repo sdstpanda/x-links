@@ -9637,19 +9637,25 @@
 				}
 			}
 		};
-		ExtensionAPI.prototype.request_api_fn = function (fn_id) {
+		ExtensionAPI.prototype.request_api_fn = function (fn_id, fn_name) {
 			var self = this,
 				api_name = this.api_name,
-				api_key = this.api_key;
+				api_key = this.api_key,
+				remove_dom = (fn_name === "parse_response");
 
 			return function () {
 				var state = null,
 					i = 0,
 					ii = arguments.length - 1,
 					args = new Array(ii),
-					callback = arguments[ii];
+					callback = arguments[ii],
+					a;
 
 				for (; i < ii; ++i) args[i] = arguments[i];
+
+				if (remove_dom && is_object((a = args[0])) && a.responseXML) {
+					a.responseXML = null;
+				}
 
 				if (this !== null) {
 					state = {
@@ -9769,7 +9775,7 @@
 				req_delay_error = 5000,
 				req_functions = {},
 				req_function_ids = {},
-				fns, fn_id, req, i, ii, k, o, v;
+				fns, fn_id, fn_name, req, i, ii, k, o, v;
 
 			// Settings
 			if (typeof((v = reg_info.group)) === "string") req_group = v;
@@ -9785,8 +9791,9 @@
 				for (i = 0, ii = fns.length; i < ii; ++i) {
 					v = fns[i];
 					if (Object.prototype.hasOwnProperty.call(ExtensionAPI.request_api_functions, v)) {
+						fn_name = ExtensionAPI.request_api_functions[v];
 						fn_id = random_string(32);
-						req_functions[ExtensionAPI.request_api_functions[v]] = this.request_api_fn(fn_id, v);
+						req_functions[fn_name] = this.request_api_fn(fn_id, fn_name);
 						req_function_ids[v] = fn_id;
 					}
 				}
