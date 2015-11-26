@@ -1014,7 +1014,15 @@ var xlinks_api = (function () {
 	};
 	var parse_html = function (text, def) {
 		try {
-			return (new DOMParser()).parseFromString(text, "text/html");
+			return new DOMParser().parseFromString(text, "text/html");
+		}
+		catch (e) {
+			return def;
+		}
+	};
+	var parse_xml = function (text, def) {
+		try {
+			return new DOMParser().parseFromString(text, "text/xml");
 		}
 		catch (e) {
 			return def;
@@ -1068,6 +1076,7 @@ var xlinks_api = (function () {
 		insert_styles: insert_styles,
 		parse_json: parse_json,
 		parse_html: parse_html,
+		parse_xml: parse_xml,
 		get_domain: get_domain,
 		random_string: random_string,
 		is_object: is_object,
