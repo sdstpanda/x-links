@@ -9561,7 +9561,14 @@
 						fn.call(this, action_data);
 					}
 					else if (this.reply_id !== null) {
-						this.send(this.api_name, this.api_key, this.action, { err: "Invalid extension call" }, this.reply_id);
+						this.send(
+							this.api_name,
+							this.api_key,
+							this.action,
+							this.reply_id,
+							this.timeout_delay,
+							{ err: "Invalid extension call" }
+						);
 					}
 				}
 
@@ -9573,7 +9580,7 @@
 			this.api_key = null;
 			this.api_name = null;
 		};
-		ExtensionAPI.prototype.send = function (api_name, api_key, action, data, reply_to, on_reply) {
+		ExtensionAPI.prototype.send = function (api_name, api_key, action, reply_to, timeout_delay, data, on_reply) {
 			var self = this,
 				id = null,
 				timeout, cb, i;
@@ -9596,12 +9603,12 @@
 				this.reply_callbacks[id] = cb;
 				cb = null;
 
-				if (this.timeout_delay >= 0) {
+				if (timeout_delay >= 0) {
 					timeout = setTimeout(function () {
 						timeout = null;
 						delete self.reply_callbacks[id];
 						on_reply.call(self, "Response timeout");
-					}, this.timeout_delay);
+					}, timeout_delay);
 				}
 			}
 
@@ -9658,11 +9665,19 @@
 
 				self.api_name = api_name;
 				self.api_key = api_key;
-				self.send(api_name, api_key, "api_function", {
-					id: fn_id,
-					args: args,
-					state: state
-				}, null, self.request_api_fn_callback(callback));
+				self.send(
+					api_name,
+					api_key,
+					"api_function",
+					null,
+					self.timeout_delay,
+					{
+						id: fn_id,
+						args: args,
+						state: state
+					},
+					self.request_api_fn_callback(callback)
+				);
 				self.api_name = null;
 				self.api_key = null;
 			};
@@ -9889,23 +9904,31 @@
 
 				send_data.url = url_info;
 
-				self.send(api_name, api_key, event, send_data, null, function (err, data) {
-					if (err !== null) {
-						cb(err, null);
+				self.send(
+					api_name,
+					api_key,
+					event,
+					null,
+					delay,
+					send_data,
+					function (err, data) {
+						if (err !== null) {
+							cb(err, null);
+						}
+						else if (!is_object(data)) {
+							cb("Invalid extension data", null);
+						}
+						else if ((err = data.err) !== null) {
+							cb(err, null);
+						}
+						else if (!is_object(data.data)) {
+							cb("Invalid extension data", null);
+						}
+						else {
+							cb(null, data.data);
+						}
 					}
-					else if (!is_object(data)) {
-						cb("Invalid extension data", null);
-					}
-					else if ((err = data.err) !== null) {
-						cb(err, null);
-					}
-					else if (!is_object(data.data)) {
-						cb("Invalid extension data", null);
-					}
-					else {
-						cb(null, data.data);
-					}
-				});
+				);
 
 				self.api_name = null;
 				self.api_key = null;
@@ -9924,20 +9947,28 @@
 				send_data.data = data;
 				send_data.info = info;
 
-				self.send(api_name, api_key, event, send_data, null, function (err, data) {
-					if (err !== null) {
-						cb(err, null);
+				self.send(
+					api_name,
+					api_key,
+					event,
+					null,
+					self.timeout_delay,
+					send_data,
+					function (err, data) {
+						if (err !== null) {
+							cb(err, null);
+						}
+						else if (!is_object(data)) {
+							cb("Invalid extension data", null);
+						}
+						else if ((err = data.err) !== null) {
+							cb(err, null);
+						}
+						else {
+							validator(data.data, cb);
+						}
 					}
-					else if (!is_object(data)) {
-						cb("Invalid extension data", null);
-					}
-					else if ((err = data.err) !== null) {
-						cb(err, null);
-					}
-					else {
-						validator(data.data, cb);
-					}
-				});
+				);
 
 				self.api_name = null;
 				self.api_key = null;
@@ -10000,7 +10031,14 @@
 					typeof((author = data.author)) !== "string" ||
 					typeof((description = data.description)) !== "string"
 				) {
-					this.send(this.api_name, this.api_key, this.action, { err: "Missing extension identification" }, this.reply_id);
+					this.send(
+						this.api_name,
+						this.api_key,
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Missing extension identification" }
+					);
 					return;
 				}
 				enabled = extension_is_enabled(name, author, description);
@@ -10013,7 +10051,14 @@
 				}
 				registered.push(reg);
 				if (!enabled) {
-					this.send(this.api_name, this.api_key, this.action, { err: "Extension disabled" }, this.reply_id);
+					this.send(
+						this.api_name,
+						this.api_key,
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Extension disabled" }
+					);
 					return;
 				}
 
@@ -10037,14 +10082,28 @@
 				}
 
 				// Send reply
-				this.send(this.api_name, this.api_key, this.action, reply_data, this.reply_id);
+				this.send(
+					this.api_name,
+					this.api_key,
+					this.action,
+					this.reply_id,
+					this.timeout_delay,
+					reply_data
+				);
 			},
 		};
 		ExtensionAPI.handlers = {
 			register: function (data) {
 				if (!is_object(data)) {
 					// Failure
-					this.send(this.api_name, this.api_key, this.action, { err: "Invalid extension data" }, this.reply_id);
+					this.send(
+						this.api_name,
+						this.api_key,
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension data" }
+					);
 					return;
 				}
 
@@ -10100,10 +10159,17 @@
 				}
 
 				// Okay
-				this.send(this.api_name, this.api_key, this.action, {
-					err: null,
-					response: response
-				}, this.reply_id);
+				this.send(
+					this.api_name,
+					this.api_key,
+					this.action,
+					this.reply_id,
+					this.timeout_delay,
+					{
+						err: null,
+						response: response
+					}
+				);
 
 				// Done
 				Main.start_processing(!complete);
@@ -10124,7 +10190,14 @@
 					(info = data.info) === undefined
 				) {
 					// Failure
-					this.send(this.api_name, this.api_key, this.action, { err: "Invalid extension data" }, this.reply_id);
+					this.send(
+						this.api_name,
+						this.api_key,
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension data" }
+					);
 					return;
 				}
 
@@ -10136,10 +10209,17 @@
 						data = null;
 					}
 
-					self.send(api_name, api_key, action, {
-						err: err,
-						data: data
-					}, reply_id);
+					self.send(
+						api_name,
+						api_key,
+						action,
+						reply_id,
+						self.timeout_delay,
+						{
+							err: err,
+							data: data
+						}
+					);
 
 					self.api_key = null;
 					self.api_name = null;
@@ -10159,7 +10239,14 @@
 					typeof((flags = data.flags)) !== "number"
 				) {
 					// Failure
-					this.send(this.api_name, this.api_key, this.action, { err: "Invalid extension data" }, this.reply_id);
+					this.send(
+						this.api_name,
+						this.api_key,
+						this.action,
+						this.reply_id,
+						this.timeout_delay,
+						{ err: "Invalid extension data" }
+					);
 					return;
 				}
 
@@ -10167,7 +10254,14 @@
 					self.api_key = api_key;
 					self.api_name = api_name;
 
-					self.send(api_name, api_key, action, { err: err, url: url }, reply_id);
+					self.send(
+						api_name,
+						api_key,
+						action,
+						reply_id,
+						self.timeout_delay,
+						{ err: err, url: url }
+					);
 
 					self.api_key = null;
 					self.api_name = null;
@@ -10185,7 +10279,14 @@
 			return function (req) {
 				api.api_name = api_name;
 				api.api_key = api_key;
-				api.send(api_name, api_key, "request_end", { id: req.data.id });
+				api.send(
+					api_name,
+					api_key,
+					"request_end",
+					null,
+					api.timeout_delay,
+					{ id: req.data.id }
+				);
 				api.api_name = null;
 				api.api_key = null;
 			};
