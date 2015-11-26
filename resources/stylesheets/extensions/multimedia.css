@@ -1,0 +1,184 @@
+﻿.xl-mm-details-table {
+	display: table;
+	width: 100%;
+	height: 200px;
+}
+.xl-mm-details-table-no-height {
+	height: auto;
+}
+.xl-mm-details-table-row {
+	display: table-row;
+	height: 100%;
+}
+.xl-mm-details-table-cell {
+	display: table-cell;
+	height: 100%;
+	vertical-align: top;
+}
+.xl-mm-details-table-cell-full {
+	width: 100%;
+}
+.xl-mm-details-table-content {
+	width: 100%;
+	height: 100%;
+	position: relative;
+}
+.xl-mm-details-table-content-left {
+	margin-right: 0.5em;
+	width: 200px;
+	height: 100%;
+	overflow: hidden;
+	position: relative;
+}
+.xl-mm-details-table-content-inner {
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	right: 0;
+	overflow: hidden;
+}
+.xl-mm-details-table-no-height .xl-mm-details-table-content-inner {
+	position: relative;
+	overflow: visible;
+}
+
+.xl-mm-details-thumbnail {
+	width: 100%;
+	padding-top: 56.25%;
+	background-color: rgba(0,0,0,0.03125);
+	background-repeat: no-repeat;
+	background-size: cover;
+	background-position: 50% 25%;
+}
+.xl-mm-details-thumbnail.xl-theme-dark {
+	background-color: rgba(255,255,255,0.03125);
+}
+.xl-mm-details-thumbnail-large {
+	padding-top: 75%;
+}
+.xl-mm-details-thumbnail-full {
+	padding-top: 0;
+	height: 100%;
+}
+.xl-mm-details-thumbnail-row {
+	width: 100%;
+	text-align: center;
+	margin-top: 0.25em;
+}
+.xl-mm-details-thumbnail-small {
+	display: inline-block;
+	vertical-align: top;
+	width: 33.333%;
+}
+.xl-mm-details-thumbnail-small>.xl-mm-details-thumbnail {
+	background-position: 50% 50%;
+}
+
+.xl-mm-details-stats {
+	text-align: right;
+	margin-bottom: 0.25em;
+	font-size: 0.875em !important;
+}
+.xl-mm-details-stats:after {
+	content: "";
+	display: block;
+	clear: both;
+}
+.xl-mm-details-stats-overlay {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+}
+.xl-mm-details-stats-overlay {
+	text-shadow: 0 0 0.125em #ffffff, 0 0.0625em 0.125em #ffffff;
+}
+.xl-mm-details-stats-overlay.xl-theme-dark {
+	text-shadow: 0 0 0.125em #000000, 0 0.0625em 0.125em #000000;
+}
+.xl-mm-details-stat-views {
+	float: left;
+	white-space: nowrap;
+}
+.xl-mm-details-stat {
+	display: inline-block;
+	vertical-align: middle;
+	white-space: nowrap;
+	padding-left: 0.5em;
+}
+.xl-mm-details-rating {
+	margin-bottom: 0.25em;
+	width: 100%;
+	height: 0.25em;
+	position: relative;
+	background: #f43333;
+}
+.xl-mm-details-rating-bar {
+	width: 0;
+	height: 100%;
+	background: #167ac6;
+}
+
+.xl-mm-details-duration {
+	margin-top: 0.25em;
+	font-size: 0.875em !important;
+}
+
+.xl-mm-details-paragraph {
+	font-size: 0.875em !important;
+	line-height: 1.05em;
+	margin: 0;
+	padding: 0;
+}
+.xl-mm-details-paragraph+.xl-mm-details-paragraph {
+	margin: 0.375em 0 0;
+}
+
+.xl-mm-details-description {
+}
+.xl-mm-details-description-code {
+	font-family: Courier, monospace !important;
+}
+.xl-mm-details-description-code>.xl-mm-details-paragraph {
+	line-height: 1.1em;
+	white-space: pre;
+}
+.xl-mm-details-description-code>.xl-mm-details-paragraph+.xl-mm-details-paragraph {
+	margin: 0;
+}
+
+.xl-mm-icon-dailymotion {
+	background-image: url('#{data:../../images/extensions/multimedia/icon-dailymotion.png}#');
+}
+.xl-mm-icon-githubgist {
+	background-image: url('#{data:../../images/extensions/multimedia/icon-github.png}#');
+}
+.xl-mm-icon-liveleak {
+	background-image: url('#{data:../../images/extensions/multimedia/icon-liveleak.png}#');
+}
+.xl-mm-icon-livestream {
+	background-image: url('#{data:../../images/extensions/multimedia/icon-livestream.png}#');
+}
+.xl-mm-icon-nicovideo {
+	background-image: url('#{data:../../images/extensions/multimedia/icon-nicovideo.png}#');
+}
+.xl-mm-icon-soundcloud {
+	background-image: url('#{data:../../images/extensions/multimedia/icon-soundcloud.png}#');
+}
+.xl-mm-icon-twitter {
+	background-image: url('#{data:../../images/extensions/multimedia/icon-twitter.png}#');
+}
+.xl-mm-icon-vimeo {
+	background-image: url('#{data:../../images/extensions/multimedia/icon-vimeo.png}#');
+}
+.xl-mm-icon-vine {
+	background-image: url('#{data:../../images/extensions/multimedia/icon-vine.png}#');
+}
+.xl-mm-icon-youtube {
+	background-image: url('#{data:../../images/extensions/multimedia/icon-youtube.png}#');
+}
+
+.xl-mm-icon+.xl-site-tag-text {
+	display: none;
+}
