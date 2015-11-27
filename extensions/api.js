@@ -338,7 +338,7 @@ var xlinks_api = (function () {
 			self.send(
 				"start",
 				null,
-				self.timeout_delay,
+				10000,
 				send_info,
 				function (err, data) {
 					err = self.on_init(err, data);

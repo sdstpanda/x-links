@@ -10523,8 +10523,9 @@
 			if (defer) {
 				// Wait
 				processing_start_timer = setTimeout(function () {
+					processing_start_timer = null;
 					start_processing(false);
-				}, 5000);
+				}, 10000);
 			}
 			else {
 				// Start processing
