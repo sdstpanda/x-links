@@ -1176,10 +1176,11 @@
 			(m = /(?:https?:\/*)?[\w\-\.]*liveleak\.com((?:\/[\w\W]*)?)/i.exec(url)) !== null &&
 			(m2 = /\/view[\w\W]*(?:[\?\&]i=([\w\_]+))/i.exec(m[1])) !== null
 		) {
+			s = m2[1];
 			data = {
 				id: "liveleak_" + s,
 				site: "liveleak",
-				vid: m2[1],
+				vid: s,
 				tag: "LiveLeak"
 			};
 		}
