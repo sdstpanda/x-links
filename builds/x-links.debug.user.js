@@ -2,7 +2,7 @@
 // @name        X-links (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.3.-0xDB
+// @version     1.2.3.1.-0xDB
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -5215,7 +5215,7 @@
 		// Private
 		var re_url = /(https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)(?:\/[^<>()\s\'\"]*)?/ig,
 			re_url_class_ignore = /(?:\binlined?\b|\bxl-)/,
-			re_deferrer = /^(?:https?:)?\/\/sys\.4chan\.org\/derefer\?url=([\w\W]*)$/i;
+			re_4chan_deferrer = /^(?:https?:)?\/\/sys\.4chan\.org\/derefer\?url=([\w\W]*)$/i;
 
 		// Linkification
 		var deep_dom_wrap = (function () {
@@ -5758,7 +5758,7 @@
 		}._w(368);
 		var parse_post = function (post) {
 			var auto_load_links = config.general.automatic_processing,
-				post_body, post_links, link_nodes, link_urls, link, url, i, ii;
+				post_body, post_links, link_nodes, link_urls, link, url, valid, i, ii;
 
 			// Exsauce
 			if (config.sauce.enabled && !browser.is_opera) {
@@ -5778,14 +5778,23 @@
 						$.remove(link);
 					}
 					else {
-						url = link.href;
-						if (link.classList.contains("linkified") && re_deferrer.test(url)) {
-							url = link.textContent.trim();
+						if (Config.is_4chan) {
+							valid = (!link.classList.contains("embedder") && link.getAttribute("data-cmd") !== "embed");
 						}
-						url = linkify_test(url);
-						if (url !== null) {
-							link_nodes.push(link);
-							link_urls.push(url);
+						else {
+							valid = true;
+						}
+
+						if (valid) {
+							url = link.href;
+							if (Config.is_4chan && link.classList.contains("linkified") && re_4chan_deferrer.test(url)) {
+								url = link.textContent.trim();
+							}
+							url = linkify_test(url);
+							if (url !== null) {
+								link_nodes.push(link);
+								link_urls.push(url);
+							}
 						}
 					}
 				}
@@ -10727,8 +10736,9 @@
 			if (defer) {
 				// Wait
 				processing_start_timer = setTimeout(function () {
+					processing_start_timer = null;
 					start_processing(false);
-				}._w(663), 5000);
+				}._w(663), 10000);
 			}
 			else {
 				// Start processing
@@ -10748,7 +10758,7 @@
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,3,-0xDB],
+			version: [1,2,3,1,-0xDB],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
