@@ -247,12 +247,15 @@
 			t.classList.add("xl-mm-details-table-no-height");
 			uploaded_by = "Posted by";
 		}
+		else if (is_code) {
+			uploaded_by = "Created by";
+		}
 
 
 		// Images
 		thumb = get_ordered_thumbnail(data.thumbnails, get_ordered_thumbnail.order_default);
 		if (thumb !== null) {
-			$.add(r, c = $.node("div", "xl-mm-details-table-cell"));
+			$.add(r, c = $.node("div", "xl-mm-details-table-cell-left"));
 			$.add(c, cc = $.node("div", "xl-mm-details-table-content-left"));
 
 			if (is_video) {
@@ -318,7 +321,7 @@
 		}
 
 		// Content
-		$.add(r, c = $.node("div", "xl-mm-details-table-cell xl-mm-details-table-cell-full"));
+		$.add(r, c = $.node("div", "xl-mm-details-table-cell-right"));
 		$.add(c, cc = $.node("div", "xl-mm-details-table-content"));
 		$.add(cc, n1 = $.node("div", "xl-mm-details-table-content-inner"));
 		cc = n1;
