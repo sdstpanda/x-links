@@ -2176,6 +2176,7 @@
 						[ "twitter", true, "twitter.com", "Enable link processing for Twitter" ],
 						[ "livestream", true, "livestream.com", "Enable link processing for Livestream" ],
 						[ "nicovideo", true, "nicovideo.jp", "Enable link processing for Niconico" ],
+						[ "githubgist", true, "gist.github.com", "Enable link processing for Github Gists" ],
 					],
 					multimedia: [
 						[ "use_icons", true, "Use website icons", "Show website icons rather than site [Tags] for links" ],
