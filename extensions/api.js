@@ -186,17 +186,106 @@ var xlinks_api = (function () {
 
 	var config = {};
 
+
+	var CommunicationChannel = function (name, key, is_extension, channel, callback) {
+		var self = this;
+
+		this.port = null;
+		this.port_other = null;
+		this.post = null;
+		this.on_message = null;
+		this.origin = null;
+		this.name_key = null;
+		this.is_extension = is_extension;
+		this.name = name;
+		this.key = key;
+		this.callback = callback;
+
+		if (channel === null) {
+			this.name_key = name;
+			if (key !== null) {
+				this.name_key += "_";
+				this.name_key += key;
+			}
+			this.origin = window.location.protocol + "//" + window.location.host;
+			this.post = this.post_window;
+			this.on_message = function (event) {
+				self.on_window_message(event);
+			};
+			window.addEventListener("message", this.on_message, false);
+		}
+		else {
+			this.port = channel.port1;
+			this.port_other = channel.port2;
+			this.post = this.post_channel;
+			this.on_message = function (event) {
+				self.on_port_message(event);
+			};
+			this.port.addEventListener("message", this.on_message, false);
+			this.port.start();
+		}
+	};
+
+	CommunicationChannel.prototype.post_window = function (message, transfer) {
+		var msg = {
+			ext: this.is_extension,
+			key: this.name_key,
+			data: message
+		};
+
+		try {
+			window.postMessage(msg, this.origin, transfer);
+		}
+		catch (e) {
+			// Tampermonkey bug
+			try {
+				unsafeWindow.postMessage(msg, this.origin, transfer);
+			}
+			catch (e2) {}
+		}
+	};
+	CommunicationChannel.prototype.post_channel = function (message, transfer) {
+		this.port.postMessage(message, transfer);
+	};
+	CommunicationChannel.prototype.on_window_message = function (event) {
+		var data = event.data;
+		if (
+			event.origin === this.origin &&
+			is_object(data) &&
+			data.ext === (!this.is_extension) && // jshint ignore:line
+			data.key === this.name_key &&
+			is_object((data = data.data))
+		) {
+			this.callback(event, data, this);
+		}
+	};
+	CommunicationChannel.prototype.on_port_message = function (event) {
+		var data = event.data;
+		if (is_object(data)) {
+			this.callback(event, data, this);
+		}
+	};
+	CommunicationChannel.prototype.close = function () {
+		if (this.on_message !== null) {
+			if (this.port === null) {
+				window.removeEventListener("message", this.on_message, false);
+			}
+			else {
+				this.port.removeEventListener("message", this.on_message, false);
+				this.port.close();
+				this.port = null;
+			}
+			this.on_message = null;
+		}
+	};
+
+
 	var api = null;
-	var API = function (info) {
-		this.origin = window.location.protocol + "//" + window.location.host;
-		this.timeout_delay = 1000;
+	var API = function () {
+		this.event = null;
+		this.reply_callbacks = {};
 
 		this.init_state = 0;
-		this.api_name = info.namespace || info.name || "";
-		this.api_key = random_string(64);
-		this.action = null;
-		this.reply_id = null;
-		this.reply_callbacks = {};
 
 		this.handlers = API.handlers_init;
 		this.functions = {};
@@ -206,42 +295,59 @@ var xlinks_api = (function () {
 		this.actions_functions = {};
 
 		var self = this;
-		this.on_window_message_bind = function (event) {
-			return self.on_window_message(event);
-		};
-		window.addEventListener("message", this.on_window_message_bind, false);
+		this.channel = new CommunicationChannel(
+			"xlinks_broadcast",
+			null,
+			true,
+			null,
+			function (event, data, channel) {
+				self.on_message(event, data, channel, {});
+			}
+		);
 	};
-	API.prototype.on_window_message = function (event) {
-		var data = event.data,
-			action_data, reply_id, fn;
+	API.prototype.on_message = function (event, data, channel, handlers) {
+		var action = data.xlinks_action,
+			action_is_null = (action === null),
+			action_data, reply, fn, err;
 
 		if (
-			event.origin === this.origin &&
-			is_object(data) &&
-			typeof((this.action = data.xlinks_action)) === "string" &&
-			data.extension === false &&
-			data.key === this.api_key &&
-			data.name === this.api_name &&
-			(action_data = data.data) !== undefined
+			(action_is_null || typeof(action) === "string") &&
+			is_object((action_data = data.data))
 		) {
-			this.reply_id = data.id;
-
-			if (typeof((reply_id = data.reply)) === "string") {
-				if (typeof((fn = this.reply_callbacks[reply_id])) === "function") {
-					delete this.reply_callbacks[reply_id];
+			reply = data.reply;
+			if (typeof(reply) === "string") {
+				if (Object.prototype.hasOwnProperty.call(this.reply_callbacks, reply)) {
+					fn = this.reply_callbacks[reply];
+					delete this.reply_callbacks[reply];
+					this.event = event;
 					fn.call(this, null, action_data);
+					this.event = null;
+				}
+				else {
+					err = "Cannot reply to extension";
 				}
 			}
-			else if (typeof((fn = this.handlers[this.action])) === "function") {
-				fn.call(this, action_data);
+			else if (action_is_null) {
+				err = "Missing extension action";
+			}
+			else if (Object.prototype.hasOwnProperty.call(handlers, action)) {
+				handlers[action].call(this, action_data, channel, data.id);
+			}
+			else {
+				err = "Invalid extension call";
 			}
 
-			this.reply_id = null;
+			if (err !== undefined && typeof((reply = data.id)) === "string") {
+				this.send(
+					channel,
+					null,
+					reply,
+					{ err: "Invalid extension call" }
+				);
+			}
 		}
-
-		this.action = null;
 	};
-	API.prototype.send = function (action, reply_to, timeout_delay, data, on_reply) {
+	API.prototype.send = function (channel, action, reply_to, data, timeout_delay, on_reply) {
 		var self = this,
 			id = null,
 			timeout = null,
@@ -274,14 +380,19 @@ var xlinks_api = (function () {
 			}
 		}
 
-		this.post_message({
+		channel.post({
 			xlinks_action: action,
-			extension: true,
+			data: data,
 			id: id,
-			reply: reply_to || null,
-			key: this.api_key,
-			name: this.api_name,
-			data: data
+			reply: reply_to
+		});
+	};
+	API.prototype.reply_error = function (channel, reply_to, err) {
+		channel.post({
+			xlinks_action: null,
+			data: { err: err },
+			id: null,
+			reply: reply_to
 		});
 	};
 	API.prototype.post_message = function (msg) {
@@ -310,7 +421,10 @@ var xlinks_api = (function () {
 		var self = this,
 			de = document.documentElement,
 			count = info.registrations,
-			send_info = {},
+			namespace = info.namespace || "",
+			send_info = {
+				namespace: namespace
+			},
 			a, v, i;
 
 		if (typeof((v = info.name)) === "string") send_info.name = v;
@@ -336,32 +450,33 @@ var xlinks_api = (function () {
 
 		ready(function () {
 			self.send(
-				"start",
+				self.channel,
+				"init",
 				null,
-				10000,
 				send_info,
+				10000,
 				function (err, data) {
-					err = self.on_init(err, data);
+					err = self.on_init(err, data, namespace);
 					if (typeof(callback) === "function") callback.call(null, err);
 				}
 			);
 		});
 	};
-	API.prototype.on_init = function (err, data) {
-		var v;
+	API.prototype.on_init = function (err, data, namespace) {
+		var self = this,
+			api_key, ch, v;
 
 		if (err === null) {
 			if (!is_object(data)) {
 				err = "Could not generate extension key";
 			}
 			else if (typeof((err = data.err)) !== "string") {
-				if (typeof((v = data.key)) !== "string") {
+				if (typeof((api_key = data.key)) !== "string") {
 					err = "Could not generate extension key";
 				}
 				else {
+					// Valid
 					err = null;
-					this.api_key = v;
-					this.handlers = API.handlers;
 
 					if (typeof((v = data.cache_prefix)) === "string") {
 						cache_prefix = v;
@@ -374,6 +489,23 @@ var xlinks_api = (function () {
 							cache_storage = create_temp_storage();
 						}
 					}
+
+					// New channel
+					ch = (this.event.ports && this.event.ports.length === 1) ? {
+						port1: this.event.ports[0],
+						port2: null
+					} : null;
+
+					this.channel.close();
+					this.channel = new CommunicationChannel(
+						namespace,
+						api_key,
+						true,
+						ch,
+						function (event, data, channel) {
+							self.on_message(event, data, channel, API.handlers);
+						}
+					);
 				}
 			}
 		}
@@ -389,9 +521,6 @@ var xlinks_api = (function () {
 
 		// Data
 		var send_data = {
-			name: this.api_name,
-			author: "",
-			description: "",
 			settings: {},
 			request_apis: [],
 			linkifiers: [],
@@ -547,16 +676,17 @@ var xlinks_api = (function () {
 
 		// Send
 		this.send(
+			this.channel,
 			"register",
 			null,
-			this.timeout_delay,
 			send_data,
+			10000,
 			function (err, data) {
 				var o;
-				if (err !== null) {
+				if (err !== null || (err = data.err) !== null) {
 					if (typeof(callback) === "function") callback.call(null, err, 0);
 				}
-				else if (!is_object(data) || !is_object((o = data.response))) {
+				else if (!is_object((o = data.response))) {
 					if (typeof(callback) === "function") callback.call(null, "Invalid extension response", 0);
 				}
 				else {
@@ -653,47 +783,30 @@ var xlinks_api = (function () {
 	API.handlers_init = {};
 	API.handlers = {
 		request_end: function (data) {
-			var id;
-
-			if (
-				is_object(data) &&
-				typeof((id = data.id)) === "string"
-			) {
+			var id = data.id;
+			if (typeof(id) === "string") {
 				// Remove request
 				delete requests_active[id];
 			}
 		},
-		api_function: function (data) {
+		api_function: function (data, channel, reply) {
 			var self = this,
-				action = this.action,
-				reply_id = this.reply_id,
 				req = null,
 				state, id, args, fn, ret;
 
 			if (
-				!is_object(data) ||
 				typeof((id = data.id)) !== "string" ||
 				!Array.isArray((args = data.args))
 			) {
 				// Error
-				this.send(
-					this.action,
-					this.reply_id,
-					this.timeout_delay,
-					{ err: "Invalid extension data" }
-				);
+				this.reply_error(channel, reply, "Invalid extension data");
 				return;
 			}
 
 			// Exists
 			if (!Array.prototype.hasOwnProperty.call(this.functions, id)) {
 				// Error
-				this.send(
-					this.action,
-					this.reply_id,
-					this.timeout_delay,
-					{ err: "Invalid extension function" }
-				);
+				this.reply_error(channel, reply, "Invalid extension function");
 				return;
 			}
 			fn = this.functions[id];
@@ -719,9 +832,9 @@ var xlinks_api = (function () {
 				for (; i < ii; ++i) arguments_copy[i] = arguments[i];
 
 				self.send(
-					action,
-					reply_id,
-					self.timeout_delay,
+					channel,
+					null,
+					reply,
 					{
 						err: null,
 						args: arguments_copy
@@ -732,36 +845,23 @@ var xlinks_api = (function () {
 			// Call
 			ret = fn.apply(req, args);
 		},
-		url_info: function (data) {
+		url_info: function (data, channel, reply) {
 			var self = this,
-				action = this.action,
-				reply_id = this.reply_id,
 				id, url, fn;
 
 			if (
-				!is_object(data) ||
 				typeof((id = data.id)) !== "string" ||
 				typeof((url = data.url)) !== "string"
 			) {
 				// Error
-				this.send(
-					this.action,
-					this.reply_id,
-					this.timeout_delay,
-					{ err: "Invalid extension data" }
-				);
+				this.reply_error(channel, reply, "Invalid extension data");
 				return;
 			}
 
 			// Exists
 			if (!Array.prototype.hasOwnProperty.call(this.url_info_functions, id)) {
 				// Error
-				this.send(
-					this.action,
-					this.reply_id,
-					this.timeout_delay,
-					{ err: "Invalid extension function" }
-				);
+				this.reply_error(channel, reply, "Invalid extension function");
 				return;
 			}
 			fn = this.url_info_functions[id];
@@ -769,9 +869,9 @@ var xlinks_api = (function () {
 			// Call
 			fn(url, function (err, data) {
 				self.send(
-					action,
-					reply_id,
-					self.timeout_delay,
+					channel,
+					null,
+					reply,
 					{
 						err: err,
 						data: data
@@ -779,46 +879,32 @@ var xlinks_api = (function () {
 				);
 			});
 		},
-		url_info_to_data: function (data) {
+		url_info_to_data: function (data, channel, reply) {
 			var self = this,
-				action = this.action,
-				reply_id = this.reply_id,
-				id, url_info, fn;
+				id, url_info;
 
 			if (
-				!is_object(data) ||
 				typeof((id = data.id)) !== "string" ||
 				!is_object((url_info = data.url))
 			) {
 				// Error
-				this.send(
-					this.action,
-					this.reply_id,
-					this.timeout_delay,
-					{ err: "Invalid extension data" }
-				);
+				this.reply_error(channel, reply, "Invalid extension data");
 				return;
 			}
 
 			// Exists
 			if (!Array.prototype.hasOwnProperty.call(this.url_info_to_data_functions, id)) {
 				// Error
-				this.send(
-					this.action,
-					this.reply_id,
-					this.timeout_delay,
-					{ err: "Invalid extension function" }
-				);
+				this.reply_error(channel, reply, "Invalid extension function");
 				return;
 			}
-			fn = this.url_info_to_data_functions[id];
 
 			// Call
-			fn(url_info, function (err, data) {
+			this.url_info_to_data_functions[id](url_info, function (err, data) {
 				self.send(
-					action,
-					reply_id,
-					self.timeout_delay,
+					channel,
+					null,
+					reply,
 					{
 						err: err,
 						data: data
@@ -826,47 +912,33 @@ var xlinks_api = (function () {
 				);
 			});
 		},
-		create_actions: function (data) {
+		create_actions: function (data, channel, reply) {
 			var self = this,
-				action = this.action,
-				reply_id = this.reply_id,
-				id, fn, fn_data, fn_info;
+				id, fn_data, fn_info;
 
 			if (
-				!is_object(data) ||
 				typeof((id = data.id)) !== "string" ||
 				!is_object((fn_data = data.data)) ||
 				!is_object((fn_info = data.info))
 			) {
 				// Error
-				this.send(
-					this.action,
-					this.reply_id,
-					this.timeout_delay,
-					{ err: "Invalid extension data" }
-				);
+				this.reply_error(channel, reply, "Invalid extension data");
 				return;
 			}
 
 			// Exists
 			if (!Array.prototype.hasOwnProperty.call(this.actions_functions, id)) {
 				// Error
-				this.send(
-					this.action,
-					this.reply_id,
-					this.timeout_delay,
-					{ err: "Invalid extension function" }
-				);
+				this.reply_error(channel, reply, "Invalid extension function");
 				return;
 			}
-			fn = this.actions_functions[id];
 
 			// Call
-			fn(fn_data, fn_info, function (err, data) {
+			this.actions_functions[id](fn_data, fn_info, function (err, data) {
 				self.send(
-					action,
-					reply_id,
-					self.timeout_delay,
+					channel,
+					null,
+					reply,
 					{
 						err: err,
 						data: data
@@ -874,47 +946,33 @@ var xlinks_api = (function () {
 				);
 			});
 		},
-		create_details: function (data) {
+		create_details: function (data, channel, reply) {
 			var self = this,
-				action = this.action,
-				reply_id = this.reply_id,
-				id, fn, fn_data, fn_info;
+				id, fn_data, fn_info;
 
 			if (
-				!is_object(data) ||
 				typeof((id = data.id)) !== "string" ||
 				!is_object((fn_data = data.data)) ||
 				!is_object((fn_info = data.info))
 			) {
 				// Error
-				this.send(
-					this.action,
-					this.reply_id,
-					this.timeout_delay,
-					{ err: "Invalid extension data" }
-				);
+				this.reply_error(channel, reply, "Invalid extension data");
 				return;
 			}
 
 			// Exists
 			if (!Array.prototype.hasOwnProperty.call(this.details_functions, id)) {
 				// Error
-				this.send(
-					this.action,
-					this.reply_id,
-					this.timeout_delay,
-					{ err: "Invalid extension function" }
-				);
+				this.reply_error(channel, reply, "Invalid extension function");
 				return;
 			}
-			fn = this.details_functions[id];
 
 			// Call
-			fn(fn_data, fn_info, function (err, data) {
+			this.details_functions[id](fn_data, fn_info, function (err, data) {
 				self.send(
-					action,
-					reply_id,
-					self.timeout_delay,
+					channel,
+					null,
+					reply,
 					{
 						err: err,
 						data: set_shared_node(data)
@@ -948,7 +1006,7 @@ var xlinks_api = (function () {
 
 	// Public
 	var init = function (info, callback) {
-		if (api === null) api = new API(info);
+		if (api === null) api = new API();
 		api.init(info, callback);
 	};
 
@@ -962,32 +1020,28 @@ var xlinks_api = (function () {
 	};
 
 	var request = function (namespace, type, unique_id, info, callback) {
-		if (api === null) {
+		if (api === null || api.init_state !== 2) {
 			callback.call(null, "API not init'd", null);
 			return;
 		}
 
 		api.send(
+			api.channel,
 			"request",
 			null,
-			-1,
 			{
 				namespace: namespace,
 				type: type,
 				id: unique_id,
 				info: info
 			},
+			-1,
 			function (err, data) {
-				if (err !== null) {
+				if (err !== null || (err = data.err) !== null) {
 					data = null;
 				}
-				else {
-					if ((err = data.err) !== null) {
-						data = null;
-					}
-					else if ((data = data.data) === null) {
-						err = "Invalid extension data";
-					}
+				else if ((data = data.data) === null) {
+					err = "Invalid extension data";
 				}
 				callback.call(null, err, data);
 			}
@@ -1042,10 +1096,11 @@ var xlinks_api = (function () {
 
 		// Send
 		api.send(
+			api.channel,
 			"get_image",
 			null,
-			10000,
 			{ url: url, flags: flags },
+			10000,
 			function (err, data) {
 				if (err !== null) {
 					data = null;
