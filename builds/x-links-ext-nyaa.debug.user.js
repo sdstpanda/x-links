@@ -2,7 +2,7 @@
 // @name        X-links Extension - Nyaa Torrents (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.0.3.-0xDB
+// @version     1.0.0.4.-0xDB
 // @description Linkify and format nyaa.se links
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -406,17 +406,106 @@
 
 		var config = {};
 
+
+		var CommunicationChannel = function (name, key, is_extension, channel, callback) {
+			var self = this;
+
+			this.port = null;
+			this.port_other = null;
+			this.post = null;
+			this.on_message = null;
+			this.origin = null;
+			this.name_key = null;
+			this.is_extension = is_extension;
+			this.name = name;
+			this.key = key;
+			this.callback = callback;
+
+			if (channel === null) {
+				this.name_key = name;
+				if (key !== null) {
+					this.name_key += "_";
+					this.name_key += key;
+				}
+				this.origin = window.location.protocol + "//" + window.location.host;
+				this.post = this.post_window;
+				this.on_message = function (event) {
+					self.on_window_message(event);
+				}._w(18);
+				window.addEventListener("message", this.on_message, false);
+			}
+			else {
+				this.port = channel.port1;
+				this.port_other = channel.port2;
+				this.post = this.post_channel;
+				this.on_message = function (event) {
+					self.on_port_message(event);
+				}._w(19);
+				this.port.addEventListener("message", this.on_message, false);
+				this.port.start();
+			}
+		}._w(17);
+
+		CommunicationChannel.prototype.post_window = function (message, transfer) {
+			var msg = {
+				ext: this.is_extension,
+				key: this.name_key,
+				data: message
+			};
+
+			try {
+				window.postMessage(msg, this.origin, transfer);
+			}
+			catch (e) {
+				// Tampermonkey bug
+				try {
+					unsafeWindow.postMessage(msg, this.origin, transfer);
+				}
+				catch (e2) {}
+			}
+		}._w(20);
+		CommunicationChannel.prototype.post_channel = function (message, transfer) {
+			this.port.postMessage(message, transfer);
+		}._w(21);
+		CommunicationChannel.prototype.on_window_message = function (event) {
+			var data = event.data;
+			if (
+				event.origin === this.origin &&
+				is_object(data) &&
+				data.ext === (!this.is_extension) && // jshint ignore:line
+				data.key === this.name_key &&
+				is_object((data = data.data))
+			) {
+				this.callback(event, data, this);
+			}
+		}._w(22);
+		CommunicationChannel.prototype.on_port_message = function (event) {
+			var data = event.data;
+			if (is_object(data)) {
+				this.callback(event, data, this);
+			}
+		}._w(23);
+		CommunicationChannel.prototype.close = function () {
+			if (this.on_message !== null) {
+				if (this.port === null) {
+					window.removeEventListener("message", this.on_message, false);
+				}
+				else {
+					this.port.removeEventListener("message", this.on_message, false);
+					this.port.close();
+					this.port = null;
+				}
+				this.on_message = null;
+			}
+		}._w(24);
+
+
 		var api = null;
-		var API = function (info) {
-			this.origin = window.location.protocol + "//" + window.location.host;
-			this.timeout_delay = 1000;
+		var API = function () {
+			this.event = null;
+			this.reply_callbacks = {};
 
 			this.init_state = 0;
-			this.api_name = info.namespace || info.name || "";
-			this.api_key = random_string(64);
-			this.action = null;
-			this.reply_id = null;
-			this.reply_callbacks = {};
 
 			this.handlers = API.handlers_init;
 			this.functions = {};
@@ -426,42 +515,59 @@
 			this.actions_functions = {};
 
 			var self = this;
-			this.on_window_message_bind = function (event) {
-				return self.on_window_message(event);
-			}._w(18);
-			window.addEventListener("message", this.on_window_message_bind, false);
-		}._w(17);
-		API.prototype.on_window_message = function (event) {
-			var data = event.data,
-				action_data, reply_id, fn;
+			this.channel = new CommunicationChannel(
+				"xlinks_broadcast",
+				null,
+				true,
+				null,
+				function (event, data, channel) {
+					self.on_message(event, data, channel, {});
+				}._w(26)
+			);
+		}._w(25);
+		API.prototype.on_message = function (event, data, channel, handlers) {
+			var action = data.xlinks_action,
+				action_is_null = (action === null),
+				action_data, reply, fn, err;
 
 			if (
-				event.origin === this.origin &&
-				is_object(data) &&
-				typeof((this.action = data.xlinks_action)) === "string" &&
-				data.extension === false &&
-				data.key === this.api_key &&
-				data.name === this.api_name &&
-				(action_data = data.data) !== undefined
+				(action_is_null || typeof(action) === "string") &&
+				is_object((action_data = data.data))
 			) {
-				this.reply_id = data.id;
-
-				if (typeof((reply_id = data.reply)) === "string") {
-					if (typeof((fn = this.reply_callbacks[reply_id])) === "function") {
-						delete this.reply_callbacks[reply_id];
+				reply = data.reply;
+				if (typeof(reply) === "string") {
+					if (Object.prototype.hasOwnProperty.call(this.reply_callbacks, reply)) {
+						fn = this.reply_callbacks[reply];
+						delete this.reply_callbacks[reply];
+						this.event = event;
 						fn.call(this, null, action_data);
+						this.event = null;
+					}
+					else {
+						err = "Cannot reply to extension";
 					}
 				}
-				else if (typeof((fn = this.handlers[this.action])) === "function") {
-					fn.call(this, action_data);
+				else if (action_is_null) {
+					err = "Missing extension action";
+				}
+				else if (Object.prototype.hasOwnProperty.call(handlers, action)) {
+					handlers[action].call(this, action_data, channel, data.id);
+				}
+				else {
+					err = "Invalid extension call";
 				}
 
-				this.reply_id = null;
+				if (err !== undefined && typeof((reply = data.id)) === "string") {
+					this.send(
+						channel,
+						null,
+						reply,
+						{ err: "Invalid extension call" }
+					);
+				}
 			}
-
-			this.action = null;
-		}._w(19);
-		API.prototype.send = function (action, reply_to, timeout_delay, data, on_reply) {
+		}._w(27);
+		API.prototype.send = function (channel, action, reply_to, data, timeout_delay, on_reply) {
 			var self = this,
 				id = null,
 				timeout = null,
@@ -480,7 +586,7 @@
 					}
 
 					on_reply.apply(this, arguments);
-				}._w(21);
+				}._w(29);
 
 				this.reply_callbacks[id] = cb;
 				cb = null;
@@ -490,20 +596,25 @@
 						timeout = null;
 						delete self.reply_callbacks[id];
 						on_reply.call(self, "Response timeout");
-					}._w(22), timeout_delay);
+					}._w(30), timeout_delay);
 				}
 			}
 
-			this.post_message({
+			channel.post({
 				xlinks_action: action,
-				extension: true,
+				data: data,
 				id: id,
-				reply: reply_to || null,
-				key: this.api_key,
-				name: this.api_name,
-				data: data
+				reply: reply_to
 			});
-		}._w(20);
+		}._w(28);
+		API.prototype.reply_error = function (channel, reply_to, err) {
+			channel.post({
+				xlinks_action: null,
+				data: { err: err },
+				id: null,
+				reply: reply_to
+			});
+		}._w(31);
 		API.prototype.post_message = function (msg) {
 			try {
 				window.postMessage(msg, this.origin);
@@ -518,7 +629,7 @@
 					console.log("window.postMessage exception:", e, e2);
 				}
 			}
-		}._w(23);
+		}._w(32);
 		API.prototype.init = function (info, callback) {
 			if (this.init_state !== 0) {
 				if (typeof(callback) === "function") callback.call(null, this.init_state === 1 ? "Init active" : "Already started");
@@ -530,7 +641,10 @@
 			var self = this,
 				de = document.documentElement,
 				count = info.registrations,
-				send_info = {},
+				namespace = info.namespace || "",
+				send_info = {
+					namespace: namespace
+				},
 				a, v, i;
 
 			if (typeof((v = info.name)) === "string") send_info.name = v;
@@ -556,32 +670,33 @@
 
 			ready(function () {
 				self.send(
-					"start",
+					self.channel,
+					"init",
 					null,
-					10000,
 					send_info,
+					10000,
 					function (err, data) {
-						err = self.on_init(err, data);
+						err = self.on_init(err, data, namespace);
 						if (typeof(callback) === "function") callback.call(null, err);
-					}._w(26)
+					}._w(35)
 				);
-			}._w(25));
-		}._w(24);
-		API.prototype.on_init = function (err, data) {
-			var v;
+			}._w(34));
+		}._w(33);
+		API.prototype.on_init = function (err, data, namespace) {
+			var self = this,
+				api_key, ch, v;
 
 			if (err === null) {
 				if (!is_object(data)) {
 					err = "Could not generate extension key";
 				}
 				else if (typeof((err = data.err)) !== "string") {
-					if (typeof((v = data.key)) !== "string") {
+					if (typeof((api_key = data.key)) !== "string") {
 						err = "Could not generate extension key";
 					}
 					else {
+						// Valid
 						err = null;
-						this.api_key = v;
-						this.handlers = API.handlers;
 
 						if (typeof((v = data.cache_prefix)) === "string") {
 							cache_prefix = v;
@@ -594,13 +709,30 @@
 								cache_storage = create_temp_storage();
 							}
 						}
+
+						// New channel
+						ch = (this.event.ports && this.event.ports.length === 1) ? {
+							port1: this.event.ports[0],
+							port2: null
+						} : null;
+
+						this.channel.close();
+						this.channel = new CommunicationChannel(
+							namespace,
+							api_key,
+							true,
+							ch,
+							function (event, data, channel) {
+								self.on_message(event, data, channel, API.handlers);
+							}._w(37)
+						);
 					}
 				}
 			}
 
 			this.init_state = (err === null) ? 2 : 0;
 			return err;
-		}._w(27);
+		}._w(36);
 		API.prototype.register = function (data, callback) {
 			if (this.init_state !== 2) {
 				if (typeof(callback) === "function") callback.call(null, "API not init'd", 0);
@@ -609,9 +741,6 @@
 
 			// Data
 			var send_data = {
-				name: this.api_name,
-				author: "",
-				description: "",
 				settings: {},
 				request_apis: [],
 				linkifiers: [],
@@ -767,25 +896,26 @@
 
 			// Send
 			this.send(
+				this.channel,
 				"register",
 				null,
-				this.timeout_delay,
 				send_data,
+				10000,
 				function (err, data) {
 					var o;
-					if (err !== null) {
+					if (err !== null || (err = data.err) !== null) {
 						if (typeof(callback) === "function") callback.call(null, err, 0);
 					}
-					else if (!is_object(data) || !is_object((o = data.response))) {
+					else if (!is_object((o = data.response))) {
 						if (typeof(callback) === "function") callback.call(null, "Invalid extension response", 0);
 					}
 					else {
 						var okay = this.register_complete(o, request_apis_response, command_fns, send_data.settings);
 						if (typeof(callback) === "function") callback.call(null, null, okay);
 					}
-				}._w(29)
+				}._w(39)
 			);
-		}._w(28);
+		}._w(38);
 		API.prototype.register_complete = function (data, request_apis, command_fns, settings) {
 			var reg_count = 0,
 				setting_ns, errors, name, fn, e, o, i, ii, k, v;
@@ -868,52 +998,35 @@
 			}
 
 			return reg_count;
-		}._w(30);
+		}._w(40);
 
 		API.handlers_init = {};
 		API.handlers = {
 			request_end: function (data) {
-				var id;
-
-				if (
-					is_object(data) &&
-					typeof((id = data.id)) === "string"
-				) {
+				var id = data.id;
+				if (typeof(id) === "string") {
 					// Remove request
 					delete requests_active[id];
 				}
-			}._w(31),
-			api_function: function (data) {
+			}._w(41),
+			api_function: function (data, channel, reply) {
 				var self = this,
-					action = this.action,
-					reply_id = this.reply_id,
 					req = null,
 					state, id, args, fn, ret;
 
 				if (
-					!is_object(data) ||
 					typeof((id = data.id)) !== "string" ||
 					!Array.isArray((args = data.args))
 				) {
 					// Error
-					this.send(
-						this.action,
-						this.reply_id,
-						this.timeout_delay,
-						{ err: "Invalid extension data" }
-					);
+					this.reply_error(channel, reply, "Invalid extension data");
 					return;
 				}
 
 				// Exists
 				if (!Array.prototype.hasOwnProperty.call(this.functions, id)) {
 					// Error
-					this.send(
-						this.action,
-						this.reply_id,
-						this.timeout_delay,
-						{ err: "Invalid extension function" }
-					);
+					this.reply_error(channel, reply, "Invalid extension function");
 					return;
 				}
 				fn = this.functions[id];
@@ -939,49 +1052,36 @@
 					for (; i < ii; ++i) arguments_copy[i] = arguments[i];
 
 					self.send(
-						action,
-						reply_id,
-						self.timeout_delay,
+						channel,
+						null,
+						reply,
 						{
 							err: null,
 							args: arguments_copy
 						}
 					);
-				}._w(33));
+				}._w(43));
 
 				// Call
 				ret = fn.apply(req, args);
-			}._w(32),
-			url_info: function (data) {
+			}._w(42),
+			url_info: function (data, channel, reply) {
 				var self = this,
-					action = this.action,
-					reply_id = this.reply_id,
 					id, url, fn;
 
 				if (
-					!is_object(data) ||
 					typeof((id = data.id)) !== "string" ||
 					typeof((url = data.url)) !== "string"
 				) {
 					// Error
-					this.send(
-						this.action,
-						this.reply_id,
-						this.timeout_delay,
-						{ err: "Invalid extension data" }
-					);
+					this.reply_error(channel, reply, "Invalid extension data");
 					return;
 				}
 
 				// Exists
 				if (!Array.prototype.hasOwnProperty.call(this.url_info_functions, id)) {
 					// Error
-					this.send(
-						this.action,
-						this.reply_id,
-						this.timeout_delay,
-						{ err: "Invalid extension function" }
-					);
+					this.reply_error(channel, reply, "Invalid extension function");
 					return;
 				}
 				fn = this.url_info_functions[id];
@@ -989,159 +1089,117 @@
 				// Call
 				fn(url, function (err, data) {
 					self.send(
-						action,
-						reply_id,
-						self.timeout_delay,
+						channel,
+						null,
+						reply,
 						{
 							err: err,
 							data: data
 						}
 					);
-				}._w(35));
-			}._w(34),
-			url_info_to_data: function (data) {
+				}._w(45));
+			}._w(44),
+			url_info_to_data: function (data, channel, reply) {
 				var self = this,
-					action = this.action,
-					reply_id = this.reply_id,
-					id, url_info, fn;
+					id, url_info;
 
 				if (
-					!is_object(data) ||
 					typeof((id = data.id)) !== "string" ||
 					!is_object((url_info = data.url))
 				) {
 					// Error
-					this.send(
-						this.action,
-						this.reply_id,
-						this.timeout_delay,
-						{ err: "Invalid extension data" }
-					);
+					this.reply_error(channel, reply, "Invalid extension data");
 					return;
 				}
 
 				// Exists
 				if (!Array.prototype.hasOwnProperty.call(this.url_info_to_data_functions, id)) {
 					// Error
-					this.send(
-						this.action,
-						this.reply_id,
-						this.timeout_delay,
-						{ err: "Invalid extension function" }
-					);
+					this.reply_error(channel, reply, "Invalid extension function");
 					return;
 				}
-				fn = this.url_info_to_data_functions[id];
 
 				// Call
-				fn(url_info, function (err, data) {
+				this.url_info_to_data_functions[id](url_info, function (err, data) {
 					self.send(
-						action,
-						reply_id,
-						self.timeout_delay,
+						channel,
+						null,
+						reply,
 						{
 							err: err,
 							data: data
 						}
 					);
-				}._w(37));
-			}._w(36),
-			create_actions: function (data) {
+				}._w(47));
+			}._w(46),
+			create_actions: function (data, channel, reply) {
 				var self = this,
-					action = this.action,
-					reply_id = this.reply_id,
-					id, fn, fn_data, fn_info;
+					id, fn_data, fn_info;
 
 				if (
-					!is_object(data) ||
 					typeof((id = data.id)) !== "string" ||
 					!is_object((fn_data = data.data)) ||
 					!is_object((fn_info = data.info))
 				) {
 					// Error
-					this.send(
-						this.action,
-						this.reply_id,
-						this.timeout_delay,
-						{ err: "Invalid extension data" }
-					);
+					this.reply_error(channel, reply, "Invalid extension data");
 					return;
 				}
 
 				// Exists
 				if (!Array.prototype.hasOwnProperty.call(this.actions_functions, id)) {
 					// Error
-					this.send(
-						this.action,
-						this.reply_id,
-						this.timeout_delay,
-						{ err: "Invalid extension function" }
-					);
+					this.reply_error(channel, reply, "Invalid extension function");
 					return;
 				}
-				fn = this.actions_functions[id];
 
 				// Call
-				fn(fn_data, fn_info, function (err, data) {
+				this.actions_functions[id](fn_data, fn_info, function (err, data) {
 					self.send(
-						action,
-						reply_id,
-						self.timeout_delay,
+						channel,
+						null,
+						reply,
 						{
 							err: err,
 							data: data
 						}
 					);
-				}._w(39));
-			}._w(38),
-			create_details: function (data) {
+				}._w(49));
+			}._w(48),
+			create_details: function (data, channel, reply) {
 				var self = this,
-					action = this.action,
-					reply_id = this.reply_id,
-					id, fn, fn_data, fn_info;
+					id, fn_data, fn_info;
 
 				if (
-					!is_object(data) ||
 					typeof((id = data.id)) !== "string" ||
 					!is_object((fn_data = data.data)) ||
 					!is_object((fn_info = data.info))
 				) {
 					// Error
-					this.send(
-						this.action,
-						this.reply_id,
-						this.timeout_delay,
-						{ err: "Invalid extension data" }
-					);
+					this.reply_error(channel, reply, "Invalid extension data");
 					return;
 				}
 
 				// Exists
 				if (!Array.prototype.hasOwnProperty.call(this.details_functions, id)) {
 					// Error
-					this.send(
-						this.action,
-						this.reply_id,
-						this.timeout_delay,
-						{ err: "Invalid extension function" }
-					);
+					this.reply_error(channel, reply, "Invalid extension function");
 					return;
 				}
-				fn = this.details_functions[id];
 
 				// Call
-				fn(fn_data, fn_info, function (err, data) {
+				this.details_functions[id](fn_data, fn_info, function (err, data) {
 					self.send(
-						action,
-						reply_id,
-						self.timeout_delay,
+						channel,
+						null,
+						reply,
 						{
 							err: err,
 							data: set_shared_node(data)
 						}
 					);
-				}._w(41));
-			}._w(40),
+				}._w(51));
+			}._w(50),
 		};
 
 		var RequestErrorMode = {
@@ -1157,20 +1215,20 @@
 
 		var requests_active = {};
 		var Request = function () {
-		}._w(42);
+		}._w(52);
 
 		var load_request_state = function (request, state) {
 			for (var k in state) {
 				request[k] = state[k];
 			}
-		}._w(43);
+		}._w(53);
 
 
 		// Public
 		var init = function (info, callback) {
-			if (api === null) api = new API(info);
+			if (api === null) api = new API();
 			api.init(info, callback);
-		}._w(44);
+		}._w(54);
 
 		var register = function (data, callback) {
 			if (api === null) {
@@ -1179,40 +1237,36 @@
 			}
 
 			api.register(data, callback);
-		}._w(45);
+		}._w(55);
 
 		var request = function (namespace, type, unique_id, info, callback) {
-			if (api === null) {
+			if (api === null || api.init_state !== 2) {
 				callback.call(null, "API not init'd", null);
 				return;
 			}
 
 			api.send(
+				api.channel,
 				"request",
 				null,
-				-1,
 				{
 					namespace: namespace,
 					type: type,
 					id: unique_id,
 					info: info
 				},
+				-1,
 				function (err, data) {
-					if (err !== null) {
+					if (err !== null || (err = data.err) !== null) {
 						data = null;
 					}
-					else {
-						if ((err = data.err) !== null) {
-							data = null;
-						}
-						else if ((data = data.data) === null) {
-							err = "Invalid extension data";
-						}
+					else if ((data = data.data) === null) {
+						err = "Invalid extension data";
 					}
 					callback.call(null, err, data);
-				}._w(47)
+				}._w(57)
 			);
-		}._w(46);
+		}._w(56);
 
 		var insert_styles = function (styles) {
 			var head = document.head,
@@ -1222,7 +1276,7 @@
 			n.textContent = styles;
 			head.appendChild(n);
 			return true;
-		}._w(48);
+		}._w(58);
 
 		var parse_json = function (text, def) {
 			try {
@@ -1231,7 +1285,7 @@
 			catch (e) {
 				return def;
 			}
-		}._w(49);
+		}._w(59);
 		var parse_html = function (text, def) {
 			try {
 				return new DOMParser().parseFromString(text, "text/html");
@@ -1239,7 +1293,7 @@
 			catch (e) {
 				return def;
 			}
-		}._w(50);
+		}._w(60);
 		var parse_xml = function (text, def) {
 			try {
 				return new DOMParser().parseFromString(text, "text/xml");
@@ -1247,12 +1301,12 @@
 			catch (e) {
 				return def;
 			}
-		}._w(51);
+		}._w(61);
 
 		var get_domain = function (url) {
 			var m = /^(?:[\w\-]+):\/*((?:[\w\-]+\.)*)([\w\-]+\.[\w\-]+)/i.exec(url);
 			return (m === null) ? [ "", "" ] : [ m[1].toLowerCase(), m[2].toLowerCase() ];
-		}._w(52);
+		}._w(62);
 
 		var get_image = function (url, flags, callback) {
 			if (api === null || api.init_state !== 2) {
@@ -1262,10 +1316,11 @@
 
 			// Send
 			api.send(
+				api.channel,
 				"get_image",
 				null,
-				10000,
 				{ url: url, flags: flags },
+				10000,
 				function (err, data) {
 					if (err !== null) {
 						data = null;
@@ -1279,9 +1334,9 @@
 					}
 
 					callback.call(null, err, data);
-				}._w(54)
+				}._w(64)
 			);
-		}._w(53);
+		}._w(63);
 
 
 		// Exports
@@ -1314,21 +1369,21 @@
 
 	var $$ = function (selector, root) {
 		return (root || document).querySelectorAll(selector);
-	}._w(55);
+	}._w(65);
 	var $ = (function () {
 
 		var d = document;
 
 		var Module = function (selector, root) {
 			return (root || d).querySelector(selector);
-		}._w(57);
+		}._w(67);
 
 		Module.add = function (parent, child) {
 			return parent.appendChild(child);
-		}._w(58);
+		}._w(68);
 		Module.tnode = function (text) {
 			return d.createTextNode(text);
-		}._w(59);
+		}._w(69);
 		Module.node = function (tag, class_name, text) {
 			var elem = d.createElement(tag);
 			elem.className = class_name;
@@ -1336,19 +1391,19 @@
 				elem.textContent = text;
 			}
 			return elem;
-		}._w(60);
+		}._w(70);
 		Module.node_ns = function (namespace, tag, class_name) {
 			var elem = d.createElementNS(namespace, tag);
 			elem.setAttribute("class", class_name);
 			return elem;
-		}._w(61);
+		}._w(71);
 		Module.node_simple = function (tag) {
 			return d.createElement(tag);
-		}._w(62);
+		}._w(72);
 
 		return Module;
 
-	}._w(56))();
+	}._w(66))();
 
 	var re_html = /[<>&]/g,
 		re_html_full = /[<>&'"]/g,
@@ -1363,8 +1418,8 @@
 	var escape_html = function (text, regex) {
 		return text.replace(regex, function (m) {
 			return html_replace_map[m];
-		}._w(64));
-	}._w(63);
+		}._w(74));
+	}._w(73);
 
 	var innerhtml_to_safe_text = function (node) {
 		var text = "",
@@ -1443,7 +1498,7 @@
 		}
 
 		return text;
-	}._w(65);
+	}._w(75);
 	var apply_safe_text_to_node = function (node, safe_text) {
 		// Safe version of: node.innerHTML = safe_text;
 		// Cannot inject any <script> tags or similar
@@ -1459,7 +1514,7 @@
 		var entity_replace_fn = function (m, entity) {
 			var e = apply_safe_text_to_node.entities[entity];
 			return (e === undefined) ? m : e;
-		}._w(67);
+		}._w(77);
 
 		while (true) {
 			re_start.lastIndex = pos;
@@ -1544,7 +1599,7 @@
 		if (text.length > 0) {
 			current.appendChild(document.createTextNode(text));
 		}
-	}._w(66);
+	}._w(76);
 	apply_safe_text_to_node.tags = {
 		a: { href: true },
 		b: {},
@@ -1579,16 +1634,16 @@
 					}
 				}
 			}
-		}._w(68),
+		}._w(78),
 		information: function (node, data) {
 			data.information = innerhtml_to_safe_text(node);
-		}._w(69),
+		}._w(79),
 		stardom: function (node, data) {
 			var n = node.querySelector("b");
 			if (n !== null) {
 				data.fans = parseInt(n.textContent.trim(), 10) || 0;
 			}
-		}._w(70),
+		}._w(80),
 		date: function (node, data) {
 			var m = /(\d+)-(\d+)-(\d+),\s*(\d+):(\d+)/.exec(node.textContent);
 			if (m !== null) {
@@ -1602,7 +1657,7 @@
 					0
 				).getTime();
 			}
-		}._w(71),
+		}._w(81),
 		seeders: function (node, data) {
 			if ($("b", node) !== null) {
 				data.seeders = -1;
@@ -1610,7 +1665,7 @@
 			else {
 				data.seeders = parseInt(node.textContent.trim(), 10) || 0;
 			}
-		}._w(72),
+		}._w(82),
 		leechers: function (node, data) {
 			if ($("b", node) !== null) {
 				data.leechers = -1;
@@ -1618,18 +1673,18 @@
 			else {
 				data.leechers = parseInt(node.textContent.trim(), 10) || 0;
 			}
-		}._w(73),
+		}._w(83),
 		downloads: function (node, data) {
 			data.downloads = parseInt(node.textContent.trim(), 10) || 0;
-		}._w(74),
+		}._w(84),
 		"file size": function (node, data) {
 			data.file_size = file_size_text_to_number(node.textContent.trim());
-		}._w(75)
+		}._w(85)
 	};
 
 	var pad = function (n, sep) {
 		return (n < 10 ? "0" : "") + n + sep;
-	}._w(76);
+	}._w(86);
 	var format_date = function (timestamp) {
 		var d = new Date(timestamp);
 		return d.getUTCFullYear() + "-" +
@@ -1637,7 +1692,7 @@
 			pad(d.getUTCDate(), " ") +
 			pad(d.getUTCHours(), ":") +
 			pad(d.getUTCMinutes(), "");
-	}._w(77);
+	}._w(87);
 
 	var file_size_scale = {
 		k: 1024,
@@ -1660,7 +1715,7 @@
 		}
 
 		return v;
-	}._w(78);
+	}._w(88);
 	var file_size_number_to_text = function (size) {
 		var scale = 1024,
 			i, ii;
@@ -1670,7 +1725,7 @@
 		}
 
 		return size.toFixed(3).replace(/\.?0+$/, "") + " " + file_size_labels[i];
-	}._w(79);
+	}._w(89);
 
 	var category_to_button_style_map = {
 		"english-translated anime": "cosplay",
@@ -1695,16 +1750,16 @@
 		if (data.sukebei) return "doujinshi";
 		var subcat = category_to_button_style_map[data.subcategory.toLowerCase()];
 		return (subcat === undefined ? "misc" : subcat);
-	}._w(80);
+	}._w(90);
 
 	var nyaa_get_data = function (info, callback) {
 		var data = xlinks_api.cache_get(info.id);
 		callback(null, data);
-	}._w(81);
+	}._w(91);
 	var nyaa_set_data = function (data, info, callback) {
 		xlinks_api.cache_set(info.id, data, xlinks_api.ttl_1_day);
 		callback(null);
-	}._w(82);
+	}._w(92);
 	var nyaa_setup_xhr = function (callback) {
 		var info = this.infos[0];
 		callback(null, {
@@ -1712,7 +1767,7 @@
 			url: "http://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/?page=view&tid=" + info.gid + "&showfiles=1",
 			headers: { "Cookie": "" }
 		});
-	}._w(83);
+	}._w(93);
 	var nyaa_parse_response = function (xhr, callback) {
 		var html = xlinks_api.parse_html(xhr.responseText, null),
 			info = this.infos[0],
@@ -1822,7 +1877,7 @@
 		}
 
 		callback(null, [ data ]);
-	}._w(84);
+	}._w(94);
 
 	var url_get_info = function (url, callback) {
 		var m = /^(?:https?:\/*)?((www\.|sukebei\.)?nyaa\.se)(\/[\w\W]*)?/i.exec(url),
@@ -1842,10 +1897,10 @@
 		else {
 			callback(null, null);
 		}
-	}._w(85);
+	}._w(95);
 	var url_info_to_data = function (url_info, callback) {
 		xlinks_api.request("nyaa", "torrent", url_info.id, url_info, callback);
-	}._w(86);
+	}._w(96);
 	var create_actions = function (data, info, callback) {
 		var urls = [],
 			url_base = "http://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/";
@@ -1857,7 +1912,7 @@
 		urls.push([ null, url_base + "?page=download&tid=" + info.gid + "&txt=1", "Txt File" ]);
 
 		callback(null, urls);
-	}._w(87);
+	}._w(97);
 	var create_details = function (data, info, callback) {
 		var container = $.node("div", "xl-details-limited-size"),
 			n1, n2;
@@ -1899,14 +1954,14 @@
 
 		// Done
 		callback(null, container);
-	}._w(88);
+	}._w(98);
 
 	xlinks_api.init({
 		namespace: "nyaa_torrents",
 		name: "Nyaa Torrents",
 		author: "dnsev-h",
 		description: "Linkify and format nyaa.se links",
-		version: [1,0,0,3,-0xDB],
+		version: [1,0,0,4,-0xDB],
 		registrations: 1
 	}, function (err) {
 		if (err === null) {
@@ -1947,7 +2002,7 @@
 				}]
 			});
 		}
-	}._w(89));
+	}._w(99));
 
 })();
 

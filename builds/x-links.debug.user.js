@@ -2,7 +2,7 @@
 // @name        X-links (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.3.1.-0xDB
+// @version     1.2.4.-0xDB
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -9719,15 +9719,115 @@
 
 		var registered = [];
 
+
+		var CommunicationChannel = function (name, key, is_extension, channel, callback) {
+			var self = this;
+
+			this.port = null;
+			this.port_other = null;
+			this.post = null;
+			this.on_message = null;
+			this.origin = null;
+			this.name_key = null;
+			this.is_extension = is_extension;
+			this.name = name;
+			this.key = key;
+			this.callback = callback;
+
+			if (channel === null) {
+				this.name_key = name;
+				if (key !== null) {
+					this.name_key += "_";
+					this.name_key += key;
+				}
+				this.origin = window.location.protocol + "//" + window.location.host;
+				this.post = this.post_window;
+				this.on_message = function (event) {
+					self.on_window_message(event);
+				}._w(617);
+				window.addEventListener("message", this.on_message, false);
+			}
+			else {
+				this.port = channel.port1;
+				this.port_other = channel.port2;
+				this.post = this.post_channel;
+				this.on_message = function (event) {
+					self.on_port_message(event);
+				}._w(618);
+				this.port.addEventListener("message", this.on_message, false);
+				this.port.start();
+			}
+		}._w(616);
+
+		CommunicationChannel.create_channel = function () {
+			try {
+				return new window.MessageChannel();
+			}
+			catch (e) {}
+			return null;
+		}._w(619);
+		CommunicationChannel.prototype.post_window = function (message, transfer) {
+			var msg = {
+				ext: this.is_extension,
+				key: this.name_key,
+				data: message
+			};
+
+			try {
+				window.postMessage(msg, this.origin, transfer);
+			}
+			catch (e) {
+				// Tampermonkey bug
+				try {
+					unsafeWindow.postMessage(msg, this.origin, transfer);
+				}
+				catch (e2) {}
+			}
+		}._w(620);
+		CommunicationChannel.prototype.post_channel = function (message, transfer) {
+			this.port.postMessage(message, transfer);
+		}._w(621);
+		CommunicationChannel.prototype.on_window_message = function (event) {
+			var data = event.data;
+			if (
+				event.origin === this.origin &&
+				is_object(data) &&
+				data.ext === (!this.is_extension) && // jshint ignore:line
+				data.key === this.name_key &&
+				is_object((data = data.data))
+			) {
+				this.callback(event, data, this);
+			}
+		}._w(622);
+		CommunicationChannel.prototype.on_port_message = function (event) {
+			var data = event.data;
+			if (is_object(data)) {
+				this.callback(event, data, this);
+			}
+		}._w(623);
+		CommunicationChannel.prototype.get_port_transfer = function () {
+			var p = this.port_other;
+			this.port_other = null;
+			return (p === null ? [] : [ p ]);
+		}._w(624);
+		CommunicationChannel.prototype.close = function () {
+			if (this.on_message !== null) {
+				if (this.port === null) {
+					window.removeEventListener("message", this.on_message, false);
+				}
+				else {
+					this.port.removeEventListener("message", this.on_message, false);
+					this.port.close();
+					this.port = null;
+				}
+				this.on_message = null;
+			}
+		}._w(625);
+
+
 		var api = null;
 		var ExtensionAPI = function () {
-			this.origin = window.location.protocol + "//" + window.location.host;
-			this.timeout_delay = 1000;
-
-			this.api_name = null;
-			this.api_key = null;
-			this.action = null;
-			this.reply_id = null;
+			this.event = null;
 			this.reply_callbacks = {};
 
 			this.registration = null;
@@ -9735,68 +9835,63 @@
 			this.request_apis = {};
 
 			var self = this;
-			this.on_window_message_bind = function (event) {
-				return self.on_window_message(event);
-			}._w(617);
-			window.addEventListener("message", this.on_window_message_bind, false);
-		}._w(616);
-		ExtensionAPI.prototype.on_window_message = function (event) {
-			var data = event.data,
-				handlers, action_data, reply_id, fn;
+			this.broadcast = new CommunicationChannel(
+				"xlinks_broadcast",
+				null,
+				false,
+				null,
+				function (event, data, channel) {
+					self.on_message(event, data, channel, ExtensionAPI.handlers_init);
+				}._w(627)
+			);
+		}._w(626);
+		ExtensionAPI.prototype.on_message = function (event, data, channel, handlers) {
+			var action = data.xlinks_action,
+				action_is_null = (action === null),
+				action_data, reply, fn, err;
 
 			if (
-				event.origin === this.origin &&
-				is_object(data) &&
-				typeof((this.action = data.xlinks_action)) === "string" &&
-				data.extension === true &&
-				typeof((this.api_key = data.key)) === "string" &&
-				typeof((this.api_name = data.name)) === "string" &&
-				(action_data = data.data) !== undefined
+				(action_is_null || typeof(action) === "string") &&
+				is_object((action_data = data.data))
 			) {
-				this.registration = this.registrations[this.api_key];
-				if (this.registration === undefined || this.registration.name !== this.api_name) {
-					this.registration = null;
-					handlers = ExtensionAPI.handlers_init;
-				}
-				else {
-					handlers = ExtensionAPI.handlers;
-				}
-				this.reply_id = data.id;
-
-				if (typeof((reply_id = data.reply)) === "string") {
-					if (typeof((fn = this.reply_callbacks[reply_id])) === "function") {
-						delete this.reply_callbacks[reply_id];
+				reply = data.reply;
+				if (typeof(reply) === "string") {
+					if (Object.prototype.hasOwnProperty.call(this.reply_callbacks, reply)) {
+						fn = this.reply_callbacks[reply];
+						delete this.reply_callbacks[reply];
+						this.event = event;
 						fn.call(this, null, action_data);
+						this.event = null;
 					}
+					else {
+						err = "Cannot reply to extension";
+					}
+				}
+				else if (action_is_null) {
+					err = "Missing extension action";
+				}
+				else if (Object.prototype.hasOwnProperty.call(handlers, action)) {
+					handlers[action].call(this, action_data, channel, data.id);
 				}
 				else {
-					if (typeof((fn = handlers[this.action])) === "function") {
-						fn.call(this, action_data);
-					}
-					else if (this.reply_id !== null) {
-						this.send(
-							this.api_name,
-							this.api_key,
-							this.action,
-							this.reply_id,
-							this.timeout_delay,
-							{ err: "Invalid extension call" }
-						);
-					}
+					err = "Invalid extension call";
 				}
 
-				this.registration = null;
-				this.reply_id = null;
+				if (err !== undefined && typeof((reply = data.id)) === "string") {
+					this.send(
+						channel,
+						null,
+						reply,
+						{ err: "Invalid extension call" }
+					);
+				}
 			}
-
-			this.action = null;
-			this.api_key = null;
-			this.api_name = null;
-		}._w(618);
-		ExtensionAPI.prototype.send = function (api_name, api_key, action, reply_to, timeout_delay, data, on_reply) {
+		}._w(628);
+		ExtensionAPI.prototype.send = function (channel, action, reply_to, data, timeout_delay, on_reply, transfer) {
 			var self = this,
 				id = null,
-				timeout, cb, i;
+				timeout = null,
+				cb, i;
 
 			if (on_reply !== undefined) {
 				for (i = 0; i < 10; ++i) {
@@ -9811,7 +9906,7 @@
 					}
 
 					on_reply.apply(this, arguments);
-				}._w(620);
+				}._w(630);
 
 				this.reply_callbacks[id] = cb;
 				cb = null;
@@ -9821,20 +9916,17 @@
 						timeout = null;
 						delete self.reply_callbacks[id];
 						on_reply.call(self, "Response timeout");
-					}._w(621), timeout_delay);
+					}._w(631), timeout_delay);
 				}
 			}
 
-			this.post_message({
+			channel.post({
 				xlinks_action: action,
-				extension: false,
+				data: data,
 				id: id,
-				reply: reply_to || null,
-				key: api_key,
-				name: api_name,
-				data: data
-			});
-		}._w(619);
+				reply: reply_to
+			}, transfer);
+		}._w(629);
 		ExtensionAPI.prototype.post_message = function (msg) {
 			try {
 				window.postMessage(msg, this.origin);
@@ -9849,11 +9941,9 @@
 					console.log("window.postMessage exception:", e, e2);
 				}
 			}
-		}._w(622);
-		ExtensionAPI.prototype.request_api_fn = function (fn_id, fn_name) {
+		}._w(632);
+		ExtensionAPI.prototype.request_api_fn = function (fn_id, fn_name, channel) {
 			var self = this,
-				api_name = this.api_name,
-				api_key = this.api_key,
 				remove_dom = (fn_name === "parse_response");
 
 			return function () {
@@ -9883,20 +9973,19 @@
 				}
 
 				self.send(
-					api_name,
-					api_key,
+					channel,
 					"api_function",
 					null,
-					self.timeout_delay,
 					{
 						id: fn_id,
 						args: args,
 						state: state
 					},
+					-1,
 					self.request_api_fn_callback(callback)
 				);
-			}._w(624);
-		}._w(623);
+			}._w(634);
+		}._w(633);
 		ExtensionAPI.prototype.request_api_fn_callback = function (callback) {
 			return function (err, data) {
 				var args;
@@ -9910,8 +9999,8 @@
 					args = JSON.parse(JSON.stringify(args));
 					callback.apply(null, args);
 				}
-			}._w(626);
-		}._w(625);
+			}._w(636);
+		}._w(635);
 		ExtensionAPI.prototype.register_settings = function (reg_info) {
 			var response = {},
 				name, default_value, title, description, descriptor,
@@ -9946,7 +10035,7 @@
 			}
 
 			return response;
-		}._w(627);
+		}._w(637);
 		ExtensionAPI.prototype.register_settings_descriptor_info = function (input) {
 			if (!is_object(input)) return null;
 
@@ -9975,8 +10064,8 @@
 			}
 
 			return info;
-		}._w(628);
-		ExtensionAPI.prototype.register_request_api = function (reg_info) {
+		}._w(638);
+		ExtensionAPI.prototype.register_request_api = function (reg_info, channel) {
 			if (!is_object(reg_info)) return "Invalid";
 
 			var req_group = "other",
@@ -10006,7 +10095,7 @@
 					if (Object.prototype.hasOwnProperty.call(ExtensionAPI.request_api_functions, v)) {
 						fn_name = ExtensionAPI.request_api_functions[v];
 						fn_id = random_string(32);
-						req_functions[fn_name] = this.request_api_fn(fn_id, fn_name);
+						req_functions[fn_name] = this.request_api_fn(fn_id, fn_name, channel);
 						req_function_ids[v] = fn_id;
 					}
 				}
@@ -10040,19 +10129,15 @@
 				req[k] = req_functions[k];
 			}
 			req.request_init = api_request_init_fn;
-			req.request_complete = create_api_request_complete_fn(this.api_name, this.api_key);
+			req.request_complete = create_api_request_complete_fn(channel);
 
 			if (o === undefined) {
 				this.request_apis[req_namespace] = o = {};
 			}
-			o[req_type] = {
-				req: req,
-				api_name: this.api_name,
-				api_key: this.api_key
-			};
+			o[req_type] = req;
 
 			return req_function_ids;
-		}._w(629);
+		}._w(639);
 		ExtensionAPI.prototype.register_linkifier = function (reg_info) {
 			if (!is_object(reg_info)) return "Invalid";
 
@@ -10084,8 +10169,8 @@
 			// Register
 			Linkifier.linkify_register(regex, prefix_group, prefix, null, null);
 			return null;
-		}._w(630);
-		ExtensionAPI.prototype.register_command = function (reg_info) {
+		}._w(640);
+		ExtensionAPI.prototype.register_command = function (reg_info, channel) {
 			if (!is_object(reg_info) || reg_info.url_info !== true || reg_info.to_data !== true) {
 				return "Invalid";
 			}
@@ -10094,42 +10179,43 @@
 				index;
 
 			index = API.register_url_info_function(
-				this.register_command_fn("url_info", id_data, 1000),
-				this.register_command_fn("url_info_to_data", id_data, -1)
+				this.register_command_fn("url_info", id_data, channel),
+				this.register_command_fn("url_info_to_data", id_data, channel)
 			);
 
 			if (reg_info.details === true) {
-				UI.register_details_creation(index, this.register_details_actions_fn("create_details", { id: id_data.id, info: null, data: null }, ExtensionAPI.details_validator));
+				UI.register_details_creation(index, this.register_details_actions_fn(
+					"create_details",
+					{ id: id_data.id, info: null, data: null },
+					channel,
+					ExtensionAPI.details_validator
+				));
 			}
 			if (reg_info.actions === true) {
-				UI.register_actions_creation(index, this.register_details_actions_fn("create_actions", { id: id_data.id, info: null, data: null }, ExtensionAPI.actions_validator));
+				UI.register_actions_creation(index, this.register_details_actions_fn(
+					"create_actions",
+					{ id: id_data.id, info: null, data: null },
+					channel,
+					ExtensionAPI.actions_validator
+				));
 			}
 
 			return id_data;
-		}._w(631);
-		ExtensionAPI.prototype.register_command_fn = function (event, send_data, delay) {
-			var api_name = this.api_name,
-				api_key = this.api_key,
-				self = this;
+		}._w(641);
+		ExtensionAPI.prototype.register_command_fn = function (event, send_data, channel) {
+			var self = this;
 
 			return function (url_info, cb) {
 				send_data.url = url_info;
 
 				self.send(
-					api_name,
-					api_key,
+					channel,
 					event,
 					null,
-					delay,
 					send_data,
+					-1,
 					function (err, data) {
-						if (err !== null) {
-							cb(err, null);
-						}
-						else if (!is_object(data)) {
-							cb("Invalid extension data", null);
-						}
-						else if ((err = data.err) !== null) {
+						if (err !== null || (err = data.err) !== null) {
 							cb(err, null);
 						}
 						else if (!is_object(data.data)) {
@@ -10138,43 +10224,47 @@
 						else {
 							cb(null, data.data);
 						}
-					}._w(634)
+					}._w(644)
 				);
-			}._w(633);
-		}._w(632);
-		ExtensionAPI.prototype.register_details_actions_fn = function (event, send_data, validator) {
-			var api_name = this.api_name,
-				api_key = this.api_key,
-				self = this;
+			}._w(643);
+		}._w(642);
+		ExtensionAPI.prototype.register_details_actions_fn = function (event, send_data, channel, validator) {
+			var self = this;
 
 			return function (data, info, cb) {
 				send_data.data = data;
 				send_data.info = info;
 
 				self.send(
-					api_name,
-					api_key,
+					channel,
 					event,
 					null,
-					self.timeout_delay,
 					send_data,
+					-1,
 					function (err, data) {
-						if (err !== null) {
-							cb(err, null);
-						}
-						else if (!is_object(data)) {
-							cb("Invalid extension data", null);
-						}
-						else if ((err = data.err) !== null) {
+						if (err !== null || (err = data.err) !== null) {
 							cb(err, null);
 						}
 						else {
 							validator(data.data, cb);
 						}
-					}._w(637)
+					}._w(647)
 				);
-			}._w(636);
-		}._w(635);
+			}._w(646);
+		}._w(645);
+
+		ExtensionAPI.prototype.create_extension_channel = function (api_name, api_key) {
+			var self = this;
+			return new CommunicationChannel(
+				api_name,
+				api_key,
+				false,
+				CommunicationChannel.create_channel(),
+				function (event, data, channel) {
+					self.on_message(event, data, channel, ExtensionAPI.handlers);
+				}._w(649)
+			);
+		}._w(648);
 
 		ExtensionAPI.details_validator = function (data, cb) {
 			if (typeof(data) !== "string") {
@@ -10189,7 +10279,7 @@
 					cb(null, data);
 				}
 			}
-		}._w(638);
+		}._w(650);
 		ExtensionAPI.actions_validator = function (data, cb) {
 			if (!Array.isArray(data)) {
 				cb("Invalid extension response", null);
@@ -10207,7 +10297,7 @@
 
 				cb(null, response);
 			}
-		}._w(639);
+		}._w(651);
 
 		ExtensionAPI.request_api_functions_required = [
 			"setup_xhr",
@@ -10221,10 +10311,9 @@
 		};
 
 		ExtensionAPI.handlers_init = {
-			start: function (data) {
-				var reply_data = null,
-					reg, enabled, name, author, description, version,
-					reply_key, i;
+			init: function (data, channel, reply) {
+				var reply_data, reg, enabled, name, author, description, version,
+					reply_key, reply_channel, i;
 
 				// Add to list
 				if (
@@ -10233,11 +10322,9 @@
 					typeof((description = data.description)) !== "string"
 				) {
 					this.send(
-						this.api_name,
-						this.api_key,
-						this.action,
-						this.reply_id,
-						this.timeout_delay,
+						channel,
+						null,
+						reply,
 						{ err: "Missing extension identification" }
 					);
 					return;
@@ -10253,11 +10340,9 @@
 				registered.push(reg);
 				if (!enabled) {
 					this.send(
-						this.api_name,
-						this.api_key,
-						this.action,
-						this.reply_id,
-						this.timeout_delay,
+						channel,
+						null,
+						reply,
 						{ err: "Extension disabled" }
 					);
 					return;
@@ -10266,48 +10351,47 @@
 				// Get unique ID
 				for (i = 0; i < 10; ++i) {
 					reply_key = random_string(64);
-					if (!Object.prototype.hasOwnProperty.call(this.registrations, reply_key)) {
-						this.registrations[reply_key] = {
-							name: this.api_name,
-							key: reply_key,
-							apis: []
-						};
-						reply_data = {
-							err: null,
-							key: reply_key,
-							cache_prefix: API.cache_get_prefix(),
-							cache_mode: config.debug.cache_mode
-						};
-						break;
-					}
+					if (!Object.prototype.hasOwnProperty.call(this.registrations, reply_key)) break;
 				}
+				if (i >= 10) {
+					this.send(
+						channel,
+						null,
+						reply,
+						{ err: "Could not generate unique key" }
+					);
+				}
+				else {
+					// Register
+					this.registrations[reply_key] = {
+						name: data.namespace,
+						key: reply_key,
+						apis: []
+					};
+					reply_data = {
+						err: null,
+						key: reply_key,
+						cache_prefix: API.cache_get_prefix(),
+						cache_mode: config.debug.cache_mode
+					};
 
-				// Send reply
-				this.send(
-					this.api_name,
-					this.api_key,
-					this.action,
-					this.reply_id,
-					this.timeout_delay,
-					reply_data
-				);
-			}._w(640),
+					reply_channel = this.create_extension_channel(data.namespace, reply_key);
+
+					// Send reply
+					this.send(
+						channel,
+						null,
+						reply,
+						reply_data,
+						-1,
+						undefined,
+						reply_channel.get_port_transfer()
+					);
+				}
+			}._w(652),
 		};
 		ExtensionAPI.handlers = {
-			register: function (data) {
-				if (!is_object(data)) {
-					// Failure
-					this.send(
-						this.api_name,
-						this.api_key,
-						this.action,
-						this.reply_id,
-						this.timeout_delay,
-						{ err: "Invalid extension data" }
-					);
-					return;
-				}
-
+			register: function (data, channel, reply) {
 				// Register
 				var response = {
 						settings: null,
@@ -10341,7 +10425,7 @@
 				// Request APIs
 				if (Array.isArray((o = data.request_apis))) {
 					for (i = 0, ii = o.length; i < ii; ++i) {
-						response.request_apis.push(this.register_request_api(o[i]));
+						response.request_apis.push(this.register_request_api(o[i], channel));
 					}
 				}
 
@@ -10355,17 +10439,15 @@
 				// URL info function
 				if (Array.isArray((o = data.commands))) {
 					for (i = 0, ii = o.length; i < ii; ++i) {
-						response.commands.push(this.register_command(o[i]));
+						response.commands.push(this.register_command(o[i], channel));
 					}
 				}
 
 				// Okay
 				this.send(
-					this.api_name,
-					this.api_key,
-					this.action,
-					this.reply_id,
-					this.timeout_delay,
+					channel,
+					null,
+					reply,
 					{
 						err: null,
 						response: response
@@ -10374,17 +10456,12 @@
 
 				// Done
 				Main.start_processing(!complete);
-			}._w(641),
-			request: function (data) {
+			}._w(653),
+			request: function (data, channel, reply) {
 				var self = this,
-					action = this.action,
-					reply_id = this.reply_id,
-					api_key = this.api_key,
-					api_name = this.api_name,
 					namespace, type, unique_id, info;
 
 				if (
-					!is_object(data) ||
 					typeof((namespace = data.namespace)) !== "string" ||
 					typeof((type = data.type)) !== "string" ||
 					typeof((unique_id = data.id)) !== "string" ||
@@ -10392,11 +10469,9 @@
 				) {
 					// Failure
 					this.send(
-						this.api_name,
-						this.api_key,
-						this.action,
-						this.reply_id,
-						this.timeout_delay,
+						channel,
+						null,
+						reply,
 						{ err: "Invalid extension data" }
 					);
 					return;
@@ -10408,38 +10483,29 @@
 					}
 
 					self.send(
-						api_name,
-						api_key,
-						action,
-						reply_id,
-						self.timeout_delay,
+						channel,
+						null,
+						reply,
 						{
 							err: err,
 							data: data
 						}
 					);
-				}._w(643));
-			}._w(642),
-			get_image: function (data) {
+				}._w(655));
+			}._w(654),
+			get_image: function (data, channel, reply) {
 				var self = this,
-					action = this.action,
-					reply_id = this.reply_id,
-					api_key = this.api_key,
-					api_name = this.api_name,
 					url, flags;
 
 				if (
-					!is_object(data) ||
 					typeof((url = data.url)) !== "string" ||
 					typeof((flags = data.flags)) !== "number"
 				) {
 					// Failure
 					this.send(
-						this.api_name,
-						this.api_key,
-						this.action,
-						this.reply_id,
-						this.timeout_delay,
+						channel,
+						null,
+						reply,
 						{ err: "Invalid extension data" }
 					);
 					return;
@@ -10447,15 +10513,13 @@
 
 				API.get_thumbnail(url, flags, function (err, url) {
 					self.send(
-						api_name,
-						api_key,
-						action,
-						reply_id,
-						self.timeout_delay,
+						channel,
+						null,
+						reply,
 						{ err: err, url: url }
 					);
-				}._w(645));
-			}._w(644),
+				}._w(657));
+			}._w(656),
 		};
 
 		var api_request_init_fn = function (req) {
@@ -10463,25 +10527,23 @@
 				id: random_string(32),
 				sent: false
 			};
-		}._w(646);
-		var create_api_request_complete_fn = function (api_name, api_key) {
+		}._w(658);
+		var create_api_request_complete_fn = function (channel) {
 			return function (req) {
 				api.send(
-					api_name,
-					api_key,
+					channel,
 					"request_end",
 					null,
-					api.timeout_delay,
 					{ id: req.data.id }
 				);
-			}._w(648);
-		}._w(647);
+			}._w(660);
+		}._w(659);
 
 
 		// Public
 		var init = function () {
 			if (api === null) api = new ExtensionAPI();
-		}._w(649);
+		}._w(661);
 
 		var request = function (namespace, type, unique_id, info, callback) {
 			var req_data;
@@ -10494,16 +10556,16 @@
 				return;
 			}
 
-			return req_data.req.add(unique_id, info, false, callback);
-		}._w(650);
+			return req_data.add(unique_id, info, false, callback);
+		}._w(662);
 
 		var should_defer_processing = function () {
 			return d.documentElement.hasAttribute("data-xlinks-extensions-waiting");
-		}._w(651);
+		}._w(663);
 
 		var get_registered_extensions = function () {
 			return registered;
-		}._w(652);
+		}._w(664);
 
 
 		// Exports
@@ -10530,7 +10592,7 @@
 			all_posts_reloaded = true;
 
 			Linkifier.relinkify_posts(Post.get_all_posts(d));
-		}._w(654);
+		}._w(666);
 
 		var on_ready = function () {
 			ready = true;
@@ -10558,7 +10620,7 @@
 			}
 
 			Debug.timer_log("init.ready.full duration", "init");
-		}._w(655);
+		}._w(667);
 		var on_body_observe = function (records) {
 			var post_list = [],
 				reload_all = false,
@@ -10640,7 +10702,7 @@
 			if (reload_all) {
 				reload_all_posts();
 			}
-		}._w(656);
+		}._w(668);
 		var check_removed_nodes = function (nodes) {
 			var node, ns, i, ii, j, jj;
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
@@ -10657,10 +10719,10 @@
 					}
 				}
 			}
-		}._w(657);
+		}._w(669);
 		var is_post_group_container = function (node) {
 			return node.id === "qp" || node.classList.contains("thread") || node.classList.contains("inline");
-		}._w(658);
+		}._w(670);
 
 		// Public
 		var init = function () {
@@ -10678,7 +10740,7 @@
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
 			$.ready(on_ready);
-		}._w(659);
+		}._w(671);
 		var version_compare = function (v1, v2) {
 			// Returns: -1 if v1<v2, 0 if v1==v2, 1 if v1>v2
 			var ii = Math.min(v1.length, v2.length),
@@ -10711,7 +10773,7 @@
 			}
 
 			return 0;
-		}._w(660);
+		}._w(672);
 		var insert_custom_fonts = function () {
 			if (fonts_inserted) return;
 			fonts_inserted = true;
@@ -10723,7 +10785,7 @@
 			font.type = "text/css";
 			font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
 			$.add(d.head, font);
-		}._w(661);
+		}._w(673);
 		var start_processing = function (defer) {
 			if (processing_started || !ready) return;
 
@@ -10738,7 +10800,7 @@
 				processing_start_timer = setTimeout(function () {
 					processing_start_timer = null;
 					start_processing(false);
-				}._w(663), 10000);
+				}._w(675), 10000);
 			}
 			else {
 				// Start processing
@@ -10751,14 +10813,14 @@
 					updater.observe(d.body, { childList: true, subtree: true });
 				}
 			}
-		}._w(662);
+		}._w(674);
 
 		// Exports
 		var Module = {
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,3,1,-0xDB],
+			version: [1,2,4,-0xDB],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
@@ -10768,7 +10830,7 @@
 
 		return Module;
 
-	}._w(653))();
+	}._w(665))();
 
 	Main.init();
 	Debug.timer_log("init.full duration", timing.start);

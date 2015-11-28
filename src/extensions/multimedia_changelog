@@ -1,5 +1,11 @@
 ﻿master
 
+1.0.0.1
+- dnsev-h
+  + Fixed LiveLeak URLs not being treated uniquely
+  + Added a setting to enable/disable github gist processing
+  + Use updated api.js
+
 1.0
 - dnsev-h
   + Initial release

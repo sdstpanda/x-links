@@ -1,5 +1,10 @@
 ﻿master
 
+1.2.4
+- dnsev-h
+  + Use a better form of communication between extensions and the main script
+  + Relaxed some extension communication timeouts
+
 1.2.3.1
 - dnsev-h
   + Change the maximum time an extension has to register to 10 seconds

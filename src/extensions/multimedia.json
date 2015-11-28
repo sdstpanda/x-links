@@ -1,6 +1,6 @@
 {
 	"name": "X-links Extension - Multimedia",
-	"version": "1.0",
+	"version": "1.0.0.1",
 	"author": "dnsev-h",
 	"description": "Linkify and format various multimedia links",
 	"namespace": "dnsev-h",

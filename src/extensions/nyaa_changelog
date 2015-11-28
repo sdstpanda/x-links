@@ -1,5 +1,9 @@
 ﻿master
 
+1.0.0.4
+- dnsev-h
+  + Use updated api.js
+
 1.0.0.3
 - dnsev-h
   + Fixed a bug that could result in an invalid comparison
