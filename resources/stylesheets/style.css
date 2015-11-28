@@ -750,6 +750,13 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 	background-size: contain;
 	background-position: 50% 50%;
 }
+.xl-site-tag-icon+.xl-site-tag-text {
+	display: inline-block;
+	opacity: 0;
+	color: rgba(0,0,0,0);
+	width: 0;
+	height: 0;
+}
 .xl-link.xl-link-formatted {
 	text-decoration: none !important;
 }

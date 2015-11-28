@@ -181,7 +181,3 @@
 .xl-mm-icon-youtube {
 	background-image: url('#{data:../../images/extensions/multimedia/icon-youtube.png}#');
 }
-
-.xl-mm-icon+.xl-site-tag-text {
-	display: none;
-}
