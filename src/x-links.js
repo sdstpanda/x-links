@@ -4194,6 +4194,7 @@
 					info.icon = (is_ex ? "exhentai" : "ehentai");
 				}
 				url = $.change_url_domain(url, rewrite);
+				url_info_saved[url.replace(re_remove_protocol, "")] = info;
 			}
 
 			return url;
@@ -4210,7 +4211,9 @@
 					if (info.icon !== undefined) {
 						info.icon = (fjord ? "exhentai" : "ehentai");
 					}
-					return $.change_url_domain(url, info.domain);
+					url = $.change_url_domain(url, info.domain);
+					url_info_saved[url.replace(re_remove_protocol, "")] = info;
+					return url;
 				}
 			}
 
