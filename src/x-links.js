@@ -1328,7 +1328,7 @@
 					else {
 						// Create
 						if (
-							(link = get_link_from_tag_button(this)) !== null &&
+							(link = get_link_from_site_tag(this)) !== null &&
 							(info = API.get_url_info_saved(link.href)) !== null
 						) {
 							n = this;
@@ -1364,7 +1364,7 @@
 				Linkifier.change_link_events(this, null);
 
 				if (
-					(link = get_link_from_tag_button(this)) !== null &&
+					(link = get_link_from_site_tag(this)) !== null &&
 					(info = API.get_url_info_saved(link.href)) !== null
 				) {
 					load_link(link, info);
@@ -1420,7 +1420,7 @@
 			return node.getAttribute("data-xl-id") || "";
 		};
 
-		var get_tag_button_from_link = function (node) {
+		var get_site_tag_from_link = function (node) {
 			// Assume the button is the previous (or previous-previous) sibling
 			if (
 				(node = node.previousSibling) !== null &&
@@ -1431,7 +1431,7 @@
 			}
 			return null;
 		};
-		var get_link_from_tag_button = function (node) {
+		var get_link_from_site_tag = function (node) {
 			// Assume the link is the next (or next-next) sibling
 			if (
 				(node = node.nextSibling) !== null &&
@@ -2087,14 +2087,14 @@
 			return tag_bg;
 		};
 
-		var mark_button_text = function (button, text) {
-			if ((button = button_get_inner(button)) !== null) {
+		var mark_site_tag = function (button, text) {
+			if ((button = get_site_tag_text_node(button)) !== null) {
 				button.textContent = button.textContent.replace(/\]\s*$/, text + "]");
 			}
 		};
-		var update_button_text = function (button, info) {
-			if ((button = button_get_inner(button)) !== null) {
-				button.textContent = button_text(info);
+		var update_site_tag = function (button, info) {
+			if ((button = get_site_tag_text_node(button)) !== null) {
+				button.textContent = create_site_tag_text(info);
 			}
 		};
 
@@ -2144,10 +2144,10 @@
 
 			return frag;
 		};
-		var button_get_inner = function (button) {
+		var get_site_tag_text_node = function (button) {
 			return ((button = button.lastChild) !== null && button.tagName === "SPAN") ? button : null;
 		};
-		var button_text = function (info) {
+		var create_site_tag_text = function (info) {
 			return "[" + (info.tag || "?") + "]";
 		};
 		var format_date = function (timestamp) {
@@ -2168,7 +2168,7 @@
 		};
 		var setup_link = function (link, url, info, auto_load) {
 			var button = $.link(url, "xl-site-tag" + Theme.classes),
-				text = $.node("span", "xl-site-tag-text", button_text(info));
+				text = $.node("span", "xl-site-tag-text", create_site_tag_text(info));
 
 			button.setAttribute("data-xl-site", info.site);
 
@@ -2227,7 +2227,7 @@
 			}
 		};
 		var format_link = function (link, data, info) {
-			var button = get_tag_button_from_link(link),
+			var button = get_site_tag_from_link(link),
 				fjord, ex, hl, c, n;
 
 			// Smart links
@@ -2240,7 +2240,7 @@
 					link.href = $.change_url_domain(link.href, info.domain);
 					if (button !== null) {
 						button.href = link.href;
-						update_button_text(button, info);
+						update_site_tag(button, info);
 					}
 				}
 			}
@@ -2264,7 +2264,7 @@
 				hl = Filter.check(link, data);
 				if (hl[0] !== Filter.None) {
 					c = (hl[0] === Filter.Good) ? config.filter.good_tag_marker : config.filter.bad_tag_marker;
-					mark_button_text(button, c);
+					mark_site_tag(button, c);
 					Filter.highlight_tag(button, link, hl);
 				}
 				Linkifier.change_link_events(button, "gallery_toggle_actions");
@@ -2288,7 +2288,7 @@
 		};
 		var format_link_error = function (link, error) {
 			var text = " (" + error.trim().replace(/\.$/, "") + ")",
-				button = get_tag_button_from_link(link),
+				button = get_site_tag_from_link(link),
 				n;
 
 			if (button !== null) {
@@ -2385,8 +2385,8 @@
 			setup_link: setup_link,
 			get_links_formatted: get_links_formatted,
 			create_rating_stars: create_rating_stars,
-			button_get_inner: button_get_inner,
-			button_text: button_text,
+			get_site_tag_text_node: get_site_tag_text_node,
+			create_site_tag_text: create_site_tag_text,
 			format_date: format_date,
 			cleanup_post: cleanup_post,
 			cleanup_post_removed: cleanup_post_removed,
@@ -7283,7 +7283,7 @@
 			// Apply styles
 			if (
 				(color !== null || background !== null || underline !== null) &&
-				(node = UI.button_get_inner(node)) !== null
+				(node = UI.get_site_tag_text_node(node)) !== null
 			) {
 				n1 = $.node("span", "xl-filter-text");
 				n2 = $.node("span", "xl-filter-text-inner");
@@ -7915,7 +7915,7 @@
 
 			$.add(n4, n5 = $.node("div", "xl-easylist-item-title" + theme));
 
-			t = UI.button_text(info);
+			t = UI.create_site_tag_text(info);
 			$.add(n5, n6 = $.link(url, "xl-easylist-item-title-tag-link" + theme));
 			$.add(n6, $.node("span", "xl-easylist-item-title-tag-link-text", t));
 			n6.setAttribute("data-xl-original", t);
