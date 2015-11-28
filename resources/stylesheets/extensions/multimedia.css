@@ -151,33 +151,33 @@
 	margin: 0;
 }
 
-.xl-mm-icon-dailymotion {
+.xl-site-tag-icon[data-xl-site-tag-icon=dailymotion] {
 	background-image: url('#{data:../../images/extensions/multimedia/icon-dailymotion.png}#');
 }
-.xl-mm-icon-githubgist {
+.xl-site-tag-icon[data-xl-site-tag-icon=githubgist] {
 	background-image: url('#{data:../../images/extensions/multimedia/icon-github.png}#');
 }
-.xl-mm-icon-liveleak {
+.xl-site-tag-icon[data-xl-site-tag-icon=liveleak] {
 	background-image: url('#{data:../../images/extensions/multimedia/icon-liveleak.png}#');
 }
-.xl-mm-icon-livestream {
+.xl-site-tag-icon[data-xl-site-tag-icon=livestream] {
 	background-image: url('#{data:../../images/extensions/multimedia/icon-livestream.png}#');
 }
-.xl-mm-icon-nicovideo {
+.xl-site-tag-icon[data-xl-site-tag-icon=nicovideo] {
 	background-image: url('#{data:../../images/extensions/multimedia/icon-nicovideo.png}#');
 }
-.xl-mm-icon-soundcloud {
+.xl-site-tag-icon[data-xl-site-tag-icon=soundcloud] {
 	background-image: url('#{data:../../images/extensions/multimedia/icon-soundcloud.png}#');
 }
-.xl-mm-icon-twitter {
+.xl-site-tag-icon[data-xl-site-tag-icon=twitter] {
 	background-image: url('#{data:../../images/extensions/multimedia/icon-twitter.png}#');
 }
-.xl-mm-icon-vimeo {
+.xl-site-tag-icon[data-xl-site-tag-icon=vimeo] {
 	background-image: url('#{data:../../images/extensions/multimedia/icon-vimeo.png}#');
 }
-.xl-mm-icon-vine {
+.xl-site-tag-icon[data-xl-site-tag-icon=vine] {
 	background-image: url('#{data:../../images/extensions/multimedia/icon-vine.png}#');
 }
-.xl-mm-icon-youtube {
+.xl-site-tag-icon[data-xl-site-tag-icon=youtube] {
 	background-image: url('#{data:../../images/extensions/multimedia/icon-youtube.png}#');
 }

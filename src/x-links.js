@@ -2168,14 +2168,16 @@
 		};
 		var setup_link = function (link, url, info, auto_load) {
 			var button = $.link(url, "xl-site-tag" + Theme.classes),
-				text = $.node("span", "xl-site-tag-text", create_site_tag_text(info));
+				text = $.node("span", "xl-site-tag-text", create_site_tag_text(info)),
+				n;
 
 			button.setAttribute("data-xl-site", info.site);
 
 			set_node_id(link, info);
 
 			if (info.icon !== undefined) {
-				$.add(button, $.node("span", "xl-site-tag-icon " + info.icon + Theme.classes));
+				$.add(button, n = $.node("span", "xl-site-tag-icon" + Theme.classes));
+				n.setAttribute("data-xl-site-tag-icon", info.icon);
 			}
 
 			$.add(button, text);
@@ -4175,17 +4177,17 @@
 		};
 
 		var rewrite_link = function (url, info) {
-			var rewrite;
+			var rewrite, is_ex;
 
 			if (
 				info.site === "ehentai" &&
-				((rewrite = config.general.rewrite_links) === domains.exhentai || rewrite === domains.gehentai) &&
+				((is_ex = ((rewrite = config.general.rewrite_links) === domains.exhentai)) || rewrite === domains.gehentai) &&
 				info.domain !== rewrite
 			) {
 				info.domain = rewrite;
 				info.tag = get_tag_from_domain(rewrite);
 				if (info.icon !== undefined) {
-					info.icon = "xl-site-tag-icon-" + (fjord ? "exhentai" : "ehentai");
+					info.icon = (is_ex ? "exhentai" : "ehentai");
 				}
 				url = $.change_url_domain(url, rewrite);
 			}
@@ -4195,14 +4197,14 @@
 		var rewrite_link_smart = function (node, info, data) {
 			if (config.general.rewrite_links === "smart" && data.type === "ehentai") {
 				var url = node.href,
-					ex = ($.get_domain(url) === domains.exhentai),
+					is_ex = ($.get_domain(url) === domains.exhentai),
 					fjord = is_fjording(data);
 
-				if (fjord !== ex) {
+				if (fjord !== is_ex) {
 					info.domain = fjord ? domains.exhentai : domains.gehentai;
 					info.tag = get_tag_from_domain(info.domain);
 					if (info.icon !== undefined) {
-						info.icon = "xl-site-tag-icon-" + (fjord ? "exhentai" : "ehentai");
+						info.icon = (fjord ? "exhentai" : "ehentai");
 					}
 					return $.change_url_domain(url, info.domain);
 				}
@@ -4304,7 +4306,7 @@
 			if (data !== null) {
 				url_info_saved[save_key] = data;
 				if (config.general.iconify) {
-					data.icon = "xl-site-tag-icon-" + icon_site;
+					data.icon = icon_site;
 				}
 			}
 			else if (url_info_registrations.length > 0) {

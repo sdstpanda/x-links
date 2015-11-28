@@ -216,7 +216,7 @@
 	var use_icons = false;
 	var iconify_info = function (info) {
 		if (use_icons) {
-			info.icon = "xl-mm-icon xl-mm-icon-" + info.site;
+			info.icon = info.site;
 		}
 	};
 
