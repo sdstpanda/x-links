@@ -38,6 +38,10 @@
 				"Automatic link processing", "Get data and format links automatically",
 				"Automatic Processing"
 			],
+			[ "iconify", true,
+				"Icon site tags", "Use site-specific icons instead of [Site] tags",
+				null
+			],
 			[ "changelog_on_update", true,
 				"Show changelog on update", "Show the changelog after an update",
 				"Show Changelog on Update"
@@ -4187,7 +4191,7 @@
 
 		var get_url_info = function (url, callback) {
 			var save_key = url.replace(re_remove_protocol, ""),
-				match, data, domain, remaining, is_ex, m;
+				icon_site, match, data, domain, remaining, is_ex, m;
 
 			if ((data = url_info_saved[save_key]) !== undefined) {
 				callback(null, data);
@@ -4219,21 +4223,20 @@
 					};
 					m = /#page(\d+)/.exec(remaining);
 					if (m !== null) data.page = parseInt(m[1], 10);
+					icon_site = is_ex ? "exhentai" : "ehentai";
 				}
-				else {
-					m = /^\/s\/([0-9a-f]+)\/(\d+)\-(\d+)/.exec(remaining);
-					if (m !== null) {
-						data = {
-							id: "ehentai_" + m[2],
-							site: "ehentai",
-							type: "page",
-							gid: parseInt(m[2], 10),
-							page: parseInt(m[3], 10),
-							page_token: m[1],
-							domain: domain,
-							tag: get_tag_from_domain(domain)
-						};
-					}
+				else if ((m = /^\/s\/([0-9a-f]+)\/(\d+)\-(\d+)/.exec(remaining)) !== null) {
+					data = {
+						id: "ehentai_" + m[2],
+						site: "ehentai",
+						type: "page",
+						gid: parseInt(m[2], 10),
+						page: parseInt(m[3], 10),
+						page_token: m[1],
+						domain: domain,
+						tag: get_tag_from_domain(domain)
+					};
+					icon_site = is_ex ? "exhentai" : "ehentai";
 				}
 			}
 			else if (domain === domains.nhentai) {
@@ -4248,6 +4251,7 @@
 						tag: get_tag_from_domain(domain)
 					};
 					if (m[2] !== undefined) data.page = parseInt(m[2], 10);
+					icon_site = "nhentai";
 				}
 			}
 			else if (domain === domains.hitomi) {
@@ -4262,11 +4266,15 @@
 						tag: get_tag_from_domain(domain)
 					};
 					if (m[1] === "reader" && m[3] !== undefined) data.page = parseInt(m[3], 10);
+					icon_site = "hitomi";
 				}
 			}
 
 			if (data !== null) {
 				url_info_saved[save_key] = data;
+				if (config.general.iconify) {
+					data.icon = "xl-site-tag-icon-" + icon_site;
+				}
 			}
 			else if (url_info_registrations.length > 0) {
 				get_url_info_custom(0, url, save_key, callback);
