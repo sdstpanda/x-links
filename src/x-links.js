@@ -2093,8 +2093,12 @@
 			}
 		};
 		var update_site_tag = function (button, info) {
-			if ((button = get_site_tag_text_node(button)) !== null) {
-				button.textContent = create_site_tag_text(info);
+			var n;
+			if ((n = get_site_tag_text_node(button)) !== null) {
+				n.textContent = create_site_tag_text(info);
+			}
+			if (info.icon !== undefined && (n = $(".xl-site-tag-icon", button)) !== null) {
+				n.setAttribute("data-xl-site-tag-icon", info.icon);
 			}
 		};
 
