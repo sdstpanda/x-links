@@ -2228,20 +2228,14 @@
 		};
 		var format_link = function (link, data, info) {
 			var button = get_site_tag_from_link(link),
-				fjord, ex, hl, c, n;
+				url, hl, c, n;
 
 			// Smart links
-			if (config.general.rewrite_links === "smart" && data.type === "ehentai") {
-				ex = ($.get_domain(link.href) === domains.exhentai);
-				fjord = API.is_fjording(data);
-				if (fjord !== ex) {
-					info.domain = fjord ? domains.exhentai : domains.gehentai;
-					info.tag = API.get_tag_from_domain(info.domain);
-					link.href = $.change_url_domain(link.href, info.domain);
-					if (button !== null) {
-						button.href = link.href;
-						update_site_tag(button, info);
-					}
+			if ((url = API.rewrite_link_smart(link, info, data)) !== null) {
+				link.href = url;
+				if (button !== null) {
+					button.href = link.href;
+					update_site_tag(button, info);
 				}
 			}
 
@@ -4180,6 +4174,43 @@
 			return re_fjord.test(data.tags.join(","));
 		};
 
+		var rewrite_link = function (url, info) {
+			var rewrite;
+
+			if (
+				info.site === "ehentai" &&
+				((rewrite = config.general.rewrite_links) === domains.exhentai || rewrite === domains.gehentai) &&
+				info.domain !== rewrite
+			) {
+				info.domain = rewrite;
+				info.tag = get_tag_from_domain(rewrite);
+				if (info.icon !== undefined) {
+					info.icon = "xl-site-tag-icon-" + (fjord ? "exhentai" : "ehentai");
+				}
+				url = $.change_url_domain(url, rewrite);
+			}
+
+			return url;
+		};
+		var rewrite_link_smart = function (node, info, data) {
+			if (config.general.rewrite_links === "smart" && data.type === "ehentai") {
+				var url = node.href,
+					ex = ($.get_domain(url) === domains.exhentai),
+					fjord = is_fjording(data);
+
+				if (fjord !== ex) {
+					info.domain = fjord ? domains.exhentai : domains.gehentai;
+					info.tag = get_tag_from_domain(info.domain);
+					if (info.icon !== undefined) {
+						info.icon = "xl-site-tag-icon-" + (fjord ? "exhentai" : "ehentai");
+					}
+					return $.change_url_domain(url, info.domain);
+				}
+			}
+
+			return null;
+		};
+
 
 
 		// Public
@@ -4547,7 +4578,6 @@
 			RequestType: RequestType,
 			get_url_info: get_url_info,
 			get_url_info_saved: get_url_info_saved,
-			get_tag_from_domain: get_tag_from_domain,
 			get_ehentai_gallery_full: get_ehentai_gallery_full,
 			get_ehentai_gallery_page_thumb: get_ehentai_gallery_page_thumb,
 			get_nhentai_gallery_page_thumb: get_nhentai_gallery_page_thumb,
@@ -4560,7 +4590,8 @@
 			cache_get_prefix: cache_get_prefix,
 			get_category: get_category,
 			get_category_sort_rank: get_category_sort_rank,
-			is_fjording: is_fjording,
+			rewrite_link: rewrite_link,
+			rewrite_link_smart: rewrite_link_smart,
 			register_url_info_function: register_url_info_function,
 			init: init
 		};
@@ -5459,17 +5490,7 @@
 					return;
 				}
 
-				if (info.site === "ehentai") {
-					var rewrite = config.general.rewrite_links;
-					if (
-						(rewrite === domains.exhentai || rewrite === domains.gehentai) &&
-						info.domain !== rewrite
-					) {
-						info.domain = rewrite;
-						info.tag = API.get_tag_from_domain(rewrite);
-						url = $.change_url_domain(url, rewrite);
-					}
-				}
+				url = API.rewrite_link(url, info);
 
 				node.href = url;
 				node.target = "_blank";
