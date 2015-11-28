@@ -2171,7 +2171,7 @@
 			set_node_id(link, info);
 
 			if (info.icon !== undefined) {
-				$.add(button, $.node("span", "xl-site-tag-icon " + info.icon));
+				$.add(button, $.node("span", "xl-site-tag-icon " + info.icon + Theme.classes));
 			}
 
 			$.add(button, text);
