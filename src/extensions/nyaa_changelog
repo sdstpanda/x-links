@@ -1,5 +1,10 @@
 ﻿master
 
+1.0.0.5
+- dnsev-h
+  + Added an iconify option
+  + nyaa.eu links now also work
+
 1.0.0.4
 - dnsev-h
   + Use updated api.js

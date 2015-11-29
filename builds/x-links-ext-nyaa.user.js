@@ -2,7 +2,7 @@
 // @name        X-links Extension - Nyaa Torrents
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.0.4
+// @version     1.0.0.5
 // @description Linkify and format nyaa.se links
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -1531,8 +1531,8 @@
 		var scale = 1024,
 			i, ii;
 
-		for (i = 0, ii = file_size_labels.length - 1; i < ii && size >= 1024; ++i) {
-			size /= 1024;
+		for (i = 0, ii = file_size_labels.length - 1; i < ii && size >= scale; ++i) {
+			size /= scale;
 		}
 
 		return size.toFixed(3).replace(/\.?0+$/, "") + " " + file_size_labels[i];
@@ -1691,19 +1691,23 @@
 	};
 
 	var url_get_info = function (url, callback) {
-		var m = /^(?:https?:\/*)?((www\.|sukebei\.)?nyaa\.se)(\/[\w\W]*)?/i.exec(url),
-			s, m2;
+		var m = /^(?:https?:\/*)?((www\.|sukebei\.)?nyaa\.(?:eu|se))(\/[\w\W]*)?/i.exec(url),
+			data, s, m2;
 
 		if (m !== null && m[3] !== undefined && (m2 = /[\?\&]tid=(\d+)/.exec(m[3])) !== null) {
 			s = (m[2] === "sukebei.");
-			callback(null, {
+			data = {
 				id: "nyaa_" + (s ? "sukebei_" : "") + m2[1],
 				site: "nyaa",
 				sukebei: s,
 				gid: parseInt(m2[1], 10),
 				domain: m[1],
 				tag: "Nyaa"
-			});
+			};
+			if (xlinks_api.config.nyaa.iconify) {
+				data.icon = data.site + (s ? "sukebei" : "");
+			}
+			callback(null, data);
 		}
 		else {
 			callback(null, null);
@@ -1772,10 +1776,12 @@
 		name: "Nyaa Torrents",
 		author: "dnsev-h",
 		description: "Linkify and format nyaa.se links",
-		version: [1,0,0,4],
+		version: [1,0,0,5],
 		registrations: 1
 	}, function (err) {
 		if (err === null) {
+			xlinks_api.insert_styles(".xl-site-tag-icon[data-xl-site-tag-icon=nyaa]{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAABPlBMVEX////n9P7X6/0id+UpfOYRbeNtw/4wq/83hej4/P8dov8Zivgvg+fd7Pzw+P642vs4i+wzu/898v856v865P804/80zv4+qv3J5fwop//C4Ps6j+wqoPqz1Pir1foWmv+jyfgOl/8MkP8Chf+K3/wkf+6AyfwYc+sZdeNp4P0PePICePgAcfUAavK76v2OzfvO6v2sz/k3ovcysv81lvGx2/s1xf8q1/8kw/+DwPqTvvUysPCDtPE/oPVu5/+Y8f563/111Pl1xfub3f1my/xF7Pswie9a1/wtm/clmfgtj/JK3f4mguV8vflouf1srfVio+5auv1csPhRq/lLs/1DmfIod94/+f+e1fuby/k/iOfQ5fsBe/s21f8IN28AS949w/443P9C//0Fi//L9f5I0+5Pzf1BqPFYlOo4oeiBsk1bAAACPUlEQVR4XoXS1ZLbQBAF0EExmJkZl5mZmTlM//8D6ZbsWJuXvX5RVZ+6PSOZvH0Q8sa5fJeTEyuxVpOYlpQArPfj7O2vueX2pmy1TpZ3f/wBIIIgm5tSp8PhjXYiFo18hQDQRiusQ8NIp9XwQq0dj0Ui9z6QQiDhwjoqFxFARW3/CzSgQHDHRb3TrVa/VcrFgficeEVxf4+g1+t1uy8vCCqV4sFMLpeeDs8lXrFiBAbiiEueM9QbNTwHFSgA9P0KEKYmIbn01iV0wJL47gAMl4RwzqfOFP8Y82vr0QgCv6JrwhyzegPnTCs7Pzf09bgHQNTrHUtIPzNJwzCULWWM6O1YFIBsik6nM3pbF0rSUJUGnXBq7eMYAt7s97XhuGUtXqnFy8b4LNse25+PA+BNq/k0nHMuCsnyJT1V1XE2tnD8HcCd1ILfS5xWcrPkpqykHsKbDvVWjPZzweV15ZoS+uDSxjahCEZjyfGmZlUhmAlGiM6wIQAE3LJazSDQdVTbASA8kzVNc4IMo+8EAMf/IN8LHZnj5F/o/w0hDX6LPnCgKRUAFsdTWln5VEgRRikI2BFcoUGLJTi/oGfPGbeQongVH1zkV544F01LE3zvdJIsZhjLuAD0hgc0Gx5Ldfgkvdvz/CSlDmWUMV1Pna96YIlg6JK7dE6IzahNqM7s1FkyFJoCwCUlXtxMyQFg26B1hxWuLH5gAPj0m/gprTjAWB7xc4k+5qU8WEUwOQArtjdCZT8+2y7j4lAD8EH+Amg5gZiqRIpYAAAAAElFTkSuQmCC)}.xl-site-tag-icon[data-xl-site-tag-icon=nyaasukebei]{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAABPlBMVEX////+7Oj92tfkMSTmNyr+onP/fDj/XybnRjn/+vnmPTD84N74GhrjIBH5WTL7ubn+8/D80cv9pjX/kzv/jzX/hj37x8P8akb/ZzL7yovsQTj/Sh7/RBf/qzXsQzr4uLT5sq3/MhH9tmnsNCbqLRrjJxn4qqTyGxD6pYb4DgL2DAD/AwP9gGz/gz/9f1L947vuaWL2TTLmUED7i2P5s63xi4P939D5fX36wrT4Z1/6r5T90pz5XVT6slz9wXv+tnD/hjz1dG37pnn2VD/ySET4Rir/sDX70tH5m5v6uqPuOzL1mpPxNTXyMy7+o0r5w3X/pSXcOir/nzfkMCjvojX7BwH/jTn4hob/lCv1TEPyEQD7jkX+xpj8u2hwDwjxdEj/GAreKgD8s0D9tU//fUPulkjqaVj+5cz/mznneD/8V0gnAAACP0lEQVR4XoXS1XLlSAwG4CYzHGZm5jAzM/Mg7L7/C4xkx4kzN5Fvukpf/ZLbJi+fFHnh3PpQl5d6eDXlHGuWBUD/2M5vfdm5Kp9atdrl1eOv/wEIP8jbm/JaLrdSDkduYj+hAKjvI/RtRUkm5dxZqhyNxGI9F1hCIOFCP85mEEBEavk/SECB4JyLSqPV6XwtZTOv4nv4AkWvh6Ddbrda19cISqXM6Mi2k2u5nfAFRrwBTxxzi9uK3JdzOxCBAsCDGwHCVHFTO7kxgQwYEn18Bd6QNPb5Zldy17hbfbqJIXAjWib0se77sGdSev6xoj1FHQCiUmno3oUdJRRFkTakAdHKkRsAVlU0Go332xpKCUWWmnQmmCqfRBDw6sOD6rVr+u28nJk0F+bY4mD5LgqAV/Xq2OtzLoqJ7ITOyvICG5yd/AFwbqn+7yVmS/Yc6Wel0H7uNEidEe/zueDWUmmJErofoM1FQhFg2+vjm5odiWDNMEI0hgk+ALOOOp04Ak1DtegD7iJ50zRniFfasw9w/Af5QfrYXCBvRf9NSKvw3LogCEkhH9A5bqnnrXExRBilIGCGf4QKKbrgfEi7u/FAMUTxVVwwLEyPORdVXRX8YHaK3MYZiwcAaE0HqAYc6xX4JO2t9cIUpUHKKGOaFlq/d8Chu/Bh4HCdEINRg1CNGaFuIp3edG6SEqcC8XoQgGGA1oKsOK/zkQLg22/iVn0a+oQVEO/W6V7Bskb3CKZewbThtFAZe7tGgHGxrQL4pP4Cd0mKEKiat4wAAAAASUVORK5CYII=)}");
+
 			xlinks_api.register({
 				settings: {
 					sites: [ // namespace
@@ -1783,6 +1789,9 @@
 						[ "nyaa", true, "nyaa.se", "Enable link processing for nyaa.se" ],
 						// descriptor: { type: string, options: <array of [string:value, string:label, string:description]> }
 						// for pre-existing vars: [ "name" ]
+					],
+					nyaa: [
+						[ "iconify", true, "Icon site tags", "Use site-specific icons instead of [Site] tags" ],
 					]
 				},
 				request_apis: [{
@@ -1801,7 +1810,7 @@
 					},
 				}],
 				linkifiers: [{
-					regex: /(https?:\/*)?(?:www\.|sukebei\.)?nyaa\.se(?:\/[^<>()\s\'\"]*)?/i,
+					regex: /(https?:\/*)?(?:www\.|sukebei\.)?nyaa\.(?:eu|se)(?:\/[^<>()\s\'\"]*)?/i,
 					prefix_group: 1,
 					prefix: "http://",
 				}],

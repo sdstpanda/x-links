@@ -1,5 +1,10 @@
 ﻿master
 
+1.2.5
+- dnsev-h
+  + Fixed a bug that could cause rewritten links to not work
+  + Added icons for links that can replace [Ex] tags (can be enabled in settings)
+
 1.2.4
 - dnsev-h
   + Use a better form of communication between extensions and the main script

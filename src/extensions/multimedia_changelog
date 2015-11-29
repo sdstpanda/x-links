@@ -1,5 +1,9 @@
 ﻿master
 
+1.0.0.2
+- dnsev-h
+  + Update how iconification works
+
 1.0.0.1
 - dnsev-h
   + Fixed LiveLeak URLs not being treated uniquely

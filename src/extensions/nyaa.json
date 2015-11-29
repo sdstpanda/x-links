@@ -1,6 +1,6 @@
 {
 	"name": "X-links Extension - Nyaa Torrents",
-	"version": "1.0.0.4",
+	"version": "1.0.0.5",
 	"author": "dnsev-h",
 	"description": "Linkify and format nyaa.se links",
 	"namespace": "dnsev-h",

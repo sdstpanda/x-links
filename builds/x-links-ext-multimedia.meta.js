@@ -2,7 +2,7 @@
 // @name        X-links Extension - Multimedia
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.0.1
+// @version     1.0.0.2
 // @description Linkify and format various multimedia links
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*

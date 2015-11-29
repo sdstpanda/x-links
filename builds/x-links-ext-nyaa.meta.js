@@ -2,7 +2,7 @@
 // @name        X-links Extension - Nyaa Torrents
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.0.4
+// @version     1.0.0.5
 // @description Linkify and format nyaa.se links
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
