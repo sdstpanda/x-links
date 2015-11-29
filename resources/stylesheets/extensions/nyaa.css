@@ -1,0 +1,6 @@
+﻿.xl-site-tag-icon[data-xl-site-tag-icon=nyaa] {
+	background-image: url('#{data:../../images/extensions/nyaa/icon-nyaa.png}#');
+}
+.xl-site-tag-icon[data-xl-site-tag-icon=nyaasukebei] {
+	background-image: url('#{data:../../images/extensions/nyaa/icon-nyaa-sukebei.png}#');
+}

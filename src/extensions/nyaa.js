@@ -360,8 +360,8 @@
 		var scale = 1024,
 			i, ii;
 
-		for (i = 0, ii = file_size_labels.length - 1; i < ii && size >= 1024; ++i) {
-			size /= 1024;
+		for (i = 0, ii = file_size_labels.length - 1; i < ii && size >= scale; ++i) {
+			size /= scale;
 		}
 
 		return size.toFixed(3).replace(/\.?0+$/, "") + " " + file_size_labels[i];
@@ -520,19 +520,23 @@
 	};
 
 	var url_get_info = function (url, callback) {
-		var m = /^(?:https?:\/*)?((www\.|sukebei\.)?nyaa\.se)(\/[\w\W]*)?/i.exec(url),
-			s, m2;
+		var m = /^(?:https?:\/*)?((www\.|sukebei\.)?nyaa\.(?:eu|se))(\/[\w\W]*)?/i.exec(url),
+			data, s, m2;
 
 		if (m !== null && m[3] !== undefined && (m2 = /[\?\&]tid=(\d+)/.exec(m[3])) !== null) {
 			s = (m[2] === "sukebei.");
-			callback(null, {
+			data = {
 				id: "nyaa_" + (s ? "sukebei_" : "") + m2[1],
 				site: "nyaa",
 				sukebei: s,
 				gid: parseInt(m2[1], 10),
 				domain: m[1],
 				tag: "Nyaa"
-			});
+			};
+			if (xlinks_api.config.nyaa.iconify) {
+				data.icon = data.site + (s ? "sukebei" : "");
+			}
+			callback(null, data);
 		}
 		else {
 			callback(null, null);
@@ -605,6 +609,8 @@
 		registrations: 1
 	}, function (err) {
 		if (err === null) {
+			xlinks_api.insert_styles("#{style:../../resources/stylesheets/extensions/nyaa.css}#");
+
 			xlinks_api.register({
 				settings: {
 					sites: [ // namespace
@@ -612,6 +618,9 @@
 						[ "nyaa", true, "nyaa.se", "Enable link processing for nyaa.se" ],
 						// descriptor: { type: string, options: <array of [string:value, string:label, string:description]> }
 						// for pre-existing vars: [ "name" ]
+					],
+					nyaa: [
+						[ "iconify", true, "Icon site tags", "Use site-specific icons instead of [Site] tags" ],
 					]
 				},
 				request_apis: [{
@@ -630,7 +639,7 @@
 					},
 				}],
 				linkifiers: [{
-					regex: /(https?:\/*)?(?:www\.|sukebei\.)?nyaa\.se(?:\/[^<>()\s\'\"]*)?/i,
+					regex: /(https?:\/*)?(?:www\.|sukebei\.)?nyaa\.(?:eu|se)(?:\/[^<>()\s\'\"]*)?/i,
 					prefix_group: 1,
 					prefix: "http://",
 				}],
