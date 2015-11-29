@@ -2,7 +2,7 @@
 // @name        X-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.5
+// @version     1.2.5.1
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -5092,182 +5092,174 @@
 		// Linkification
 		var deep_dom_wrap = (function () {
 
-			// Internal helper class
-			var Offset = function (text_offset, node) {
-				this.text_offset = text_offset;
-				this.node = node;
-				this.node_text_length = node.nodeValue.length;
-			};
+			// Constants
+			var NODE_PARSE = 0,
+				NODE_NO_PARSE = 1,
+				NODE_LINE_BREAK = 2,
+				TEXT_NODE = Node.TEXT_NODE,
+				ELEMENT_NODE = Node.ELEMENT_NODE;
 
 
 
 			// Main function
-			var deep_dom_wrap = function (container, matcher, element_checker, setup_function, quick) {
-				var text = "",
-					offsets = [],
-					d = document,
+			var deep_dom_wrap = function (container, match_fn, element_fn, setup_fn, quick) {
+				var offsets = [],
+					text = textify_node(container, offsets, element_fn),
 					count = 0,
 					match_pos = 0,
-					node, par, next, check, match,
-					pos_start, pos_end, offset_start, offset_end, tag,
-					prefix, suffix, link_base, link_node, relative_node, relative_par, clone, i, n1, n2, len, offset_current, offset_node;
+					match;
 
-
-				// Create a string of the container's contents (similar to but not exactly the same as node.textContent)
-				// Also lists all text nodes into the offsets array
-				par = container;
-				node = container.firstChild;
-				if (node === null) return 0; // Quick exit for empty container
-				while (true) {
-					if (node !== null) {
-						if (node.nodeType === 3) { // TEXT_NODE
-							// Add to list and text
-							offsets.push(new Offset(text.length, node));
-							text += node.nodeValue;
+				if (text.length > 0) {
+					if (quick) {
+						// Quick mode: just find all the matches
+						while ((match = match_fn(text, match_pos)) !== null) {
+							++count;
+							match_pos = match[1];
 						}
-						else if (node.nodeType === 1) { // ELEMENT_NODE
-							// Action callback
-							check = element_checker.call(null, node);
-							// Line break
-							if ((check & deep_dom_wrap.EL_TYPE_LINE_BREAK) !== 0) {
-								text += "\n";
-							}
-							// Parse
-							if ((check & deep_dom_wrap.EL_TYPE_NO_PARSE) === 0) {
-								par = node;
-								node = node.firstChild;
-								continue;
-							}
-						}
-
-						// Next
-						node = node.nextSibling;
 					}
 					else {
+						// Loop to find all matches
+						while ((match = match_fn(text, match_pos)) !== null) {
+							++count;
+							match_pos = match[1];
+							replace_match(match, text, offsets, setup_fn);
+						}
+					}
+				}
+
+				// Done
+				return count;
+			};
+
+			var textify_node = function (container, offsets, element_fn) {
+				// Create a string of the container's contents (similar to but not exactly the same as node.textContent)
+				// Also lists all text nodes into the offsets array
+				var par = container,
+					node = container.firstChild,
+					text = "",
+					check;
+
+				while (true) {
+					if (node === null) {
 						// Done?
 						if (par === container) break;
 
-						// Move up
+						// Move up tree
 						node = par;
 						par = node.parentNode;
 						node = node.nextSibling;
 					}
-				}
-
-				// Quick mode: just find all the matches
-				if (quick) {
-					// Match the text
-					match = matcher.call(null, text, match_pos);
-					if (match === null) return count;
-
-					++count;
-
-					match_pos = match[1];
-				}
-
-				// Loop to find all links
-				while (true) {
-					// Match the text
-					match = matcher.call(null, text, match_pos);
-					if (match === null) break;
-					++count;
-
-
-
-					// Find the beginning and ending text nodes
-					pos_start = match[0];
-					pos_end = match[1];
-					tag = match[2];
-
-					for (offset_start = 1; offset_start < offsets.length; ++offset_start) {
-						if (offsets[offset_start].text_offset > pos_start) break;
+					else if (node.nodeType === TEXT_NODE) {
+						// Add to list and text
+						offsets.push({
+							node: node,
+							start: text.length,
+							length: node.nodeValue.length
+						});
+						text += node.nodeValue;
+						node = node.nextSibling;
 					}
-					for (offset_end = offset_start; offset_end < offsets.length; ++offset_end) {
-						if (offsets[offset_end].text_offset > pos_end) break;
+					else if (node.nodeType === ELEMENT_NODE) {
+						// Check element
+						check = element_fn(node);
+
+						// Line break
+						if ((check & NODE_LINE_BREAK) !== 0) {
+							text += "\n";
+						}
+
+						// Parse
+						if ((check & NODE_NO_PARSE) === 0) {
+							// Child
+							par = node;
+							node = par.firstChild;
+						}
+						else {
+							// Next
+							node = node.nextSibling;
+						}
 					}
-					--offset_start;
-					--offset_end;
-
-
-
-					// Vars to create the link
-					prefix = text.substr(offsets[offset_start].text_offset, pos_start - offsets[offset_start].text_offset);
-					suffix = text.substr(pos_end, offsets[offset_end].text_offset + offsets[offset_end].node_text_length - pos_end);
-					link_base = (tag !== null) ? d.createElement(tag) : d.createDocumentFragment();
-					link_node = link_base;
-					relative_node = null;
-
-					// Prefix update
-					i = offset_start;
-					offset_current = offsets[i];
-					offset_node = offset_current.node;
-					if (prefix.length > 0) {
-						// Insert prefix
-						n1 = d.createTextNode(prefix);
-						offset_node.parentNode.insertBefore(n1, offset_node);
-
-						// Update text
-						offset_node.nodeValue = offset_node.nodeValue.substr(prefix.length);
-
-						// Set first relative
-						relative_node = n1;
-						relative_par = n1.parentNode;
-
-						// Update offset for next search
-						len = prefix.length;
-						offset_current.text_offset += len;
-						offset_current.node_text_length -= len;
-					}
-					else {
-						// Set first relative
-						relative_node = offset_node.previousSibling;
-						relative_par = offset_node.parentNode;
-					}
-
-					// Loop over ELEMENT_NODEs; add TEXT_NODEs to the link, remove empty nodes where necessary
-					// The only reason the par variable is necessary is because some nodes are removed during this process
-					for (; i < offset_end; ++i) {
+					else { // Some other type of node
 						// Next
-						node = offsets[i].node;
-						next = node.nextSibling;
-						par = node.parentNode;
+						node = node.nextSibling;
+					}
+				}
 
-						// Add text
-						link_node.appendChild(node);
+				return text;
+			};
 
-						// Node loop
-						while (true) {
-							if (next) {
-								if (next.nodeType === Node.TEXT_NODE) {
-									// Done
-									break;
-								}
-								else if (next.nodeType === Node.ELEMENT_NODE) {
-									// Deeper
-									node = next;
-									next = node.firstChild;
-									par = node;
+			var replace_match = function (match, text, offsets, setup_fn) {
+				var d = document,
+					start = match[0],
+					end = match[1],
+					tag = match[2],
+					offset_count = offsets.length,
+					prefix, suffix, len,
+					node, par, next, clone,
+					wrapper, wrapper_node, relative_node, relative_par,
+					o_start, o_end, offset_start, offset_end, offset_current;
 
-									// Update link node
-									clone = node.cloneNode(false);
-									link_node.appendChild(clone);
-									link_node = clone;
+				// Find the beginning and ending text nodes
+				for (o_start = 1; o_start < offset_count; ++o_start) {
+					if (offsets[o_start].start > start) break;
+				}
+				for (o_end = o_start; o_end < offset_count; ++o_end) {
+					if (offsets[o_end].start > end) break;
+				}
+				--o_start;
+				--o_end;
+				offset_start = offsets[o_start];
+				offset_end = offsets[o_end];
 
-									continue;
-								}
-								else {
-									// Some other node type; continue anyway
-									node = next;
-									next = node.nextSibling;
 
-									// Update link node
-									link_node.appendChild(node);
 
-									continue;
-								}
-							}
+				// Vars to create the link
+				prefix = text.slice(offset_start.start, start);
+				suffix = text.slice(end, offset_end.start + offset_end.length);
+				wrapper = d.createDocumentFragment();
+				wrapper_node = wrapper;
+				relative_node = null;
 
-							// Shallower
+				// Prefix update
+				offset_current = offsets[o_start];
+				node = offset_current.node;
+				len = prefix.length;
+				if (len > 0) {
+					// Insert prefix
+					next = d.createTextNode(prefix);
+					node.parentNode.insertBefore(next, node);
+
+					// Update text
+					node.nodeValue = node.nodeValue.substr(len);
+
+					// Set first relative
+					relative_node = next;
+					relative_par = next.parentNode;
+
+					// Update offset for next search
+					offset_current.start += len;
+					offset_current.length -= len;
+				}
+				else {
+					// Set first relative
+					relative_node = node.previousSibling;
+					relative_par = node.parentNode;
+				}
+
+				// Loop over ELEMENT_NODEs; add TEXT_NODEs to the link, remove empty nodes where necessary
+				for (; o_start < o_end; ++o_start) {
+					// Next
+					node = offsets[o_start].node;
+					next = node.nextSibling;
+					par = node.parentNode;
+
+					// Add text
+					wrapper_node.appendChild(node);
+
+					// Node loop
+					while (true) {
+						if (next === null) {
+							// Move up tree
 							node = par;
 							next = node.nextSibling;
 							par = node.parentNode;
@@ -5275,102 +5267,108 @@
 							if (node.firstChild === null) par.removeChild(node);
 
 							// Update link node
-							if (link_node !== link_base) {
-								// Simply move up tree (link_node still has a parent)
-								link_node = link_node.parentNode;
+							if (wrapper_node !== wrapper) {
+								// Simply move up tree (wrapper_node still has a parent)
+								wrapper_node = wrapper_node.parentNode;
 							}
 							else {
-								// Create a new wrapper node (link_node has no parent; it's the link_base)
+								// Create a new wrapper node (wrapper_node has no parent; it's the wrapper)
 								clone = node.cloneNode(false);
-								for (n1 = link_base.firstChild; n1; n1 = n2) {
-									n2 = n1.nextSibling;
-									clone.appendChild(n1);
-								}
-								link_base.appendChild(clone);
-								link_node = link_base;
+								clone.appendChild(wrapper); // wrapper is a DocumentFragment
+								wrapper.appendChild(clone);
 
 								// Placement relatives
 								relative_node = (next !== null) ? next.previousSibling : null;
 								relative_par = par;
 							}
 						}
-					}
+						else if (next.nodeType === TEXT_NODE) {
+							// Done
+							break;
+						}
+						else if (next.nodeType === ELEMENT_NODE) {
+							// Deeper
+							node = next;
+							next = node.firstChild;
+							par = node;
 
-					// Suffix update
-					offset_current = offsets[i];
-					offset_node = offset_current.node;
-					if (suffix.length > 0) {
-						// Insert suffix
-						n1 = d.createTextNode(suffix);
-						if ((n2 = offset_node.nextSibling) !== null) {
-							offset_node.parentNode.insertBefore(n1, n2);
+							// Update link node
+							clone = node.cloneNode(false);
+							wrapper_node.appendChild(clone);
+							wrapper_node = clone;
 						}
 						else {
-							offset_node.parentNode.appendChild(n1);
+							// Some other node type; continue anyway
+							node = next;
+							next = node.nextSibling;
+
+							// Update link node
+							wrapper_node.appendChild(node);
 						}
-
-						// Update text
-						len = offset_node.nodeValue.length - suffix.length;
-						offset_node.nodeValue = offset_node.nodeValue.substr(0, len);
-
-						// Update offset for next search
-						offset_current.text_length += len;
-						offset_current.node_text_length -= len;
-						offset_current.node = n1;
 					}
-
-					// Add the last segment
-					par = offset_node.parentNode;
-					link_node.appendChild(offset_node);
-
-
-
-					// Setup function
-					if (setup_function !== null) setup_function.call(null, link_base, match);
-
-
-
-					// Find the proper relative node
-					relative_node = (relative_node !== null) ? relative_node.nextSibling : relative_par.firstChild;
-
-					// Insert link
-					if (relative_node !== null) {
-						// Insert before it
-						relative_par.insertBefore(link_base, relative_node);
-					}
-					else {
-						// Add to end
-						relative_par.appendChild(link_base);
-					}
-
-					// Remove empty suffix tags
-					while (par.firstChild === null) {
-						node = par;
-						par = par.parentNode;
-						par.removeChild(node);
-					}
-
-
-
-					// Update match position
-					offsets[offset_end].text_offset = pos_end;
-					match_pos = pos_end;
 				}
 
-				// Done
-				return count;
+				// Suffix update
+				offset_current = offsets[o_start];
+				node = offset_current.node;
+				par = node.parentNode;
+				len = suffix.length;
+				if (len > 0) {
+					// Insert suffix
+					next = d.createTextNode(suffix);
+					par.insertBefore(next, node.nextSibling);
+
+					// Update text
+					len = node.nodeValue.length - len;
+					node.nodeValue = node.nodeValue.substr(0, len);
+
+					// Update offset for next search
+					offset_current.text_length += len;
+					offset_current.length -= len;
+					offset_current.next = next;
+				}
+
+				// Add the last segment
+				wrapper_node.appendChild(node);
+
+
+
+				// Setup function
+				if (tag !== null) {
+					node = wrapper;
+					wrapper = d.createElement(tag);
+					wrapper.appendChild(node);
+				}
+				if (setup_fn !== null) setup_fn(wrapper, match);
+
+
+
+				// Find the proper relative node
+				relative_node = (relative_node !== null) ? relative_node.nextSibling : relative_par.firstChild;
+
+				// Insert link
+				relative_par.insertBefore(wrapper, relative_node);
+
+				// Remove empty suffix tags
+				while (par.firstChild === null) {
+					node = par;
+					par = par.parentNode;
+					par.removeChild(node);
+				}
+
+
+
+				// Update match position
+				offset_end.start = end;
 			};
 
 
 
-			// Element type constants
-			deep_dom_wrap.EL_TYPE_PARSE = 0;
-			deep_dom_wrap.EL_TYPE_NO_PARSE = 1;
-			deep_dom_wrap.EL_TYPE_LINE_BREAK = 2;
+			// Exports
+			deep_dom_wrap.NODE_PARSE = NODE_PARSE;
+			deep_dom_wrap.NODE_NO_PARSE = NODE_NO_PARSE;
+			deep_dom_wrap.NODE_LINE_BREAK = NODE_LINE_BREAK;
 
-
-
-			// Return the function
 			return deep_dom_wrap;
 
 		})();
@@ -5442,18 +5440,18 @@
 		};
 		var linkify_element_checker = function (node) {
 			if (node.tagName === "BR" || node.tagName === "A") {
-				return deep_dom_wrap.EL_TYPE_NO_PARSE | deep_dom_wrap.EL_TYPE_LINE_BREAK;
+				return deep_dom_wrap.NODE_NO_PARSE | deep_dom_wrap.NODE_LINE_BREAK;
 			}
 			else if (node.tagName === "WBR") {
-				return deep_dom_wrap.EL_TYPE_NO_PARSE;
+				return deep_dom_wrap.NODE_NO_PARSE;
 			}
 			else if (node.tagName === "DIV") {
 				if (re_url_class_ignore.test(node.className)) {
-					return deep_dom_wrap.EL_TYPE_NO_PARSE | deep_dom_wrap.EL_TYPE_LINE_BREAK;
+					return deep_dom_wrap.NODE_NO_PARSE | deep_dom_wrap.NODE_LINE_BREAK;
 				}
-				return deep_dom_wrap.EL_TYPE_LINE_BREAK;
+				return deep_dom_wrap.NODE_LINE_BREAK;
 			}
-			return deep_dom_wrap.EL_TYPE_PARSE;
+			return deep_dom_wrap.NODE_PARSE;
 		};
 		var linkify_test = function (text) {
 			var group, re, i, ii, m;
@@ -10682,7 +10680,7 @@
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,5],
+			version: [1,2,5,1],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,

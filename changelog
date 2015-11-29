@@ -1,5 +1,9 @@
 ﻿master
 
+1.2.5.1
+- dnsev-h
+  + Performance improvements for linkification
+
 1.2.5
 - dnsev-h
   + Fixed a bug that could cause rewritten links to not work
