@@ -741,10 +741,9 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 	display: inline-block;
 	vertical-align: bottom;
 	position: relative;
-	color: rgba(0,0,0,0);
 	width: 1.5em;
 	height: 1.25em;
-	text-align: center;
+	text-align: right;
 	background-color: transparent;
 	background-repeat: no-repeat;
 	background-size: contain;
@@ -777,6 +776,33 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 }
 .xl-link-url-text {
 	display: none !important;
+}
+
+.xl-site-tag.xl-filter-good>.xl-site-tag-icon:after {
+	content: "";
+	display: block;
+	position: absolute;
+	right: -0.25em;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	background-color: transparent;
+	background-repeat: no-repeat;
+	background-size: contain;
+	background-position: 100% 50%;
+	background-image: url('#{data:../images/icon-heart.png}#');
+}
+.xl-site-tag-icon[data-xl-site-tag-icon=ehentai] {
+	background-image: url('#{data:../images/icon-ehentai.png}#');
+}
+.xl-site-tag-icon[data-xl-site-tag-icon=exhentai] {
+	background-image: url('#{data:../images/icon-exhentai.png}#');
+}
+.xl-site-tag-icon[data-xl-site-tag-icon=nhentai] {
+	background-image: url('#{data:../images/icon-nhentai.png}#');
+}
+.xl-site-tag-icon[data-xl-site-tag-icon=hitomi] {
+	background-image: url('#{data:../images/icon-hitomi.png}#');
 }
 
 /* Nav */
