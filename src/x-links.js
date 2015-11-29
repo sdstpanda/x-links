@@ -6419,21 +6419,22 @@
 
 		// Public
 		var storage = (function () {
-			try {
-				if (!(
-					GM_setValue && typeof(GM_setValue) === "function" &&
-					GM_getValue && typeof(GM_getValue) === "function" &&
-					GM_deleteValue && typeof(GM_deleteValue) === "function" &&
-					GM_listValues && typeof(GM_listValues) === "function"
-				)) {
-					throw "";
+			if ((function () {
+				try {
+					return (
+						typeof(GM_setValue) !== "function" ||
+						typeof(GM_getValue) !== "function" ||
+						typeof(GM_deleteValue) !== "function" ||
+						typeof(GM_listValues) !== "function"
+					);
 				}
-			}
-			catch (e) {
+				catch (e) {}
+				return true;
+			})()) {
 				return window.localStorage;
 			}
 
-			return {
+			var storage = {
 				getItem: function (key) {
 					return GM_getValue(key, null);
 				},
@@ -6449,11 +6450,25 @@
 				clear: function () {
 					var v = GM_listValues(), i, ii;
 					for (i = 0, ii = v.length; i < ii; ++i) GM_deleteValue(v[i]);
-				},
-				get length() {
-					return GM_listValues().length;
 				}
+				// length: (getter)
 			};
+
+			// Length getter
+			var get_length = function () {
+				return GM_listValues().length;
+			};
+			if (Object.defineProperty) {
+				Object.defineProperty(storage, "length", { get: get_length });
+			}
+			else if (Object.prototype.__defineGetter__) {
+				Object.prototype.__defineGetter__.call(storage, "length", get_length);
+			}
+			else {
+				storage.length = 0;
+			}
+
+			return storage;
 		})();
 
 		var init = function () {
