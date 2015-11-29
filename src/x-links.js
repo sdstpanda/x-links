@@ -38,7 +38,7 @@
 				"Automatic link processing", "Get data and format links automatically",
 				"Automatic Processing"
 			],
-			[ "iconify", true,
+			[ "iconify", false,
 				"Icon site tags", "Use site-specific icons instead of [Site] tags",
 				null
 			],
