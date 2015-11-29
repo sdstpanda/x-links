@@ -453,8 +453,7 @@
 		};
 		Module.test = function (elem, selector) {
 			try {
-				if (elem.matches) return elem.matches(selector);
-				return elem.matchesSelector(selector);
+				return elem.matches ? elem.matches(selector) : elem.matchesSelector(selector);
 			}
 			catch (e) {}
 			return false;
@@ -527,10 +526,10 @@
 			}
 		};
 
-		var mouseenterleave_event_validate = function (parent) {
+		var mouseenterleave_event_validate = function (self, parent) {
 			try {
 				for (; parent; parent = parent.parentNode) {
-					if (parent === this) return false;
+					if (parent === self) return false;
 				}
 				return true;
 			}
@@ -539,7 +538,7 @@
 		};
 		Module.wrap_mouseenterleave_event = function (fn) {
 			return function (event) {
-				return mouseenterleave_event_validate.call(this, event.relatedTarget) ? fn.call(this, event) : undefined;
+				return mouseenterleave_event_validate(this, event.relatedTarget) ? fn.call(this, event) : undefined;
 			};
 		};
 
@@ -621,9 +620,8 @@
 			try {
 				return new RegExp(text, flags);
 			}
-			catch (e) {
-				return null;
-			}
+			catch (e) {}
+			return null;
 		};
 		Module.regex_escape = function (text) {
 			return text.replace(/[\$\(\)\*\+\-\.\/\?\[\\\]\^\{\|\}]/g, "\\$&");
@@ -632,17 +630,15 @@
 			try {
 				return JSON.parse(text);
 			}
-			catch (e) {
-				return def;
-			}
+			catch (e) {}
+			return def;
 		};
 		Module.html_parse_safe = function (text, def) {
 			try {
-				return (new DOMParser()).parseFromString(text, "text/html");
+				return new DOMParser().parseFromString(text, "text/html");
 			}
-			catch (e) {
-				return def;
-			}
+			catch (e) {}
+			return def;
 		};
 		Module.get_domain = function (url) {
 			var m = re_short_domain.exec(url);
@@ -655,6 +651,20 @@
 		Module.change_url_domain = function (url, new_domain) {
 			var m = re_change_domain.exec(url);
 			return (m === null) ? url : m[1] + new_domain + m[3];
+		};
+
+		Module.create_url_from_data = function (data, media_type) {
+			try {
+				return (window.URL || window.webkitURL).createObjectURL(new Blob([ data ], { type: media_type }));
+			}
+			catch (e) {}
+			return null;
+		};
+		Module.revoke_url = function (url) {
+			try {
+				(window.URL || window.webkitURL).revokeObjectURL(url);
+			}
+			catch (e) {}
 		};
 
 		return Module;
@@ -1156,15 +1166,7 @@
 	})();
 	var HttpRequest = (function () {
 
-		var gm_exists = false,
-			debug_fn, request;
-
-		try {
-			if (GM_xmlhttpRequest && typeof(GM_xmlhttpRequest) === "function") {
-				gm_exists = true;
-			}
-		}
-		catch (e) {}
+		var debug_fn, request;
 
 		debug_fn = function (type, data, callback, start_time) {
 			return function (xhr) {
@@ -1184,7 +1186,13 @@
 			};
 		};
 
-		if (gm_exists) {
+		if ((function () {
+			try {
+				return (typeof(GM_xmlhttpRequest) === "function");
+			}
+			catch (e) {}
+			return false;
+		})()) {
 			request = function (data) {
 				if (Debug.enabled) {
 					var upload = data.upload,
@@ -2780,14 +2788,6 @@
 				tags: null,
 				tags_ns: null
 			};
-		};
-		var uint8_array_to_url = function (data, mime) {
-			try {
-				var blob = new Blob([ data ], { type: mime });
-				return window.URL.createObjectURL(blob) || null;
-			}
-			catch (e) {}
-			return null;
 		};
 		var header_string_parse = function (header_str) {
 			var lines = header_str.split("\r\n"),
@@ -4485,9 +4485,9 @@
 			}
 
 			// Fetch
-			get_image(thumbnail_url, function (err, data, data_length, mime_type) {
+			get_image(thumbnail_url, function (err, data, data_length, media_type) {
 				if (err === null) {
-					var img_url = uint8_array_to_url(data.subarray(0, data_length), mime_type);
+					var img_url = $.create_url_from_data(data.subarray(0, data_length), media_type);
 
 					if (img_url !== null) {
 						cached_thumbnail_urls[thumbnail_url] = img_url;
@@ -6254,7 +6254,7 @@
 
 			// Config
 			export_data_string = JSON.stringify(create_export_data(), null, 2);
-			export_url = window.URL.createObjectURL(new Blob([ export_data_string ], { type: "application/json" }));
+			export_url = $.create_url_from_data(export_data_string, "application/json");
 
 			// Popup
 			popup = Popup.create("settings", [[{
@@ -6396,7 +6396,7 @@
 				popup = null;
 			}
 			if (export_url !== null) {
-				window.URL.revokeObjectURL(export_url);
+				$.revoke_url(export_url);
 				export_url = null;
 			}
 		};
@@ -6914,13 +6914,7 @@
 
 		var create_regex = function (pattern, flags) {
 			if (flags.indexOf("g") < 0) flags += "g";
-
-			try {
-				return new RegExp(pattern, flags);
-			}
-			catch (e) {
-				return null;
-			}
+			return $.create_regex_safe(pattern, flags);
 		};
 		var create_flags = function (text) {
 			var flaglist = text.split(";"),
@@ -7588,9 +7582,8 @@
 				// Don't use window.getComputedStyle: https://code.google.com/p/chromium/issues/detail?id=538650
 				return document.defaultView.getComputedStyle(node);
 			}
-			catch (e) {
-				return node.style || {};
-			}
+			catch (e) {}
+			return node.style || {};
 		};
 		var parse_css_color = function (color) {
 			if (color && color !== "transparent") {
@@ -9494,29 +9487,29 @@
 			return (obj !== null && typeof(obj) === "object");
 		};
 
-		var get_shared_node = function (selector) {
+		var get_shared_node = function (id) {
 			var par, n;
 
 			if (
-				selector === null ||
-				(par = $(".xl-extension-sharing-elements")) === null
+				id === null ||
+				(par = $(".xl-extension-sharing-elements")) === null ||
+				(n = get_shared_node_by_id(par, id)) === null
 			) {
 				return null;
 			}
 
-			try {
-				n = $("[data-xl-sharing-id='" + selector + "']", par);
-			}
-			catch (e) {
-				return null;
-			}
+			n.removeAttribute("data-xl-sharing-id");
+			$.remove(n);
+			if (par.firstChild === null) $.remove(par);
 
-			if (n !== null) {
-				n.removeAttribute("data-xl-sharing-id");
-				$.remove(n);
-				if (par.firstChild === null) $.remove(par);
-			}
 			return n;
+		};
+		var get_shared_node_by_id = function (parent, id) {
+			try {
+				return $("[data-xl-sharing-id='" + id + "']", parent);
+			}
+			catch (e) {}
+			return null;
 		};
 
 		var disabled_extensions_key = "#{json:#settings_prefix}#extensions-disabled";
