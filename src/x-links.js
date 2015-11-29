@@ -9774,21 +9774,6 @@
 				reply: reply_to
 			}, transfer);
 		};
-		ExtensionAPI.prototype.post_message = function (msg) {
-			try {
-				window.postMessage(msg, this.origin);
-			}
-			catch (e) {
-				// Tampermonkey bug
-				try {
-					unsafeWindow.postMessage(msg, this.origin);
-				}
-				catch (e2) {
-					console.log("window.postMessage failed! Your userscript manager may need to be updated!");
-					console.log("window.postMessage exception:", e, e2);
-				}
-			}
-		};
 		ExtensionAPI.prototype.request_api_fn = function (fn_id, fn_name, channel) {
 			var self = this,
 				remove_dom = (fn_name === "parse_response");
