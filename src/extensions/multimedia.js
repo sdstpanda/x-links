@@ -2180,7 +2180,7 @@
 						[ "githubgist", true, "gist.github.com", "Enable link processing for Github Gists" ],
 					],
 					multimedia: [
-						[ "use_icons", true, "Use website icons", "Show website icons rather than site [Tags] for links" ],
+						[ "iconify", true, "Icon site tags", "Use site-specific icons instead of [Site] tags" ],
 						[ "youtube_api_key", "", "Custom YouTube API key", "Use a custom API key for the YouTube Data API v3 (leave blank for default)", { type: "textbox" } ]
 					],
 				},
@@ -2501,7 +2501,7 @@
 						yt_api_key = s;
 					}
 
-					use_icons = xlinks_api.config.multimedia.use_icons;
+					use_icons = xlinks_api.config.multimedia.iconify;
 				}
 			});
 		}
