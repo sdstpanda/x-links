@@ -9767,50 +9767,6 @@
 				reply: reply_to
 			}, transfer);
 		};
-		ExtensionAPI.prototype.request_api_fn = function (fn_id, fn_name, channel) {
-			var self = this,
-				remove_dom = (fn_name === "parse_response");
-
-			return function () {
-				var state = null,
-					i = 0,
-					ii = arguments.length - 1,
-					args = new Array(ii),
-					callback = arguments[ii],
-					a;
-
-				for (; i < ii; ++i) args[i] = arguments[i];
-
-				if (remove_dom && is_object((a = args[0])) && a.responseXML) {
-					a.responseXML = null;
-				}
-
-				if (this !== null) {
-					state = {
-						id: this.data.id,
-						retry_count: this.retry_count
-					};
-
-					if (!this.data.sent) {
-						this.data.sent = true;
-						state.infos = this.infos;
-					}
-				}
-
-				self.send(
-					channel,
-					"api_function",
-					null,
-					{
-						id: fn_id,
-						args: args,
-						state: state
-					},
-					-1,
-					self.request_api_fn_callback(callback)
-				);
-			};
-		};
 		ExtensionAPI.prototype.request_api_fn_callback = function (callback) {
 			return function (err, data) {
 				var args;
@@ -9902,7 +9858,7 @@
 				req_delay_error = 5000,
 				req_functions = {},
 				req_function_ids = {},
-				fns, fn_id, fn_name, req, i, ii, k, o, v;
+				fns, fn, fn_id, req, i, ii, k, o, v;
 
 			// Settings
 			if (typeof((v = reg_info.group)) === "string") req_group = v;
@@ -9918,9 +9874,9 @@
 				for (i = 0, ii = fns.length; i < ii; ++i) {
 					v = fns[i];
 					if (Object.prototype.hasOwnProperty.call(ExtensionAPI.request_api_functions, v)) {
-						fn_name = ExtensionAPI.request_api_functions[v];
+						fn = ExtensionAPI.request_api_functions[v];
 						fn_id = random_string(32);
-						req_functions[fn_name] = this.request_api_fn(fn_id, fn_name, channel);
+						req_functions[v] = fn(this, fn_id, channel);
 						req_function_ids[v] = fn_id;
 					}
 				}
@@ -10129,10 +10085,102 @@
 			"parse_response"
 		];
 		ExtensionAPI.request_api_functions = {
-			get_data: "get_data",
-			set_data: "set_data",
-			setup_xhr: "setup_xhr",
-			parse_response: "parse_response"
+			get_data: function (self, fn_id, channel) {
+				return function (info, callback) {
+					self.send(
+						channel,
+						"api_function",
+						null,
+						{
+							id: fn_id,
+							args: [ info ],
+							state: null
+						},
+						-1,
+						self.request_api_fn_callback(callback)
+					);
+				};
+			},
+			set_data: function (self, fn_id, channel) {
+				return function (data, info, callback) {
+					var state = {
+						id: this.data.id,
+						retry_count: this.retry_count
+					};
+
+					if (!this.data.sent) {
+						this.data.sent = true;
+						state.infos = this.infos;
+					}
+
+					self.send(
+						channel,
+						"api_function",
+						null,
+						{
+							id: fn_id,
+							args: [ data, info ],
+							state: state
+						},
+						-1,
+						self.request_api_fn_callback(callback)
+					);
+				};
+			},
+			setup_xhr: function (self, fn_id, channel) {
+				return function (callback) {
+					var state = {
+						id: this.data.id,
+						retry_count: this.retry_count
+					};
+
+					if (!this.data.sent) {
+						this.data.sent = true;
+						state.infos = this.infos;
+					}
+
+					self.send(
+						channel,
+						"api_function",
+						null,
+						{
+							id: fn_id,
+							args: [],
+							state: state
+						},
+						-1,
+						self.request_api_fn_callback(callback)
+					);
+				};
+			},
+			parse_response: function (self, fn_id, channel) {
+				return function (xhr, callback) {
+					var state = {
+						id: this.data.id,
+						retry_count: this.retry_count
+					};
+
+					if (!this.data.sent) {
+						this.data.sent = true;
+						state.infos = this.infos;
+					}
+
+					xhr.responseXML = null;
+
+					self.send(
+						channel,
+						"api_function",
+						null,
+						{
+							id: fn_id,
+							args: [ xhr ],
+							state: state
+						},
+						-1,
+						self.request_api_fn_callback(callback)
+					);
+				};
+			}
 		};
 
 		ExtensionAPI.handlers_init = {
