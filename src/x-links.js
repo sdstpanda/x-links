@@ -667,6 +667,19 @@
 			catch (e) {}
 		};
 
+		Module.clone = function (object) {
+			var target = {},
+				k;
+
+			for (k in object) {
+				if (Object.prototype.hasOwnProperty.call(object, k)) {
+					target[k] = object[k];
+				}
+			}
+
+			return target;
+		};
+
 		return Module;
 
 	})();
@@ -10165,7 +10178,9 @@
 						state.infos = this.infos;
 					}
 
-					xhr.responseXML = null;
+					if (xhr.responseXML !== null) {
+						xhr = remove_response_xml(xhr);
+					}
 
 					self.send(
 						channel,
@@ -10181,6 +10196,17 @@
 					);
 				};
 			}
+		};
+
+		var remove_response_xml = function (xhr) {
+			try {
+				xhr.responseXML = null;
+			}
+			catch (e) {
+				xhr = $.clone(xhr);
+				xhr.responseXML = null;
+			}
+			return xhr;
 		};
 
 		ExtensionAPI.handlers_init = {
