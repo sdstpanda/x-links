@@ -1,5 +1,11 @@
 ﻿master
 
+1.2.5.2
+- dnsev-h
+  + Fixed a bug in older versions of Greasemonkey that could cause extension requests to fail
+  + Fixed a bug that could cause an extension communication function to fail
+  + Various other internal tweaks
+
 1.2.5.1
 - dnsev-h
   + Performance improvements for linkification

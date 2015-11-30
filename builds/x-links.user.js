@@ -2,7 +2,7 @@
 // @name        X-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.5.1
+// @version     1.2.5.2
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -481,8 +481,7 @@
 		};
 		Module.test = function (elem, selector) {
 			try {
-				if (elem.matches) return elem.matches(selector);
-				return elem.matchesSelector(selector);
+				return elem.matches ? elem.matches(selector) : elem.matchesSelector(selector);
 			}
 			catch (e) {}
 			return false;
@@ -555,10 +554,10 @@
 			}
 		};
 
-		var mouseenterleave_event_validate = function (parent) {
+		var mouseenterleave_event_validate = function (self, parent) {
 			try {
 				for (; parent; parent = parent.parentNode) {
-					if (parent === this) return false;
+					if (parent === self) return false;
 				}
 				return true;
 			}
@@ -567,7 +566,7 @@
 		};
 		Module.wrap_mouseenterleave_event = function (fn) {
 			return function (event) {
-				return mouseenterleave_event_validate.call(this, event.relatedTarget) ? fn.call(this, event) : undefined;
+				return mouseenterleave_event_validate(this, event.relatedTarget) ? fn.call(this, event) : undefined;
 			};
 		};
 
@@ -649,9 +648,8 @@
 			try {
 				return new RegExp(text, flags);
 			}
-			catch (e) {
-				return null;
-			}
+			catch (e) {}
+			return null;
 		};
 		Module.regex_escape = function (text) {
 			return text.replace(/[\$\(\)\*\+\-\.\/\?\[\\\]\^\{\|\}]/g, "\\$&");
@@ -660,17 +658,15 @@
 			try {
 				return JSON.parse(text);
 			}
-			catch (e) {
-				return def;
-			}
+			catch (e) {}
+			return def;
 		};
 		Module.html_parse_safe = function (text, def) {
 			try {
-				return (new DOMParser()).parseFromString(text, "text/html");
+				return new DOMParser().parseFromString(text, "text/html");
 			}
-			catch (e) {
-				return def;
-			}
+			catch (e) {}
+			return def;
 		};
 		Module.get_domain = function (url) {
 			var m = re_short_domain.exec(url);
@@ -683,6 +679,33 @@
 		Module.change_url_domain = function (url, new_domain) {
 			var m = re_change_domain.exec(url);
 			return (m === null) ? url : m[1] + new_domain + m[3];
+		};
+
+		Module.create_url_from_data = function (data, media_type) {
+			try {
+				return (window.URL || window.webkitURL).createObjectURL(new Blob([ data ], { type: media_type }));
+			}
+			catch (e) {}
+			return null;
+		};
+		Module.revoke_url = function (url) {
+			try {
+				(window.URL || window.webkitURL).revokeObjectURL(url);
+			}
+			catch (e) {}
+		};
+
+		Module.clone = function (object) {
+			var target = {},
+				k;
+
+			for (k in object) {
+				if (Object.prototype.hasOwnProperty.call(object, k)) {
+					target[k] = object[k];
+				}
+			}
+
+			return target;
 		};
 
 		return Module;
@@ -1184,15 +1207,7 @@
 	})();
 	var HttpRequest = (function () {
 
-		var gm_exists = false,
-			debug_fn, request;
-
-		try {
-			if (GM_xmlhttpRequest && typeof(GM_xmlhttpRequest) === "function") {
-				gm_exists = true;
-			}
-		}
-		catch (e) {}
+		var debug_fn, request;
 
 		debug_fn = function (type, data, callback, start_time) {
 			return function (xhr) {
@@ -1212,7 +1227,13 @@
 			};
 		};
 
-		if (gm_exists) {
+		if ((function () {
+			try {
+				return (typeof(GM_xmlhttpRequest) === "function");
+			}
+			catch (e) {}
+			return false;
+		})()) {
 			request = function (data) {
 				if (Debug.enabled) {
 					var upload = data.upload,
@@ -2808,14 +2829,6 @@
 				tags: null,
 				tags_ns: null
 			};
-		};
-		var uint8_array_to_url = function (data, mime) {
-			try {
-				var blob = new Blob([ data ], { type: mime });
-				return window.URL.createObjectURL(blob) || null;
-			}
-			catch (e) {}
-			return null;
 		};
 		var header_string_parse = function (header_str) {
 			var lines = header_str.split("\r\n"),
@@ -4513,9 +4526,9 @@
 			}
 
 			// Fetch
-			get_image(thumbnail_url, function (err, data, data_length, mime_type) {
+			get_image(thumbnail_url, function (err, data, data_length, media_type) {
 				if (err === null) {
-					var img_url = uint8_array_to_url(data.subarray(0, data_length), mime_type);
+					var img_url = $.create_url_from_data(data.subarray(0, data_length), media_type);
 
 					if (img_url !== null) {
 						cached_thumbnail_urls[thumbnail_url] = img_url;
@@ -6282,7 +6295,7 @@
 
 			// Config
 			export_data_string = JSON.stringify(create_export_data(), null, 2);
-			export_url = window.URL.createObjectURL(new Blob([ export_data_string ], { type: "application/json" }));
+			export_url = $.create_url_from_data(export_data_string, "application/json");
 
 			// Popup
 			popup = Popup.create("settings", [[{
@@ -6424,7 +6437,7 @@
 				popup = null;
 			}
 			if (export_url !== null) {
-				window.URL.revokeObjectURL(export_url);
+				$.revoke_url(export_url);
 				export_url = null;
 			}
 		};
@@ -6447,21 +6460,22 @@
 
 		// Public
 		var storage = (function () {
-			try {
-				if (!(
-					GM_setValue && typeof(GM_setValue) === "function" &&
-					GM_getValue && typeof(GM_getValue) === "function" &&
-					GM_deleteValue && typeof(GM_deleteValue) === "function" &&
-					GM_listValues && typeof(GM_listValues) === "function"
-				)) {
-					throw "";
+			if ((function () {
+				try {
+					return (
+						typeof(GM_setValue) !== "function" ||
+						typeof(GM_getValue) !== "function" ||
+						typeof(GM_deleteValue) !== "function" ||
+						typeof(GM_listValues) !== "function"
+					);
 				}
-			}
-			catch (e) {
+				catch (e) {}
+				return true;
+			})()) {
 				return window.localStorage;
 			}
 
-			return {
+			var storage = {
 				getItem: function (key) {
 					return GM_getValue(key, null);
 				},
@@ -6477,11 +6491,25 @@
 				clear: function () {
 					var v = GM_listValues(), i, ii;
 					for (i = 0, ii = v.length; i < ii; ++i) GM_deleteValue(v[i]);
-				},
-				get length() {
-					return GM_listValues().length;
 				}
+				// length: (getter)
 			};
+
+			// Length getter
+			var get_length = function () {
+				return GM_listValues().length;
+			};
+			if (Object.defineProperty) {
+				Object.defineProperty(storage, "length", { get: get_length });
+			}
+			else if (Object.prototype.__defineGetter__) {
+				Object.prototype.__defineGetter__.call(storage, "length", get_length);
+			}
+			else {
+				storage.length = 0;
+			}
+
+			return storage;
 		})();
 
 		var init = function () {
@@ -6927,13 +6955,7 @@
 
 		var create_regex = function (pattern, flags) {
 			if (flags.indexOf("g") < 0) flags += "g";
-
-			try {
-				return new RegExp(pattern, flags);
-			}
-			catch (e) {
-				return null;
-			}
+			return $.create_regex_safe(pattern, flags);
 		};
 		var create_flags = function (text) {
 			var flaglist = text.split(";"),
@@ -7601,9 +7623,8 @@
 				// Don't use window.getComputedStyle: https://code.google.com/p/chromium/issues/detail?id=538650
 				return document.defaultView.getComputedStyle(node);
 			}
-			catch (e) {
-				return node.style || {};
-			}
+			catch (e) {}
+			return node.style || {};
 		};
 		var parse_css_color = function (color) {
 			if (color && color !== "transparent") {
@@ -9507,29 +9528,29 @@
 			return (obj !== null && typeof(obj) === "object");
 		};
 
-		var get_shared_node = function (selector) {
+		var get_shared_node = function (id) {
 			var par, n;
 
 			if (
-				selector === null ||
-				(par = $(".xl-extension-sharing-elements")) === null
+				id === null ||
+				(par = $(".xl-extension-sharing-elements")) === null ||
+				(n = get_shared_node_by_id(par, id)) === null
 			) {
 				return null;
 			}
 
-			try {
-				n = $("[data-xl-sharing-id='" + selector + "']", par);
-			}
-			catch (e) {
-				return null;
-			}
+			n.removeAttribute("data-xl-sharing-id");
+			$.remove(n);
+			if (par.firstChild === null) $.remove(par);
 
-			if (n !== null) {
-				n.removeAttribute("data-xl-sharing-id");
-				$.remove(n);
-				if (par.firstChild === null) $.remove(par);
-			}
 			return n;
+		};
+		var get_shared_node_by_id = function (parent, id) {
+			try {
+				return $("[data-xl-sharing-id='" + id + "']", parent);
+			}
+			catch (e) {}
+			return null;
 		};
 
 		var disabled_extensions_key = "xlinks-extensions-disabled";
@@ -9787,65 +9808,6 @@
 				reply: reply_to
 			}, transfer);
 		};
-		ExtensionAPI.prototype.post_message = function (msg) {
-			try {
-				window.postMessage(msg, this.origin);
-			}
-			catch (e) {
-				// Tampermonkey bug
-				try {
-					unsafeWindow.postMessage(msg, this.origin);
-				}
-				catch (e2) {
-					console.log("window.postMessage failed! Your userscript manager may need to be updated!");
-					console.log("window.postMessage exception:", e, e2);
-				}
-			}
-		};
-		ExtensionAPI.prototype.request_api_fn = function (fn_id, fn_name, channel) {
-			var self = this,
-				remove_dom = (fn_name === "parse_response");
-
-			return function () {
-				var state = null,
-					i = 0,
-					ii = arguments.length - 1,
-					args = new Array(ii),
-					callback = arguments[ii],
-					a;
-
-				for (; i < ii; ++i) args[i] = arguments[i];
-
-				if (remove_dom && is_object((a = args[0])) && a.responseXML) {
-					a.responseXML = null;
-				}
-
-				if (this !== null) {
-					state = {
-						id: this.data.id,
-						retry_count: this.retry_count
-					};
-
-					if (!this.data.sent) {
-						this.data.sent = true;
-						state.infos = this.infos;
-					}
-				}
-
-				self.send(
-					channel,
-					"api_function",
-					null,
-					{
-						id: fn_id,
-						args: args,
-						state: state
-					},
-					-1,
-					self.request_api_fn_callback(callback)
-				);
-			};
-		};
 		ExtensionAPI.prototype.request_api_fn_callback = function (callback) {
 			return function (err, data) {
 				var args;
@@ -9937,7 +9899,7 @@
 				req_delay_error = 5000,
 				req_functions = {},
 				req_function_ids = {},
-				fns, fn_id, fn_name, req, i, ii, k, o, v;
+				fns, fn, fn_id, req, i, ii, k, o, v;
 
 			// Settings
 			if (typeof((v = reg_info.group)) === "string") req_group = v;
@@ -9953,9 +9915,9 @@
 				for (i = 0, ii = fns.length; i < ii; ++i) {
 					v = fns[i];
 					if (Object.prototype.hasOwnProperty.call(ExtensionAPI.request_api_functions, v)) {
-						fn_name = ExtensionAPI.request_api_functions[v];
+						fn = ExtensionAPI.request_api_functions[v];
 						fn_id = random_string(32);
-						req_functions[fn_name] = this.request_api_fn(fn_id, fn_name, channel);
+						req_functions[v] = fn(this, fn_id, channel);
 						req_function_ids[v] = fn_id;
 					}
 				}
@@ -10164,10 +10126,115 @@
 			"parse_response"
 		];
 		ExtensionAPI.request_api_functions = {
-			get_data: "get_data",
-			set_data: "set_data",
-			setup_xhr: "setup_xhr",
-			parse_response: "parse_response"
+			get_data: function (self, fn_id, channel) {
+				return function (info, callback) {
+					self.send(
+						channel,
+						"api_function",
+						null,
+						{
+							id: fn_id,
+							args: [ info ],
+							state: null
+						},
+						-1,
+						self.request_api_fn_callback(callback)
+					);
+				};
+			},
+			set_data: function (self, fn_id, channel) {
+				return function (data, info, callback) {
+					var state = {
+						id: this.data.id,
+						retry_count: this.retry_count
+					};
+
+					if (!this.data.sent) {
+						this.data.sent = true;
+						state.infos = this.infos;
+					}
+
+					self.send(
+						channel,
+						"api_function",
+						null,
+						{
+							id: fn_id,
+							args: [ data, info ],
+							state: state
+						},
+						-1,
+						self.request_api_fn_callback(callback)
+					);
+				};
+			},
+			setup_xhr: function (self, fn_id, channel) {
+				return function (callback) {
+					var state = {
+						id: this.data.id,
+						retry_count: this.retry_count
+					};
+
+					if (!this.data.sent) {
+						this.data.sent = true;
+						state.infos = this.infos;
+					}
+
+					self.send(
+						channel,
+						"api_function",
+						null,
+						{
+							id: fn_id,
+							args: [],
+							state: state
+						},
+						-1,
+						self.request_api_fn_callback(callback)
+					);
+				};
+			},
+			parse_response: function (self, fn_id, channel) {
+				return function (xhr, callback) {
+					var state = {
+						id: this.data.id,
+						retry_count: this.retry_count
+					};
+
+					if (!this.data.sent) {
+						this.data.sent = true;
+						state.infos = this.infos;
+					}
+
+					if (xhr.responseXML !== null) {
+						xhr = remove_response_xml(xhr);
+					}
+
+					self.send(
+						channel,
+						"api_function",
+						null,
+						{
+							id: fn_id,
+							args: [ xhr ],
+							state: state
+						},
+						-1,
+						self.request_api_fn_callback(callback)
+					);
+				};
+			}
+		};
+
+		var remove_response_xml = function (xhr) {
+			try {
+				xhr.responseXML = null;
+			}
+			catch (e) {
+				xhr = $.clone(xhr);
+				xhr.responseXML = null;
+			}
+			return xhr;
 		};
 
 		ExtensionAPI.handlers_init = {
@@ -10680,7 +10747,7 @@
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,5,1],
+			version: [1,2,5,2],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,

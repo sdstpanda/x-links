@@ -2,7 +2,7 @@
 // @name        X-links (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.5.1.-0xDB
+// @version     1.2.5.2.-0xDB
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -657,8 +657,7 @@
 		}._w(34);
 		Module.test = function (elem, selector) {
 			try {
-				if (elem.matches) return elem.matches(selector);
-				return elem.matchesSelector(selector);
+				return elem.matches ? elem.matches(selector) : elem.matchesSelector(selector);
 			}
 			catch (e) {}
 			return false;
@@ -731,10 +730,10 @@
 			}
 		}._w(41);
 
-		var mouseenterleave_event_validate = function (parent) {
+		var mouseenterleave_event_validate = function (self, parent) {
 			try {
 				for (; parent; parent = parent.parentNode) {
-					if (parent === this) return false;
+					if (parent === self) return false;
 				}
 				return true;
 			}
@@ -743,7 +742,7 @@
 		}._w(44);
 		Module.wrap_mouseenterleave_event = function (fn) {
 			return function (event) {
-				return mouseenterleave_event_validate.call(this, event.relatedTarget) ? fn.call(this, event) : undefined;
+				return mouseenterleave_event_validate(this, event.relatedTarget) ? fn.call(this, event) : undefined;
 			}._w(46);
 		}._w(45);
 
@@ -825,9 +824,8 @@
 			try {
 				return new RegExp(text, flags);
 			}
-			catch (e) {
-				return null;
-			}
+			catch (e) {}
+			return null;
 		}._w(49);
 		Module.regex_escape = function (text) {
 			return text.replace(/[\$\(\)\*\+\-\.\/\?\[\\\]\^\{\|\}]/g, "\\$&");
@@ -836,17 +834,15 @@
 			try {
 				return JSON.parse(text);
 			}
-			catch (e) {
-				return def;
-			}
+			catch (e) {}
+			return def;
 		}._w(51);
 		Module.html_parse_safe = function (text, def) {
 			try {
-				return (new DOMParser()).parseFromString(text, "text/html");
+				return new DOMParser().parseFromString(text, "text/html");
 			}
-			catch (e) {
-				return def;
-			}
+			catch (e) {}
+			return def;
 		}._w(52);
 		Module.get_domain = function (url) {
 			var m = re_short_domain.exec(url);
@@ -861,6 +857,33 @@
 			return (m === null) ? url : m[1] + new_domain + m[3];
 		}._w(55);
 
+		Module.create_url_from_data = function (data, media_type) {
+			try {
+				return (window.URL || window.webkitURL).createObjectURL(new Blob([ data ], { type: media_type }));
+			}
+			catch (e) {}
+			return null;
+		}._w(56);
+		Module.revoke_url = function (url) {
+			try {
+				(window.URL || window.webkitURL).revokeObjectURL(url);
+			}
+			catch (e) {}
+		}._w(57);
+
+		Module.clone = function (object) {
+			var target = {},
+				k;
+
+			for (k in object) {
+				if (Object.prototype.hasOwnProperty.call(object, k)) {
+					target[k] = object[k];
+				}
+			}
+
+			return target;
+		}._w(58);
+
 		return Module;
 
 	}._w(16))();
@@ -869,7 +892,7 @@
 		var started = false,
 			timer_names = null;
 
-		var dummy_fn = function () {}._w(57);
+		var dummy_fn = function () {}._w(60);
 		var log = dummy_fn;
 		var timer_log = function (label, timer) {
 			var t = timing(),
@@ -881,7 +904,7 @@
 
 			if (!started) return [ label, value ];
 			log(label, value);
-		}._w(58);
+		}._w(61);
 
 		var init = function () {
 			started = true;
@@ -905,7 +928,7 @@
 				}
 
 				console.log.apply(console, args);
-			}._w(60);
+			}._w(63);
 			Module.log = log;
 			Module.timer = function (name, dont_format) {
 				var t1 = timing(),
@@ -918,8 +941,8 @@
 					return (t2 === undefined) ? -1 : (t1 - t2);
 				}
 				return (t2 === undefined) ? "???ms" : (t1 - t2).toFixed(3) + "ms";
-			}._w(61);
-		}._w(59);
+			}._w(64);
+		}._w(62);
 
 		// Exports
 		var Module = {
@@ -932,25 +955,25 @@
 
 		return Module;
 
-	}._w(56))();
+	}._w(59))();
 	var Post = (function () {
 
 		// Private
 		var file_ext = function (url) {
 			var m = /\.[^\.]*$/.exec(url);
 			return (m === null) ? "" : m[0].toLowerCase();
-		}._w(63);
+		}._w(66);
 		var file_name = function (url) {
 			url = url.split("/");
 			return url[url.length - 1];
-		}._w(64);
+		}._w(67);
 
 		var get_op_post_files_container_tinyboard = function (node) {
 			while (true) {
 				if ((node = node.previousSibling) === null) return null;
 				if (node.classList && node.classList.contains("files")) return node;
 			}
-		}._w(65);
+		}._w(68);
 
 		var post_selector = {
 			"4chan": ".postContainer,.post.inlined,#quote-preview",
@@ -984,13 +1007,13 @@
 					if (node.classList.contains("post") && (node.classList.contains("inlined") || node.id === "quote-preview")) return node;
 				}
 				return null;
-			}._w(66),
+			}._w(69),
 			"foolz": function (node) {
 				while ((node = node.parentNode) !== null) {
 					if (node.tagName === "ARTICLE") return node;
 				}
 				return null;
-			}._w(67),
+			}._w(70),
 			"fuuka": function (node) {
 				while ((node = node.parentNode) !== null) {
 					if (
@@ -1001,7 +1024,7 @@
 					}
 				}
 				return null;
-			}._w(68),
+			}._w(71),
 			"tinyboard": function (node) {
 				while ((node = node.parentNode) !== null) {
 					if (node.classList.contains("post")) {
@@ -1012,19 +1035,19 @@
 					}
 				}
 				return null;
-			}._w(69),
+			}._w(72),
 			"ipb": function (node) {
 				while ((node = node.parentNode) !== null) {
 					if (node.classList.contains("borderwrap")) return node;
 				}
 				return null;
-			}._w(70),
+			}._w(73),
 			"ipb_lofi": function (node) {
 				while ((node = node.parentNode) !== null) {
 					if (node.classList.contains("postwrapper")) return node;
 				}
 				return null;
-			}._w(71)
+			}._w(74)
 		};
 		var get_file_info = {
 			"4chan": function (post) {
@@ -1053,7 +1076,7 @@
 					name: file_name(url),
 					md5: img.getAttribute("data-md5") || null
 				}];
-			}._w(72),
+			}._w(75),
 			"foolz": function (post) {
 				var n, ft, img, a1, url, i;
 
@@ -1080,7 +1103,7 @@
 					name: file_name(url),
 					md5: img.getAttribute("data-md5") || null
 				}];
-			}._w(73),
+			}._w(76),
 			"fuuka": function (post) {
 				var n, img, a1, url, i;
 
@@ -1106,7 +1129,7 @@
 					name: file_name(url),
 					md5: img.getAttribute("data-md5") || null
 				}];
-			}._w(74),
+			}._w(77),
 			"tinyboard": function (post) {
 				var results = [],
 					imgs, infos, img, array, ft, a1, n, url, i, ii, j;
@@ -1161,17 +1184,17 @@
 				}
 
 				return results;
-			}._w(75),
+			}._w(78),
 			"ipb": function () {
 				return [];
-			}._w(76),
+			}._w(79),
 			"ipb_lofi": function () {
 				return [];
-			}._w(77)
+			}._w(80)
 		};
 		var belongs_to_default = function (node, post) {
 			return (Module.get_post_container(node) === post);
-		}._w(78);
+		}._w(81);
 		var belongs_to_re_non_digit = /\D+/g;
 		var belongs_to = {
 			"4chan": function (node, post) {
@@ -1179,7 +1202,7 @@
 					id2 = post.id.replace(belongs_to_re_non_digit, "");
 
 				return (id1 && id1 === id2);
-			}._w(79),
+			}._w(82),
 			"foolz": belongs_to_default,
 			"fuuka": belongs_to_default,
 			"tinyboard": belongs_to_default,
@@ -1190,7 +1213,7 @@
 			var par = file_info.options;
 			$.add(par, $.tnode(" "));
 			$.add(par, node);
-		}._w(80);
+		}._w(83);
 		var create_image_meta_link = {
 			"4chan": create_image_meta_link_default,
 			"foolz": function (file_info, node) {
@@ -1204,7 +1227,7 @@
 				node.classList.add("btnr");
 				node.classList.add("parent");
 				$.before(par, next, node);
-			}._w(81),
+			}._w(84),
 			"fuuka": function (file_info, node) {
 				var par = file_info.options,
 					t = " [",
@@ -1229,7 +1252,7 @@
 
 				$.before(par, next, node);
 				$.before(par, next, $.tnode("]"));
-			}._w(82),
+			}._w(85),
 			"tinyboard": create_image_meta_link_default,
 			"ipb": create_image_meta_link_default,
 			"ipb_lofi": create_image_meta_link_default
@@ -1239,86 +1262,86 @@
 		var Module = {
 			get_post_container: function (node) {
 				return post_parent_find[Config.mode].call(null, node);
-			}._w(83),
+			}._w(86),
 			get_text_body: function (node) {
 				return $(post_body_selector[Config.mode], node);
-			}._w(84),
+			}._w(87),
 			is_post: function (node) {
 				return $.test(node, post_selector[Config.mode]);
-			}._w(85),
+			}._w(88),
 			get_all_posts: function (parent) {
 				return $$(post_selector[Config.mode], parent);
-			}._w(86),
+			}._w(89),
 			get_file_info: function (post) {
 				return get_file_info[Config.mode].call(null, post);
-			}._w(87),
+			}._w(90),
 			get_body_links: function (post) {
 				return $$(body_links_selector[Config.mode], post);
-			}._w(88),
+			}._w(91),
 			create_image_meta_link: function (file_info, node) {
 				return create_image_meta_link[Config.mode].call(null, file_info, node);
-			}._w(89),
+			}._w(92),
 			get_op_post_files_container_tinyboard: get_op_post_files_container_tinyboard
 		};
 
 		return Module;
 
-	}._w(62))();
+	}._w(65))();
 	var CreateURL = (function () {
 
 		// Private
 		var to_gallery = {
 			ehentai: function (data, domain) {
 				return "http://" + domain + "/g/" + data.gid + "/" + data.token + "/";
-			}._w(91),
+			}._w(94),
 			nhentai: function (data) {
 				return "http://" + domains.nhentai + "/g/" + data.gid + "/";
-			}._w(92),
+			}._w(95),
 			hitomi: function (data) {
 				return "https://" + domains.hitomi + "/galleries/" + data.gid + ".html";
-			}._w(93)
+			}._w(96)
 		};
 		var to_uploader = {
 			ehentai: function (data, domain) {
 				return "http://" + domain + "/uploader/" + (data.uploader || "Unknown").replace(/\s+/g, "+");
-			}._w(94),
+			}._w(97),
 			nhentai: function () {
 				return "http://" + domains.nhentai + "/";
-			}._w(95),
+			}._w(98),
 			hitomi: function () {
 				return "https://" + domains.hitomi + "/";
-			}._w(96)
+			}._w(99)
 		};
 		var to_category = {
 			ehentai: function (data, domain) {
 				return "http://" + domain + "/" + API.get_category(data.category).short_name;
-			}._w(97),
+			}._w(100),
 			nhentai: function (data) {
 				return "http://" + domains.nhentai + "/category/" + data.category.toLowerCase() + "/";
-			}._w(98),
+			}._w(101),
 			hitomi: function (data) {
 				return "https://" + domains.hitomi + "/type/" + data.category.toLowerCase() + "-all-1.html";
-			}._w(99)
+			}._w(102)
 		};
 		var to_tag = {
 			ehentai: function (tag, domain) {
 				return "http://" + domain + "/tag/" + tag.replace(/\s+/g, "+");
-			}._w(100),
+			}._w(103),
 			nhentai: function (tag, domain) {
 				return "http://" + domain + "/tag/" + tag.replace(/\s+/g, "-") + "/";
-			}._w(101),
+			}._w(104),
 			hitomi: function (tag, domain) {
 				return "https://" + domain + "/tag/" + tag + "-all-1.html";
-			}._w(102)
+			}._w(105)
 		};
 		var to_tag_ns = {
 			ehentai: function (tag, namespace, domain) {
 				return "http://" + domain + "/tag/" + namespace + ":" + tag.replace(/\s+/g, "+");
-			}._w(103),
+			}._w(106),
 			nhentai: function (tag, namespace, domain) {
 				if (namespace === "tags") namespace = "tag";
 				return "http://" + domain + "/" + namespace + "/" + tag.replace(/\s+/g, "-") + "/";
-			}._w(104),
+			}._w(107),
 			hitomi: function (tag, namespace, domain) {
 				if (namespace === "male" || namespace === "female") {
 					return "https://" + domain + "/tag/" + namespace + ":" + tag + "-all-1.html";
@@ -1335,40 +1358,32 @@
 				else {
 					return "https://" + domain + "/tag/" + tag + "-all-1.html";
 				}
-			}._w(105)
+			}._w(108)
 		};
 
 		// Exports
 		return {
 			to_gallery: function (data, domain) {
 				return to_gallery[data.type].call(null, data, domain);
-			}._w(106),
+			}._w(109),
 			to_uploader: function (data, domain) {
 				return to_uploader[data.type].call(null, data, domain);
-			}._w(107),
+			}._w(110),
 			to_category: function (data, domain) {
 				return to_category[data.type].call(null, data, domain);
-			}._w(108),
+			}._w(111),
 			to_tag: function (tag, domain_type, domain) {
 				return to_tag[domain_type].call(null, tag, domain);
-			}._w(109),
+			}._w(112),
 			to_tag_ns: function (tag, namespace, domain_type, domain) {
 				return to_tag_ns[domain_type].call(null, tag, namespace, domain);
-			}._w(110)
+			}._w(113)
 		};
 
-	}._w(90))();
+	}._w(93))();
 	var HttpRequest = (function () {
 
-		var gm_exists = false,
-			debug_fn, request;
-
-		try {
-			if (GM_xmlhttpRequest && typeof(GM_xmlhttpRequest) === "function") {
-				gm_exists = true;
-			}
-		}
-		catch (e) {}
+		var debug_fn, request;
 
 		debug_fn = function (type, data, callback, start_time) {
 			return function (xhr) {
@@ -1385,10 +1400,16 @@
 
 				Debug.log.apply(Debug, args);
 				return callback.apply(this, arguments);
-			}._w(113);
-		}._w(112);
+			}._w(116);
+		}._w(115);
 
-		if (gm_exists) {
+		if ((function () {
+			try {
+				return (typeof(GM_xmlhttpRequest) === "function");
+			}
+			catch (e) {}
+			return false;
+		}._w(117))()) {
 			request = function (data) {
 				if (Debug.enabled) {
 					var upload = data.upload,
@@ -1418,7 +1439,7 @@
 				}
 
 				return GM_xmlhttpRequest(data);
-			}._w(114);
+			}._w(118);
 		}
 		else {
 			// Fallback
@@ -1428,15 +1449,15 @@
 				if (onerror !== null) {
 					setTimeout(function () {
 						onerror.call(null, {});
-					}._w(116), 1);
+					}._w(120), 1);
 				}
-			}._w(115);
+			}._w(119);
 		}
 
 		// Done
 		return request;
 
-	}._w(111))();
+	}._w(114))();
 	var UI = (function () {
 
 		// Private
@@ -1475,12 +1496,12 @@
 								if (err === null && gallery_link_events_data.link === self) {
 									details_hover_start(data, info, self, details);
 								}
-							}._w(120));
+							}._w(124));
 						}
 					}
-				}._w(119));
+				}._w(123));
 
-			}._w(118)),
+			}._w(122)),
 			mouseout: $.wrap_mouseenterleave_event(function () {
 				var details = details_nodes[get_node_id_full(this)];
 
@@ -1489,7 +1510,7 @@
 				if (details === undefined) return;
 
 				details.classList.add("xl-details-hidden");
-			}._w(121)),
+			}._w(125)),
 			mousemove: function (event) {
 				var details = details_nodes[get_node_id_full(this)];
 
@@ -1499,7 +1520,7 @@
 				gallery_link_events_data.mouse_y = event.clientY;
 
 				update_details_position(details, this, event.clientX, event.clientY);
-			}._w(122)
+			}._w(126)
 		};
 		var gallery_toggle_actions = function (event) {
 			if ($.is_left_mouse(event) && config.actions.enabled) {
@@ -1544,9 +1565,9 @@
 											activate_actions(actions, index);
 											update_actions_position(actions, n, tag_bg, d.documentElement.getBoundingClientRect());
 										}
-									}._w(125));
+									}._w(129));
 								}
-							}._w(124));
+							}._w(128));
 						}
 					}
 				}
@@ -1558,7 +1579,7 @@
 					}
 				}
 			}
-		}._w(123);
+		}._w(127);
 		var gallery_fetch_event = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
@@ -1574,13 +1595,13 @@
 					load_link(link, info);
 				}
 			}
-		}._w(126);
+		}._w(130);
 		var gallery_error_event = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				return false;
 			}
-		}._w(127);
+		}._w(131);
 
 		var details_hover_start = function (data, info, node, details) {
 			if (Debug.enabled) {
@@ -1615,14 +1636,14 @@
 			if (data.subtype === "gallery" && info.page !== undefined && info.page > 1) {
 				update_details_page_thumbnail(info.page, data, info, details, node);
 			}
-		}._w(128);
+		}._w(132);
 
 		var set_node_id = function (node, info) {
 			node.setAttribute("data-xl-id", info.id);
-		}._w(129);
+		}._w(133);
 		var get_node_id_full = function (node) {
 			return node.getAttribute("data-xl-id") || "";
-		}._w(130);
+		}._w(134);
 
 		var get_site_tag_from_link = function (node) {
 			// Assume the button is the previous (or previous-previous) sibling
@@ -1634,7 +1655,7 @@
 				return node;
 			}
 			return null;
-		}._w(131);
+		}._w(135);
 		var get_link_from_site_tag = function (node) {
 			// Assume the link is the next (or next-next) sibling
 			if (
@@ -1645,20 +1666,20 @@
 				return node;
 			}
 			return null;
-		}._w(132);
+		}._w(136);
 
 		var pad = function (n, sep) {
 			return (n < 10 ? "0" : "") + n + sep;
-		}._w(133);
+		}._w(137);
 
 		var custom_details_functions = {}; // function (data, info, callback(err, copy_from_node))
 		var custom_actions_functions = {}; // function (data, info, callback(err, gen_info))
 		var register_details_creation = function (custom_id, callback) {
 			custom_details_functions[custom_id] = callback;
-		}._w(134);
+		}._w(138);
 		var register_actions_creation = function (custom_id, callback) {
 			custom_actions_functions[custom_id] = callback;
-		}._w(135);
+		}._w(139);
 
 		var highlight_nodes = function (container, data) {
 			var ns = $$(".xl-highlight", container),
@@ -1671,7 +1692,7 @@
 					Filter.highlight(type, n, data, Filter.None);
 				}
 			}
-		}._w(136);
+		}._w(140);
 
 		var create_details = function (data, info, callback) {
 			var category = API.get_category(data.category),
@@ -1712,7 +1733,7 @@
 						else {
 							callback(err, null);
 						}
-					}._w(138));
+					}._w(142));
 				}
 				else {
 					delete details_nodes_creating[info.id];
@@ -1735,7 +1756,7 @@
 				if (err === null) {
 					this.style.backgroundImage = "url('" + url + "')";
 				}
-			}._w(139), n1));
+			}._w(143), n1));
 
 
 			// Sidebar
@@ -1811,7 +1832,7 @@
 					else {
 						Debug.log("Error requesting full information: " + err);
 					}
-				}._w(140));
+				}._w(144));
 			}
 
 			// Add to container
@@ -1821,7 +1842,7 @@
 
 			// Done
 			callback(null, content);
-		}._w(137);
+		}._w(141);
 		var create_actions = function (data, info, index, callback) {
 			var theme = Theme.classes,
 				gid = data.gid,
@@ -1854,13 +1875,13 @@
 					n2.classList.add("xl-actions-table-cell-full");
 				}
 				return n3;
-			}._w(142);
+			}._w(146);
 			var gen_sep = function (container) {
 				var n1, n2;
 				$.add(container, n1 = $.node("div", "xl-actions-table-row" + theme));
 				$.add(n1, n2 = $.node("div", "xl-actions-table-cell" + theme));
 				$.add(n2, $.node("div", "xl-actions-table-sep"));
-			}._w(143);
+			}._w(147);
 
 			if (data.subtype === "gallery") {
 				if (type === "ehentai") {
@@ -1929,7 +1950,7 @@
 						else {
 							callback(err, null);
 						}
-					}._w(144));
+					}._w(148));
 					return;
 				}
 
@@ -1941,7 +1962,7 @@
 
 			// Done
 			callback(null, actions);
-		}._w(141);
+		}._w(145);
 		var create_tags = function (data, domain) {
 			var tagfrag = d.createDocumentFragment(),
 				site = data.type,
@@ -2006,7 +2027,7 @@
 			}
 
 			return tagfrag;
-		}._w(145);
+		}._w(149);
 		var update_details_page_thumbnail = function (page, data, info, details, node) {
 			var thumb_state = 0;
 
@@ -2055,9 +2076,9 @@
 								details.classList.add("xl-details-has-thumbnail-visible");
 							}
 						}
-					}._w(148));
+					}._w(152));
 				}
-			}._w(147);
+			}._w(151);
 
 			details.classList.add("xl-details-has-thumbnail");
 			if (info.site === "ehentai") {
@@ -2073,7 +2094,7 @@
 				thumb_cb("Invalid", null);
 			}
 			if (thumb_state === 0) ++thumb_state;
-		}._w(146);
+		}._w(150);
 		var update_full = function (data, info) {
 			var domain = domains.exhentai,
 				full_id = info.id,
@@ -2113,7 +2134,7 @@
 			) {
 				update_details_position(details, n, gallery_link_events_data.mouse_x, gallery_link_events_data.mouse_y);
 			}
-		}._w(149);
+		}._w(153);
 		var update_details_position = function (details, link, mouse_x, mouse_y) {
 			var w = window,
 				de = d.documentElement,
@@ -2130,7 +2151,7 @@
 
 			details.style.left = mouse_x + "px";
 			details.style.top = mouse_y + "px";
-		}._w(150);
+		}._w(154);
 		var close_actions = function (actions, index) {
 			var ns = $$(".xl-site-tag.xl-site-tag-active[xl-actions-index='" + index + "']"),
 				i, ii;
@@ -2141,12 +2162,12 @@
 
 			actions.classList.add("xl-actions-hidden");
 			deactivate_actions(index);
-		}._w(151);
+		}._w(155);
 		var close_all_actions = function () {
 			for (var index in actions_nodes_active) {
 				close_actions(actions_nodes_active[index], index);
 			}
-		}._w(152);
+		}._w(156);
 		var update_actions_position = function (actions, tag, tag_bg, de_rect, xpos, ypos) {
 			// Position
 			var rect = tag_bg.getBoundingClientRect(),
@@ -2200,7 +2221,7 @@
 			actions.style.top = y + "px";
 			tag.setAttribute("data-xl-actions-vpos", ypos);
 			actions.setAttribute("data-xl-actions-vpos", ypos);
-		}._w(153);
+		}._w(157);
 		var update_active_actions_position = function () {
 			var de_rect = d.documentElement.getBoundingClientRect(),
 				index, actions, tag, tag_bg, xpos, ypos;
@@ -2216,7 +2237,7 @@
 					update_actions_position(actions, tag, tag_bg, de_rect, xpos, ypos);
 				}
 			}
-		}._w(154);
+		}._w(158);
 
 		var activate_actions = function (node, index) {
 			if (config.actions.close_on_click && actions_nodes_active_count !== 0) {
@@ -2226,13 +2247,13 @@
 			actions_nodes_active[index] = node;
 
 			if (actions_close_timeout !== null) clearTimeout(actions_close_timeout);
-			actions_close_timeout = setTimeout(function () { actions_close_timeout = null; }._w(156), 1);
+			actions_close_timeout = setTimeout(function () { actions_close_timeout = null; }._w(160), 1);
 
 			if (++actions_nodes_active_count === 1) {
 				$.on(window, "resize", on_window_resize);
 				$.on(d.documentElement, "click", on_document_click);
 			}
-		}._w(155);
+		}._w(159);
 		var deactivate_actions = function (index) {
 			if (actions_nodes_active[index] === undefined) return;
 
@@ -2245,10 +2266,10 @@
 					actions_close_timeout = null;
 				}
 			}
-		}._w(157);
+		}._w(161);
 		var on_window_resize = function () {
 			update_active_actions_position();
-		}._w(158);
+		}._w(162);
 		var on_document_click = function (event) {
 			if (actions_close_timeout === null) {
 				if (config.actions.close_on_click) {
@@ -2261,12 +2282,12 @@
 					setTimeout(update_active_actions_position, 1);
 				}
 			}
-		}._w(159);
+		}._w(163);
 		var on_actions_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.stopPropagation();
 			}
-		}._w(160);
+		}._w(164);
 		var on_actions_link_click = function (actions, index, event) {
 			if ($.is_left_mouse(event)) {
 				event.stopPropagation();
@@ -2275,7 +2296,7 @@
 					close_actions(actions, index);
 				}
 			}
-		}._w(161);
+		}._w(165);
 		var create_tag_bg = function (parent) {
 			var tag_bg = $.node("div", "xl-site-tag-bg" + Theme.classes),
 				outline = $.node("div", "xl-site-tag-bg-shadow xl-hover-shadow" + Theme.classes),
@@ -2289,13 +2310,13 @@
 			$.before(parent, parent.firstChild, outline);
 
 			return tag_bg;
-		}._w(162);
+		}._w(166);
 
 		var mark_site_tag = function (button, text) {
 			if ((button = get_site_tag_text_node(button)) !== null) {
 				button.textContent = button.textContent.replace(/\]\s*$/, text + "]");
 			}
-		}._w(163);
+		}._w(167);
 		var update_site_tag = function (button, info) {
 			var n;
 			if ((n = get_site_tag_text_node(button)) !== null) {
@@ -2304,7 +2325,7 @@
 			if (info.icon !== undefined && (n = $(".xl-site-tag-icon", button)) !== null) {
 				n.setAttribute("data-xl-site-tag-icon", info.icon);
 			}
-		}._w(164);
+		}._w(168);
 
 		// Events
 		var event_listeners = {
@@ -2315,7 +2336,7 @@
 			if (listeners === undefined) return false;
 			listeners.push(callback);
 			return true;
-		}._w(165);
+		}._w(169);
 		var off = function (event_name, callback) {
 			var listeners = event_listeners[event_name],
 				i, ii;
@@ -2328,13 +2349,13 @@
 				}
 			}
 			return false;
-		}._w(166);
+		}._w(170);
 		var trigger = function (listeners, data) {
 			var i, ii;
 			for (i = 0, ii = listeners.length; i < ii; ++i) {
 				listeners[i].call(null, data);
 			}
-		}._w(167);
+		}._w(171);
 
 		// Public
 		var create_rating_stars = function (rating) {
@@ -2351,13 +2372,13 @@
 			}
 
 			return frag;
-		}._w(168);
+		}._w(172);
 		var get_site_tag_text_node = function (button) {
 			return ((button = button.lastChild) !== null && button.tagName === "SPAN") ? button : null;
-		}._w(169);
+		}._w(173);
 		var create_site_tag_text = function (info) {
 			return "[" + (info.tag || "?") + "]";
-		}._w(170);
+		}._w(174);
 		var format_date = function (timestamp) {
 			var d = new Date(timestamp);
 			return d.getUTCFullYear() + "-" +
@@ -2365,15 +2386,15 @@
 				pad(d.getUTCDate(), " ") +
 				pad(d.getUTCHours(), ":") +
 				pad(d.getUTCMinutes(), "");
-		}._w(171);
+		}._w(175);
 
 		var resetup_link = function (link) {
 			API.get_url_info(link.href || "", function (err, info) {
 				if (err === null && info !== null) {
 					load_link(link, info);
 				}
-			}._w(173));
-		}._w(172);
+			}._w(177));
+		}._w(176);
 		var setup_link = function (link, url, info, auto_load) {
 			var button = $.link(url, "xl-site-tag" + Theme.classes),
 				text = $.node("span", "xl-site-tag-text", create_site_tag_text(info)),
@@ -2396,14 +2417,14 @@
 			$.before(link.parentNode, link, button);
 
 			if (auto_load) load_link(link, info);
-		}._w(174);
+		}._w(178);
 		var load_link = function (link, info) {
 			API.get_data_from_url_info(info, function (err, data) {
 				if (link.parentNode !== null) {
 					format_link_generic(link, err, data, info);
 				}
-			}._w(176));
-		}._w(175);
+			}._w(180));
+		}._w(179);
 		var format_link_generic = function (link, err, data, info) {
 			var monitor = (info.monitor === true) && Config.is_4chan_x3,
 				attr;
@@ -2435,7 +2456,7 @@
 				link.removeAttribute(attr);
 				new MutationObserver($.bind(on_formatter_link_change, link)).observe(link, { childList: true, attributes: true });
 			}
-		}._w(177);
+		}._w(181);
 		var format_link = function (link, data, info) {
 			var button = get_site_tag_from_link(link),
 				url, hl, c, n;
@@ -2489,7 +2510,7 @@
 				n = $.node("span", "xl-link-extra", " " + info.title_extra);
 				link.appendChild(n);
 			}
-		}._w(178);
+		}._w(182);
 		var format_link_error = function (link, error) {
 			var text = " (" + error.trim().replace(/\.$/, "") + ")",
 				button = get_site_tag_from_link(link),
@@ -2508,10 +2529,10 @@
 			else {
 				n.textContent = text;
 			}
-		}._w(179);
+		}._w(183);
 		var get_links_formatted = function (parent) {
 			return $$("a.xl-link.xl-link-formatted", parent);
-		}._w(180);
+		}._w(184);
 		var on_formatter_link_change = function (records, mo) {
 			var change = false,
 				info, r, i, ii;
@@ -2538,7 +2559,7 @@
 				mo.disconnect();
 				load_link(this, info);
 			}
-		}._w(181);
+		}._w(185);
 
 		var cleanup_post = function (post) {
 			var nodes, n, i, ii;
@@ -2560,7 +2581,7 @@
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				resetup_link(nodes[i]);
 			}
-		}._w(182);
+		}._w(186);
 		var cleanup_post_removed = function (post) {
 			var nodes, index, n, i, ii;
 			nodes = $$(".xl-site-tag[xl-actions-index]", post);
@@ -2573,7 +2594,7 @@
 					deactivate_actions(index);
 				}
 			}
-		}._w(183);
+		}._w(187);
 
 		var init = function () {
 			Linkifier.register_link_events({
@@ -2582,7 +2603,7 @@
 				gallery_fetch: gallery_fetch_event,
 				gallery_error: gallery_error_event
 			});
-		}._w(184);
+		}._w(188);
 
 		// Exports
 		return {
@@ -2601,7 +2622,7 @@
 			off: off
 		};
 
-	}._w(117))();
+	}._w(121))();
 	var API = (function () {
 
 		// Caching
@@ -2622,7 +2643,7 @@
 				expires: Date.now() + ttl,
 				data: data
 			}));
-		}._w(186);
+		}._w(190);
 		var cache_get = function (key) {
 			var json = $.json_parse_safe(cache_storage.getItem(cache_prefix + key), null);
 
@@ -2637,13 +2658,13 @@
 
 			cache_storage.removeItem(key);
 			return null;
-		}._w(187);
+		}._w(191);
 		var cache_set_object = function (object_name) {
 			cache_storage.setItem(cache_prefix + object_name, JSON.stringify({
 				expires: null,
 				data: cache_objects[object_name]
 			}));
-		}._w(188);
+		}._w(192);
 		var cache_get_object = function (object_name) {
 			var json = $.json_parse_safe(cache_storage.getItem(cache_prefix + object_name), null),
 				obj, target;
@@ -2660,7 +2681,7 @@
 
 			cache_storage.removeItem(object_name);
 			return false;
-		}._w(189);
+		}._w(193);
 		var cache_merge_objects = function (dest, obj) {
 			var now = Date.now(),
 				update = false,
@@ -2677,7 +2698,7 @@
 			}
 
 			return update;
-		}._w(190);
+		}._w(194);
 		var cache_cleanup = function () {
 			var storage = cache_storage,
 				removes = [],
@@ -2704,7 +2725,7 @@
 			}
 
 			return ii;
-		}._w(191);
+		}._w(195);
 		var cache_clear = function () {
 			var storage_types = [ window.localStorage, window.sessionStorage ],
 				removes = [],
@@ -2728,7 +2749,7 @@
 			}
 
 			return count;
-		}._w(192);
+		}._w(196);
 		var cache_init = function () {
 			// Cache mode
 			if (config.debug.cache_mode === "none") {
@@ -2748,10 +2769,10 @@
 					cache_set_object(k);
 				}
 			}
-		}._w(193);
+		}._w(197);
 		var cache_get_prefix = function () {
 			return cache_prefix;
-		}._w(194);
+		}._w(198);
 
 		var create_temp_storage = function () {
 			var data = {};
@@ -2760,33 +2781,33 @@
 				length: 0,
 				key: function (index) {
 					return Object.keys(data)[index];
-				}._w(196),
+				}._w(200),
 				getItem: function (key) {
 					if (Object.prototype.hasOwnProperty.call(data, key)) {
 						return data[key];
 					}
 					return null;
-				}._w(197),
+				}._w(201),
 				setItem: function (key, value) {
 					if (!Object.prototype.hasOwnProperty.call(data, key)) {
 						++fn.length;
 					}
 					data[key] = value;
-				}._w(198),
+				}._w(202),
 				removeItem: function (key) {
 					if (Object.prototype.hasOwnProperty.call(data, key)) {
 						delete data[key];
 						--fn.length;
 					}
-				}._w(199),
+				}._w(203),
 				clear: function () {
 					data = {};
 					fn.length = 0;
-				}._w(200)
+				}._w(204)
 			};
 
 			return fn;
-		}._w(195);
+		}._w(199);
 
 
 
@@ -2806,11 +2827,11 @@
 			}
 
 			return null;
-		}._w(201);
+		}._w(205);
 		var set_saved_data = function (id, data) {
 			saved_data[id] = data;
 			cache_set("data-" + id, data, ttl_1_hour * (data.date_created >= Date.now() - ttl_1_day ? 1 : 12));
-		}._w(202);
+		}._w(206);
 		var set_saved_error = function (id_list, error, cache) {
 			var id = id_list.join("-");
 			cache_objects.errors[id] = {
@@ -2821,13 +2842,13 @@
 			if (cache) {
 				cache_set_object("errors");
 			}
-		}._w(203);
+		}._w(207);
 		var get_saved_error = function (id_list) {
 			var id = id_list.join("-"),
 				value = cache_objects.errors[id];
 
 			return (value !== undefined) ? value.data : null;
-		}._w(204);
+		}._w(208);
 		var get_saved_thumbnail = function (namespace, gid, page) {
 			var id_full = namespace + "-" + gid + "-" + page,
 				data = saved_thumbnails[id_full];
@@ -2841,21 +2862,21 @@
 			}
 
 			return null;
-		}._w(205);
+		}._w(209);
 		var set_saved_thumbnail = function (namespace, gid, page, data) {
 			var id_full = namespace + "-" + gid + "-" + page;
 			saved_thumbnails[id_full] = data;
 			cache_set("thumb-" + id_full, data, ttl_1_hour * 6);
-		}._w(206);
+		}._w(210);
 
 		var hash_get_sha1_from_md5 = function (md5) {
 			var value = cache_objects.md5_to_hash[md5];
 			return (value !== undefined) ? value.data : null;
-		}._w(207);
+		}._w(211);
 		var hash_get_sha1_from_url = function (url) {
 			var value = cache_objects.url_to_hash[url];
 			return (value !== undefined) ? value.data : null;
-		}._w(208);
+		}._w(212);
 		var hash_set_md5_to_sha1 = function (md5, sha1) {
 			cache_objects.md5_to_hash[md5] = {
 				expires: Date.now() + ttl_1_year,
@@ -2863,7 +2884,7 @@
 			};
 
 			cache_set_object("md5_to_hash");
-		}._w(209);
+		}._w(213);
 		var hash_set_url_to_sha1 = function (url, sha1) {
 			cache_objects.url_to_hash[url] = {
 				expires: Date.now() + ttl_1_day,
@@ -2871,12 +2892,12 @@
 			};
 
 			cache_set_object("url_to_hash");
-		}._w(210);
+		}._w(214);
 
 		var lookup_get_results = function (hash) {
 			var value = cache_objects.lookup[hash];
 			return (value !== undefined) ? value.data : null;
-		}._w(211);
+		}._w(215);
 		var lookup_set_results = function (data) {
 			cache_objects.lookup[data.hash] = {
 				expires: Date.now() + ttl_1_day,
@@ -2884,7 +2905,7 @@
 			};
 
 			cache_set_object("lookup");
-		}._w(212);
+		}._w(216);
 
 
 
@@ -2929,16 +2950,16 @@
 		var normalize_category = function (mapping, category) {
 			var t = mapping[category.toLowerCase()];
 			return (t !== undefined ? t : "misc");
-		}._w(213);
+		}._w(217);
 
 		var get_category = function (name) {
 			var c = categories[name];
 			return (c !== undefined) ? c : categories.misc;
-		}._w(214);
+		}._w(218);
 		var get_category_sort_rank = function (name) {
 			var c = categories[name];
 			return (c !== undefined) ? c.sort : Object.keys(categories).length;
-		}._w(215);
+		}._w(219);
 
 
 
@@ -2984,15 +3005,7 @@
 				tags: null,
 				tags_ns: null
 			};
-		}._w(216);
-		var uint8_array_to_url = function (data, mime) {
-			try {
-				var blob = new Blob([ data ], { type: mime });
-				return window.URL.createObjectURL(blob) || null;
-			}
-			catch (e) {}
-			return null;
-		}._w(217);
+		}._w(220);
 		var header_string_parse = function (header_str) {
 			var lines = header_str.split("\r\n"),
 				re_line = /^([^:]*):\s(.*)$/i,
@@ -3006,11 +3019,11 @@
 			}
 
 			return headers;
-		}._w(218);
+		}._w(221);
 
 		var ehentai_simple_string = function (value, default_value) {
 			return (typeof(value) !== "string" || value.length === 0) ? default_value : value;
-		}._w(219);
+		}._w(222);
 		var ehentai_normalize_string = function (value, default_value) {
 			if (typeof(value) !== "string" || value.length === 0) {
 				return default_value;
@@ -3019,7 +3032,7 @@
 			value = temp_div.textContent;
 			temp_div.textContent = "";
 			return value;
-		}._w(220);
+		}._w(223);
 		var ehentai_normalize_info = function (info) {
 			if (info.error !== undefined) {
 				return { error: info.error };
@@ -3046,7 +3059,7 @@
 			data.tags = Array.isArray(t) ? t : [];
 
 			return data;
-		}._w(221);
+		}._w(224);
 
 		var ehentai_is_not_available = function (html) {
 			var n;
@@ -3055,14 +3068,14 @@
 				/^\s*Gallery\s+Not\s+Available/i.test(n.textContent) &&
 				$("#continue", html) !== null
 			);
-		}._w(222);
+		}._w(225);
 		var ehentai_is_content_warning = function (html) {
 			var n;
 			return (
 				(n = $("h1", html)) !== null &&
 				/^\s*Content\s+Warning/i.test(n.textContent)
 			);
-		}._w(223);
+		}._w(226);
 		var ehentai_parse_gallery_info = function (html, data) {
 			// Tags
 			var updated_tag_count = 0,
@@ -3120,12 +3133,12 @@
 			// Done
 			data.full = true;
 			return data;
-		}._w(224);
+		}._w(227);
 		var ehentai_make_removed = function (data) {
 			data.removed = true;
 			data.full = true;
 			return data;
-		}._w(225);
+		}._w(228);
 
 		var ehentai_parse_lookup_results = function (xhr, is_similarity_scan, hash, url, md5) {
 			var final_url = xhr.finalUrl,
@@ -3188,7 +3201,7 @@
 				hash: hash,
 				results: results
 			};
-		}._w(226);
+		}._w(229);
 		var ehentai_create_lookup_url = function (sha1) {
 			var url = "http://";
 			url += config.sauce.lookup_domain;
@@ -3197,11 +3210,11 @@
 			url += "&fs_similar=0";
 			if (config.sauce.expunged) url += "&fs_exp=1";
 			return url;
-		}._w(227);
+		}._w(230);
 
 		var nhentai_normalize_tag_namespace = function (namespace) {
 			return nhentai_tag_namespaces[namespace] || namespace;
-		}._w(228);
+		}._w(231);
 		var nhentai_parse_info = function (html, url) {
 			var info = $("#info", html),
 				data, nodes, tags, tag_ns, tag_ns_list, t, m, n, i, ii, j, jj;
@@ -3313,7 +3326,7 @@
 			}
 
 			return data;
-		}._w(229);
+		}._w(232);
 
 		var hitomi_parse_info = function (html, url) {
 			var info = $(".content", html),
@@ -3491,7 +3504,7 @@
 			}
 
 			return data;
-		}._w(230);
+		}._w(233);
 
 
 		var get_image = function (url, callback, progress_callback) {
@@ -3517,23 +3530,23 @@
 					else {
 						callback.call(null, "Response error " + xhr.status, null, 0, null, null);
 					}
-				}._w(232),
+				}._w(235),
 				onerror: function () {
 					callback.call(null, "Connection error", null, 0, null, null);
-				}._w(233),
+				}._w(236),
 				onabort: function () {
 					callback.call(null, "Connection aborted", null, 0, null, null);
-				}._w(234)
+				}._w(237)
 			};
 
 			if (progress_callback !== undefined) {
 				xhr_data.onprogress = function (xhr) {
 					progress_callback.call(null, "progress", xhr.lengthComputable, xhr.loaded, xhr.total);
-				}._w(235);
+				}._w(238);
 			}
 
 			HttpRequest(xhr_data);
-		}._w(231);
+		}._w(234);
 		var get_sha1_hash = function (url, md5, callback) {
 			var sha1 = null;
 
@@ -3571,11 +3584,11 @@
 					else {
 						callback.call(null, err, null);
 					}
-				}._w(237));
+				}._w(240));
 			}
 
 			return null;
-		}._w(236);
+		}._w(239);
 
 
 
@@ -3585,7 +3598,7 @@
 			this.active = 0;
 			this.timeout = null;
 			this.types = [];
-		}._w(238);
+		}._w(241);
 		var RequestType = function (count, concurrent, delay_okay, delay_error, group_name, namespace, type) {
 			this.count = count;
 			this.concurrent = concurrent;
@@ -3610,14 +3623,14 @@
 			this.set_data = null;
 			this.setup_xhr = null;
 			this.parse_response = null;
-		}._w(239);
+		}._w(242);
 		var RequestData = function (id, info, callback, progress_callback) {
 			this.id = id;
 			this.info = info;
 			this.callbacks = [ callback ];
 			this.progress_callbacks = [];
 			if (progress_callback !== undefined) this.progress_callbacks.push(progress_callback);
-		}._w(240);
+		}._w(243);
 		var Request = function (type, entries) {
 			var cbs, i, ii;
 
@@ -3641,7 +3654,7 @@
 					}
 				}
 			}
-		}._w(241);
+		}._w(244);
 		var RequestErrorMode = {
 			None: 0,
 			NoCache: 1,
@@ -3651,8 +3664,8 @@
 		RequestGroup.prototype.run_delay = function (type) {
 			setTimeout(function () {
 				type.run();
-			}._w(243), 1);
-		}._w(242);
+			}._w(246), 1);
+		}._w(245);
 		RequestGroup.prototype.run = function (use_delay) {
 			var type, i, ii;
 			for (i = 0, ii = this.types.length; i < ii; ++i) {
@@ -3670,20 +3683,20 @@
 					}
 				}
 			}
-		}._w(244);
+		}._w(247);
 		RequestGroup.prototype.complete = function (delay) {
 			if (delay > 0) {
 				var self = this;
 				setTimeout(function () {
 					--self.active;
 					self.run(false);
-				}._w(246), delay);
+				}._w(249), delay);
 			}
 			else {
 				--this.active;
 				this.run(false);
 			}
-		}._w(245);
+		}._w(248);
 
 		RequestType.prototype.add = function (unique_id, info, quick, callback, progress_callback) {
 			var self = this;
@@ -3722,7 +3735,7 @@
 
 				// Run (if not already running)
 				self.group.run(true);
-			}._w(248);
+			}._w(251);
 
 			if (this.get_data === null) {
 				get_data_callback(null, null);
@@ -3730,14 +3743,14 @@
 			else {
 				this.get_data.call(null, info, get_data_callback);
 			}
-		}._w(247);
+		}._w(250);
 		RequestType.prototype.run = function () {
 			var req = new Request(this, this.queue.splice(0, this.count));
 			if (this.request_init !== null) {
 				this.request_init.call(this, req);
 			}
 			req.run();
-		}._w(249);
+		}._w(252);
 
 		Request.prototype.run = function () {
 			var i, ii, ev;
@@ -3750,7 +3763,7 @@
 			}
 
 			this.type.setup_xhr.call(this, $.bind(this.on_xhr_setup, this));
-		}._w(250);
+		}._w(253);
 		Request.prototype.process_response = function (err, response, delay) {
 			var total = this.infos.length,
 				responses = Math.min(response.length, total),
@@ -3765,7 +3778,7 @@
 				}
 
 				if (++complete >= total) this.complete(delay);
-			}._w(252);
+			}._w(255);
 
 			// Save errors
 			for (i = responses; i < total; ++i) {
@@ -3793,26 +3806,26 @@
 					}
 				}
 			}
-		}._w(251);
+		}._w(254);
 		Request.prototype.complete_entries = function () {
 			var unique = this.type.unique;
 			for (var i = 0, ii = this.entries.length; i < ii; ++i) {
 				delete unique[this.entries[i].id];
 			}
-		}._w(253);
+		}._w(256);
 		Request.prototype.complete = function (delay) {
 			if (this.type.request_complete !== null) {
 				this.type.request_complete.call(this.type, this);
 			}
 			this.type.group.complete(delay);
-		}._w(254);
+		}._w(257);
 		Request.prototype.xhr_error = function (err) {
 			var self = this;
 			return function () {
 				self.complete_entries();
 				self.process_response(err, [], self.type.delay_error);
-			}._w(256);
-		}._w(255);
+			}._w(259);
+		}._w(258);
 		Request.prototype.on_xhr_setup = function (err, xhr_data) {
 			var self = this,
 				any_status = (xhr_data.any_status === true),
@@ -3829,12 +3842,12 @@
 				if (xhr.status === 200 || any_status) {
 					self.type.parse_response.call(self, xhr, function (err, response) {
 						self.on_response_parse(err, response);
-					}._w(259));
+					}._w(262));
 				}
 				else {
 					self.xhr_error("Response error " + xhr.status)();
 				}
-			}._w(258);
+			}._w(261);
 
 			// Error handlers
 			xhr_data.onerror = this.xhr_error("Connection error");
@@ -3853,7 +3866,7 @@
 					for (var i = 0, ii = self.progress_callbacks.length; i < ii; ++i) {
 						self.progress_callbacks[i].call(self, "progress", xhr.lengthComputable, xhr.loaded, xhr.total);
 					}
-				}._w(260);
+				}._w(263);
 
 				if (xhr_data.data !== undefined) {
 					ev = "upload";
@@ -3862,7 +3875,7 @@
 						for (var i = 0, ii = self.progress_callbacks.length; i < ii; ++i) {
 							self.progress_callbacks[i].call(self, "download");
 						}
-					}._w(261);
+					}._w(264);
 				}
 				else {
 					ev = "download";
@@ -3877,7 +3890,7 @@
 			// Start
 			HttpRequest(xhr_data);
 			xhr_data = null;
-		}._w(257);
+		}._w(260);
 		Request.prototype.on_response_parse = function (err, response, delay) {
 			if (err !== null) {
 				// Error
@@ -3891,7 +3904,7 @@
 				if (typeof(delay) !== "number") delay = 0;
 				if (delay > 0) {
 					var self = this;
-					setTimeout(function () { self.run(); }._w(263), delay);
+					setTimeout(function () { self.run(); }._w(266), delay);
 				}
 				else {
 					this.run();
@@ -3903,7 +3916,7 @@
 				this.complete_entries();
 				this.process_response("Data not found", response, delay);
 			}
-		}._w(262);
+		}._w(265);
 
 
 
@@ -3921,11 +3934,11 @@
 		rt_ehentai_gallery.get_data = function (info, callback) {
 			var data = get_saved_data(info.id);
 			callback(null, (data !== null && data.token === info.token) ? data : null);
-		}._w(264);
+		}._w(267);
 		rt_ehentai_gallery.set_data = function (data, info, callback) {
 			set_saved_data(info.id, data);
 			callback(null);
-		}._w(265);
+		}._w(268);
 		rt_ehentai_gallery.setup_xhr = function (callback) {
 			var gidlist = [],
 				info, i, ii;
@@ -3944,7 +3957,7 @@
 					gidlist: gidlist
 				})
 			});
-		}._w(266);
+		}._w(269);
 		rt_ehentai_gallery.parse_response = function (xhr, callback) {
 			var response = $.json_parse_safe(xhr.responseText, null),
 				datas, i, ii;
@@ -3971,7 +3984,7 @@
 				}
 			}
 			return "Invalid response";
-		}._w(267);
+		}._w(270);
 
 		rt_ehentai_gallery_page.get_data = function (info, callback) {
 			var data = get_saved_data(info.id);
@@ -3984,7 +3997,7 @@
 			else {
 				callback(null, null);
 			}
-		}._w(268);
+		}._w(271);
 		rt_ehentai_gallery_page.setup_xhr = function (callback) {
 			var pagelist = [],
 				info, i, ii;
@@ -4003,7 +4016,7 @@
 					pagelist: pagelist
 				})
 			});
-		}._w(269);
+		}._w(272);
 		rt_ehentai_gallery_page.parse_response = function (xhr, callback) {
 			var response = $.json_parse_safe(xhr.responseText, null);
 
@@ -4025,28 +4038,28 @@
 			}
 
 			callback("Invalid response");
-		}._w(270);
+		}._w(273);
 
 		rt_ehentai_gallery_full.get_data = function (info, callback) {
 			callback(null, info.data.full ? info.data : null);
-		}._w(271);
+		}._w(274);
 		rt_ehentai_gallery_full.set_data = function (data, info, callback) {
 			set_saved_data(info.info.id, data);
 			callback(null);
-		}._w(272);
+		}._w(275);
 		rt_ehentai_gallery_full.setup_xhr = function (callback) {
 			var info = this.infos[0];
 			callback(null, {
 				method: "GET",
 				url: "http://" + info.domain + "/g/" + info.gid + "/" + info.token + "/" + info.search,
 			});
-		}._w(273);
+		}._w(276);
 		rt_ehentai_gallery_full.parse_response = function (xhr, callback) {
 			var info = this.infos[0];
 			ehentai_response_process_generic.call(this, xhr, info, this.type.delay_okay, callback, function (err, html) {
 				callback(null, [ err === null ? ehentai_parse_gallery_info(html, info.data) : ehentai_make_removed(info.data) ]);
-			}._w(275));
-		}._w(274);
+			}._w(278));
+		}._w(277);
 		var ehentai_response_process_generic = function (xhr, info, retry_delay, callback, process_callback) {
 			var content_type = header_string_parse(xhr.responseHeaders)["content-type"],
 				html;
@@ -4095,15 +4108,15 @@
 				this.retry_count = 0;
 				process_callback.call(this, null, html);
 			}
-		}._w(276);
+		}._w(279);
 
 		rt_ehentai_gallery_page_thumb.get_data = function (info, callback) {
 			callback(null, get_saved_thumbnail("ehentai", info.gid, info.page));
-		}._w(277);
+		}._w(280);
 		rt_ehentai_gallery_page_thumb.set_data = function (data, info, callback) {
 			set_saved_thumbnail("ehentai", info.gid, info.page, data);
 			callback(null);
-		}._w(278);
+		}._w(281);
 		rt_ehentai_gallery_page_thumb.setup_xhr = rt_ehentai_gallery_full.setup_xhr;
 		rt_ehentai_gallery_page_thumb.parse_response = function (xhr, callback) {
 			var info = this.infos[0],
@@ -4197,16 +4210,16 @@
 				}
 
 				callback("Thumbnail not found");
-			}._w(280));
-		}._w(279);
+			}._w(283));
+		}._w(282);
 
 		rt_ehentai_lookup.get_data = function (info, callback) {
 			callback(null, info.sha1 === null ? null : lookup_get_results(info.sha1));
-		}._w(281);
+		}._w(284);
 		rt_ehentai_lookup.set_data = function (data, info, callback) {
 			lookup_set_results(data);
 			callback(null);
-		}._w(282);
+		}._w(285);
 		rt_ehentai_lookup.setup_xhr = function (callback) {
 			var info = this.infos[0];
 			if (info.similar) {
@@ -4237,25 +4250,25 @@
 					url: ehentai_create_lookup_url(info.sha1)
 				});
 			}
-		}._w(283);
+		}._w(286);
 		rt_ehentai_lookup.parse_response = function (xhr, callback) {
 			var info = this.infos[0];
 			callback(null, [ ehentai_parse_lookup_results(xhr, info.similar, info.sha1, info.url, info.md5) ], info.similar ? this.type.delay_okay : 0);
-		}._w(284);
+		}._w(287);
 
 		rt_nhentai_gallery.get_data = function (info, callback) {
 			callback(null, get_saved_data(info.id));
-		}._w(285);
+		}._w(288);
 		rt_nhentai_gallery.set_data = function (data, info, callback) {
 			set_saved_data(info.id, data);
 			callback(null);
-		}._w(286);
+		}._w(289);
 		rt_nhentai_gallery.setup_xhr = function (callback) {
 			callback(null, {
 				method: "GET",
 				url: "http://" + domains.nhentai + "/g/" + this.infos[0].gid + "/",
 			});
-		}._w(287);
+		}._w(290);
 		rt_nhentai_gallery.parse_response = function (xhr, callback) {
 			var html = $.html_parse_safe(xhr.responseText, null);
 			if (html === null) {
@@ -4264,22 +4277,22 @@
 			else {
 				callback(null, [ nhentai_parse_info(html, xhr.finalUrl) ]);
 			}
-		}._w(288);
+		}._w(291);
 
 		rt_nhentai_gallery_page_thumb.get_data = function (info, callback) {
 			callback(null, get_saved_thumbnail("nhentai", info.gid, info.page));
-		}._w(289);
+		}._w(292);
 		rt_nhentai_gallery_page_thumb.set_data = function (data, info, callback) {
 			set_saved_thumbnail("nhentai", info.gid, info.page, data);
 			callback(null);
-		}._w(290);
+		}._w(293);
 		rt_nhentai_gallery_page_thumb.setup_xhr = function (callback) {
 			var info = this.infos[0];
 			callback(null, {
 				method: "GET",
 				url: "http://" + domains.nhentai + "/g/" + info.gid + "/" + info.page + "/"
 			});
-		}._w(291);
+		}._w(294);
 		rt_nhentai_gallery_page_thumb.parse_response = function (xhr, callback) {
 			var html = $.html_parse_safe(xhr.responseText, null),
 				n1, url;
@@ -4307,21 +4320,21 @@
 			else {
 				callback("Thumbnail not found");
 			}
-		}._w(292);
+		}._w(295);
 
 		rt_hitomi_gallery.get_data = function (info, callback) {
 			callback(null, get_saved_data(info.id));
-		}._w(293);
+		}._w(296);
 		rt_hitomi_gallery.set_data = function (data, info, callback) {
 			set_saved_data(info.id, data);
 			callback(null);
-		}._w(294);
+		}._w(297);
 		rt_hitomi_gallery.setup_xhr = function (callback) {
 			callback(null, {
 				method: "GET",
 				url: "https://" + domains.hitomi + "/galleries/" + this.infos[0].gid + ".html",
 			});
-		}._w(295);
+		}._w(298);
 		rt_hitomi_gallery.parse_response = function (xhr, callback) {
 			var html = $.html_parse_safe(xhr.responseText, null);
 			if (html === null) {
@@ -4330,21 +4343,21 @@
 			else {
 				callback(null, [ hitomi_parse_info(html, xhr.finalUrl) ]);
 			}
-		}._w(296);
+		}._w(299);
 
 		rt_hitomi_gallery_page_thumb.get_data = function (info, callback) {
 			callback(null, get_saved_thumbnail("hitomi", info.gid, info.page));
-		}._w(297);
+		}._w(300);
 		rt_hitomi_gallery_page_thumb.set_data = function (data, info, callback) {
 			set_saved_thumbnail("hitomi", info.gid, info.page, data);
 			callback(null);
-		}._w(298);
+		}._w(301);
 		rt_hitomi_gallery_page_thumb.setup_xhr = function (callback) {
 			callback(null, {
 				method: "GET",
 				url: "https://" + domains.hitomi + "/reader/" + this.infos[0].gid + ".html"
 			});
-		}._w(299);
+		}._w(302);
 		rt_hitomi_gallery_page_thumb.parse_response = function (xhr, callback) {
 			var html = $.html_parse_safe(xhr.responseText, null),
 				n1, url;
@@ -4374,7 +4387,7 @@
 			else {
 				callback("Thumbnail not found");
 			}
-		}._w(300);
+		}._w(303);
 
 
 
@@ -4382,7 +4395,7 @@
 		var re_fjord = /abortion|bestiality|incest|lolicon|shotacon|toddlercon/;
 		var is_fjording = function (data) {
 			return re_fjord.test(data.tags.join(","));
-		}._w(301);
+		}._w(304);
 
 		var rewrite_link = function (url, info) {
 			var rewrite, is_ex;
@@ -4402,7 +4415,7 @@
 			}
 
 			return url;
-		}._w(302);
+		}._w(305);
 		var rewrite_link_smart = function (node, info, data) {
 			if (config.general.rewrite_links === "smart" && data.type === "ehentai") {
 				var url = node.href,
@@ -4422,7 +4435,7 @@
 			}
 
 			return null;
-		}._w(303);
+		}._w(306);
 
 
 
@@ -4526,12 +4539,12 @@
 			}
 
 			callback(null, data);
-		}._w(304);
+		}._w(307);
 		var get_url_info_saved = function (url) {
 			url = url.replace(re_remove_protocol, "");
 			var data = url_info_saved[url];
 			return (data !== undefined) ? data : null;
-		}._w(305);
+		}._w(308);
 		var get_url_info_custom = function (i, url, save_key, callback) {
 			// This should avoid stack overflowing when using a callback chain with many synchronous functions
 			var ii = url_info_registrations.length,
@@ -4555,7 +4568,7 @@
 				else {
 					get_url_info_custom(i + 1, url, save_key, callback);
 				}
-			}._w(307);
+			}._w(310);
 
 			for (; i < ii; ++i) {
 				immediate = true;
@@ -4569,12 +4582,12 @@
 			}
 
 			callback(null, null);
-		}._w(306);
+		}._w(309);
 		var register_url_info_function = function (check_fn, get_data_fn) {
 			url_info_registrations.push(check_fn);
 			url_info_to_data_registrations.push(get_data_fn);
 			return url_info_registrations.length - 1;
-		}._w(308);
+		}._w(311);
 
 		var domain_tags = {
 			"exhentai.org": "Ex",
@@ -4585,7 +4598,7 @@
 		var get_tag_from_domain = function (domain) {
 			var d = domain_tags[domain];
 			return (d === undefined) ? "?" : d;
-		}._w(309);
+		}._w(312);
 
 		var get_ehentai_gallery_full = function (info, data, callback) {
 			rt_ehentai_gallery_full.add("" + data.gid, {
@@ -4596,7 +4609,7 @@
 				info: info,
 				data: data
 			}, false, callback);
-		}._w(310);
+		}._w(313);
 		var get_ehentai_gallery_page_thumb = function (domain, gid, token, page_token, page, callback) {
 			rt_ehentai_gallery_page_thumb.add(gid + "-" + page, {
 				domain: domain,
@@ -4606,23 +4619,23 @@
 				page_token: page_token,
 				search: ""
 			}, false, callback);
-		}._w(311);
+		}._w(314);
 		var get_nhentai_gallery_page_thumb = function (gid, page, callback) {
 			rt_nhentai_gallery_page_thumb.add(gid + "-" + page, {
 				gid: gid,
 				page: page
 			}, false, callback);
-		}._w(312);
+		}._w(315);
 		var get_hitomi_gallery_page_thumb = function (gid, page, callback) {
 			rt_hitomi_gallery_page_thumb.add(gid + "-" + page, {
 				gid: gid,
 				page: page
 			}, false, callback);
-		}._w(313);
+		}._w(316);
 
 		var get_data = function (url_info) {
 			return get_saved_data(url_info.id);
-		}._w(314);
+		}._w(317);
 		var get_data_from_url_info = function (url_info, callback) {
 			if (url_info.site === "ehentai") {
 				if (url_info.type === "gallery") {
@@ -4638,7 +4651,7 @@
 						else {
 							callback.call(null, err, null);
 						}
-					}._w(316));
+					}._w(319));
 					return;
 				}
 			}
@@ -4665,7 +4678,7 @@
 			}
 
 			callback.call(null, "Malformed data", null);
-		}._w(315);
+		}._w(318);
 
 		var cached_thumbnail_urls = {};
 		var get_thumbnail = function (thumbnail_url, flags, callback) {
@@ -4689,9 +4702,9 @@
 			}
 
 			// Fetch
-			get_image(thumbnail_url, function (err, data, data_length, mime_type) {
+			get_image(thumbnail_url, function (err, data, data_length, media_type) {
 				if (err === null) {
-					var img_url = uint8_array_to_url(data.subarray(0, data_length), mime_type);
+					var img_url = $.create_url_from_data(data.subarray(0, data_length), media_type);
 
 					if (img_url !== null) {
 						cached_thumbnail_urls[thumbnail_url] = img_url;
@@ -4704,8 +4717,8 @@
 				else {
 					callback.call(null, err, null);
 				}
-			}._w(318));
-		}._w(317);
+			}._w(321));
+		}._w(320);
 
 		var lookup_on_ehentai = function (url, md5, use_similar, callback, progress_callback) {
 			if (use_similar) {
@@ -4731,7 +4744,7 @@
 					else {
 						callback.call(null, err, null);
 					}
-				}._w(320);
+				}._w(323);
 
 				if (sha1 !== null) {
 					rt_ehentai_lookup.add(url, {
@@ -4749,7 +4762,7 @@
 							// Load image
 							get_image(url, get_image_callback, progress_callback);
 						}
-					}._w(321));
+					}._w(324));
 				}
 				else {
 					// Load image
@@ -4774,14 +4787,14 @@
 					else {
 						callback.call(null, err, null);
 					}
-				}._w(322));
+				}._w(325));
 			}
-		}._w(319);
+		}._w(322);
 
 		var init = function () {
 			// Clean
 			cache_init();
-		}._w(323);
+		}._w(326);
 
 
 
@@ -4809,7 +4822,7 @@
 			init: init
 		};
 
-	}._w(185))();
+	}._w(189))();
 	var SHA1 = (function () {
 
 		// SHA-1 JS implementation originally created by Chris Verness; http://movable-type.co.uk/scripts/sha1.html
@@ -4821,10 +4834,10 @@
 				case 2: return (x & y) ^ (x & z) ^ (y & z);
 				case 3: return x ^ y ^ z;
 			}
-		}._w(325);
+		}._w(328);
 		var rotl = function (x, n) {
 			return (x << n) | (x >>> (32 - n));
-		}._w(326);
+		}._w(329);
 		var hex = function (str) {
 			var s = "",
 				v, i;
@@ -4833,7 +4846,7 @@
 				s += v.toString(16);
 			}
 			return s;
-		}._w(327);
+		}._w(330);
 
 		// Public
 		var hash = function (data, data_length) {
@@ -4901,14 +4914,14 @@
 			}
 
 			return hex(H0) + hex(H1) + hex(H2) + hex(H3) + hex(H4);
-		}._w(328);
+		}._w(331);
 
 		// Exports
 		return {
 			hash: hash
 		};
 
-	}._w(324))();
+	}._w(327))();
 	var Sauce = (function () {
 
 		// Private
@@ -4927,7 +4940,7 @@
 			}
 
 			return null;
-		}._w(330);
+		}._w(333);
 
 		var on_sauce_click = function (event) {
 			event.preventDefault();
@@ -4947,7 +4960,7 @@
 					hover.classList.add("xl-exsauce-hover-hidden");
 				}
 			}
-		}._w(331);
+		}._w(334);
 		var on_sauce_click_error = function (event) {
 			event.preventDefault();
 
@@ -4961,8 +4974,8 @@
 			setTimeout(function () {
 				Linkifier.change_link_events(link, events);
 				link.click();
-			}._w(333), 1);
-		}._w(332);
+			}._w(336), 1);
+		}._w(335);
 		var on_sauce_mouseover = $.wrap_mouseenterleave_event(function () {
 			var results = get_exresults_from_exsauce(this),
 				hover, err;
@@ -4978,13 +4991,13 @@
 
 				hover.classList.remove("xl-exsauce-hover-hidden");
 			}
-		}._w(334));
+		}._w(337));
 		var on_sauce_mouseout = $.wrap_mouseenterleave_event(function () {
 			var hover = hover_nodes[this.getAttribute("data-xl-sauce-hover-id") || ""];
 			if (hover !== undefined) {
 				hover.classList.add("xl-exsauce-hover-hidden");
 			}
-		}._w(335));
+		}._w(338));
 		var on_sauce_mousemove = function (event) {
 			var hover = hover_nodes[this.getAttribute("data-xl-sauce-hover-id") || ""];
 
@@ -5010,7 +5023,7 @@
 
 			hover.style.left = x + "px";
 			hover.style.top = y + "px";
-		}._w(336);
+		}._w(339);
 
 		var create_hover = function (id, data) {
 			var results = data.results,
@@ -5029,7 +5042,7 @@
 			hover_nodes[id] = hover;
 
 			return hover;
-		}._w(337);
+		}._w(340);
 		var format = function (a, data) {
 			var count = data.results.length,
 				theme = Theme.classes,
@@ -5086,7 +5099,7 @@
 
 				Linkifier.change_link_events(a, "exsauce_toggle");
 			}
-		}._w(338);
+		}._w(341);
 		var label = function () {
 			var label = config.sauce.label;
 
@@ -5095,7 +5108,7 @@
 			}
 
 			return label;
-		}._w(339);
+		}._w(342);
 
 		var create_error = function (node, error) {
 			var id = hover_nodes_id,
@@ -5118,7 +5131,7 @@
 
 			// Done
 			return hover;
-		}._w(340);
+		}._w(343);
 		var set_error = function (node, error) {
 			// Create hover
 			create_error(node, error);
@@ -5130,7 +5143,7 @@
 
 			// Events
 			Linkifier.change_link_events(node, "exsauce_error");
-		}._w(341);
+		}._w(344);
 		var remove_error = function (node) {
 			var events = Linkifier.get_link_events(node),
 				id = node.getAttribute("data-xl-sauce-hover-id"),
@@ -5145,7 +5158,7 @@
 				if (hover.parentNode !== null) $.remove(hover);
 				delete hover_nodes[id];
 			}
-		}._w(342);
+		}._w(345);
 
 		var fetch_generic = function (link, use_similar) {
 			var url = link.href,
@@ -5165,7 +5178,7 @@
 					else if (state === "download") {
 						link.textContent = "Checking";
 					}
-				}._w(344);
+				}._w(347);
 			}
 			else {
 				link.textContent = "Downloading";
@@ -5177,7 +5190,7 @@
 					else if (state === "upload") {
 						link.textContent = "Checking";
 					}
-				}._w(345);
+				}._w(348);
 			}
 
 			remove_error(link);
@@ -5189,21 +5202,21 @@
 				else {
 					set_error(link, err);
 				}
-			}._w(346), progress);
-		}._w(343);
+			}._w(349), progress);
+		}._w(346);
 		var fetch = function (event) {
 			event.preventDefault();
 			fetch_generic(this, false);
-		}._w(347);
+		}._w(350);
 		var fetch_similar = function (event) {
 			event.preventDefault();
 			fetch_generic(this, true);
-		}._w(348);
+		}._w(351);
 
 		// Public
 		var find_link = function (container) {
 			return $(".xl-exsauce-link", container);
-		}._w(349);
+		}._w(352);
 		var create_link = function (file_info, index) {
 			var event = "exsauce_fetch",
 				sauce, err;
@@ -5230,7 +5243,7 @@
 			Linkifier.change_link_events(sauce, event);
 
 			return sauce;
-		}._w(350);
+		}._w(353);
 		var init = function () {
 			Linkifier.register_link_events({
 				exsauce_fetch: fetch,
@@ -5248,7 +5261,7 @@
 					mousemove: on_sauce_mousemove
 				},
 			});
-		}._w(351);
+		}._w(354);
 
 		// Exports
 		return {
@@ -5257,7 +5270,7 @@
 			init: init
 		};
 
-	}._w(329))();
+	}._w(332))();
 	var Linkifier = (function () {
 
 		// Private
@@ -5305,7 +5318,7 @@
 
 				// Done
 				return count;
-			}._w(354);
+			}._w(357);
 
 			var textify_node = function (container, offsets, element_fn) {
 				// Create a string of the container's contents (similar to but not exactly the same as node.textContent)
@@ -5362,7 +5375,7 @@
 				}
 
 				return text;
-			}._w(355);
+			}._w(358);
 
 			var replace_match = function (match, text, offsets, setup_fn) {
 				var d = document,
@@ -5536,7 +5549,7 @@
 
 				// Update match position
 				offset_end.start = end;
-			}._w(356);
+			}._w(359);
 
 
 
@@ -5547,7 +5560,7 @@
 
 			return deep_dom_wrap;
 
-		}._w(353))();
+		}._w(356))();
 
 		var linkify_groups = [{
 			regex: re_url,
@@ -5567,13 +5580,13 @@
 					var m = re_url.exec(text);
 					if (m === null) return null;
 					return [ m.index , m.index + m[0].length, "a", m ];
-				}._w(358);
+				}._w(361);
 				node_setup = function (node, match) {
 					var url = match[3][0];
 					if (match[3][1] === undefined) url = "http://" + url.replace(/^\/+/, "");
 					result_nodes.push(node);
 					result_urls.push(url);
-				}._w(359);
+				}._w(362);
 			}
 			else {
 				// Multiple
@@ -5594,7 +5607,7 @@
 					}
 
 					return res;
-				}._w(360);
+				}._w(363);
 				node_setup = function (node, match) {
 					var url = match[3][0],
 						group = match[4],
@@ -5609,11 +5622,11 @@
 
 					result_nodes.push(node);
 					result_urls.push(url);
-				}._w(361);
+				}._w(364);
 			}
 
 			deep_dom_wrap(container, match_fn, linkify_element_checker, node_setup, false);
-		}._w(357);
+		}._w(360);
 		var linkify_element_checker = function (node) {
 			if (node.tagName === "BR" || node.tagName === "A") {
 				return deep_dom_wrap.NODE_NO_PARSE | deep_dom_wrap.NODE_LINE_BREAK;
@@ -5628,7 +5641,7 @@
 				return deep_dom_wrap.NODE_LINE_BREAK;
 			}
 			return deep_dom_wrap.NODE_PARSE;
-		}._w(362);
+		}._w(365);
 		var linkify_test = function (text) {
 			var group, re, i, ii, m;
 			for (i = 0, ii = linkify_groups.length; i < ii; ++i) {
@@ -5646,7 +5659,7 @@
 				}
 			}
 			return null;
-		}._w(363);
+		}._w(366);
 		var linkify_register = function (regex, prefix_group, prefix, prefix_replace_regex, prefix_replace_with) {
 			var prefix_replace = null;
 
@@ -5662,7 +5675,7 @@
 				tag: "a",
 				match: null
 			});
-		}._w(364);
+		}._w(367);
 
 		var parse_text_for_urls = function (text) {
 			var urls = [],
@@ -5675,7 +5688,7 @@
 			}
 
 			return urls;
-		}._w(365);
+		}._w(368);
 
 		// Link creation and processing
 		var create_link = function (parent, next, url, text, auto_process) {
@@ -5686,7 +5699,7 @@
 			preprocess_link(link, url, false, auto_process);
 
 			return link;
-		}._w(366);
+		}._w(369);
 		var preprocess_link = function (node, url, update_on_fail, auto_load) {
 			API.get_url_info(url, function (err, info) {
 				if (node.parentNode === null || node.classList.contains("xl-linkified")) return;
@@ -5711,8 +5724,8 @@
 				node.classList.add("xl-linkified");
 
 				UI.setup_link(node, url, info, auto_load);
-			}._w(368));
-		}._w(367);
+			}._w(371));
+		}._w(370);
 
 		// Post queue
 		var post_queue = {
@@ -5749,7 +5762,7 @@
 					dequeue_posts();
 				}
 			}
-		}._w(369);
+		}._w(372);
 		queue_posts.Flags = {
 			None: 0x0,
 			UseDelay: 0x1,
@@ -5770,7 +5783,7 @@
 				// Timer for next
 				post_queue.timer = setTimeout(dequeue_posts, post_queue.delay);
 			}
-		}._w(370);
+		}._w(373);
 
 		var setup_post_exsauce = function (post) {
 			var index = 0,
@@ -5791,7 +5804,7 @@
 					++index;
 				}
 			}
-		}._w(371);
+		}._w(374);
 		var parse_post = function (post) {
 			var auto_load_links = config.general.automatic_processing,
 				post_body, post_links, link_nodes, link_urls, link, url, valid, i, ii;
@@ -5850,7 +5863,7 @@
 				// Mark
 				post.classList.add("xl-post-linkified");
 			}
-		}._w(372);
+		}._w(375);
 		var parse_posts = function (posts) {
 			var post, i, ii;
 
@@ -5868,7 +5881,7 @@
 			}
 
 			Debug.log("Total posts=" + posts.length + "; time=" + Debug.timer("process"));
-		}._w(373);
+		}._w(376);
 
 		// Link events
 		var link_events = {};
@@ -5884,10 +5897,10 @@
 			}
 
 			return count;
-		}._w(374);
+		}._w(377);
 		var get_link_events = function (node) {
 			return node.getAttribute("data-xl-link-events") || null;
-		}._w(375);
+		}._w(378);
 		var set_link_events = function (node, new_events) {
 			var events = link_events[new_events],
 				k;
@@ -5903,7 +5916,7 @@
 					}
 				}
 			}
-		}._w(376);
+		}._w(379);
 		var apply_link_events = function (node, check_children) {
 			var nodes = check_children ? $$("a.xl-link-events", node) : [ node ],
 				events, i, ii;
@@ -5913,7 +5926,7 @@
 				events = node.getAttribute("data-xl-link-events");
 				set_link_events(node, events);
 			}
-		}._w(377);
+		}._w(380);
 		var change_link_events = function (node, new_events) {
 			var old_events = node.getAttribute("data-xl-link-events"),
 				events, k;
@@ -5940,7 +5953,7 @@
 				node.setAttribute("data-xl-link-events", new_events);
 				set_link_events(node, new_events);
 			}
-		}._w(378);
+		}._w(381);
 
 		// Fixing
 		var relinkify_posts = function (posts) {
@@ -5970,7 +5983,7 @@
 			}
 
 			queue_posts(posts, queue_posts.Flags.Flush | queue_posts.Flags.FlushNoParse | queue_posts.Flags.UseDelay);
-		}._w(379);
+		}._w(382);
 		var fix_broken_4chanx_linkification = function (node, event_links) {
 			// Somehow one of the links gets cloned, and then they all get wrapped inside another link
 			var fix = [],
@@ -6006,7 +6019,7 @@
 				link.classList.remove("xl-linkified");
 				preprocess_link(link, link.href || "", false, config.general.automatic_processing);
 			}
-		}._w(380);
+		}._w(383);
 
 		// Exports
 		return {
@@ -6021,7 +6034,7 @@
 			linkify_register: linkify_register
 		};
 
-	}._w(352))();
+	}._w(355))();
 	var Settings = (function () {
 
 		// Private
@@ -6033,13 +6046,13 @@
 
 		var html_filter_guide = function () {
 			return "<div class=\"xl-settings-group xl-settings-filter-guide xl-theme\">Lines starting with <code>/</code> will be treated as <a href=\"https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions\" target=\"_blank\" rel=\"noreferrer nofollow\">regular expressions</a>. <span style=\"opacity: 0.75\">(This is very similar to 4chan-x style filtering)</span><br>Lines starting with <code>#</code> are comments and will be ignored.<br>Lines starting with neither <code>#</code> nor <code>/</code> will be treated as a case-insensitive string to match anywhere.<br>For example, <code>/touhou/i</code> will highlight entries containing the string `<code>touhou</code>`, case-insensitive.<br><br>The lower a filter appears in this list, the greater its priority will be.<br><br>You can use these additional settings with each regular expression, separating them with semicolons:<br><ul><li><strong>Apply the filter to different scopes:</strong><br><code>tags;</code>, <code>title;</code> or <code>uploader;</code>. By default the scope is <code>title;tags;</code><br></li><li><strong>Force a gallery to not be highlighted:</strong> <span style=\"opacity: 0.75\">If omitted, the gallery will be highlighted as normal</span><br><code>bad:no;</code>, <code>bad:yes;</code>, or just <code>bad;</code></li><li><strong>Only apply the filter to certain categories:</strong><br><code>only:doujinshi,manga;</code>.<div style=\"font-size: 0.9em; margin-top: 0.1em; opacity: 0.75\">Categories: <span>artistcg, asianporn, cosplay, doujinshi, gamecg, imageset, manga, misc, <span style=\"white-space: nowrap\">non-h</span>, private, western</span></div></li><li><strong>Only apply the filter if it <em>is not</em> a certain category:</strong><br><code>not:western,non-h;</code>.</li><li><strong>Only apply the filter to certain sites:</strong><br><code>only:ehentai;</code>.<div style=\"font-size: 0.9em; margin-top: 0.1em; opacity: 0.75\">Sites: <span>ehentai, nhentai, hitomi</span></div></li><li><strong>Apply a colored decoration to the matched text:</strong><br><code>color:red;</code>, <code>underline:#0080f0;</code>, or <code>background:rgba(0,255,0,0.5);</code></li><li><strong>Apply a colored decoration to the [Ex] or [EH] tag:</strong><br><code>link-color:blue;</code>, <code>link-underline:#bf48b5;</code>, or <code>link-background:rgba(220,200,20,0.5);</code></li><li><strong>Apply a colored decoration to <em>BOTH</em> the matched text and tag:</strong><br><code>colors:blue;</code>, <code>underlines:#bf48b5;</code>, or <code>backgrounds:rgba(220,200,20,0.5);</code></li><li><strong>Disable any coloring, including the default:</strong><br><code>no-colors;</code> or <code>nocolor;</code></li></ul>Additionally, some settings have aliases. If multiple are used, only the main one will be used.<br><ul><li><code>tags: tag</code></li><li><code>only: category, cat</code></li><li class=\"xl-settings-li-no-space\"><code>not: no</code></li><li class=\"xl-settings-li-no-space\"><code>site: sites</code></li><li><code>colors: cs</code></li><li class=\"xl-settings-li-no-space\"><code>underlines: us</code></li><li class=\"xl-settings-li-no-space\"><code>backgrounds: bgs</code></li><li><code>color: c</code></li><li class=\"xl-settings-li-no-space\"><code>underline: u</code></li><li class=\"xl-settings-li-no-space\"><code>background: bg</code></li><li><code>link-color: link-c, lc</code></li><li class=\"xl-settings-li-no-space\"><code>link-underline: link-u, lu</code></li><li class=\"xl-settings-li-no-space\"><code>link-background: link-bg, lbg</code></li><li><code>no-colors: no-color, nocolors, nocolor</code></li></ul>For easy <a href=\"https://developer.mozilla.org/en-US/docs/Web/CSS/color_value#Color_keywords\" target=\"_blank\" rel=\"noreferrer nofollow\">HTML color</a> selection, you can use the following helper to select a color:<br><br><div><input type=\"color\" value=\"#808080\" class=\"xl-settings-color-input\"><input type=\"text\" value=\"#808080\" class=\"xl-settings-color-input\" readonly=\"readonly\"><input type=\"text\" value=\"rgba(128,128,128,1)\" class=\"xl-settings-color-input\" readonly=\"readonly\"></div></div>";
-		}._w(382);
+		}._w(385);
 		var create_export_data = function () {
 			return {
 				config: Config.get_saved_settings(),
 				easy_list: EasyList.get_saved_settings()
 			};
-		}._w(383);
+		}._w(386);
 		var import_settings = function (data) {
 			if (data !== null && typeof(data) === "object") {
 				var v = data.config;
@@ -6050,7 +6063,7 @@
 				if (typeof(v) !== "object") v = null;
 				EasyList.set_saved_settings(v);
 			}
-		}._w(384);
+		}._w(387);
 
 		var generate_section_header = function (title, message) {
 			var theme = Theme.classes,
@@ -6065,10 +6078,10 @@
 			}
 
 			return n1;
-		}._w(385);
+		}._w(388);
 		var generate_section = function () {
 			return $.node("div", "xl-settings-group " + Theme.classes);
-		}._w(386);
+		}._w(389);
 		var generate_section_options = function (section, namespace, config_descriptor, config_scope) {
 			var type, info, d, i, ii;
 			for (i = 0, ii = config_descriptor.length; i < ii; ++i) {
@@ -6087,13 +6100,13 @@
 					info // info
 				);
 			}
-		}._w(387);
+		}._w(390);
 		var generate_section_options_custom = function (section, namespace, custom_descriptor, custom_config) {
 			var config_descriptor = custom_descriptor[namespace];
 			if (config_descriptor === undefined) return;
 
 			generate_section_options(section, namespace + "-custom", config_descriptor, custom_config[namespace]);
-		}._w(388);
+		}._w(391);
 		var generate_section_option = function (section, config_scope, id, name, label_text, description, type, value, info) {
 			var event = "change",
 				theme = Theme.classes,
@@ -6166,7 +6179,7 @@
 			// Event
 			if (config_scope === null) name = null;
 			$.on(input, event, $.bind(on_change, input, type, config_scope, name, info));
-		}._w(389);
+		}._w(392);
 
 		var generate_extensions = function (container) {
 			var exts = ExtensionAPI.get_registered_extensions(),
@@ -6199,11 +6212,11 @@
 			$.add(container, section);
 
 			return data;
-		}._w(390);
+		}._w(393);
 
 		var titlify_custom_namespace = function (namespace) {
-			return namespace.replace(/[_\W]+/g, " ").replace(/\b\w/g, function (m) { return m.toUpperCase(); }._w(392));
-		}._w(391);
+			return namespace.replace(/[_\W]+/g, " ").replace(/\b\w/g, function (m) { return m.toUpperCase(); }._w(395));
+		}._w(394);
 
 		var on_change = function (type, config_scope, name, info, event) {
 			var fn, v;
@@ -6234,7 +6247,7 @@
 			if (info !== null && (fn = info.on_change) !== undefined) {
 				fn.call(this, event);
 			}
-		}._w(393);
+		}._w(396);
 		var on_cache_clear_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
@@ -6243,21 +6256,21 @@
 				Debug.log("Cleared cache; entries_removed=" + clears);
 				this.textContent = "Cleared!";
 			}
-		}._w(394);
+		}._w(397);
 		var on_changelog_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				close(event);
 				Changelog.open(null);
 			}
-		}._w(395);
+		}._w(398);
 		var on_export_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				close();
 				open_export();
 			}
-		}._w(396);
+		}._w(399);
 		var on_save_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
@@ -6269,14 +6282,14 @@
 				Config.save();
 				close();
 			}
-		}._w(397);
+		}._w(400);
 		var on_cancel_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 
 				close();
 			}
-		}._w(398);
+		}._w(401);
 		var on_toggle_filter_guide = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
@@ -6289,7 +6302,7 @@
 				}
 				catch (e) {}
 			}
-		}._w(399);
+		}._w(402);
 		var on_color_helper_change = function () {
 			var n = this.nextSibling,
 				m;
@@ -6304,14 +6317,14 @@
 					}
 				}
 			}
-		}._w(400);
+		}._w(403);
 		var on_settings_open_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 
 				open();
 			}
-		}._w(401);
+		}._w(404);
 
 		// Public
 		var ready = function () {
@@ -6320,7 +6333,7 @@
 			var n = $.link(Main.homepage, "xl-nav-link", Main.title + " Settings");
 			$.on(n, "click", on_settings_open_click);
 			HeaderBar.insert_menu_link(n);
-		}._w(402);
+		}._w(405);
 		var open = function () {
 			var theme = Theme.classes,
 				custom_options = Config.get_custom_settings_descriptor(),
@@ -6338,7 +6351,7 @@
 					$.add(container, $.link(Main.homepage, "xl-settings-title" + theme, Main.title));
 					$.add(container, n = $.link(Changelog.url, "xl-settings-version" + theme, Main.version.join(".")));
 					$.on(n, "click", on_changelog_click);
-				}._w(404)
+				}._w(407)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -6361,12 +6374,12 @@
 					$.add(container, n = $.link("#", "xl-settings-button" + theme));
 					$.add(n, $.node("span", "xl-settings-button-text", "Cancel"));
 					$.on(n, "click", on_cancel_click);
-				}._w(405)
+				}._w(408)
 			}], {
 				body: true,
 				setup: function (container) {
 					content_container = container;
-				}._w(406)
+				}._w(409)
 			}]);
 
 			// Settings
@@ -6448,7 +6461,7 @@
 			// Focus
 			n = $(".xl-popup-cell-size-scroll", popup);
 			if (n !== null) $.scroll_focus(n);
-		}._w(403);
+		}._w(406);
 		var open_export = function () {
 			var theme = Theme.classes,
 				nodes = {
@@ -6458,7 +6471,7 @@
 
 			// Config
 			export_data_string = JSON.stringify(create_export_data(), null, 2);
-			export_url = window.URL.createObjectURL(new Blob([ export_data_string ], { type: "application/json" }));
+			export_url = $.create_url_from_data(export_data_string, "application/json");
 
 			// Popup
 			popup = Popup.create("settings", [[{
@@ -6466,7 +6479,7 @@
 				setup: function (container) {
 					$.add(container, $.link(Main.homepage, "xl-settings-title" + theme, Main.title));
 					$.add(container, $.node("span", "xl-settings-title-info" + theme, " - Settings export"));
-				}._w(408)
+				}._w(411)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -6477,7 +6490,7 @@
 						s = "" + s;
 						while (s.length < len) s = "0" + s;
 						return s;
-					}._w(410);
+					}._w(413);
 
 					fn = $.node("input", "xl-settings-file-input");
 					fn.type = "file";
@@ -6494,18 +6507,18 @@
 									nodes.textarea.value = JSON.stringify(d, null, 2);
 									nodes.textarea.classList.add("xl-settings-export-textarea-changed");
 								}
-							}._w(412), false);
+							}._w(415), false);
 							reader.readAsText(files[0]);
 						}
 						this.value = null;
-					}._w(411));
+					}._w(414));
 
 					$.add(container, n = $.link(undefined, "xl-settings-button" + theme));
 					$.add(n, $.node("span", "xl-settings-button-text", "Import"));
 					$.on(n, "click", function (event) {
 						event.preventDefault();
 						fn.click();
-					}._w(413));
+					}._w(416));
 
 					$.add(container, n = $.link(export_url, "xl-settings-button" + theme));
 					n.removeAttribute("target");
@@ -6535,12 +6548,12 @@
 							}
 							nodes.textarea.classList.remove("xl-settings-export-textarea-changed");
 						}
-					}._w(414));
+					}._w(417));
 
 					$.add(container, n = $.link("#", "xl-settings-button" + theme));
 					$.add(n, $.node("span", "xl-settings-button-text", "Cancel"));
 					$.on(n, "click", on_cancel_click);
-				}._w(409)
+				}._w(412)
 			}], {
 				padding: false,
 				setup: function (container) {
@@ -6556,12 +6569,12 @@
 					n3.checked = false;
 					$.on(n3, "change", function () {
 						nodes.textarea.readOnly = !this.checked;
-					}._w(416));
+					}._w(419));
 
 					$.add(n1, $.tnode(")"));
 
 					$.add(container, n1);
-				}._w(415)
+				}._w(418)
 			}, {
 				body: true,
 				padding: false,
@@ -6575,12 +6588,12 @@
 					n.readOnly = true;
 					$.on(n, "input", function () {
 						this.classList.add("xl-settings-export-textarea-changed");
-					}._w(418));
+					}._w(421));
 
 					nodes.textarea = n;
 
 					$.add(container, n);
-				}._w(417)
+				}._w(420)
 			}]);
 			$.on(popup, "click", on_cancel_click);
 
@@ -6590,7 +6603,7 @@
 			// Focus
 			n = $(".xl-settings-export-textarea", popup);
 			if (n !== null) n.focus();
-		}._w(407);
+		}._w(410);
 		var close = function () {
 			config_temp = null;
 			config_custom_temp = null;
@@ -6600,10 +6613,10 @@
 				popup = null;
 			}
 			if (export_url !== null) {
-				window.URL.revokeObjectURL(export_url);
+				$.revoke_url(export_url);
 				export_url = null;
 			}
-		}._w(419);
+		}._w(422);
 
 		// Exports
 		return {
@@ -6613,7 +6626,7 @@
 			close: close
 		};
 
-	}._w(381))();
+	}._w(384))();
 	var Config = (function () {
 
 		// Private
@@ -6623,42 +6636,57 @@
 
 		// Public
 		var storage = (function () {
-			try {
-				if (!(
-					GM_setValue && typeof(GM_setValue) === "function" &&
-					GM_getValue && typeof(GM_getValue) === "function" &&
-					GM_deleteValue && typeof(GM_deleteValue) === "function" &&
-					GM_listValues && typeof(GM_listValues) === "function"
-				)) {
-					throw "";
+			if ((function () {
+				try {
+					return (
+						typeof(GM_setValue) !== "function" ||
+						typeof(GM_getValue) !== "function" ||
+						typeof(GM_deleteValue) !== "function" ||
+						typeof(GM_listValues) !== "function"
+					);
 				}
-			}
-			catch (e) {
+				catch (e) {}
+				return true;
+			}._w(425))()) {
 				return window.localStorage;
 			}
 
-			return {
+			var storage = {
 				getItem: function (key) {
 					return GM_getValue(key, null);
-				}._w(422),
+				}._w(426),
 				setItem: function (key, value) {
 					GM_setValue(key, value);
-				}._w(423),
+				}._w(427),
 				key: function (index) {
 					return GM_listValues()[index];
-				}._w(424),
+				}._w(428),
 				removeItem: function (key) {
 					GM_deleteValue(key);
-				}._w(425),
+				}._w(429),
 				clear: function () {
 					var v = GM_listValues(), i, ii;
 					for (i = 0, ii = v.length; i < ii; ++i) GM_deleteValue(v[i]);
-				}._w(426),
-				get length() {
-					return GM_listValues().length;
-				}
+				}._w(430)
+				// length: (getter)
 			};
-		}._w(421))();
+
+			// Length getter
+			var get_length = function () {
+				return GM_listValues().length;
+			}._w(431);
+			if (Object.defineProperty) {
+				Object.defineProperty(storage, "length", { get: get_length });
+			}
+			else if (Object.prototype.__defineGetter__) {
+				Object.prototype.__defineGetter__.call(storage, "length", get_length);
+			}
+			else {
+				storage.length = 0;
+			}
+
+			return storage;
+		}._w(424))();
 
 		var init = function () {
 			var update = false,
@@ -6727,7 +6755,7 @@
 
 			// Save changes
 			if (update) save();
-		}._w(427);
+		}._w(432);
 		var ready = function () {
 			var domain = $.get_domain(window.location.href);
 
@@ -6767,15 +6795,15 @@
 			}
 
 			return true;
-		}._w(428);
+		}._w(433);
 		var save = function () {
 			config.version = Main.version;
 			storage.setItem(settings_key, JSON.stringify(config));
 			config.version = null;
-		}._w(429);
+		}._w(434);
 		var get_saved_settings = function () {
 			return $.json_parse_safe(storage.getItem(settings_key), null);
-		}._w(430);
+		}._w(435);
 		var set_saved_settings = function (data) {
 			if (data === null) {
 				storage.removeItem(settings_key);
@@ -6783,7 +6811,7 @@
 			else {
 				storage.setItem(settings_key, JSON.stringify(data));
 			}
-		}._w(431);
+		}._w(436);
 
 		var load_custom = function () {
 			var saved = $.json_parse_safe(storage.getItem(settings_key + "-custom"), null),
@@ -6805,10 +6833,10 @@
 					}
 				}
 			}
-		}._w(432);
+		}._w(437);
 		var save_custom = function () {
 			storage.setItem(settings_key + "-custom", JSON.stringify(custom));
-		}._w(433);
+		}._w(438);
 
 		var register_custom_setting = function (namespace, name, default_value, title, description, descriptor) {
 			// Already exists
@@ -6839,7 +6867,7 @@
 
 			// Return value
 			return update[1];
-		}._w(434);
+		}._w(439);
 		var init_custom = function (namespace, name, default_value) {
 			var v = custom[namespace],
 				val;
@@ -6857,21 +6885,21 @@
 			}
 
 			return [ false, val ];
-		}._w(435);
+		}._w(440);
 		var get_custom_settings_descriptor = function () {
 			return custom_descriptor === null ? {} : custom_descriptor;
-		}._w(436);
+		}._w(441);
 		var get_custom = function (namespace, name) {
 			var v = custom[namespace];
 			return (v !== undefined) ? v[name] : undefined;
-		}._w(437);
+		}._w(442);
 		var get_custom_clone = function () {
 			return JSON.parse(JSON.stringify(custom));
-		}._w(438);
+		}._w(443);
 		var load_custom_from_clone = function (clone) {
 			custom = clone;
 			save_custom();
-		}._w(439);
+		}._w(444);
 
 		// Exports
 		var Module = {
@@ -6900,7 +6928,7 @@
 
 		return Module;
 
-	}._w(420))();
+	}._w(423))();
 	var Filter = (function () {
 
 		// Private
@@ -6913,7 +6941,7 @@
 			this.regex = regex;
 			this.flags = flags;
 			this.priority = priority;
-		}._w(441);
+		}._w(446);
 		var FilterFlags = function () {
 			this.title = true;
 			this.tags = true;
@@ -6930,7 +6958,7 @@
 			this.link_color = this.color;
 			this.link_underline = null;
 			this.link_background = null;
-		}._w(442);
+		}._w(447);
 		FilterFlags.scope_fn = function (name) {
 			return function (value, state) {
 				if (!state.scope) {
@@ -6941,8 +6969,8 @@
 				}
 
 				this[name] = (good_values.indexOf(value.trim().toLowerCase()) >= 0);
-			}._w(444);
-		}._w(443);
+			}._w(449);
+		}._w(448);
 		FilterFlags.color_fn = function (fn) {
 			return function (value, state) {
 				if (!state.color) {
@@ -6956,8 +6984,8 @@
 				}
 
 				fn.call(this, value.trim());
-			}._w(446);
-		}._w(445);
+			}._w(451);
+		}._w(450);
 		FilterFlags.names = {
 			"tags": FilterFlags.scope_fn("tags"),
 			"title": FilterFlags.scope_fn("title"),
@@ -6965,50 +6993,50 @@
 
 			"bad": FilterFlags.color_fn(function (value) {
 				this.bad = (good_values.indexOf(value.toLowerCase()) >= 0);
-			}._w(447)),
+			}._w(452)),
 
 			"only": function (value) {
 				this.only = this.split(value);
-			}._w(448),
+			}._w(453),
 			"not": function (value) {
 				this.not = this.split(value);
-			}._w(449),
+			}._w(454),
 			"site": function (value) {
 				this.site = this.split(value);
-			}._w(450),
+			}._w(455),
 
 			"colors": FilterFlags.color_fn(function (value) {
 				this.color = value;
 				this.link_color = value;
-			}._w(451)),
+			}._w(456)),
 			"underlines": FilterFlags.color_fn(function (value) {
 				this.underline = value;
 				this.link_underline = value;
-			}._w(452)),
+			}._w(457)),
 			"backgrounds": FilterFlags.color_fn(function (value) {
 				this.background = value;
 				this.link_background = value;
-			}._w(453)),
+			}._w(458)),
 
 			"color": FilterFlags.color_fn(function (value) {
 				this.color = value;
-			}._w(454)),
+			}._w(459)),
 			"underline": FilterFlags.color_fn(function (value) {
 				this.underline = value;
-			}._w(455)),
+			}._w(460)),
 			"background": FilterFlags.color_fn(function (value) {
 				this.background = value;
-			}._w(456)),
+			}._w(461)),
 
 			"link-color": FilterFlags.color_fn(function (value) {
 				this.link_color = value;
-			}._w(457)),
+			}._w(462)),
 			"link-underline": FilterFlags.color_fn(function (value) {
 				this.link_underline = value;
-			}._w(458)),
+			}._w(463)),
 			"link-background": FilterFlags.color_fn(function (value) {
 				this.link_background = value;
-			}._w(459)),
+			}._w(464)),
 
 			"no-colors": function (value, state) {
 				state.color = true;
@@ -7020,7 +7048,7 @@
 				this.link_color = value;
 				this.link_underline = value;
 				this.link_background = value;
-			}._w(460),
+			}._w(465),
 
 			"tag": "tags",
 
@@ -7071,7 +7099,7 @@
 					fn.call(this, flags_obj[k], state);
 				}
 			}
-		}._w(461);
+		}._w(466);
 		FilterFlags.prototype.split = function (text) {
 			var array, i, ii;
 
@@ -7084,33 +7112,27 @@
 			}
 
 			return array;
-		}._w(462);
+		}._w(467);
 		var Match = function (start, end, filter) {
 			this.start = start;
 			this.end = end;
 			this.filter = filter;
-		}._w(463);
+		}._w(468);
 		var MatchSegment = function (start, end, data) {
 			this.start = start;
 			this.end = end;
 			this.data = data;
-		}._w(464);
+		}._w(469);
 		var MatchInfo = function () {
 			this.matches = [];
 			this.any = false;
 			this.bad = false;
-		}._w(465);
+		}._w(470);
 
 		var create_regex = function (pattern, flags) {
 			if (flags.indexOf("g") < 0) flags += "g";
-
-			try {
-				return new RegExp(pattern, flags);
-			}
-			catch (e) {
-				return null;
-			}
-		}._w(466);
+			return $.create_regex_safe(pattern, flags);
+		}._w(471);
 		var create_flags = function (text) {
 			var flaglist = text.split(";"),
 				flags = {},
@@ -7128,7 +7150,7 @@
 			f = new FilterFlags();
 			f.setup(flags);
 			return f;
-		}._w(467);
+		}._w(472);
 		var matches_to_segments = function (text, matches) {
 			var segments = [ new MatchSegment(0, text.length, []) ],
 				hit, m, s, i, ii, j, jj;
@@ -7156,7 +7178,7 @@
 			}
 
 			return segments;
-		}._w(468);
+		}._w(473);
 		var update_segments = function (segments, pos, match, segment) {
 			var data = segment.data.slice(0),
 				s1, s2;
@@ -7194,7 +7216,7 @@
 			}
 
 			return pos;
-		}._w(469);
+		}._w(474);
 		var apply_styles = function (node, styles) {
 			var color = null,
 				background = null,
@@ -7222,7 +7244,7 @@
 			}
 
 			apply_styling(node, color, background, underline);
-		}._w(470);
+		}._w(475);
 		var apply_styling = function (node, color, background, underline) {
 			if (color !== null) {
 				node.style.setProperty("color", color, "important");
@@ -7233,12 +7255,12 @@
 			if (underline !== null) {
 				node.style.setProperty("border-bottom", "0.125em solid " + underline, "important");
 			}
-		}._w(471);
+		}._w(476);
 		var append_match_datas = function (matchinfo, target) {
 			for (var i = 0, ii = matchinfo.matches.length; i < ii; ++i) {
 				target.push(matchinfo.matches[i].filter);
 			}
-		}._w(472);
+		}._w(477);
 		var remove_non_bad = function (list) {
 			for (var i = 0; i < list.length; ) {
 				if (!list[i].bad) {
@@ -7247,7 +7269,7 @@
 				}
 				++i;
 			}
-		}._w(473);
+		}._w(478);
 		var check_multiple = function (type, text, filters, category, site_type) {
 			var info = new MatchInfo(),
 				filter, match, i, ii;
@@ -7269,7 +7291,7 @@
 			}
 
 			return info;
-		}._w(474);
+		}._w(479);
 		var check_single = function (text, filter, category, site_type) {
 			// return null if no match
 			// return a new Match if a match was found
@@ -7299,7 +7321,7 @@
 			// Text filter
 			m = filter.regex.exec(text);
 			return (m === null) ? null : new Match(m.index, m.index + m[0].length, filter);
-		}._w(475);
+		}._w(480);
 		var hl_return = function (bad, node) {
 			if (bad) {
 				node.classList.add("xl-filter-bad");
@@ -7309,10 +7331,10 @@
 				node.classList.add("xl-filter-good");
 				return Status.Good;
 			}
-		}._w(476);
+		}._w(481);
 		var init_filters = function () {
 			active_filters = config.filter.enabled ? parse(config.filter.filters, 0) : [];
-		}._w(477);
+		}._w(482);
 
 		// Public
 		var parse = function (input, start_priority) {
@@ -7363,7 +7385,7 @@
 			}
 
 			return filters;
-		}._w(478);
+		}._w(483);
 		var highlight = function (type, node, data, input_state, results, extras) {
 			if (active_filters === null) init_filters();
 
@@ -7467,7 +7489,7 @@
 				c[text] = [ info, node ];
 			}
 			return hl_return(bad, node);
-		}._w(479);
+		}._w(484);
 		var highlight_tag = function (node, link, filter_data) {
 			if (filter_data[0] === Status.Bad) {
 				node.classList.add("xl-filter-bad");
@@ -7506,7 +7528,7 @@
 						p3 = p;
 					}
 				}
-			}._w(481);
+			}._w(486);
 
 			get_style(filter_data[1].uploader);
 			get_style(filter_data[1].title);
@@ -7526,7 +7548,7 @@
 				$.add(node, n1);
 				apply_styling(n1, color, background, underline);
 			}
-		}._w(480);
+		}._w(485);
 		var check = function (titlenode, data, extras) {
 			if (active_filters === null) init_filters();
 
@@ -7579,7 +7601,7 @@
 					// Remove dups
 					result.tags = result.tags.filter(function (item, pos, self) {
 						return (self.indexOf(item) === pos);
-					}._w(483));
+					}._w(488));
 				}
 			}
 
@@ -7595,7 +7617,7 @@
 			}
 
 			return [ status , (status === Status.None ? null : result) ];
-		}._w(482);
+		}._w(487);
 
 		// Export
 		return {
@@ -7608,7 +7630,7 @@
 			highlight_tag: highlight_tag
 		};
 
-	}._w(440))();
+	}._w(445))();
 	var Theme = (function () {
 
 		// Private
@@ -7620,7 +7642,7 @@
 			n = n.toString(16);
 			if (n.length < 2) n = "0" + n;
 			return n;
-		}._w(485);
+		}._w(490);
 		var detect = function () {
 			var doc_el = d.documentElement,
 				body = d.body,
@@ -7667,7 +7689,7 @@
 				"#" + to_hex2(colors[1][0]) + to_hex2(colors[1][1]) + to_hex2(colors[1][2]),
 				"rgba(" + colors[1][0] + "," + colors[1][1] + "," + colors[1][2] + ","
 			];
-		}._w(486);
+		}._w(491);
 		var update = function (change_nodes) {
 			var new_theme = detect();
 			if (new_theme !== null) {
@@ -7684,7 +7706,7 @@
 				return true;
 			}
 			return false;
-		}._w(487);
+		}._w(492);
 		var update_nodes = function (new_theme) {
 			var nodes = $$(".xl-theme"),
 				ii = nodes.length,
@@ -7701,7 +7723,7 @@
 					nodes[i].classList.add(cls);
 				}
 			}
-		}._w(488);
+		}._w(493);
 		var update_nodes_bg = function () {
 			var nodes = $$(".xl-theme-post-bg"),
 				opacity, node, i, ii;
@@ -7710,7 +7732,7 @@
 				opacity = node.getAttribute("data-xl-theme-post-bg-opacity");
 				node.style.backgroundColor = (opacity ? post_bg_opac + opacity + ")" : post_bg);
 			}
-		}._w(489);
+		}._w(494);
 
 		var on_head_mutate = function (records) {
 			var nodes, node, tag, i, ii, j, jj;
@@ -7737,7 +7759,7 @@
 					}
 				}
 			}
-		}._w(490);
+		}._w(495);
 
 		// Public
 		var ready = function () {
@@ -7746,7 +7768,7 @@
 			if (d.head) {
 				new MutationObserver(on_head_mutate).observe(d.head, { childList: true });
 			}
-		}._w(491);
+		}._w(496);
 		var bg = function (node, opacity) {
 			node.classList.add("xl-theme-post-bg");
 			if (opacity === undefined || opacity === 1) {
@@ -7757,7 +7779,7 @@
 				node.style.backgroundColor = post_bg_opac + opacity + ")";
 				node.setAttribute("data-xl-theme-post-bg-opacity", opacity);
 			}
-		}._w(492);
+		}._w(497);
 		var apply = function (node) {
 			if (current !== "light") {
 				var nodes = $$(".xl-theme", node),
@@ -7771,16 +7793,15 @@
 					node.classList.add("xl-theme-dark");
 				}
 			}
-		}._w(493);
+		}._w(498);
 		var get_computed_style = function (node) {
 			try {
 				// Don't use window.getComputedStyle: https://code.google.com/p/chromium/issues/detail?id=538650
 				return document.defaultView.getComputedStyle(node);
 			}
-			catch (e) {
-				return node.style || {};
-			}
-		}._w(494);
+			catch (e) {}
+			return node.style || {};
+		}._w(499);
 		var parse_css_color = function (color) {
 			if (color && color !== "transparent") {
 				var m;
@@ -7813,7 +7834,7 @@
 			}
 
 			return [ 0 , 0 , 0 , 0 ];
-		}._w(495);
+		}._w(500);
 
 		// Exports
 		var Module =  {
@@ -7827,14 +7848,14 @@
 
 		return Module;
 
-	}._w(484))();
+	}._w(489))();
 	var EasyList = (function () {
 
 		var Entry = function (info, data) {
 			this.info = info;
 			this.data = data;
 			this.node = null;
-		}._w(497);
+		}._w(502);
 
 		// Private
 		var settings_key = "xlinks-easylist-settings",
@@ -7880,7 +7901,7 @@
 
 		var settings_save = function () {
 			Config.storage.setItem(settings_key, JSON.stringify(settings));
-		}._w(498);
+		}._w(503);
 		var settings_load = function () {
 			// Load
 			var value = get_saved_settings(),
@@ -7900,7 +7921,7 @@
 
 			// Load filters
 			load_filters();
-		}._w(499);
+		}._w(504);
 		var create = function () {
 			popup = Popup.create("easylist", function (container) {
 				var theme = Theme.classes,
@@ -7940,13 +7961,13 @@
 				$.add(container, contents[content_current].container);
 
 				content_container = container;
-			}._w(501));
+			}._w(506));
 
 			$.on(popup, "click", on_overlay_click);
 
 			// Setup
 			update_display_mode(true);
-		}._w(500);
+		}._w(505);
 		var create_options = function (theme) {
 			var fn, n1, n2, n3, n4, n5;
 
@@ -7975,7 +7996,7 @@
 				$.on(n2, "change", on_option_change.sort_by);
 
 				return n1;
-			}._w(503);
+			}._w(508);
 			$.add(n4, fn("thread", "Appearance in thread"));
 			$.add(n4, fn("upload", "Upload date"));
 			$.add(n4, fn("rating", "Rating"));
@@ -7999,7 +8020,7 @@
 				$.on(n2, "change", change_fn);
 
 				return n1;
-			}._w(504);
+			}._w(509);
 			$.add(n4, fn(settings.group_by_filters, "Filters", on_option_change.group_by_filters));
 			$.add(n4, fn(settings.group_by_category, "Category", on_option_change.group_by_category));
 
@@ -8025,7 +8046,7 @@
 				$.on(n2, "change", on_option_change.display_mode);
 
 				return n1;
-			}._w(505);
+			}._w(510);
 			$.add(n4, fn(0, "Full"));
 			$.add(n4, fn(1, "Compact"));
 			$.add(n4, fn(2, "Minimal"));
@@ -8052,7 +8073,7 @@
 				$.on(n2, "change", on_option_change.filter_visibility);
 
 				return n1;
-			}._w(506);
+			}._w(511);
 			$.add(n4, fn(0, "Show all"));
 			$.add(n4, fn(1, "Hide bad"));
 			$.add(n4, fn(2, "Only show matches"));
@@ -8091,7 +8112,7 @@
 			$.add(n1, $.node("div", "xl-easylist-title-line"));
 
 			return n1;
-		}._w(502);
+		}._w(507);
 		var create_gallery_nodes = function (data, index, info) {
 			var domain = info.domain,
 				url = CreateURL.to_gallery(data, domain),
@@ -8132,7 +8153,7 @@
 							par.style.height = "100%";
 						}
 					}
-				}._w(508), n7));
+				}._w(513), n7));
 			}
 			else {
 				n6.style.width = "100%";
@@ -8211,7 +8232,7 @@
 			update_filters(n1, data, true, false);
 
 			return n1;
-		}._w(507);
+		}._w(512);
 		var create_full_tags = function (data, info) {
 			var theme = Theme.classes,
 				n1 = $.node("div", "xl-easylist-item-tag-table" + theme),
@@ -8256,7 +8277,7 @@
 			}
 
 			return n1;
-		}._w(509);
+		}._w(514);
 		var add_gallery_update_timer = null;
 		var add_gallery = function (content_index, entry, index, force_reorder) {
 			var info = entry.info,
@@ -8287,14 +8308,14 @@
 						if (add_gallery_update_timer !== null) clearTimeout(add_gallery_update_timer);
 						add_gallery_update_timer = setTimeout(function () {
 							update_ordering();
-						}._w(511), 1);
+						}._w(516), 1);
 					}
 					else {
 						set_empty(contents[content_index].visible === 0);
 					}
 				}
 			}
-		}._w(510);
+		}._w(515);
 		var set_empty = function (empty) {
 			if (empty_notification !== null) {
 				var cls = "xl-easylist-empty-notification-visible";
@@ -8302,10 +8323,10 @@
 					empty_notification.classList.toggle(cls);
 				}
 			}
-		}._w(512);
+		}._w(517);
 		var get_options_visible = function () {
 			return options_container.classList.contains("xl-easylist-options-visible");
-		}._w(513);
+		}._w(518);
 		var set_options_visible = function (visible) {
 			var n = $(".xl-easylist-control-link-options", popup),
 				cl, cls;
@@ -8319,25 +8340,25 @@
 			cl = options_container.classList;
 			cls = "xl-easylist-options-visible";
 			if (cl.contains(cls) !== visible) cl.toggle(cls);
-		}._w(514);
+		}._w(519);
 
 		var get_node_filter_group = function (node) {
 			var v = get_node_filters_bad(node);
 			return (v > 0) ? -v : get_node_filters_good(node);
-		}._w(515);
+		}._w(520);
 		var get_node_filters_good = function (node) {
 			return (parseInt(node.getAttribute("data-xl-filter-matches-title"), 10) || 0) +
 				(parseInt(node.getAttribute("data-xl-filter-matches-uploader"), 10) || 0) +
 				(parseInt(node.getAttribute("data-xl-filter-matches-tags"), 10) || 0);
-		}._w(516);
+		}._w(521);
 		var get_node_filters_bad = function (node) {
 			return (parseInt(node.getAttribute("data-xl-filter-matches-title-bad"), 10) || 0) +
 				(parseInt(node.getAttribute("data-xl-filter-matches-uploader-bad"), 10) || 0) +
 				(parseInt(node.getAttribute("data-xl-filter-matches-tags-bad"), 10) || 0);
-		}._w(517);
+		}._w(522);
 		var get_node_category_group = function (node) {
 			return API.get_category_sort_rank(node.getAttribute("data-xl-category"));
-		}._w(518);
+		}._w(523);
 		var update_display_mode = function (first) {
 			var mode = display_mode_names[settings.display_mode] || "",
 				cl = content_container.classList,
@@ -8350,7 +8371,7 @@
 			}
 
 			cl.add("xl-easylist-" + mode);
-		}._w(519);
+		}._w(524);
 		var update_ordering = function () {
 			var items = [],
 				mode = settings.sort_by,
@@ -8367,24 +8388,24 @@
 				if (settings.group_by_category) {
 					base_array = function (node) {
 						return [ get_node_category_group(node), get_node_filter_group(node) ];
-					}._w(521);
+					}._w(526);
 					ordering = [ 1, -1 ];
 				}
 				else {
 					base_array = function (node) {
 						return [ get_node_filter_group(node) ];
-					}._w(522);
+					}._w(527);
 					ordering = [ -1 ];
 				}
 			}
 			else if (settings.group_by_category) {
 				base_array = function (node) {
 					return [ get_node_category_group(node) ];
-				}._w(523);
+				}._w(528);
 				ordering = [ 1 ];
 			}
 			else {
-				base_array = function () { return []; }._w(524);
+				base_array = function () { return []; }._w(529);
 				ordering = [];
 			}
 
@@ -8417,7 +8438,7 @@
 					if (x > y) return ordering[i];
 				}
 				return 0;
-			}._w(525));
+			}._w(530));
 
 			// Re-insert
 			// Maybe eventually add labels
@@ -8451,12 +8472,12 @@
 
 			contents[content_index].visible = current_visible_count;
 			set_empty(current_visible_count === 0);
-		}._w(520);
+		}._w(525);
 		var reset_filter_state = function (node, content_node) {
 			content_node.textContent = node.getAttribute("data-xl-original") || "";
 			node.classList.remove("xl-filter-good");
 			node.classList.remove("xl-filter-bad");
-		}._w(526);
+		}._w(531);
 		var update_filters_targets = [
 			[ ".xl-easylist-item-title-link,.xl-easylist-item-title-jp", "title" ],
 			[ ".xl-easylist-item-uploader", "uploader" ],
@@ -8498,7 +8519,7 @@
 					}
 				}
 			}
-		}._w(527);
+		}._w(532);
 		var update_all_filters = function () {
 			var content_index = content_current,
 				entries = contents[content_index].entries,
@@ -8516,17 +8537,17 @@
 			if (settings.group_by_filters || settings.filter_visibility !== 0) {
 				update_ordering();
 			}
-		}._w(528);
+		}._w(533);
 		var load_filters = function () {
 			custom_filters = Filter.parse(settings.custom_filters, undefined);
-		}._w(529);
+		}._w(534);
 		var add_links = function (links) {
 			var immediate = true,
 				i, ii;
 
 			var cb = function (err, data) {
 				add_entry(immediate, err, data);
-			}._w(531);
+			}._w(536);
 
 			for (i = 0, ii = links.length; i < ii; ++i) {
 				API.get_url_info(links[i].href, cb);
@@ -8536,7 +8557,7 @@
 			if (queue.length > 0 && queue_timer === null) {
 				on_timer();
 			}
-		}._w(530);
+		}._w(535);
 		var add_entry = function (immediate, err, info) {
 			var key;
 			if (err !== null || data_map[(key = info.id)] !== undefined) return;
@@ -8553,8 +8574,8 @@
 						}
 					}
 				}
-			}._w(533));
-		}._w(532);
+			}._w(538));
+		}._w(537);
 
 		var set_content_index = function (content_index) {
 			if (content_index === content_current) return;
@@ -8574,7 +8595,7 @@
 				update_all_filters();
 				update_ordering();
 			}
-		}._w(534);
+		}._w(539);
 
 		var enable_custom_links = function (text) {
 			custom_links = [];
@@ -8590,7 +8611,7 @@
 				set_content_index(1);
 				parse_custom_urls(text);
 			}
-		}._w(535);
+		}._w(540);
 		var parse_custom_urls = function (text) {
 			var urls = Linkifier.parse_text_for_urls(text),
 				i, ii;
@@ -8598,7 +8619,7 @@
 			for (i = 0, ii = urls.length; i < ii; ++i) {
 				API.get_url_info(urls[i], $.bind(parse_custom_url_info, null, i));
 			}
-		}._w(536);
+		}._w(541);
 		var parse_custom_url_info = function (index, err, info) {
 			var key;
 			if (err !== null || custom_links_map[(key = info.id)] !== undefined) return;
@@ -8611,35 +8632,35 @@
 						add_gallery(1, entry, index, true);
 					}
 				}
-			}._w(538));
-		}._w(537);
+			}._w(543));
+		}._w(542);
 
 		var on_option_change = {
 			sort_by: function () {
 				settings.sort_by = this.value;
 				settings_save();
 				update_ordering();
-			}._w(539),
+			}._w(544),
 			group_by_category: function () {
 				settings.group_by_category = this.checked;
 				settings_save();
 				update_ordering();
-			}._w(540),
+			}._w(545),
 			group_by_filters: function () {
 				settings.group_by_filters = this.checked;
 				settings_save();
 				update_ordering();
-			}._w(541),
+			}._w(546),
 			display_mode: function () {
 				settings.display_mode = parseInt(this.value, 10) || 0;
 				settings_save();
 				update_display_mode(false);
-			}._w(542),
+			}._w(547),
 			filter_visibility: function () {
 				settings.filter_visibility = parseInt(this.value, 10) || 0;
 				settings_save();
 				update_ordering();
-			}._w(543),
+			}._w(548),
 			custom_filters: function () {
 				if (settings.custom_filters !== this.value) {
 					settings.custom_filters = this.value;
@@ -8647,7 +8668,7 @@
 					load_filters();
 					update_all_filters();
 				}
-			}._w(544),
+			}._w(549),
 			custom_filters_input: function () {
 				var node = this;
 				if (on_option_change.custom_filters_input_delay_timer !== null) {
@@ -8657,17 +8678,17 @@
 					function () {
 						on_option_change.custom_filters_input_delay_timer = null;
 						on_option_change.custom_filters.call(node);
-					}._w(546),
+					}._w(551),
 					1000
 				);
-			}._w(545),
+			}._w(550),
 			custom_filters_input_delay_timer: null,
 			custom_links: function () {
 				var t = this.value.trim();
 				if (t !== custom_links_text) {
 					enable_custom_links(t);
 				}
-			}._w(547),
+			}._w(552),
 			custom_links_input: function () {
 				var node = this;
 				if (on_option_change.custom_links_input_delay_timer !== null) {
@@ -8677,10 +8698,10 @@
 					function () {
 						on_option_change.custom_links_input_delay_timer = null;
 						on_option_change.custom_links.call(node);
-					}._w(549),
+					}._w(554),
 					1000
 				);
-			}._w(548),
+			}._w(553),
 			custom_links_input_delay_timer: null
 		};
 		var on_gallery_mouseover = $.wrap_mouseenterleave_event(function () {
@@ -8707,9 +8728,9 @@
 
 						update_filters(node, data, false, true);
 					}
-				}._w(551));
+				}._w(556));
 			}
-		}._w(550));
+		}._w(555));
 		var on_thumbnail_error = function () {
 			$.off(this, "error", on_thumbnail_error);
 
@@ -8718,10 +8739,10 @@
 			par.style.width = "100%";
 			par.style.height = "100%";
 			this.style.visibility = "hidden";
-		}._w(552);
+		}._w(557);
 		var on_link_format = function (event) {
 			add_links([ event.link ]);
-		}._w(553);
+		}._w(558);
 		var on_timer = function () {
 			queue_timer = null;
 
@@ -8736,7 +8757,7 @@
 			if (queue.length > 0) {
 				queue_timer = setTimeout(on_timer, 50);
 			}
-		}._w(554);
+		}._w(559);
 		var on_open_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				open();
@@ -8744,7 +8765,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(555);
+		}._w(560);
 		var on_close_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				close();
@@ -8752,7 +8773,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(556);
+		}._w(561);
 		var on_toggle_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				if (is_open()) {
@@ -8765,7 +8786,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(557);
+		}._w(562);
 		var on_options_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				set_options_visible(!get_options_visible());
@@ -8773,7 +8794,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(558);
+		}._w(563);
 		var on_overlay_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				close();
@@ -8781,12 +8802,12 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(559);
+		}._w(564);
 
 		// Public
 		var get_saved_settings = function () {
 			return $.json_parse_safe(Config.storage.getItem(settings_key), null);
-		}._w(560);
+		}._w(565);
 		var set_saved_settings = function (data) {
 			if (data === null) {
 				Config.storage.removeItem(settings_key);
@@ -8794,7 +8815,7 @@
 			else {
 				Config.storage.setItem(settings_key, JSON.stringify(data));
 			}
-		}._w(561);
+		}._w(566);
 		var ready = function () {
 			Navigation.insert_link("normal", "Easy List", Main.homepage, " xl-nav-link-easylist", on_open_click);
 
@@ -8810,9 +8831,9 @@
 						"M 47.316173,40.278702 c -1.977441,10.244331 -5.318272,21.474541 -5.662805,29.784036 -0.242507,5.848836 2.420726,7.5586 5.348383,2.078223 5.586237,-10.45706 7.896687,-21.139251 10.839979,-32.018641 -1.376342,0.732535 -2.33581,0.805482 -3.567752,1.104816 2.20065,-1.826801 1.797963,-1.259845 4.683397,-4.356147 3.702042,-3.972588 11.505701,-7.842675 15.187296,-4.490869 4.597776,4.185917 3.4537,13.920509 -0.431829,18.735387 -1.301987,5.219157 -3.278232,10.993981 -4.691055,14.211545 1.650129,0.951997 7.1775,2.647886 8.723023,6.808838 1.818473,4.895806 0.447993,8.335081 -3.207776,12.929618 8.781279,-6.214409 9.875004,-12.24852 10.586682,-20.251062 C 85.596887,59.244915 85.615915,54.42819 83.82437,47.181873 82.032825,39.935556 77.484187,30.527275 73.806105,23.780748 70.128023,17.034221 68.465076,12.376515 60.467734,7.5782428 54.534892,4.0186364 44.006601,5.3633006 39.960199,11.716546 c -4.046402,6.353245 -2.052295,11.417199 0.339979,17.673546 -0.06795,1.969646 -1.145015,4.295256 0.105508,5.751383 1.875243,-0.914979 2.772108,-1.957655 4.421995,-2.639606 -0.01451,1.529931 0.320921,4.192236 -1.17535,5.722167 1.758316,1.116252 1.80495,1.414307 3.663842,2.054666 z"
 					);
 					$.add(svg, path);
-				}._w(563)
+				}._w(568)
 			);
-		}._w(562);
+		}._w(567);
 		var open = function () {
 			if (popup === null) {
 				settings_load();
@@ -8824,17 +8845,17 @@
 
 			Popup.open(popup);
 			$.scroll_focus(popup);
-		}._w(564);
+		}._w(569);
 		var close = function () {
 			Popup.close(popup);
 
 			set_options_visible(false);
 
 			UI.off("format", on_link_format);
-		}._w(565);
+		}._w(570);
 		var is_open = function () {
 			return (popup !== null && Popup.is_open(popup));
-		}._w(566);
+		}._w(571);
 
 		// Exports
 		return {
@@ -8846,7 +8867,7 @@
 			is_open: is_open
 		};
 
-	}._w(496))();
+	}._w(501))();
 	var Popup = (function () {
 
 		// Private
@@ -8857,14 +8878,14 @@
 			if ($.is_left_mouse(event)) {
 				event.stopPropagation();
 			}
-		}._w(568);
+		}._w(573);
 		var on_overlay_event = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				event.stopPropagation();
 				return false;
 			}
-		}._w(569);
+		}._w(574);
 
 		// Public
 		var create = function (class_ns, setup) {
@@ -8925,7 +8946,7 @@
 			}
 
 			return n1;
-		}._w(570);
+		}._w(575);
 		var open = function (overlay) {
 			if (active !== null && active.parentNode !== null) {
 				$.remove(active);
@@ -8933,17 +8954,17 @@
 			d.documentElement.classList.add("xl-popup-overlaying");
 			hovering(overlay);
 			active = overlay;
-		}._w(571);
+		}._w(576);
 		var close = function (overlay) {
 			d.documentElement.classList.remove("xl-popup-overlaying");
 			if (overlay.parentNode !== null) {
 				$.remove(overlay);
 			}
 			active = null;
-		}._w(572);
+		}._w(577);
 		var is_open = function (overlay) {
 			return (overlay.parentNode !== null);
-		}._w(573);
+		}._w(578);
 		var hovering = function (node) {
 			if (hovering_container === null) {
 				hovering_container = $.node("div", "xl-hovering-elements");
@@ -8956,7 +8977,7 @@
 				}
 			}
 			$.add(hovering_container, node);
-		}._w(574);
+		}._w(579);
 
 		// Exports
 		return {
@@ -8967,7 +8988,7 @@
 			hovering: hovering
 		};
 
-	}._w(567))();
+	}._w(572))();
 	var Changelog = (function () {
 
 		// Private
@@ -9026,7 +9047,7 @@
 				error: null,
 				log_data: versions
 			};
-		}._w(576);
+		}._w(581);
 		var display = function (container, theme) {
 			var versions, authors, changes,
 				e, n1, n2, n3, n4, n5, i, ii, j, jj, k, kk;
@@ -9066,7 +9087,7 @@
 			}
 
 			$.add(container, n1);
-		}._w(577);
+		}._w(582);
 		var acquire = function (callback) {
 			HttpRequest({
 				method: "GET",
@@ -9078,15 +9099,15 @@
 					else {
 						callback.call(null, "Response error " + xhr.status, null);
 					}
-				}._w(579),
+				}._w(584),
 				onerror: function () {
 					callback.call(null, "Connection error", null);
-				}._w(580),
+				}._w(585),
 				onabort: function () {
 					callback.call(null, "Connection aborted", null);
-				}._w(581)
+				}._w(586)
 			});
-		}._w(578);
+		}._w(583);
 
 		var on_changelog_get = function (err, data) {
 			if (err !== null) {
@@ -9103,17 +9124,17 @@
 					display(n, Theme.classes);
 				}
 			}
-		}._w(582);
+		}._w(587);
 		var on_close_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				close();
 			}
-		}._w(583);
+		}._w(588);
 		var on_change_save = function () {
 			config.general.changelog_on_update = this.checked;
 			Config.save();
-		}._w(584);
+		}._w(589);
 
 		// Public
 		var open = function (message) {
@@ -9136,7 +9157,7 @@
 						}
 					}
 					$.add(container, $.link(Module.url, "xl-settings-version" + cls + theme, Main.version.join(".")));
-				}._w(586)
+				}._w(591)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -9152,25 +9173,25 @@
 					$.add(container, n1 = $.link("#", "xl-settings-button" + theme));
 					$.add(n1, $.node("span", "xl-settings-button-text", "Close"));
 					$.on(n1, "click", on_close_click);
-				}._w(587)
+				}._w(592)
 			}], {
 				body: true,
 				padding: false,
 				setup: function (container) {
 					container.classList.add("xl-changelog-content");
 					display(container, theme);
-				}._w(588)
+				}._w(593)
 			}]);
 
 			$.on(popup, "click", on_close_click);
 			Popup.open(popup);
-		}._w(585);
+		}._w(590);
 		var close = function () {
 			if (popup !== null) {
 				Popup.close(popup);
 				popup = null;
 			}
-		}._w(589);
+		}._w(594);
 
 		// Exports
 		var Module = {
@@ -9181,7 +9202,7 @@
 
 		return Module;
 
-	}._w(575))();
+	}._w(580))();
 	var HeaderBar = (function () {
 
 		// Private
@@ -9239,7 +9260,7 @@
 				}
 				n2.setAttribute("data-xl-color", color);
 			}
-		}._w(591);
+		}._w(596);
 
 		var on_header_bar_detected = function (node) {
 			header_bar = node;
@@ -9264,7 +9285,7 @@
 			if (shortcut_icons.length > 0) {
 				add_svg_icons(shortcut_icons);
 			}
-		}._w(592);
+		}._w(597);
 		var on_icon_mouseover = $.wrap_mouseenterleave_event(function () {
 			var n = $("svg", this),
 				c;
@@ -9277,13 +9298,13 @@
 				}
 				n.style.fill = c;
 			}
-		}._w(593));
+		}._w(598));
 		var on_icon_mouseout = $.wrap_mouseenterleave_event(function () {
 			var n = $("svg", this);
 			if (n !== null) {
 				n.style.fill = this.getAttribute("data-xl-color");
 			}
-		}._w(594));
+		}._w(599));
 		var on_menu_item_mouseover = $.wrap_mouseenterleave_event(function () {
 			var entries = $$(".entry", this.parent),
 				i, ii;
@@ -9291,16 +9312,16 @@
 				entries[i].classList.remove("focused");
 			}
 			this.classList.add("focused");
-		}._w(595));
+		}._w(600));
 		var on_menu_item_mouseout = $.wrap_mouseenterleave_event(function () {
 			this.classList.remove("focused");
-		}._w(596));
+		}._w(601));
 		var on_menu_item_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				d.documentElement.click();
 			}
-		}._w(597);
+		}._w(602);
 		var on_body_observe = function (records) {
 			var nodes, node, i, ii, j, jj;
 
@@ -9316,7 +9337,7 @@
 					}
 				}
 			}
-		}._w(598);
+		}._w(603);
 		var on_header_observe = function (records) {
 			var nodes, node, i, ii, j, jj;
 
@@ -9337,7 +9358,7 @@
 					}
 				}
 			}
-		}._w(599);
+		}._w(604);
 
 		// Public
 		var ready = function () {
@@ -9348,7 +9369,7 @@
 			else {
 				new MutationObserver(on_body_observe).observe(d.body, { childList: true, subtree: false });
 			}
-		}._w(600);
+		}._w(605);
 		var insert_shortcut_icon = function (namespace, title, url, on_click, svg_setup) {
 			var svgns = "http://www.w3.org/2000/svg",
 				n1, svg;
@@ -9368,7 +9389,7 @@
 			shortcut_icons.push(n1);
 
 			if (header_bar !== null) add_svg_icons([ n1 ]);
-		}._w(601);
+		}._w(606);
 		var insert_menu_link = function (menu_node) {
 			menu_node.classList.add("entry");
 			menu_node.style.order = 112;
@@ -9378,7 +9399,7 @@
 			$.on(menu_node, "click", on_menu_item_click);
 
 			menu_nodes.push(menu_node);
-		}._w(602);
+		}._w(607);
 
 		// Exports
 		return {
@@ -9387,7 +9408,7 @@
 			insert_menu_link: insert_menu_link
 		};
 
-	}._w(590))();
+	}._w(595))();
 	var Navigation = (function () {
 
 		// Private
@@ -9423,7 +9444,7 @@
 					}
 					$.remove(link);
 				}
-			}._w(604)
+			}._w(609)
 		};
 
 		var on_observe_all = function (records) {
@@ -9465,7 +9486,7 @@
 				this.disconnect();
 				waiting_observer = null;
 			}
-		}._w(605);
+		}._w(610);
 
 		var LocationData = function (text, url, class_name, on_click) {
 			this.nodes = [];
@@ -9473,7 +9494,7 @@
 			this.url = url;
 			this.class_name = class_name;
 			this.on_click = on_click;
-		}._w(606);
+		}._w(611);
 		LocationData.prototype.add = function (selector, flags, separator) {
 			var node = $(selector);
 			if (node !== null) {
@@ -9491,10 +9512,10 @@
 					waiting_observer.observe(d.body, { childList: true, subtree: true });
 				}
 			}
-		}._w(607);
+		}._w(612);
 		LocationData.prototype.add_node = function (node, flags, separator) {
 			this.nodes.push(node, flags, separator);
-		}._w(608);
+		}._w(613);
 		LocationData.prototype.add_all = function (selector, flags, separator) {
 			var nodes = $$(selector),
 				i, ii;
@@ -9502,7 +9523,7 @@
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				this.nodes.push(nodes[i], flags, separator);
 			}
-		}._w(609);
+		}._w(614);
 		LocationData.prototype.insert = function () {
 			var first_mobile = true,
 				container, flags, node, par, pre, next, sep, i, ii, n1, t, t2, t_opt;
@@ -9608,7 +9629,7 @@
 			}
 
 			this.nodes = null;
-		}._w(610);
+		}._w(615);
 
 		// Public
 		var insert_link = function (mode, text, url, class_name, on_click) {
@@ -9657,14 +9678,14 @@
 			}
 
 			locations.insert();
-		}._w(611);
+		}._w(616);
 
 		// Exports
 		return {
 			insert_link: insert_link
 		};
 
-	}._w(603))();
+	}._w(608))();
 	var ExtensionAPI = (function () {
 
 		// Private
@@ -9677,36 +9698,36 @@
 				s += random_string_alphabet[Math.floor(Math.random() * alpha_len)];
 			}
 			return s;
-		}._w(613);
+		}._w(618);
 
 		var is_object = function (obj) {
 			return (obj !== null && typeof(obj) === "object");
-		}._w(614);
+		}._w(619);
 
-		var get_shared_node = function (selector) {
+		var get_shared_node = function (id) {
 			var par, n;
 
 			if (
-				selector === null ||
-				(par = $(".xl-extension-sharing-elements")) === null
+				id === null ||
+				(par = $(".xl-extension-sharing-elements")) === null ||
+				(n = get_shared_node_by_id(par, id)) === null
 			) {
 				return null;
 			}
 
-			try {
-				n = $("[data-xl-sharing-id='" + selector + "']", par);
-			}
-			catch (e) {
-				return null;
-			}
+			n.removeAttribute("data-xl-sharing-id");
+			$.remove(n);
+			if (par.firstChild === null) $.remove(par);
 
-			if (n !== null) {
-				n.removeAttribute("data-xl-sharing-id");
-				$.remove(n);
-				if (par.firstChild === null) $.remove(par);
-			}
 			return n;
-		}._w(615);
+		}._w(620);
+		var get_shared_node_by_id = function (parent, id) {
+			try {
+				return $("[data-xl-sharing-id='" + id + "']", parent);
+			}
+			catch (e) {}
+			return null;
+		}._w(621);
 
 		var disabled_extensions_key = "xlinks-extensions-disabled";
 		var disabled_extensions;
@@ -9729,7 +9750,7 @@
 				Config.storage.removeItem(disabled_extensions_key);
 				disabled_extensions = null;
 			}
-		}._w(616);
+		}._w(622);
 		var set_extensions_enabled = function (enabled_array) {
 			if (enabled_array === null) return;
 
@@ -9737,7 +9758,7 @@
 				registered[i][0] = enabled_array[i];
 			}
 			save_extensions_enabled_states();
-		}._w(617);
+		}._w(623);
 		var extension_is_enabled = function (name, author, description) {
 			if (disabled_extensions === undefined) {
 				disabled_extensions = $.json_parse_safe(Config.storage.getItem(disabled_extensions_key), null);
@@ -9751,7 +9772,7 @@
 			}
 
 			return true;
-		}._w(618);
+		}._w(624);
 
 		var registered = [];
 
@@ -9780,7 +9801,7 @@
 				this.post = this.post_window;
 				this.on_message = function (event) {
 					self.on_window_message(event);
-				}._w(620);
+				}._w(626);
 				window.addEventListener("message", this.on_message, false);
 			}
 			else {
@@ -9789,11 +9810,11 @@
 				this.post = this.post_channel;
 				this.on_message = function (event) {
 					self.on_port_message(event);
-				}._w(621);
+				}._w(627);
 				this.port.addEventListener("message", this.on_message, false);
 				this.port.start();
 			}
-		}._w(619);
+		}._w(625);
 
 		CommunicationChannel.create_channel = function () {
 			try {
@@ -9801,7 +9822,7 @@
 			}
 			catch (e) {}
 			return null;
-		}._w(622);
+		}._w(628);
 		CommunicationChannel.prototype.post_window = function (message, transfer) {
 			var msg = {
 				ext: this.is_extension,
@@ -9819,10 +9840,10 @@
 				}
 				catch (e2) {}
 			}
-		}._w(623);
+		}._w(629);
 		CommunicationChannel.prototype.post_channel = function (message, transfer) {
 			this.port.postMessage(message, transfer);
-		}._w(624);
+		}._w(630);
 		CommunicationChannel.prototype.on_window_message = function (event) {
 			var data = event.data;
 			if (
@@ -9834,18 +9855,18 @@
 			) {
 				this.callback(event, data, this);
 			}
-		}._w(625);
+		}._w(631);
 		CommunicationChannel.prototype.on_port_message = function (event) {
 			var data = event.data;
 			if (is_object(data)) {
 				this.callback(event, data, this);
 			}
-		}._w(626);
+		}._w(632);
 		CommunicationChannel.prototype.get_port_transfer = function () {
 			var p = this.port_other;
 			this.port_other = null;
 			return (p === null ? [] : [ p ]);
-		}._w(627);
+		}._w(633);
 		CommunicationChannel.prototype.close = function () {
 			if (this.on_message !== null) {
 				if (this.port === null) {
@@ -9858,7 +9879,7 @@
 				}
 				this.on_message = null;
 			}
-		}._w(628);
+		}._w(634);
 
 
 		var api = null;
@@ -9878,9 +9899,9 @@
 				null,
 				function (event, data, channel) {
 					self.on_message(event, data, channel, ExtensionAPI.handlers_init);
-				}._w(630)
+				}._w(636)
 			);
-		}._w(629);
+		}._w(635);
 		ExtensionAPI.prototype.on_message = function (event, data, channel, handlers) {
 			var action = data.xlinks_action,
 				action_is_null = (action === null),
@@ -9922,7 +9943,7 @@
 					);
 				}
 			}
-		}._w(631);
+		}._w(637);
 		ExtensionAPI.prototype.send = function (channel, action, reply_to, data, timeout_delay, on_reply, transfer) {
 			var self = this,
 				id = null,
@@ -9942,7 +9963,7 @@
 					}
 
 					on_reply.apply(this, arguments);
-				}._w(633);
+				}._w(639);
 
 				this.reply_callbacks[id] = cb;
 				cb = null;
@@ -9952,7 +9973,7 @@
 						timeout = null;
 						delete self.reply_callbacks[id];
 						on_reply.call(self, "Response timeout");
-					}._w(634), timeout_delay);
+					}._w(640), timeout_delay);
 				}
 			}
 
@@ -9962,66 +9983,7 @@
 				id: id,
 				reply: reply_to
 			}, transfer);
-		}._w(632);
-		ExtensionAPI.prototype.post_message = function (msg) {
-			try {
-				window.postMessage(msg, this.origin);
-			}
-			catch (e) {
-				// Tampermonkey bug
-				try {
-					unsafeWindow.postMessage(msg, this.origin);
-				}
-				catch (e2) {
-					console.log("window.postMessage failed! Your userscript manager may need to be updated!");
-					console.log("window.postMessage exception:", e, e2);
-				}
-			}
-		}._w(635);
-		ExtensionAPI.prototype.request_api_fn = function (fn_id, fn_name, channel) {
-			var self = this,
-				remove_dom = (fn_name === "parse_response");
-
-			return function () {
-				var state = null,
-					i = 0,
-					ii = arguments.length - 1,
-					args = new Array(ii),
-					callback = arguments[ii],
-					a;
-
-				for (; i < ii; ++i) args[i] = arguments[i];
-
-				if (remove_dom && is_object((a = args[0])) && a.responseXML) {
-					a.responseXML = null;
-				}
-
-				if (this !== null) {
-					state = {
-						id: this.data.id,
-						retry_count: this.retry_count
-					};
-
-					if (!this.data.sent) {
-						this.data.sent = true;
-						state.infos = this.infos;
-					}
-				}
-
-				self.send(
-					channel,
-					"api_function",
-					null,
-					{
-						id: fn_id,
-						args: args,
-						state: state
-					},
-					-1,
-					self.request_api_fn_callback(callback)
-				);
-			}._w(637);
-		}._w(636);
+		}._w(638);
 		ExtensionAPI.prototype.request_api_fn_callback = function (callback) {
 			return function (err, data) {
 				var args;
@@ -10035,8 +9997,8 @@
 					args = JSON.parse(JSON.stringify(args));
 					callback.apply(null, args);
 				}
-			}._w(639);
-		}._w(638);
+			}._w(642);
+		}._w(641);
 		ExtensionAPI.prototype.register_settings = function (reg_info) {
 			var response = {},
 				name, default_value, title, description, descriptor,
@@ -10071,7 +10033,7 @@
 			}
 
 			return response;
-		}._w(640);
+		}._w(643);
 		ExtensionAPI.prototype.register_settings_descriptor_info = function (input) {
 			if (!is_object(input)) return null;
 
@@ -10100,7 +10062,7 @@
 			}
 
 			return info;
-		}._w(641);
+		}._w(644);
 		ExtensionAPI.prototype.register_request_api = function (reg_info, channel) {
 			if (!is_object(reg_info)) return "Invalid";
 
@@ -10113,7 +10075,7 @@
 				req_delay_error = 5000,
 				req_functions = {},
 				req_function_ids = {},
-				fns, fn_id, fn_name, req, i, ii, k, o, v;
+				fns, fn, fn_id, req, i, ii, k, o, v;
 
 			// Settings
 			if (typeof((v = reg_info.group)) === "string") req_group = v;
@@ -10129,9 +10091,9 @@
 				for (i = 0, ii = fns.length; i < ii; ++i) {
 					v = fns[i];
 					if (Object.prototype.hasOwnProperty.call(ExtensionAPI.request_api_functions, v)) {
-						fn_name = ExtensionAPI.request_api_functions[v];
+						fn = ExtensionAPI.request_api_functions[v];
 						fn_id = random_string(32);
-						req_functions[fn_name] = this.request_api_fn(fn_id, fn_name, channel);
+						req_functions[v] = fn(this, fn_id, channel);
 						req_function_ids[v] = fn_id;
 					}
 				}
@@ -10173,7 +10135,7 @@
 			o[req_type] = req;
 
 			return req_function_ids;
-		}._w(642);
+		}._w(645);
 		ExtensionAPI.prototype.register_linkifier = function (reg_info) {
 			if (!is_object(reg_info)) return "Invalid";
 
@@ -10205,7 +10167,7 @@
 			// Register
 			Linkifier.linkify_register(regex, prefix_group, prefix, null, null);
 			return null;
-		}._w(643);
+		}._w(646);
 		ExtensionAPI.prototype.register_command = function (reg_info, channel) {
 			if (!is_object(reg_info) || reg_info.url_info !== true || reg_info.to_data !== true) {
 				return "Invalid";
@@ -10237,7 +10199,7 @@
 			}
 
 			return id_data;
-		}._w(644);
+		}._w(647);
 		ExtensionAPI.prototype.register_command_fn = function (event, send_data, channel) {
 			var self = this;
 
@@ -10260,10 +10222,10 @@
 						else {
 							cb(null, data.data);
 						}
-					}._w(647)
+					}._w(650)
 				);
-			}._w(646);
-		}._w(645);
+			}._w(649);
+		}._w(648);
 		ExtensionAPI.prototype.register_details_actions_fn = function (event, send_data, channel, validator) {
 			var self = this;
 
@@ -10284,10 +10246,10 @@
 						else {
 							validator(data.data, cb);
 						}
-					}._w(650)
+					}._w(653)
 				);
-			}._w(649);
-		}._w(648);
+			}._w(652);
+		}._w(651);
 
 		ExtensionAPI.prototype.create_extension_channel = function (api_name, api_key) {
 			var self = this;
@@ -10298,9 +10260,9 @@
 				CommunicationChannel.create_channel(),
 				function (event, data, channel) {
 					self.on_message(event, data, channel, ExtensionAPI.handlers);
-				}._w(652)
+				}._w(655)
 			);
-		}._w(651);
+		}._w(654);
 
 		ExtensionAPI.details_validator = function (data, cb) {
 			if (typeof(data) !== "string") {
@@ -10315,7 +10277,7 @@
 					cb(null, data);
 				}
 			}
-		}._w(653);
+		}._w(656);
 		ExtensionAPI.actions_validator = function (data, cb) {
 			if (!Array.isArray(data)) {
 				cb("Invalid extension response", null);
@@ -10333,18 +10295,123 @@
 
 				cb(null, response);
 			}
-		}._w(654);
+		}._w(657);
 
 		ExtensionAPI.request_api_functions_required = [
 			"setup_xhr",
 			"parse_response"
 		];
 		ExtensionAPI.request_api_functions = {
-			get_data: "get_data",
-			set_data: "set_data",
-			setup_xhr: "setup_xhr",
-			parse_response: "parse_response"
+			get_data: function (self, fn_id, channel) {
+				return function (info, callback) {
+					self.send(
+						channel,
+						"api_function",
+						null,
+						{
+							id: fn_id,
+							args: [ info ],
+							state: null
+						},
+						-1,
+						self.request_api_fn_callback(callback)
+					);
+				}._w(659);
+			}._w(658),
+			set_data: function (self, fn_id, channel) {
+				return function (data, info, callback) {
+					var state = {
+						id: this.data.id,
+						retry_count: this.retry_count
+					};
+
+					if (!this.data.sent) {
+						this.data.sent = true;
+						state.infos = this.infos;
+					}
+
+					self.send(
+						channel,
+						"api_function",
+						null,
+						{
+							id: fn_id,
+							args: [ data, info ],
+							state: state
+						},
+						-1,
+						self.request_api_fn_callback(callback)
+					);
+				}._w(661);
+			}._w(660),
+			setup_xhr: function (self, fn_id, channel) {
+				return function (callback) {
+					var state = {
+						id: this.data.id,
+						retry_count: this.retry_count
+					};
+
+					if (!this.data.sent) {
+						this.data.sent = true;
+						state.infos = this.infos;
+					}
+
+					self.send(
+						channel,
+						"api_function",
+						null,
+						{
+							id: fn_id,
+							args: [],
+							state: state
+						},
+						-1,
+						self.request_api_fn_callback(callback)
+					);
+				}._w(663);
+			}._w(662),
+			parse_response: function (self, fn_id, channel) {
+				return function (xhr, callback) {
+					var state = {
+						id: this.data.id,
+						retry_count: this.retry_count
+					};
+
+					if (!this.data.sent) {
+						this.data.sent = true;
+						state.infos = this.infos;
+					}
+
+					if (xhr.responseXML !== null) {
+						xhr = remove_response_xml(xhr);
+					}
+
+					self.send(
+						channel,
+						"api_function",
+						null,
+						{
+							id: fn_id,
+							args: [ xhr ],
+							state: state
+						},
+						-1,
+						self.request_api_fn_callback(callback)
+					);
+				}._w(665);
+			}._w(664)
 		};
+
+		var remove_response_xml = function (xhr) {
+			try {
+				xhr.responseXML = null;
+			}
+			catch (e) {
+				xhr = $.clone(xhr);
+				xhr.responseXML = null;
+			}
+			return xhr;
+		}._w(666);
 
 		ExtensionAPI.handlers_init = {
 			init: function (data, channel, reply) {
@@ -10424,7 +10491,7 @@
 						reply_channel.get_port_transfer()
 					);
 				}
-			}._w(655),
+			}._w(667),
 		};
 		ExtensionAPI.handlers = {
 			register: function (data, channel, reply) {
@@ -10492,7 +10559,7 @@
 
 				// Done
 				Main.start_processing(!complete);
-			}._w(656),
+			}._w(668),
 			request: function (data, channel, reply) {
 				var self = this,
 					namespace, type, unique_id, info;
@@ -10527,8 +10594,8 @@
 							data: data
 						}
 					);
-				}._w(658));
-			}._w(657),
+				}._w(670));
+			}._w(669),
 			get_image: function (data, channel, reply) {
 				var self = this,
 					url, flags;
@@ -10554,8 +10621,8 @@
 						reply,
 						{ err: err, url: url }
 					);
-				}._w(660));
-			}._w(659),
+				}._w(672));
+			}._w(671),
 		};
 
 		var api_request_init_fn = function (req) {
@@ -10563,7 +10630,7 @@
 				id: random_string(32),
 				sent: false
 			};
-		}._w(661);
+		}._w(673);
 		var create_api_request_complete_fn = function (channel) {
 			return function (req) {
 				api.send(
@@ -10572,14 +10639,14 @@
 					null,
 					{ id: req.data.id }
 				);
-			}._w(663);
-		}._w(662);
+			}._w(675);
+		}._w(674);
 
 
 		// Public
 		var init = function () {
 			if (api === null) api = new ExtensionAPI();
-		}._w(664);
+		}._w(676);
 
 		var request = function (namespace, type, unique_id, info, callback) {
 			var req_data;
@@ -10593,15 +10660,15 @@
 			}
 
 			return req_data.add(unique_id, info, false, callback);
-		}._w(665);
+		}._w(677);
 
 		var should_defer_processing = function () {
 			return d.documentElement.hasAttribute("data-xlinks-extensions-waiting");
-		}._w(666);
+		}._w(678);
 
 		var get_registered_extensions = function () {
 			return registered;
-		}._w(667);
+		}._w(679);
 
 
 		// Exports
@@ -10613,7 +10680,7 @@
 			set_extensions_enabled: set_extensions_enabled
 		};
 
-	}._w(612))();
+	}._w(617))();
 	var Main = (function () {
 
 		// Private
@@ -10628,7 +10695,7 @@
 			all_posts_reloaded = true;
 
 			Linkifier.relinkify_posts(Post.get_all_posts(d));
-		}._w(669);
+		}._w(681);
 
 		var on_ready = function () {
 			ready = true;
@@ -10656,7 +10723,7 @@
 			}
 
 			Debug.timer_log("init.ready.full duration", "init");
-		}._w(670);
+		}._w(682);
 		var on_body_observe = function (records) {
 			var post_list = [],
 				reload_all = false,
@@ -10738,7 +10805,7 @@
 			if (reload_all) {
 				reload_all_posts();
 			}
-		}._w(671);
+		}._w(683);
 		var check_removed_nodes = function (nodes) {
 			var node, ns, i, ii, j, jj;
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
@@ -10755,10 +10822,10 @@
 					}
 				}
 			}
-		}._w(672);
+		}._w(684);
 		var is_post_group_container = function (node) {
 			return node.id === "qp" || node.classList.contains("thread") || node.classList.contains("inline");
-		}._w(673);
+		}._w(685);
 
 		// Public
 		var init = function () {
@@ -10776,7 +10843,7 @@
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
 			$.ready(on_ready);
-		}._w(674);
+		}._w(686);
 		var version_compare = function (v1, v2) {
 			// Returns: -1 if v1<v2, 0 if v1==v2, 1 if v1>v2
 			var ii = Math.min(v1.length, v2.length),
@@ -10809,7 +10876,7 @@
 			}
 
 			return 0;
-		}._w(675);
+		}._w(687);
 		var insert_custom_fonts = function () {
 			if (fonts_inserted) return;
 			fonts_inserted = true;
@@ -10821,7 +10888,7 @@
 			font.type = "text/css";
 			font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
 			$.add(d.head, font);
-		}._w(676);
+		}._w(688);
 		var start_processing = function (defer) {
 			if (processing_started || !ready) return;
 
@@ -10836,7 +10903,7 @@
 				processing_start_timer = setTimeout(function () {
 					processing_start_timer = null;
 					start_processing(false);
-				}._w(678), 10000);
+				}._w(690), 10000);
 			}
 			else {
 				// Start processing
@@ -10849,14 +10916,14 @@
 					updater.observe(d.body, { childList: true, subtree: true });
 				}
 			}
-		}._w(677);
+		}._w(689);
 
 		// Exports
 		var Module = {
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,5,1,-0xDB],
+			version: [1,2,5,2,-0xDB],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
@@ -10866,7 +10933,7 @@
 
 		return Module;
 
-	}._w(668))();
+	}._w(680))();
 
 	Main.init();
 	Debug.timer_log("init.full duration", timing.start);
