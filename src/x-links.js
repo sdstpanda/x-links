@@ -6563,7 +6563,7 @@
 			if (domain === "4chan.org") {
 				Module.mode = "4chan";
 				Module.is_4chan = true;
-				Module.is_4chan_x3 = d.documentElement.classList.contains("fourchan-x");
+				Module.is_4chan_x3 = (d.documentElement.className.length > 0) || ($("head>style#layout", d.documentElement) !== null); // appchan-x doesn't insert the fourchan-x class early enough
 			}
 			else if (domain === "desustorage.org" || domain === "fgts.jp") {
 				if (d.doctype.publicId) {
