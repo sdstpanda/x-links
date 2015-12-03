@@ -5672,6 +5672,7 @@
 					apply_link_events(post, true);
 				}
 				else {
+					unlinkify_post(post);
 					parse_post(post);
 				}
 			}
@@ -5752,29 +5753,33 @@
 		};
 
 		// Fixing
+		var unlinkify_post = function (post) {
+			var nodes, i, ii;
+
+			nodes = $$(".xl-site-tag", post);
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				$.remove(nodes[i]);
+			}
+
+			nodes = $$(".xl-link-events", post);
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				change_link_events(nodes[i], null);
+			}
+
+			nodes = $$(".xl-linkified", post);
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				nodes[i].classList.remove("xl-linkified");
+			}
+		};
 		var relinkify_posts = function (posts) {
 			var cls = "xl-post-linkified",
-				post, links, i, ii, j, jj;
+				post, i, ii;
 
 			for (i = 0, ii = posts.length; i < ii; ++i) {
 				post = posts[i];
-				if (!post.classList.contains(cls)) continue;
-
-				post.classList.remove(cls);
-
-				links = $$(".xl-site-tag", post);
-				for (j = 0, jj = links.length; j < jj; ++j) {
-					$.remove(links[j]);
-				}
-
-				links = $$(".xl-link-events", post);
-				for (j = 0, jj = links.length; j < jj; ++j) {
-					change_link_events(links[j], null);
-				}
-
-				links = $$(".xl-linkified", post);
-				for (j = 0, jj = links.length; j < jj; ++j) {
-					links[j].classList.remove("xl-linkified");
+				if (post.classList.contains(cls)) {
+					post.classList.remove(cls);
+					unlinkify_post(post);
 				}
 			}
 
