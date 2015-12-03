@@ -2,7 +2,7 @@
 // @name        X-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.5.2
+// @version     1.2.5.3
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -5700,6 +5700,7 @@
 					apply_link_events(post, true);
 				}
 				else {
+					unlinkify_post(post);
 					parse_post(post);
 				}
 			}
@@ -5780,29 +5781,33 @@
 		};
 
 		// Fixing
+		var unlinkify_post = function (post) {
+			var nodes, i, ii;
+
+			nodes = $$(".xl-site-tag", post);
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				$.remove(nodes[i]);
+			}
+
+			nodes = $$(".xl-link-events", post);
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				change_link_events(nodes[i], null);
+			}
+
+			nodes = $$(".xl-linkified", post);
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				nodes[i].classList.remove("xl-linkified");
+			}
+		};
 		var relinkify_posts = function (posts) {
 			var cls = "xl-post-linkified",
-				post, links, i, ii, j, jj;
+				post, i, ii;
 
 			for (i = 0, ii = posts.length; i < ii; ++i) {
 				post = posts[i];
-				if (!post.classList.contains(cls)) continue;
-
-				post.classList.remove(cls);
-
-				links = $$(".xl-site-tag", post);
-				for (j = 0, jj = links.length; j < jj; ++j) {
-					$.remove(links[j]);
-				}
-
-				links = $$(".xl-link-events", post);
-				for (j = 0, jj = links.length; j < jj; ++j) {
-					change_link_events(links[j], null);
-				}
-
-				links = $$(".xl-linkified", post);
-				for (j = 0, jj = links.length; j < jj; ++j) {
-					links[j].classList.remove("xl-linkified");
+				if (post.classList.contains(cls)) {
+					post.classList.remove(cls);
+					unlinkify_post(post);
 				}
 			}
 
@@ -6586,7 +6591,7 @@
 			if (domain === "4chan.org") {
 				Module.mode = "4chan";
 				Module.is_4chan = true;
-				Module.is_4chan_x3 = d.documentElement.classList.contains("fourchan-x");
+				Module.is_4chan_x3 = (d.documentElement.className.length > 0) || ($("head>style#layout", d.documentElement) !== null); // appchan-x doesn't insert the fourchan-x class early enough
 			}
 			else if (domain === "desustorage.org" || domain === "fgts.jp") {
 				if (d.doctype.publicId) {
@@ -10237,6 +10242,29 @@
 			return xhr;
 		};
 
+		var remove_waiting_registrations = function (count) {
+			var de = document.documentElement,
+				attr, value;
+
+			// Decrease register count
+			if (de) {
+				attr = "data-xlinks-extensions-waiting";
+				value = de.getAttribute(attr);
+				if (value) {
+					value = (parseInt(value, 10) || 0) - count;
+					if (value > 0) {
+						de.setAttribute(attr, value);
+					}
+					else {
+						de.removeAttribute(attr);
+						return true;
+					}
+				}
+			}
+
+			return false;
+		};
+
 		ExtensionAPI.handlers_init = {
 			init: function (data, channel, reply) {
 				var reply_data, reg, enabled, name, author, description, version,
@@ -10272,6 +10300,9 @@
 						reply,
 						{ err: "Extension disabled" }
 					);
+					i = data.registrations;
+					if (typeof(i) !== "number") i = 1;
+					Main.start_processing(!remove_waiting_registrations(i));
 					return;
 				}
 
@@ -10326,25 +10357,8 @@
 						linkifiers: [],
 						commands: [],
 					},
-					de = document.documentElement,
-					complete = false,
-					k, o, i, ii;
-
-				// Decrease register count
-				if (de) {
-					k = "data-xlinks-extensions-waiting";
-					o = de.getAttribute(k);
-					if (o) {
-						o = (parseInt(o, 10) || 0) - 1;
-						if (o > 0) {
-							de.setAttribute(k, o);
-						}
-						else {
-							de.removeAttribute(k);
-							complete = true;
-						}
-					}
-				}
+					complete = remove_waiting_registrations(1),
+					o, i, ii;
 
 				// Settings
 				response.settings = this.register_settings(data.settings);
@@ -10747,7 +10761,7 @@
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,5,2],
+			version: [1,2,5,3],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,

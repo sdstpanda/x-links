@@ -2,7 +2,7 @@
 // @name        X-links Extension - Multimedia (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.0.2.-0xDB
+// @version     1.0.0.3.-0xDB
 // @description Linkify and format various multimedia links
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -660,6 +660,8 @@
 			if (typeof(count) !== "number" || count < 0) {
 				count = 1;
 			}
+
+			send_info.registrations = count;
 
 			if (de) {
 				a = de.getAttribute("data-xlinks-extensions-waiting");
@@ -3519,7 +3521,7 @@
 		name: "Multimedia",
 		author: "dnsev-h",
 		description: "Linkify and format various multimedia links",
-		version: [1,0,0,2,-0xDB],
+		version: [1,0,0,3,-0xDB],
 		registrations: 1
 	}, function (err) {
 		if (err === null) {

@@ -2,7 +2,7 @@
 // @name        X-links Extension - Nyaa Torrents
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.0.5
+// @version     1.0.0.6
 // @description Linkify and format nyaa.se links
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -471,6 +471,8 @@
 			if (typeof(count) !== "number" || count < 0) {
 				count = 1;
 			}
+
+			send_info.registrations = count;
 
 			if (de) {
 				a = de.getAttribute("data-xlinks-extensions-waiting");
@@ -1776,7 +1778,7 @@
 		name: "Nyaa Torrents",
 		author: "dnsev-h",
 		description: "Linkify and format nyaa.se links",
-		version: [1,0,0,5],
+		version: [1,0,0,6],
 		registrations: 1
 	}, function (err) {
 		if (err === null) {

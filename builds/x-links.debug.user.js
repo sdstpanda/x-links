@@ -2,7 +2,7 @@
 // @name        X-links (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.5.2.-0xDB
+// @version     1.2.5.3.-0xDB
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -5876,6 +5876,7 @@
 					apply_link_events(post, true);
 				}
 				else {
+					unlinkify_post(post);
 					parse_post(post);
 				}
 			}
@@ -5956,34 +5957,38 @@
 		}._w(381);
 
 		// Fixing
+		var unlinkify_post = function (post) {
+			var nodes, i, ii;
+
+			nodes = $$(".xl-site-tag", post);
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				$.remove(nodes[i]);
+			}
+
+			nodes = $$(".xl-link-events", post);
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				change_link_events(nodes[i], null);
+			}
+
+			nodes = $$(".xl-linkified", post);
+			for (i = 0, ii = nodes.length; i < ii; ++i) {
+				nodes[i].classList.remove("xl-linkified");
+			}
+		}._w(382);
 		var relinkify_posts = function (posts) {
 			var cls = "xl-post-linkified",
-				post, links, i, ii, j, jj;
+				post, i, ii;
 
 			for (i = 0, ii = posts.length; i < ii; ++i) {
 				post = posts[i];
-				if (!post.classList.contains(cls)) continue;
-
-				post.classList.remove(cls);
-
-				links = $$(".xl-site-tag", post);
-				for (j = 0, jj = links.length; j < jj; ++j) {
-					$.remove(links[j]);
-				}
-
-				links = $$(".xl-link-events", post);
-				for (j = 0, jj = links.length; j < jj; ++j) {
-					change_link_events(links[j], null);
-				}
-
-				links = $$(".xl-linkified", post);
-				for (j = 0, jj = links.length; j < jj; ++j) {
-					links[j].classList.remove("xl-linkified");
+				if (post.classList.contains(cls)) {
+					post.classList.remove(cls);
+					unlinkify_post(post);
 				}
 			}
 
 			queue_posts(posts, queue_posts.Flags.Flush | queue_posts.Flags.FlushNoParse | queue_posts.Flags.UseDelay);
-		}._w(382);
+		}._w(383);
 		var fix_broken_4chanx_linkification = function (node, event_links) {
 			// Somehow one of the links gets cloned, and then they all get wrapped inside another link
 			var fix = [],
@@ -6019,7 +6024,7 @@
 				link.classList.remove("xl-linkified");
 				preprocess_link(link, link.href || "", false, config.general.automatic_processing);
 			}
-		}._w(383);
+		}._w(384);
 
 		// Exports
 		return {
@@ -6046,13 +6051,13 @@
 
 		var html_filter_guide = function () {
 			return "<div class=\"xl-settings-group xl-settings-filter-guide xl-theme\">Lines starting with <code>/</code> will be treated as <a href=\"https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions\" target=\"_blank\" rel=\"noreferrer nofollow\">regular expressions</a>. <span style=\"opacity: 0.75\">(This is very similar to 4chan-x style filtering)</span><br>Lines starting with <code>#</code> are comments and will be ignored.<br>Lines starting with neither <code>#</code> nor <code>/</code> will be treated as a case-insensitive string to match anywhere.<br>For example, <code>/touhou/i</code> will highlight entries containing the string `<code>touhou</code>`, case-insensitive.<br><br>The lower a filter appears in this list, the greater its priority will be.<br><br>You can use these additional settings with each regular expression, separating them with semicolons:<br><ul><li><strong>Apply the filter to different scopes:</strong><br><code>tags;</code>, <code>title;</code> or <code>uploader;</code>. By default the scope is <code>title;tags;</code><br></li><li><strong>Force a gallery to not be highlighted:</strong> <span style=\"opacity: 0.75\">If omitted, the gallery will be highlighted as normal</span><br><code>bad:no;</code>, <code>bad:yes;</code>, or just <code>bad;</code></li><li><strong>Only apply the filter to certain categories:</strong><br><code>only:doujinshi,manga;</code>.<div style=\"font-size: 0.9em; margin-top: 0.1em; opacity: 0.75\">Categories: <span>artistcg, asianporn, cosplay, doujinshi, gamecg, imageset, manga, misc, <span style=\"white-space: nowrap\">non-h</span>, private, western</span></div></li><li><strong>Only apply the filter if it <em>is not</em> a certain category:</strong><br><code>not:western,non-h;</code>.</li><li><strong>Only apply the filter to certain sites:</strong><br><code>only:ehentai;</code>.<div style=\"font-size: 0.9em; margin-top: 0.1em; opacity: 0.75\">Sites: <span>ehentai, nhentai, hitomi</span></div></li><li><strong>Apply a colored decoration to the matched text:</strong><br><code>color:red;</code>, <code>underline:#0080f0;</code>, or <code>background:rgba(0,255,0,0.5);</code></li><li><strong>Apply a colored decoration to the [Ex] or [EH] tag:</strong><br><code>link-color:blue;</code>, <code>link-underline:#bf48b5;</code>, or <code>link-background:rgba(220,200,20,0.5);</code></li><li><strong>Apply a colored decoration to <em>BOTH</em> the matched text and tag:</strong><br><code>colors:blue;</code>, <code>underlines:#bf48b5;</code>, or <code>backgrounds:rgba(220,200,20,0.5);</code></li><li><strong>Disable any coloring, including the default:</strong><br><code>no-colors;</code> or <code>nocolor;</code></li></ul>Additionally, some settings have aliases. If multiple are used, only the main one will be used.<br><ul><li><code>tags: tag</code></li><li><code>only: category, cat</code></li><li class=\"xl-settings-li-no-space\"><code>not: no</code></li><li class=\"xl-settings-li-no-space\"><code>site: sites</code></li><li><code>colors: cs</code></li><li class=\"xl-settings-li-no-space\"><code>underlines: us</code></li><li class=\"xl-settings-li-no-space\"><code>backgrounds: bgs</code></li><li><code>color: c</code></li><li class=\"xl-settings-li-no-space\"><code>underline: u</code></li><li class=\"xl-settings-li-no-space\"><code>background: bg</code></li><li><code>link-color: link-c, lc</code></li><li class=\"xl-settings-li-no-space\"><code>link-underline: link-u, lu</code></li><li class=\"xl-settings-li-no-space\"><code>link-background: link-bg, lbg</code></li><li><code>no-colors: no-color, nocolors, nocolor</code></li></ul>For easy <a href=\"https://developer.mozilla.org/en-US/docs/Web/CSS/color_value#Color_keywords\" target=\"_blank\" rel=\"noreferrer nofollow\">HTML color</a> selection, you can use the following helper to select a color:<br><br><div><input type=\"color\" value=\"#808080\" class=\"xl-settings-color-input\"><input type=\"text\" value=\"#808080\" class=\"xl-settings-color-input\" readonly=\"readonly\"><input type=\"text\" value=\"rgba(128,128,128,1)\" class=\"xl-settings-color-input\" readonly=\"readonly\"></div></div>";
-		}._w(385);
+		}._w(386);
 		var create_export_data = function () {
 			return {
 				config: Config.get_saved_settings(),
 				easy_list: EasyList.get_saved_settings()
 			};
-		}._w(386);
+		}._w(387);
 		var import_settings = function (data) {
 			if (data !== null && typeof(data) === "object") {
 				var v = data.config;
@@ -6063,7 +6068,7 @@
 				if (typeof(v) !== "object") v = null;
 				EasyList.set_saved_settings(v);
 			}
-		}._w(387);
+		}._w(388);
 
 		var generate_section_header = function (title, message) {
 			var theme = Theme.classes,
@@ -6078,10 +6083,10 @@
 			}
 
 			return n1;
-		}._w(388);
+		}._w(389);
 		var generate_section = function () {
 			return $.node("div", "xl-settings-group " + Theme.classes);
-		}._w(389);
+		}._w(390);
 		var generate_section_options = function (section, namespace, config_descriptor, config_scope) {
 			var type, info, d, i, ii;
 			for (i = 0, ii = config_descriptor.length; i < ii; ++i) {
@@ -6100,13 +6105,13 @@
 					info // info
 				);
 			}
-		}._w(390);
+		}._w(391);
 		var generate_section_options_custom = function (section, namespace, custom_descriptor, custom_config) {
 			var config_descriptor = custom_descriptor[namespace];
 			if (config_descriptor === undefined) return;
 
 			generate_section_options(section, namespace + "-custom", config_descriptor, custom_config[namespace]);
-		}._w(391);
+		}._w(392);
 		var generate_section_option = function (section, config_scope, id, name, label_text, description, type, value, info) {
 			var event = "change",
 				theme = Theme.classes,
@@ -6179,7 +6184,7 @@
 			// Event
 			if (config_scope === null) name = null;
 			$.on(input, event, $.bind(on_change, input, type, config_scope, name, info));
-		}._w(392);
+		}._w(393);
 
 		var generate_extensions = function (container) {
 			var exts = ExtensionAPI.get_registered_extensions(),
@@ -6212,11 +6217,11 @@
 			$.add(container, section);
 
 			return data;
-		}._w(393);
+		}._w(394);
 
 		var titlify_custom_namespace = function (namespace) {
-			return namespace.replace(/[_\W]+/g, " ").replace(/\b\w/g, function (m) { return m.toUpperCase(); }._w(395));
-		}._w(394);
+			return namespace.replace(/[_\W]+/g, " ").replace(/\b\w/g, function (m) { return m.toUpperCase(); }._w(396));
+		}._w(395);
 
 		var on_change = function (type, config_scope, name, info, event) {
 			var fn, v;
@@ -6247,7 +6252,7 @@
 			if (info !== null && (fn = info.on_change) !== undefined) {
 				fn.call(this, event);
 			}
-		}._w(396);
+		}._w(397);
 		var on_cache_clear_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
@@ -6256,21 +6261,21 @@
 				Debug.log("Cleared cache; entries_removed=" + clears);
 				this.textContent = "Cleared!";
 			}
-		}._w(397);
+		}._w(398);
 		var on_changelog_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				close(event);
 				Changelog.open(null);
 			}
-		}._w(398);
+		}._w(399);
 		var on_export_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				close();
 				open_export();
 			}
-		}._w(399);
+		}._w(400);
 		var on_save_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
@@ -6282,14 +6287,14 @@
 				Config.save();
 				close();
 			}
-		}._w(400);
+		}._w(401);
 		var on_cancel_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 
 				close();
 			}
-		}._w(401);
+		}._w(402);
 		var on_toggle_filter_guide = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
@@ -6302,7 +6307,7 @@
 				}
 				catch (e) {}
 			}
-		}._w(402);
+		}._w(403);
 		var on_color_helper_change = function () {
 			var n = this.nextSibling,
 				m;
@@ -6317,14 +6322,14 @@
 					}
 				}
 			}
-		}._w(403);
+		}._w(404);
 		var on_settings_open_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 
 				open();
 			}
-		}._w(404);
+		}._w(405);
 
 		// Public
 		var ready = function () {
@@ -6333,7 +6338,7 @@
 			var n = $.link(Main.homepage, "xl-nav-link", Main.title + " Settings");
 			$.on(n, "click", on_settings_open_click);
 			HeaderBar.insert_menu_link(n);
-		}._w(405);
+		}._w(406);
 		var open = function () {
 			var theme = Theme.classes,
 				custom_options = Config.get_custom_settings_descriptor(),
@@ -6351,7 +6356,7 @@
 					$.add(container, $.link(Main.homepage, "xl-settings-title" + theme, Main.title));
 					$.add(container, n = $.link(Changelog.url, "xl-settings-version" + theme, Main.version.join(".")));
 					$.on(n, "click", on_changelog_click);
-				}._w(407)
+				}._w(408)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -6374,12 +6379,12 @@
 					$.add(container, n = $.link("#", "xl-settings-button" + theme));
 					$.add(n, $.node("span", "xl-settings-button-text", "Cancel"));
 					$.on(n, "click", on_cancel_click);
-				}._w(408)
+				}._w(409)
 			}], {
 				body: true,
 				setup: function (container) {
 					content_container = container;
-				}._w(409)
+				}._w(410)
 			}]);
 
 			// Settings
@@ -6461,7 +6466,7 @@
 			// Focus
 			n = $(".xl-popup-cell-size-scroll", popup);
 			if (n !== null) $.scroll_focus(n);
-		}._w(406);
+		}._w(407);
 		var open_export = function () {
 			var theme = Theme.classes,
 				nodes = {
@@ -6479,7 +6484,7 @@
 				setup: function (container) {
 					$.add(container, $.link(Main.homepage, "xl-settings-title" + theme, Main.title));
 					$.add(container, $.node("span", "xl-settings-title-info" + theme, " - Settings export"));
-				}._w(411)
+				}._w(412)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -6490,7 +6495,7 @@
 						s = "" + s;
 						while (s.length < len) s = "0" + s;
 						return s;
-					}._w(413);
+					}._w(414);
 
 					fn = $.node("input", "xl-settings-file-input");
 					fn.type = "file";
@@ -6507,18 +6512,18 @@
 									nodes.textarea.value = JSON.stringify(d, null, 2);
 									nodes.textarea.classList.add("xl-settings-export-textarea-changed");
 								}
-							}._w(415), false);
+							}._w(416), false);
 							reader.readAsText(files[0]);
 						}
 						this.value = null;
-					}._w(414));
+					}._w(415));
 
 					$.add(container, n = $.link(undefined, "xl-settings-button" + theme));
 					$.add(n, $.node("span", "xl-settings-button-text", "Import"));
 					$.on(n, "click", function (event) {
 						event.preventDefault();
 						fn.click();
-					}._w(416));
+					}._w(417));
 
 					$.add(container, n = $.link(export_url, "xl-settings-button" + theme));
 					n.removeAttribute("target");
@@ -6548,12 +6553,12 @@
 							}
 							nodes.textarea.classList.remove("xl-settings-export-textarea-changed");
 						}
-					}._w(417));
+					}._w(418));
 
 					$.add(container, n = $.link("#", "xl-settings-button" + theme));
 					$.add(n, $.node("span", "xl-settings-button-text", "Cancel"));
 					$.on(n, "click", on_cancel_click);
-				}._w(412)
+				}._w(413)
 			}], {
 				padding: false,
 				setup: function (container) {
@@ -6569,12 +6574,12 @@
 					n3.checked = false;
 					$.on(n3, "change", function () {
 						nodes.textarea.readOnly = !this.checked;
-					}._w(419));
+					}._w(420));
 
 					$.add(n1, $.tnode(")"));
 
 					$.add(container, n1);
-				}._w(418)
+				}._w(419)
 			}, {
 				body: true,
 				padding: false,
@@ -6588,12 +6593,12 @@
 					n.readOnly = true;
 					$.on(n, "input", function () {
 						this.classList.add("xl-settings-export-textarea-changed");
-					}._w(421));
+					}._w(422));
 
 					nodes.textarea = n;
 
 					$.add(container, n);
-				}._w(420)
+				}._w(421)
 			}]);
 			$.on(popup, "click", on_cancel_click);
 
@@ -6603,7 +6608,7 @@
 			// Focus
 			n = $(".xl-settings-export-textarea", popup);
 			if (n !== null) n.focus();
-		}._w(410);
+		}._w(411);
 		var close = function () {
 			config_temp = null;
 			config_custom_temp = null;
@@ -6616,7 +6621,7 @@
 				$.revoke_url(export_url);
 				export_url = null;
 			}
-		}._w(422);
+		}._w(423);
 
 		// Exports
 		return {
@@ -6626,7 +6631,7 @@
 			close: close
 		};
 
-	}._w(384))();
+	}._w(385))();
 	var Config = (function () {
 
 		// Private
@@ -6647,34 +6652,34 @@
 				}
 				catch (e) {}
 				return true;
-			}._w(425))()) {
+			}._w(426))()) {
 				return window.localStorage;
 			}
 
 			var storage = {
 				getItem: function (key) {
 					return GM_getValue(key, null);
-				}._w(426),
+				}._w(427),
 				setItem: function (key, value) {
 					GM_setValue(key, value);
-				}._w(427),
+				}._w(428),
 				key: function (index) {
 					return GM_listValues()[index];
-				}._w(428),
+				}._w(429),
 				removeItem: function (key) {
 					GM_deleteValue(key);
-				}._w(429),
+				}._w(430),
 				clear: function () {
 					var v = GM_listValues(), i, ii;
 					for (i = 0, ii = v.length; i < ii; ++i) GM_deleteValue(v[i]);
-				}._w(430)
+				}._w(431)
 				// length: (getter)
 			};
 
 			// Length getter
 			var get_length = function () {
 				return GM_listValues().length;
-			}._w(431);
+			}._w(432);
 			if (Object.defineProperty) {
 				Object.defineProperty(storage, "length", { get: get_length });
 			}
@@ -6686,7 +6691,7 @@
 			}
 
 			return storage;
-		}._w(424))();
+		}._w(425))();
 
 		var init = function () {
 			var update = false,
@@ -6755,14 +6760,14 @@
 
 			// Save changes
 			if (update) save();
-		}._w(432);
+		}._w(433);
 		var ready = function () {
 			var domain = $.get_domain(window.location.href);
 
 			if (domain === "4chan.org") {
 				Module.mode = "4chan";
 				Module.is_4chan = true;
-				Module.is_4chan_x3 = d.documentElement.classList.contains("fourchan-x");
+				Module.is_4chan_x3 = (d.documentElement.className.length > 0) || ($("head>style#layout", d.documentElement) !== null); // appchan-x doesn't insert the fourchan-x class early enough
 			}
 			else if (domain === "desustorage.org" || domain === "fgts.jp") {
 				if (d.doctype.publicId) {
@@ -6795,15 +6800,15 @@
 			}
 
 			return true;
-		}._w(433);
+		}._w(434);
 		var save = function () {
 			config.version = Main.version;
 			storage.setItem(settings_key, JSON.stringify(config));
 			config.version = null;
-		}._w(434);
+		}._w(435);
 		var get_saved_settings = function () {
 			return $.json_parse_safe(storage.getItem(settings_key), null);
-		}._w(435);
+		}._w(436);
 		var set_saved_settings = function (data) {
 			if (data === null) {
 				storage.removeItem(settings_key);
@@ -6811,7 +6816,7 @@
 			else {
 				storage.setItem(settings_key, JSON.stringify(data));
 			}
-		}._w(436);
+		}._w(437);
 
 		var load_custom = function () {
 			var saved = $.json_parse_safe(storage.getItem(settings_key + "-custom"), null),
@@ -6833,10 +6838,10 @@
 					}
 				}
 			}
-		}._w(437);
+		}._w(438);
 		var save_custom = function () {
 			storage.setItem(settings_key + "-custom", JSON.stringify(custom));
-		}._w(438);
+		}._w(439);
 
 		var register_custom_setting = function (namespace, name, default_value, title, description, descriptor) {
 			// Already exists
@@ -6867,7 +6872,7 @@
 
 			// Return value
 			return update[1];
-		}._w(439);
+		}._w(440);
 		var init_custom = function (namespace, name, default_value) {
 			var v = custom[namespace],
 				val;
@@ -6885,21 +6890,21 @@
 			}
 
 			return [ false, val ];
-		}._w(440);
+		}._w(441);
 		var get_custom_settings_descriptor = function () {
 			return custom_descriptor === null ? {} : custom_descriptor;
-		}._w(441);
+		}._w(442);
 		var get_custom = function (namespace, name) {
 			var v = custom[namespace];
 			return (v !== undefined) ? v[name] : undefined;
-		}._w(442);
+		}._w(443);
 		var get_custom_clone = function () {
 			return JSON.parse(JSON.stringify(custom));
-		}._w(443);
+		}._w(444);
 		var load_custom_from_clone = function (clone) {
 			custom = clone;
 			save_custom();
-		}._w(444);
+		}._w(445);
 
 		// Exports
 		var Module = {
@@ -6928,7 +6933,7 @@
 
 		return Module;
 
-	}._w(423))();
+	}._w(424))();
 	var Filter = (function () {
 
 		// Private
@@ -6941,7 +6946,7 @@
 			this.regex = regex;
 			this.flags = flags;
 			this.priority = priority;
-		}._w(446);
+		}._w(447);
 		var FilterFlags = function () {
 			this.title = true;
 			this.tags = true;
@@ -6958,7 +6963,7 @@
 			this.link_color = this.color;
 			this.link_underline = null;
 			this.link_background = null;
-		}._w(447);
+		}._w(448);
 		FilterFlags.scope_fn = function (name) {
 			return function (value, state) {
 				if (!state.scope) {
@@ -6969,8 +6974,8 @@
 				}
 
 				this[name] = (good_values.indexOf(value.trim().toLowerCase()) >= 0);
-			}._w(449);
-		}._w(448);
+			}._w(450);
+		}._w(449);
 		FilterFlags.color_fn = function (fn) {
 			return function (value, state) {
 				if (!state.color) {
@@ -6984,8 +6989,8 @@
 				}
 
 				fn.call(this, value.trim());
-			}._w(451);
-		}._w(450);
+			}._w(452);
+		}._w(451);
 		FilterFlags.names = {
 			"tags": FilterFlags.scope_fn("tags"),
 			"title": FilterFlags.scope_fn("title"),
@@ -6993,50 +6998,50 @@
 
 			"bad": FilterFlags.color_fn(function (value) {
 				this.bad = (good_values.indexOf(value.toLowerCase()) >= 0);
-			}._w(452)),
+			}._w(453)),
 
 			"only": function (value) {
 				this.only = this.split(value);
-			}._w(453),
+			}._w(454),
 			"not": function (value) {
 				this.not = this.split(value);
-			}._w(454),
+			}._w(455),
 			"site": function (value) {
 				this.site = this.split(value);
-			}._w(455),
+			}._w(456),
 
 			"colors": FilterFlags.color_fn(function (value) {
 				this.color = value;
 				this.link_color = value;
-			}._w(456)),
+			}._w(457)),
 			"underlines": FilterFlags.color_fn(function (value) {
 				this.underline = value;
 				this.link_underline = value;
-			}._w(457)),
+			}._w(458)),
 			"backgrounds": FilterFlags.color_fn(function (value) {
 				this.background = value;
 				this.link_background = value;
-			}._w(458)),
+			}._w(459)),
 
 			"color": FilterFlags.color_fn(function (value) {
 				this.color = value;
-			}._w(459)),
+			}._w(460)),
 			"underline": FilterFlags.color_fn(function (value) {
 				this.underline = value;
-			}._w(460)),
+			}._w(461)),
 			"background": FilterFlags.color_fn(function (value) {
 				this.background = value;
-			}._w(461)),
+			}._w(462)),
 
 			"link-color": FilterFlags.color_fn(function (value) {
 				this.link_color = value;
-			}._w(462)),
+			}._w(463)),
 			"link-underline": FilterFlags.color_fn(function (value) {
 				this.link_underline = value;
-			}._w(463)),
+			}._w(464)),
 			"link-background": FilterFlags.color_fn(function (value) {
 				this.link_background = value;
-			}._w(464)),
+			}._w(465)),
 
 			"no-colors": function (value, state) {
 				state.color = true;
@@ -7048,7 +7053,7 @@
 				this.link_color = value;
 				this.link_underline = value;
 				this.link_background = value;
-			}._w(465),
+			}._w(466),
 
 			"tag": "tags",
 
@@ -7099,7 +7104,7 @@
 					fn.call(this, flags_obj[k], state);
 				}
 			}
-		}._w(466);
+		}._w(467);
 		FilterFlags.prototype.split = function (text) {
 			var array, i, ii;
 
@@ -7112,27 +7117,27 @@
 			}
 
 			return array;
-		}._w(467);
+		}._w(468);
 		var Match = function (start, end, filter) {
 			this.start = start;
 			this.end = end;
 			this.filter = filter;
-		}._w(468);
+		}._w(469);
 		var MatchSegment = function (start, end, data) {
 			this.start = start;
 			this.end = end;
 			this.data = data;
-		}._w(469);
+		}._w(470);
 		var MatchInfo = function () {
 			this.matches = [];
 			this.any = false;
 			this.bad = false;
-		}._w(470);
+		}._w(471);
 
 		var create_regex = function (pattern, flags) {
 			if (flags.indexOf("g") < 0) flags += "g";
 			return $.create_regex_safe(pattern, flags);
-		}._w(471);
+		}._w(472);
 		var create_flags = function (text) {
 			var flaglist = text.split(";"),
 				flags = {},
@@ -7150,7 +7155,7 @@
 			f = new FilterFlags();
 			f.setup(flags);
 			return f;
-		}._w(472);
+		}._w(473);
 		var matches_to_segments = function (text, matches) {
 			var segments = [ new MatchSegment(0, text.length, []) ],
 				hit, m, s, i, ii, j, jj;
@@ -7178,7 +7183,7 @@
 			}
 
 			return segments;
-		}._w(473);
+		}._w(474);
 		var update_segments = function (segments, pos, match, segment) {
 			var data = segment.data.slice(0),
 				s1, s2;
@@ -7216,7 +7221,7 @@
 			}
 
 			return pos;
-		}._w(474);
+		}._w(475);
 		var apply_styles = function (node, styles) {
 			var color = null,
 				background = null,
@@ -7244,7 +7249,7 @@
 			}
 
 			apply_styling(node, color, background, underline);
-		}._w(475);
+		}._w(476);
 		var apply_styling = function (node, color, background, underline) {
 			if (color !== null) {
 				node.style.setProperty("color", color, "important");
@@ -7255,12 +7260,12 @@
 			if (underline !== null) {
 				node.style.setProperty("border-bottom", "0.125em solid " + underline, "important");
 			}
-		}._w(476);
+		}._w(477);
 		var append_match_datas = function (matchinfo, target) {
 			for (var i = 0, ii = matchinfo.matches.length; i < ii; ++i) {
 				target.push(matchinfo.matches[i].filter);
 			}
-		}._w(477);
+		}._w(478);
 		var remove_non_bad = function (list) {
 			for (var i = 0; i < list.length; ) {
 				if (!list[i].bad) {
@@ -7269,7 +7274,7 @@
 				}
 				++i;
 			}
-		}._w(478);
+		}._w(479);
 		var check_multiple = function (type, text, filters, category, site_type) {
 			var info = new MatchInfo(),
 				filter, match, i, ii;
@@ -7291,7 +7296,7 @@
 			}
 
 			return info;
-		}._w(479);
+		}._w(480);
 		var check_single = function (text, filter, category, site_type) {
 			// return null if no match
 			// return a new Match if a match was found
@@ -7321,7 +7326,7 @@
 			// Text filter
 			m = filter.regex.exec(text);
 			return (m === null) ? null : new Match(m.index, m.index + m[0].length, filter);
-		}._w(480);
+		}._w(481);
 		var hl_return = function (bad, node) {
 			if (bad) {
 				node.classList.add("xl-filter-bad");
@@ -7331,10 +7336,10 @@
 				node.classList.add("xl-filter-good");
 				return Status.Good;
 			}
-		}._w(481);
+		}._w(482);
 		var init_filters = function () {
 			active_filters = config.filter.enabled ? parse(config.filter.filters, 0) : [];
-		}._w(482);
+		}._w(483);
 
 		// Public
 		var parse = function (input, start_priority) {
@@ -7385,7 +7390,7 @@
 			}
 
 			return filters;
-		}._w(483);
+		}._w(484);
 		var highlight = function (type, node, data, input_state, results, extras) {
 			if (active_filters === null) init_filters();
 
@@ -7489,7 +7494,7 @@
 				c[text] = [ info, node ];
 			}
 			return hl_return(bad, node);
-		}._w(484);
+		}._w(485);
 		var highlight_tag = function (node, link, filter_data) {
 			if (filter_data[0] === Status.Bad) {
 				node.classList.add("xl-filter-bad");
@@ -7528,7 +7533,7 @@
 						p3 = p;
 					}
 				}
-			}._w(486);
+			}._w(487);
 
 			get_style(filter_data[1].uploader);
 			get_style(filter_data[1].title);
@@ -7548,7 +7553,7 @@
 				$.add(node, n1);
 				apply_styling(n1, color, background, underline);
 			}
-		}._w(485);
+		}._w(486);
 		var check = function (titlenode, data, extras) {
 			if (active_filters === null) init_filters();
 
@@ -7601,7 +7606,7 @@
 					// Remove dups
 					result.tags = result.tags.filter(function (item, pos, self) {
 						return (self.indexOf(item) === pos);
-					}._w(488));
+					}._w(489));
 				}
 			}
 
@@ -7617,7 +7622,7 @@
 			}
 
 			return [ status , (status === Status.None ? null : result) ];
-		}._w(487);
+		}._w(488);
 
 		// Export
 		return {
@@ -7630,7 +7635,7 @@
 			highlight_tag: highlight_tag
 		};
 
-	}._w(445))();
+	}._w(446))();
 	var Theme = (function () {
 
 		// Private
@@ -7642,7 +7647,7 @@
 			n = n.toString(16);
 			if (n.length < 2) n = "0" + n;
 			return n;
-		}._w(490);
+		}._w(491);
 		var detect = function () {
 			var doc_el = d.documentElement,
 				body = d.body,
@@ -7689,7 +7694,7 @@
 				"#" + to_hex2(colors[1][0]) + to_hex2(colors[1][1]) + to_hex2(colors[1][2]),
 				"rgba(" + colors[1][0] + "," + colors[1][1] + "," + colors[1][2] + ","
 			];
-		}._w(491);
+		}._w(492);
 		var update = function (change_nodes) {
 			var new_theme = detect();
 			if (new_theme !== null) {
@@ -7706,7 +7711,7 @@
 				return true;
 			}
 			return false;
-		}._w(492);
+		}._w(493);
 		var update_nodes = function (new_theme) {
 			var nodes = $$(".xl-theme"),
 				ii = nodes.length,
@@ -7723,7 +7728,7 @@
 					nodes[i].classList.add(cls);
 				}
 			}
-		}._w(493);
+		}._w(494);
 		var update_nodes_bg = function () {
 			var nodes = $$(".xl-theme-post-bg"),
 				opacity, node, i, ii;
@@ -7732,7 +7737,7 @@
 				opacity = node.getAttribute("data-xl-theme-post-bg-opacity");
 				node.style.backgroundColor = (opacity ? post_bg_opac + opacity + ")" : post_bg);
 			}
-		}._w(494);
+		}._w(495);
 
 		var on_head_mutate = function (records) {
 			var nodes, node, tag, i, ii, j, jj;
@@ -7759,7 +7764,7 @@
 					}
 				}
 			}
-		}._w(495);
+		}._w(496);
 
 		// Public
 		var ready = function () {
@@ -7768,7 +7773,7 @@
 			if (d.head) {
 				new MutationObserver(on_head_mutate).observe(d.head, { childList: true });
 			}
-		}._w(496);
+		}._w(497);
 		var bg = function (node, opacity) {
 			node.classList.add("xl-theme-post-bg");
 			if (opacity === undefined || opacity === 1) {
@@ -7779,7 +7784,7 @@
 				node.style.backgroundColor = post_bg_opac + opacity + ")";
 				node.setAttribute("data-xl-theme-post-bg-opacity", opacity);
 			}
-		}._w(497);
+		}._w(498);
 		var apply = function (node) {
 			if (current !== "light") {
 				var nodes = $$(".xl-theme", node),
@@ -7793,7 +7798,7 @@
 					node.classList.add("xl-theme-dark");
 				}
 			}
-		}._w(498);
+		}._w(499);
 		var get_computed_style = function (node) {
 			try {
 				// Don't use window.getComputedStyle: https://code.google.com/p/chromium/issues/detail?id=538650
@@ -7801,7 +7806,7 @@
 			}
 			catch (e) {}
 			return node.style || {};
-		}._w(499);
+		}._w(500);
 		var parse_css_color = function (color) {
 			if (color && color !== "transparent") {
 				var m;
@@ -7834,7 +7839,7 @@
 			}
 
 			return [ 0 , 0 , 0 , 0 ];
-		}._w(500);
+		}._w(501);
 
 		// Exports
 		var Module =  {
@@ -7848,14 +7853,14 @@
 
 		return Module;
 
-	}._w(489))();
+	}._w(490))();
 	var EasyList = (function () {
 
 		var Entry = function (info, data) {
 			this.info = info;
 			this.data = data;
 			this.node = null;
-		}._w(502);
+		}._w(503);
 
 		// Private
 		var settings_key = "xlinks-easylist-settings",
@@ -7901,7 +7906,7 @@
 
 		var settings_save = function () {
 			Config.storage.setItem(settings_key, JSON.stringify(settings));
-		}._w(503);
+		}._w(504);
 		var settings_load = function () {
 			// Load
 			var value = get_saved_settings(),
@@ -7921,7 +7926,7 @@
 
 			// Load filters
 			load_filters();
-		}._w(504);
+		}._w(505);
 		var create = function () {
 			popup = Popup.create("easylist", function (container) {
 				var theme = Theme.classes,
@@ -7961,13 +7966,13 @@
 				$.add(container, contents[content_current].container);
 
 				content_container = container;
-			}._w(506));
+			}._w(507));
 
 			$.on(popup, "click", on_overlay_click);
 
 			// Setup
 			update_display_mode(true);
-		}._w(505);
+		}._w(506);
 		var create_options = function (theme) {
 			var fn, n1, n2, n3, n4, n5;
 
@@ -7996,7 +8001,7 @@
 				$.on(n2, "change", on_option_change.sort_by);
 
 				return n1;
-			}._w(508);
+			}._w(509);
 			$.add(n4, fn("thread", "Appearance in thread"));
 			$.add(n4, fn("upload", "Upload date"));
 			$.add(n4, fn("rating", "Rating"));
@@ -8020,7 +8025,7 @@
 				$.on(n2, "change", change_fn);
 
 				return n1;
-			}._w(509);
+			}._w(510);
 			$.add(n4, fn(settings.group_by_filters, "Filters", on_option_change.group_by_filters));
 			$.add(n4, fn(settings.group_by_category, "Category", on_option_change.group_by_category));
 
@@ -8046,7 +8051,7 @@
 				$.on(n2, "change", on_option_change.display_mode);
 
 				return n1;
-			}._w(510);
+			}._w(511);
 			$.add(n4, fn(0, "Full"));
 			$.add(n4, fn(1, "Compact"));
 			$.add(n4, fn(2, "Minimal"));
@@ -8073,7 +8078,7 @@
 				$.on(n2, "change", on_option_change.filter_visibility);
 
 				return n1;
-			}._w(511);
+			}._w(512);
 			$.add(n4, fn(0, "Show all"));
 			$.add(n4, fn(1, "Hide bad"));
 			$.add(n4, fn(2, "Only show matches"));
@@ -8112,7 +8117,7 @@
 			$.add(n1, $.node("div", "xl-easylist-title-line"));
 
 			return n1;
-		}._w(507);
+		}._w(508);
 		var create_gallery_nodes = function (data, index, info) {
 			var domain = info.domain,
 				url = CreateURL.to_gallery(data, domain),
@@ -8153,7 +8158,7 @@
 							par.style.height = "100%";
 						}
 					}
-				}._w(513), n7));
+				}._w(514), n7));
 			}
 			else {
 				n6.style.width = "100%";
@@ -8232,7 +8237,7 @@
 			update_filters(n1, data, true, false);
 
 			return n1;
-		}._w(512);
+		}._w(513);
 		var create_full_tags = function (data, info) {
 			var theme = Theme.classes,
 				n1 = $.node("div", "xl-easylist-item-tag-table" + theme),
@@ -8277,7 +8282,7 @@
 			}
 
 			return n1;
-		}._w(514);
+		}._w(515);
 		var add_gallery_update_timer = null;
 		var add_gallery = function (content_index, entry, index, force_reorder) {
 			var info = entry.info,
@@ -8308,14 +8313,14 @@
 						if (add_gallery_update_timer !== null) clearTimeout(add_gallery_update_timer);
 						add_gallery_update_timer = setTimeout(function () {
 							update_ordering();
-						}._w(516), 1);
+						}._w(517), 1);
 					}
 					else {
 						set_empty(contents[content_index].visible === 0);
 					}
 				}
 			}
-		}._w(515);
+		}._w(516);
 		var set_empty = function (empty) {
 			if (empty_notification !== null) {
 				var cls = "xl-easylist-empty-notification-visible";
@@ -8323,10 +8328,10 @@
 					empty_notification.classList.toggle(cls);
 				}
 			}
-		}._w(517);
+		}._w(518);
 		var get_options_visible = function () {
 			return options_container.classList.contains("xl-easylist-options-visible");
-		}._w(518);
+		}._w(519);
 		var set_options_visible = function (visible) {
 			var n = $(".xl-easylist-control-link-options", popup),
 				cl, cls;
@@ -8340,25 +8345,25 @@
 			cl = options_container.classList;
 			cls = "xl-easylist-options-visible";
 			if (cl.contains(cls) !== visible) cl.toggle(cls);
-		}._w(519);
+		}._w(520);
 
 		var get_node_filter_group = function (node) {
 			var v = get_node_filters_bad(node);
 			return (v > 0) ? -v : get_node_filters_good(node);
-		}._w(520);
+		}._w(521);
 		var get_node_filters_good = function (node) {
 			return (parseInt(node.getAttribute("data-xl-filter-matches-title"), 10) || 0) +
 				(parseInt(node.getAttribute("data-xl-filter-matches-uploader"), 10) || 0) +
 				(parseInt(node.getAttribute("data-xl-filter-matches-tags"), 10) || 0);
-		}._w(521);
+		}._w(522);
 		var get_node_filters_bad = function (node) {
 			return (parseInt(node.getAttribute("data-xl-filter-matches-title-bad"), 10) || 0) +
 				(parseInt(node.getAttribute("data-xl-filter-matches-uploader-bad"), 10) || 0) +
 				(parseInt(node.getAttribute("data-xl-filter-matches-tags-bad"), 10) || 0);
-		}._w(522);
+		}._w(523);
 		var get_node_category_group = function (node) {
 			return API.get_category_sort_rank(node.getAttribute("data-xl-category"));
-		}._w(523);
+		}._w(524);
 		var update_display_mode = function (first) {
 			var mode = display_mode_names[settings.display_mode] || "",
 				cl = content_container.classList,
@@ -8371,7 +8376,7 @@
 			}
 
 			cl.add("xl-easylist-" + mode);
-		}._w(524);
+		}._w(525);
 		var update_ordering = function () {
 			var items = [],
 				mode = settings.sort_by,
@@ -8388,24 +8393,24 @@
 				if (settings.group_by_category) {
 					base_array = function (node) {
 						return [ get_node_category_group(node), get_node_filter_group(node) ];
-					}._w(526);
+					}._w(527);
 					ordering = [ 1, -1 ];
 				}
 				else {
 					base_array = function (node) {
 						return [ get_node_filter_group(node) ];
-					}._w(527);
+					}._w(528);
 					ordering = [ -1 ];
 				}
 			}
 			else if (settings.group_by_category) {
 				base_array = function (node) {
 					return [ get_node_category_group(node) ];
-				}._w(528);
+				}._w(529);
 				ordering = [ 1 ];
 			}
 			else {
-				base_array = function () { return []; }._w(529);
+				base_array = function () { return []; }._w(530);
 				ordering = [];
 			}
 
@@ -8438,7 +8443,7 @@
 					if (x > y) return ordering[i];
 				}
 				return 0;
-			}._w(530));
+			}._w(531));
 
 			// Re-insert
 			// Maybe eventually add labels
@@ -8472,12 +8477,12 @@
 
 			contents[content_index].visible = current_visible_count;
 			set_empty(current_visible_count === 0);
-		}._w(525);
+		}._w(526);
 		var reset_filter_state = function (node, content_node) {
 			content_node.textContent = node.getAttribute("data-xl-original") || "";
 			node.classList.remove("xl-filter-good");
 			node.classList.remove("xl-filter-bad");
-		}._w(531);
+		}._w(532);
 		var update_filters_targets = [
 			[ ".xl-easylist-item-title-link,.xl-easylist-item-title-jp", "title" ],
 			[ ".xl-easylist-item-uploader", "uploader" ],
@@ -8519,7 +8524,7 @@
 					}
 				}
 			}
-		}._w(532);
+		}._w(533);
 		var update_all_filters = function () {
 			var content_index = content_current,
 				entries = contents[content_index].entries,
@@ -8537,17 +8542,17 @@
 			if (settings.group_by_filters || settings.filter_visibility !== 0) {
 				update_ordering();
 			}
-		}._w(533);
+		}._w(534);
 		var load_filters = function () {
 			custom_filters = Filter.parse(settings.custom_filters, undefined);
-		}._w(534);
+		}._w(535);
 		var add_links = function (links) {
 			var immediate = true,
 				i, ii;
 
 			var cb = function (err, data) {
 				add_entry(immediate, err, data);
-			}._w(536);
+			}._w(537);
 
 			for (i = 0, ii = links.length; i < ii; ++i) {
 				API.get_url_info(links[i].href, cb);
@@ -8557,7 +8562,7 @@
 			if (queue.length > 0 && queue_timer === null) {
 				on_timer();
 			}
-		}._w(535);
+		}._w(536);
 		var add_entry = function (immediate, err, info) {
 			var key;
 			if (err !== null || data_map[(key = info.id)] !== undefined) return;
@@ -8574,8 +8579,8 @@
 						}
 					}
 				}
-			}._w(538));
-		}._w(537);
+			}._w(539));
+		}._w(538);
 
 		var set_content_index = function (content_index) {
 			if (content_index === content_current) return;
@@ -8595,7 +8600,7 @@
 				update_all_filters();
 				update_ordering();
 			}
-		}._w(539);
+		}._w(540);
 
 		var enable_custom_links = function (text) {
 			custom_links = [];
@@ -8611,7 +8616,7 @@
 				set_content_index(1);
 				parse_custom_urls(text);
 			}
-		}._w(540);
+		}._w(541);
 		var parse_custom_urls = function (text) {
 			var urls = Linkifier.parse_text_for_urls(text),
 				i, ii;
@@ -8619,7 +8624,7 @@
 			for (i = 0, ii = urls.length; i < ii; ++i) {
 				API.get_url_info(urls[i], $.bind(parse_custom_url_info, null, i));
 			}
-		}._w(541);
+		}._w(542);
 		var parse_custom_url_info = function (index, err, info) {
 			var key;
 			if (err !== null || custom_links_map[(key = info.id)] !== undefined) return;
@@ -8632,35 +8637,35 @@
 						add_gallery(1, entry, index, true);
 					}
 				}
-			}._w(543));
-		}._w(542);
+			}._w(544));
+		}._w(543);
 
 		var on_option_change = {
 			sort_by: function () {
 				settings.sort_by = this.value;
 				settings_save();
 				update_ordering();
-			}._w(544),
+			}._w(545),
 			group_by_category: function () {
 				settings.group_by_category = this.checked;
 				settings_save();
 				update_ordering();
-			}._w(545),
+			}._w(546),
 			group_by_filters: function () {
 				settings.group_by_filters = this.checked;
 				settings_save();
 				update_ordering();
-			}._w(546),
+			}._w(547),
 			display_mode: function () {
 				settings.display_mode = parseInt(this.value, 10) || 0;
 				settings_save();
 				update_display_mode(false);
-			}._w(547),
+			}._w(548),
 			filter_visibility: function () {
 				settings.filter_visibility = parseInt(this.value, 10) || 0;
 				settings_save();
 				update_ordering();
-			}._w(548),
+			}._w(549),
 			custom_filters: function () {
 				if (settings.custom_filters !== this.value) {
 					settings.custom_filters = this.value;
@@ -8668,7 +8673,7 @@
 					load_filters();
 					update_all_filters();
 				}
-			}._w(549),
+			}._w(550),
 			custom_filters_input: function () {
 				var node = this;
 				if (on_option_change.custom_filters_input_delay_timer !== null) {
@@ -8678,17 +8683,17 @@
 					function () {
 						on_option_change.custom_filters_input_delay_timer = null;
 						on_option_change.custom_filters.call(node);
-					}._w(551),
+					}._w(552),
 					1000
 				);
-			}._w(550),
+			}._w(551),
 			custom_filters_input_delay_timer: null,
 			custom_links: function () {
 				var t = this.value.trim();
 				if (t !== custom_links_text) {
 					enable_custom_links(t);
 				}
-			}._w(552),
+			}._w(553),
 			custom_links_input: function () {
 				var node = this;
 				if (on_option_change.custom_links_input_delay_timer !== null) {
@@ -8698,10 +8703,10 @@
 					function () {
 						on_option_change.custom_links_input_delay_timer = null;
 						on_option_change.custom_links.call(node);
-					}._w(554),
+					}._w(555),
 					1000
 				);
-			}._w(553),
+			}._w(554),
 			custom_links_input_delay_timer: null
 		};
 		var on_gallery_mouseover = $.wrap_mouseenterleave_event(function () {
@@ -8728,9 +8733,9 @@
 
 						update_filters(node, data, false, true);
 					}
-				}._w(556));
+				}._w(557));
 			}
-		}._w(555));
+		}._w(556));
 		var on_thumbnail_error = function () {
 			$.off(this, "error", on_thumbnail_error);
 
@@ -8739,10 +8744,10 @@
 			par.style.width = "100%";
 			par.style.height = "100%";
 			this.style.visibility = "hidden";
-		}._w(557);
+		}._w(558);
 		var on_link_format = function (event) {
 			add_links([ event.link ]);
-		}._w(558);
+		}._w(559);
 		var on_timer = function () {
 			queue_timer = null;
 
@@ -8757,7 +8762,7 @@
 			if (queue.length > 0) {
 				queue_timer = setTimeout(on_timer, 50);
 			}
-		}._w(559);
+		}._w(560);
 		var on_open_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				open();
@@ -8765,7 +8770,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(560);
+		}._w(561);
 		var on_close_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				close();
@@ -8773,7 +8778,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(561);
+		}._w(562);
 		var on_toggle_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				if (is_open()) {
@@ -8786,7 +8791,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(562);
+		}._w(563);
 		var on_options_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				set_options_visible(!get_options_visible());
@@ -8794,7 +8799,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(563);
+		}._w(564);
 		var on_overlay_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				close();
@@ -8802,12 +8807,12 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(564);
+		}._w(565);
 
 		// Public
 		var get_saved_settings = function () {
 			return $.json_parse_safe(Config.storage.getItem(settings_key), null);
-		}._w(565);
+		}._w(566);
 		var set_saved_settings = function (data) {
 			if (data === null) {
 				Config.storage.removeItem(settings_key);
@@ -8815,7 +8820,7 @@
 			else {
 				Config.storage.setItem(settings_key, JSON.stringify(data));
 			}
-		}._w(566);
+		}._w(567);
 		var ready = function () {
 			Navigation.insert_link("normal", "Easy List", Main.homepage, " xl-nav-link-easylist", on_open_click);
 
@@ -8831,9 +8836,9 @@
 						"M 47.316173,40.278702 c -1.977441,10.244331 -5.318272,21.474541 -5.662805,29.784036 -0.242507,5.848836 2.420726,7.5586 5.348383,2.078223 5.586237,-10.45706 7.896687,-21.139251 10.839979,-32.018641 -1.376342,0.732535 -2.33581,0.805482 -3.567752,1.104816 2.20065,-1.826801 1.797963,-1.259845 4.683397,-4.356147 3.702042,-3.972588 11.505701,-7.842675 15.187296,-4.490869 4.597776,4.185917 3.4537,13.920509 -0.431829,18.735387 -1.301987,5.219157 -3.278232,10.993981 -4.691055,14.211545 1.650129,0.951997 7.1775,2.647886 8.723023,6.808838 1.818473,4.895806 0.447993,8.335081 -3.207776,12.929618 8.781279,-6.214409 9.875004,-12.24852 10.586682,-20.251062 C 85.596887,59.244915 85.615915,54.42819 83.82437,47.181873 82.032825,39.935556 77.484187,30.527275 73.806105,23.780748 70.128023,17.034221 68.465076,12.376515 60.467734,7.5782428 54.534892,4.0186364 44.006601,5.3633006 39.960199,11.716546 c -4.046402,6.353245 -2.052295,11.417199 0.339979,17.673546 -0.06795,1.969646 -1.145015,4.295256 0.105508,5.751383 1.875243,-0.914979 2.772108,-1.957655 4.421995,-2.639606 -0.01451,1.529931 0.320921,4.192236 -1.17535,5.722167 1.758316,1.116252 1.80495,1.414307 3.663842,2.054666 z"
 					);
 					$.add(svg, path);
-				}._w(568)
+				}._w(569)
 			);
-		}._w(567);
+		}._w(568);
 		var open = function () {
 			if (popup === null) {
 				settings_load();
@@ -8845,17 +8850,17 @@
 
 			Popup.open(popup);
 			$.scroll_focus(popup);
-		}._w(569);
+		}._w(570);
 		var close = function () {
 			Popup.close(popup);
 
 			set_options_visible(false);
 
 			UI.off("format", on_link_format);
-		}._w(570);
+		}._w(571);
 		var is_open = function () {
 			return (popup !== null && Popup.is_open(popup));
-		}._w(571);
+		}._w(572);
 
 		// Exports
 		return {
@@ -8867,7 +8872,7 @@
 			is_open: is_open
 		};
 
-	}._w(501))();
+	}._w(502))();
 	var Popup = (function () {
 
 		// Private
@@ -8878,14 +8883,14 @@
 			if ($.is_left_mouse(event)) {
 				event.stopPropagation();
 			}
-		}._w(573);
+		}._w(574);
 		var on_overlay_event = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				event.stopPropagation();
 				return false;
 			}
-		}._w(574);
+		}._w(575);
 
 		// Public
 		var create = function (class_ns, setup) {
@@ -8946,7 +8951,7 @@
 			}
 
 			return n1;
-		}._w(575);
+		}._w(576);
 		var open = function (overlay) {
 			if (active !== null && active.parentNode !== null) {
 				$.remove(active);
@@ -8954,17 +8959,17 @@
 			d.documentElement.classList.add("xl-popup-overlaying");
 			hovering(overlay);
 			active = overlay;
-		}._w(576);
+		}._w(577);
 		var close = function (overlay) {
 			d.documentElement.classList.remove("xl-popup-overlaying");
 			if (overlay.parentNode !== null) {
 				$.remove(overlay);
 			}
 			active = null;
-		}._w(577);
+		}._w(578);
 		var is_open = function (overlay) {
 			return (overlay.parentNode !== null);
-		}._w(578);
+		}._w(579);
 		var hovering = function (node) {
 			if (hovering_container === null) {
 				hovering_container = $.node("div", "xl-hovering-elements");
@@ -8977,7 +8982,7 @@
 				}
 			}
 			$.add(hovering_container, node);
-		}._w(579);
+		}._w(580);
 
 		// Exports
 		return {
@@ -8988,7 +8993,7 @@
 			hovering: hovering
 		};
 
-	}._w(572))();
+	}._w(573))();
 	var Changelog = (function () {
 
 		// Private
@@ -9047,7 +9052,7 @@
 				error: null,
 				log_data: versions
 			};
-		}._w(581);
+		}._w(582);
 		var display = function (container, theme) {
 			var versions, authors, changes,
 				e, n1, n2, n3, n4, n5, i, ii, j, jj, k, kk;
@@ -9087,7 +9092,7 @@
 			}
 
 			$.add(container, n1);
-		}._w(582);
+		}._w(583);
 		var acquire = function (callback) {
 			HttpRequest({
 				method: "GET",
@@ -9099,15 +9104,15 @@
 					else {
 						callback.call(null, "Response error " + xhr.status, null);
 					}
-				}._w(584),
+				}._w(585),
 				onerror: function () {
 					callback.call(null, "Connection error", null);
-				}._w(585),
+				}._w(586),
 				onabort: function () {
 					callback.call(null, "Connection aborted", null);
-				}._w(586)
+				}._w(587)
 			});
-		}._w(583);
+		}._w(584);
 
 		var on_changelog_get = function (err, data) {
 			if (err !== null) {
@@ -9124,17 +9129,17 @@
 					display(n, Theme.classes);
 				}
 			}
-		}._w(587);
+		}._w(588);
 		var on_close_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				close();
 			}
-		}._w(588);
+		}._w(589);
 		var on_change_save = function () {
 			config.general.changelog_on_update = this.checked;
 			Config.save();
-		}._w(589);
+		}._w(590);
 
 		// Public
 		var open = function (message) {
@@ -9157,7 +9162,7 @@
 						}
 					}
 					$.add(container, $.link(Module.url, "xl-settings-version" + cls + theme, Main.version.join(".")));
-				}._w(591)
+				}._w(592)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -9173,25 +9178,25 @@
 					$.add(container, n1 = $.link("#", "xl-settings-button" + theme));
 					$.add(n1, $.node("span", "xl-settings-button-text", "Close"));
 					$.on(n1, "click", on_close_click);
-				}._w(592)
+				}._w(593)
 			}], {
 				body: true,
 				padding: false,
 				setup: function (container) {
 					container.classList.add("xl-changelog-content");
 					display(container, theme);
-				}._w(593)
+				}._w(594)
 			}]);
 
 			$.on(popup, "click", on_close_click);
 			Popup.open(popup);
-		}._w(590);
+		}._w(591);
 		var close = function () {
 			if (popup !== null) {
 				Popup.close(popup);
 				popup = null;
 			}
-		}._w(594);
+		}._w(595);
 
 		// Exports
 		var Module = {
@@ -9202,7 +9207,7 @@
 
 		return Module;
 
-	}._w(580))();
+	}._w(581))();
 	var HeaderBar = (function () {
 
 		// Private
@@ -9260,7 +9265,7 @@
 				}
 				n2.setAttribute("data-xl-color", color);
 			}
-		}._w(596);
+		}._w(597);
 
 		var on_header_bar_detected = function (node) {
 			header_bar = node;
@@ -9285,7 +9290,7 @@
 			if (shortcut_icons.length > 0) {
 				add_svg_icons(shortcut_icons);
 			}
-		}._w(597);
+		}._w(598);
 		var on_icon_mouseover = $.wrap_mouseenterleave_event(function () {
 			var n = $("svg", this),
 				c;
@@ -9298,13 +9303,13 @@
 				}
 				n.style.fill = c;
 			}
-		}._w(598));
+		}._w(599));
 		var on_icon_mouseout = $.wrap_mouseenterleave_event(function () {
 			var n = $("svg", this);
 			if (n !== null) {
 				n.style.fill = this.getAttribute("data-xl-color");
 			}
-		}._w(599));
+		}._w(600));
 		var on_menu_item_mouseover = $.wrap_mouseenterleave_event(function () {
 			var entries = $$(".entry", this.parent),
 				i, ii;
@@ -9312,16 +9317,16 @@
 				entries[i].classList.remove("focused");
 			}
 			this.classList.add("focused");
-		}._w(600));
+		}._w(601));
 		var on_menu_item_mouseout = $.wrap_mouseenterleave_event(function () {
 			this.classList.remove("focused");
-		}._w(601));
+		}._w(602));
 		var on_menu_item_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				d.documentElement.click();
 			}
-		}._w(602);
+		}._w(603);
 		var on_body_observe = function (records) {
 			var nodes, node, i, ii, j, jj;
 
@@ -9337,7 +9342,7 @@
 					}
 				}
 			}
-		}._w(603);
+		}._w(604);
 		var on_header_observe = function (records) {
 			var nodes, node, i, ii, j, jj;
 
@@ -9358,7 +9363,7 @@
 					}
 				}
 			}
-		}._w(604);
+		}._w(605);
 
 		// Public
 		var ready = function () {
@@ -9369,7 +9374,7 @@
 			else {
 				new MutationObserver(on_body_observe).observe(d.body, { childList: true, subtree: false });
 			}
-		}._w(605);
+		}._w(606);
 		var insert_shortcut_icon = function (namespace, title, url, on_click, svg_setup) {
 			var svgns = "http://www.w3.org/2000/svg",
 				n1, svg;
@@ -9389,7 +9394,7 @@
 			shortcut_icons.push(n1);
 
 			if (header_bar !== null) add_svg_icons([ n1 ]);
-		}._w(606);
+		}._w(607);
 		var insert_menu_link = function (menu_node) {
 			menu_node.classList.add("entry");
 			menu_node.style.order = 112;
@@ -9399,7 +9404,7 @@
 			$.on(menu_node, "click", on_menu_item_click);
 
 			menu_nodes.push(menu_node);
-		}._w(607);
+		}._w(608);
 
 		// Exports
 		return {
@@ -9408,7 +9413,7 @@
 			insert_menu_link: insert_menu_link
 		};
 
-	}._w(595))();
+	}._w(596))();
 	var Navigation = (function () {
 
 		// Private
@@ -9444,7 +9449,7 @@
 					}
 					$.remove(link);
 				}
-			}._w(609)
+			}._w(610)
 		};
 
 		var on_observe_all = function (records) {
@@ -9486,7 +9491,7 @@
 				this.disconnect();
 				waiting_observer = null;
 			}
-		}._w(610);
+		}._w(611);
 
 		var LocationData = function (text, url, class_name, on_click) {
 			this.nodes = [];
@@ -9494,7 +9499,7 @@
 			this.url = url;
 			this.class_name = class_name;
 			this.on_click = on_click;
-		}._w(611);
+		}._w(612);
 		LocationData.prototype.add = function (selector, flags, separator) {
 			var node = $(selector);
 			if (node !== null) {
@@ -9512,10 +9517,10 @@
 					waiting_observer.observe(d.body, { childList: true, subtree: true });
 				}
 			}
-		}._w(612);
+		}._w(613);
 		LocationData.prototype.add_node = function (node, flags, separator) {
 			this.nodes.push(node, flags, separator);
-		}._w(613);
+		}._w(614);
 		LocationData.prototype.add_all = function (selector, flags, separator) {
 			var nodes = $$(selector),
 				i, ii;
@@ -9523,7 +9528,7 @@
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				this.nodes.push(nodes[i], flags, separator);
 			}
-		}._w(614);
+		}._w(615);
 		LocationData.prototype.insert = function () {
 			var first_mobile = true,
 				container, flags, node, par, pre, next, sep, i, ii, n1, t, t2, t_opt;
@@ -9629,7 +9634,7 @@
 			}
 
 			this.nodes = null;
-		}._w(615);
+		}._w(616);
 
 		// Public
 		var insert_link = function (mode, text, url, class_name, on_click) {
@@ -9678,14 +9683,14 @@
 			}
 
 			locations.insert();
-		}._w(616);
+		}._w(617);
 
 		// Exports
 		return {
 			insert_link: insert_link
 		};
 
-	}._w(608))();
+	}._w(609))();
 	var ExtensionAPI = (function () {
 
 		// Private
@@ -9698,11 +9703,11 @@
 				s += random_string_alphabet[Math.floor(Math.random() * alpha_len)];
 			}
 			return s;
-		}._w(618);
+		}._w(619);
 
 		var is_object = function (obj) {
 			return (obj !== null && typeof(obj) === "object");
-		}._w(619);
+		}._w(620);
 
 		var get_shared_node = function (id) {
 			var par, n;
@@ -9720,14 +9725,14 @@
 			if (par.firstChild === null) $.remove(par);
 
 			return n;
-		}._w(620);
+		}._w(621);
 		var get_shared_node_by_id = function (parent, id) {
 			try {
 				return $("[data-xl-sharing-id='" + id + "']", parent);
 			}
 			catch (e) {}
 			return null;
-		}._w(621);
+		}._w(622);
 
 		var disabled_extensions_key = "xlinks-extensions-disabled";
 		var disabled_extensions;
@@ -9750,7 +9755,7 @@
 				Config.storage.removeItem(disabled_extensions_key);
 				disabled_extensions = null;
 			}
-		}._w(622);
+		}._w(623);
 		var set_extensions_enabled = function (enabled_array) {
 			if (enabled_array === null) return;
 
@@ -9758,7 +9763,7 @@
 				registered[i][0] = enabled_array[i];
 			}
 			save_extensions_enabled_states();
-		}._w(623);
+		}._w(624);
 		var extension_is_enabled = function (name, author, description) {
 			if (disabled_extensions === undefined) {
 				disabled_extensions = $.json_parse_safe(Config.storage.getItem(disabled_extensions_key), null);
@@ -9772,7 +9777,7 @@
 			}
 
 			return true;
-		}._w(624);
+		}._w(625);
 
 		var registered = [];
 
@@ -9801,7 +9806,7 @@
 				this.post = this.post_window;
 				this.on_message = function (event) {
 					self.on_window_message(event);
-				}._w(626);
+				}._w(627);
 				window.addEventListener("message", this.on_message, false);
 			}
 			else {
@@ -9810,11 +9815,11 @@
 				this.post = this.post_channel;
 				this.on_message = function (event) {
 					self.on_port_message(event);
-				}._w(627);
+				}._w(628);
 				this.port.addEventListener("message", this.on_message, false);
 				this.port.start();
 			}
-		}._w(625);
+		}._w(626);
 
 		CommunicationChannel.create_channel = function () {
 			try {
@@ -9822,7 +9827,7 @@
 			}
 			catch (e) {}
 			return null;
-		}._w(628);
+		}._w(629);
 		CommunicationChannel.prototype.post_window = function (message, transfer) {
 			var msg = {
 				ext: this.is_extension,
@@ -9840,10 +9845,10 @@
 				}
 				catch (e2) {}
 			}
-		}._w(629);
+		}._w(630);
 		CommunicationChannel.prototype.post_channel = function (message, transfer) {
 			this.port.postMessage(message, transfer);
-		}._w(630);
+		}._w(631);
 		CommunicationChannel.prototype.on_window_message = function (event) {
 			var data = event.data;
 			if (
@@ -9855,18 +9860,18 @@
 			) {
 				this.callback(event, data, this);
 			}
-		}._w(631);
+		}._w(632);
 		CommunicationChannel.prototype.on_port_message = function (event) {
 			var data = event.data;
 			if (is_object(data)) {
 				this.callback(event, data, this);
 			}
-		}._w(632);
+		}._w(633);
 		CommunicationChannel.prototype.get_port_transfer = function () {
 			var p = this.port_other;
 			this.port_other = null;
 			return (p === null ? [] : [ p ]);
-		}._w(633);
+		}._w(634);
 		CommunicationChannel.prototype.close = function () {
 			if (this.on_message !== null) {
 				if (this.port === null) {
@@ -9879,7 +9884,7 @@
 				}
 				this.on_message = null;
 			}
-		}._w(634);
+		}._w(635);
 
 
 		var api = null;
@@ -9899,9 +9904,9 @@
 				null,
 				function (event, data, channel) {
 					self.on_message(event, data, channel, ExtensionAPI.handlers_init);
-				}._w(636)
+				}._w(637)
 			);
-		}._w(635);
+		}._w(636);
 		ExtensionAPI.prototype.on_message = function (event, data, channel, handlers) {
 			var action = data.xlinks_action,
 				action_is_null = (action === null),
@@ -9943,7 +9948,7 @@
 					);
 				}
 			}
-		}._w(637);
+		}._w(638);
 		ExtensionAPI.prototype.send = function (channel, action, reply_to, data, timeout_delay, on_reply, transfer) {
 			var self = this,
 				id = null,
@@ -9963,7 +9968,7 @@
 					}
 
 					on_reply.apply(this, arguments);
-				}._w(639);
+				}._w(640);
 
 				this.reply_callbacks[id] = cb;
 				cb = null;
@@ -9973,7 +9978,7 @@
 						timeout = null;
 						delete self.reply_callbacks[id];
 						on_reply.call(self, "Response timeout");
-					}._w(640), timeout_delay);
+					}._w(641), timeout_delay);
 				}
 			}
 
@@ -9983,7 +9988,7 @@
 				id: id,
 				reply: reply_to
 			}, transfer);
-		}._w(638);
+		}._w(639);
 		ExtensionAPI.prototype.request_api_fn_callback = function (callback) {
 			return function (err, data) {
 				var args;
@@ -9997,8 +10002,8 @@
 					args = JSON.parse(JSON.stringify(args));
 					callback.apply(null, args);
 				}
-			}._w(642);
-		}._w(641);
+			}._w(643);
+		}._w(642);
 		ExtensionAPI.prototype.register_settings = function (reg_info) {
 			var response = {},
 				name, default_value, title, description, descriptor,
@@ -10033,7 +10038,7 @@
 			}
 
 			return response;
-		}._w(643);
+		}._w(644);
 		ExtensionAPI.prototype.register_settings_descriptor_info = function (input) {
 			if (!is_object(input)) return null;
 
@@ -10062,7 +10067,7 @@
 			}
 
 			return info;
-		}._w(644);
+		}._w(645);
 		ExtensionAPI.prototype.register_request_api = function (reg_info, channel) {
 			if (!is_object(reg_info)) return "Invalid";
 
@@ -10135,7 +10140,7 @@
 			o[req_type] = req;
 
 			return req_function_ids;
-		}._w(645);
+		}._w(646);
 		ExtensionAPI.prototype.register_linkifier = function (reg_info) {
 			if (!is_object(reg_info)) return "Invalid";
 
@@ -10167,7 +10172,7 @@
 			// Register
 			Linkifier.linkify_register(regex, prefix_group, prefix, null, null);
 			return null;
-		}._w(646);
+		}._w(647);
 		ExtensionAPI.prototype.register_command = function (reg_info, channel) {
 			if (!is_object(reg_info) || reg_info.url_info !== true || reg_info.to_data !== true) {
 				return "Invalid";
@@ -10199,7 +10204,7 @@
 			}
 
 			return id_data;
-		}._w(647);
+		}._w(648);
 		ExtensionAPI.prototype.register_command_fn = function (event, send_data, channel) {
 			var self = this;
 
@@ -10222,10 +10227,10 @@
 						else {
 							cb(null, data.data);
 						}
-					}._w(650)
+					}._w(651)
 				);
-			}._w(649);
-		}._w(648);
+			}._w(650);
+		}._w(649);
 		ExtensionAPI.prototype.register_details_actions_fn = function (event, send_data, channel, validator) {
 			var self = this;
 
@@ -10246,10 +10251,10 @@
 						else {
 							validator(data.data, cb);
 						}
-					}._w(653)
+					}._w(654)
 				);
-			}._w(652);
-		}._w(651);
+			}._w(653);
+		}._w(652);
 
 		ExtensionAPI.prototype.create_extension_channel = function (api_name, api_key) {
 			var self = this;
@@ -10260,9 +10265,9 @@
 				CommunicationChannel.create_channel(),
 				function (event, data, channel) {
 					self.on_message(event, data, channel, ExtensionAPI.handlers);
-				}._w(655)
+				}._w(656)
 			);
-		}._w(654);
+		}._w(655);
 
 		ExtensionAPI.details_validator = function (data, cb) {
 			if (typeof(data) !== "string") {
@@ -10277,7 +10282,7 @@
 					cb(null, data);
 				}
 			}
-		}._w(656);
+		}._w(657);
 		ExtensionAPI.actions_validator = function (data, cb) {
 			if (!Array.isArray(data)) {
 				cb("Invalid extension response", null);
@@ -10295,7 +10300,7 @@
 
 				cb(null, response);
 			}
-		}._w(657);
+		}._w(658);
 
 		ExtensionAPI.request_api_functions_required = [
 			"setup_xhr",
@@ -10316,8 +10321,8 @@
 						-1,
 						self.request_api_fn_callback(callback)
 					);
-				}._w(659);
-			}._w(658),
+				}._w(660);
+			}._w(659),
 			set_data: function (self, fn_id, channel) {
 				return function (data, info, callback) {
 					var state = {
@@ -10342,8 +10347,8 @@
 						-1,
 						self.request_api_fn_callback(callback)
 					);
-				}._w(661);
-			}._w(660),
+				}._w(662);
+			}._w(661),
 			setup_xhr: function (self, fn_id, channel) {
 				return function (callback) {
 					var state = {
@@ -10368,8 +10373,8 @@
 						-1,
 						self.request_api_fn_callback(callback)
 					);
-				}._w(663);
-			}._w(662),
+				}._w(664);
+			}._w(663),
 			parse_response: function (self, fn_id, channel) {
 				return function (xhr, callback) {
 					var state = {
@@ -10398,8 +10403,8 @@
 						-1,
 						self.request_api_fn_callback(callback)
 					);
-				}._w(665);
-			}._w(664)
+				}._w(666);
+			}._w(665)
 		};
 
 		var remove_response_xml = function (xhr) {
@@ -10411,7 +10416,30 @@
 				xhr.responseXML = null;
 			}
 			return xhr;
-		}._w(666);
+		}._w(667);
+
+		var remove_waiting_registrations = function (count) {
+			var de = document.documentElement,
+				attr, value;
+
+			// Decrease register count
+			if (de) {
+				attr = "data-xlinks-extensions-waiting";
+				value = de.getAttribute(attr);
+				if (value) {
+					value = (parseInt(value, 10) || 0) - count;
+					if (value > 0) {
+						de.setAttribute(attr, value);
+					}
+					else {
+						de.removeAttribute(attr);
+						return true;
+					}
+				}
+			}
+
+			return false;
+		}._w(668);
 
 		ExtensionAPI.handlers_init = {
 			init: function (data, channel, reply) {
@@ -10448,6 +10476,9 @@
 						reply,
 						{ err: "Extension disabled" }
 					);
+					i = data.registrations;
+					if (typeof(i) !== "number") i = 1;
+					Main.start_processing(!remove_waiting_registrations(i));
 					return;
 				}
 
@@ -10491,7 +10522,7 @@
 						reply_channel.get_port_transfer()
 					);
 				}
-			}._w(667),
+			}._w(669),
 		};
 		ExtensionAPI.handlers = {
 			register: function (data, channel, reply) {
@@ -10502,25 +10533,8 @@
 						linkifiers: [],
 						commands: [],
 					},
-					de = document.documentElement,
-					complete = false,
-					k, o, i, ii;
-
-				// Decrease register count
-				if (de) {
-					k = "data-xlinks-extensions-waiting";
-					o = de.getAttribute(k);
-					if (o) {
-						o = (parseInt(o, 10) || 0) - 1;
-						if (o > 0) {
-							de.setAttribute(k, o);
-						}
-						else {
-							de.removeAttribute(k);
-							complete = true;
-						}
-					}
-				}
+					complete = remove_waiting_registrations(1),
+					o, i, ii;
 
 				// Settings
 				response.settings = this.register_settings(data.settings);
@@ -10559,7 +10573,7 @@
 
 				// Done
 				Main.start_processing(!complete);
-			}._w(668),
+			}._w(670),
 			request: function (data, channel, reply) {
 				var self = this,
 					namespace, type, unique_id, info;
@@ -10594,8 +10608,8 @@
 							data: data
 						}
 					);
-				}._w(670));
-			}._w(669),
+				}._w(672));
+			}._w(671),
 			get_image: function (data, channel, reply) {
 				var self = this,
 					url, flags;
@@ -10621,8 +10635,8 @@
 						reply,
 						{ err: err, url: url }
 					);
-				}._w(672));
-			}._w(671),
+				}._w(674));
+			}._w(673),
 		};
 
 		var api_request_init_fn = function (req) {
@@ -10630,7 +10644,7 @@
 				id: random_string(32),
 				sent: false
 			};
-		}._w(673);
+		}._w(675);
 		var create_api_request_complete_fn = function (channel) {
 			return function (req) {
 				api.send(
@@ -10639,14 +10653,14 @@
 					null,
 					{ id: req.data.id }
 				);
-			}._w(675);
-		}._w(674);
+			}._w(677);
+		}._w(676);
 
 
 		// Public
 		var init = function () {
 			if (api === null) api = new ExtensionAPI();
-		}._w(676);
+		}._w(678);
 
 		var request = function (namespace, type, unique_id, info, callback) {
 			var req_data;
@@ -10660,15 +10674,15 @@
 			}
 
 			return req_data.add(unique_id, info, false, callback);
-		}._w(677);
+		}._w(679);
 
 		var should_defer_processing = function () {
 			return d.documentElement.hasAttribute("data-xlinks-extensions-waiting");
-		}._w(678);
+		}._w(680);
 
 		var get_registered_extensions = function () {
 			return registered;
-		}._w(679);
+		}._w(681);
 
 
 		// Exports
@@ -10680,7 +10694,7 @@
 			set_extensions_enabled: set_extensions_enabled
 		};
 
-	}._w(617))();
+	}._w(618))();
 	var Main = (function () {
 
 		// Private
@@ -10695,7 +10709,7 @@
 			all_posts_reloaded = true;
 
 			Linkifier.relinkify_posts(Post.get_all_posts(d));
-		}._w(681);
+		}._w(683);
 
 		var on_ready = function () {
 			ready = true;
@@ -10723,7 +10737,7 @@
 			}
 
 			Debug.timer_log("init.ready.full duration", "init");
-		}._w(682);
+		}._w(684);
 		var on_body_observe = function (records) {
 			var post_list = [],
 				reload_all = false,
@@ -10805,7 +10819,7 @@
 			if (reload_all) {
 				reload_all_posts();
 			}
-		}._w(683);
+		}._w(685);
 		var check_removed_nodes = function (nodes) {
 			var node, ns, i, ii, j, jj;
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
@@ -10822,10 +10836,10 @@
 					}
 				}
 			}
-		}._w(684);
+		}._w(686);
 		var is_post_group_container = function (node) {
 			return node.id === "qp" || node.classList.contains("thread") || node.classList.contains("inline");
-		}._w(685);
+		}._w(687);
 
 		// Public
 		var init = function () {
@@ -10843,7 +10857,7 @@
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
 			$.ready(on_ready);
-		}._w(686);
+		}._w(688);
 		var version_compare = function (v1, v2) {
 			// Returns: -1 if v1<v2, 0 if v1==v2, 1 if v1>v2
 			var ii = Math.min(v1.length, v2.length),
@@ -10876,7 +10890,7 @@
 			}
 
 			return 0;
-		}._w(687);
+		}._w(689);
 		var insert_custom_fonts = function () {
 			if (fonts_inserted) return;
 			fonts_inserted = true;
@@ -10888,7 +10902,7 @@
 			font.type = "text/css";
 			font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
 			$.add(d.head, font);
-		}._w(688);
+		}._w(690);
 		var start_processing = function (defer) {
 			if (processing_started || !ready) return;
 
@@ -10903,7 +10917,7 @@
 				processing_start_timer = setTimeout(function () {
 					processing_start_timer = null;
 					start_processing(false);
-				}._w(690), 10000);
+				}._w(692), 10000);
 			}
 			else {
 				// Start processing
@@ -10916,14 +10930,14 @@
 					updater.observe(d.body, { childList: true, subtree: true });
 				}
 			}
-		}._w(689);
+		}._w(691);
 
 		// Exports
 		var Module = {
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,5,2,-0xDB],
+			version: [1,2,5,3,-0xDB],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
@@ -10933,7 +10947,7 @@
 
 		return Module;
 
-	}._w(680))();
+	}._w(682))();
 
 	Main.init();
 	Debug.timer_log("init.full duration", timing.start);

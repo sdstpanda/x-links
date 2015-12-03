@@ -1,5 +1,9 @@
 ﻿master
 
+1.0.0.3
+- dnsev-h
+  + Use updated api.js
+
 1.0.0.2
 - dnsev-h
   + Update how iconification works

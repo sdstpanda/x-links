@@ -1,5 +1,11 @@
 ﻿master
 
+1.2.5.3
+- dnsev-h
+  + Fixed a bug that would delay script load if extensions are disabled
+  + Fixed a bug using the 4chan-inline extension that would make inlined posts not function
+  + Fixed a bug causing appchan-x to not be detected as 4chan-x
+
 1.2.5.2
 - dnsev-h
   + Fixed a bug in older versions of Greasemonkey that could cause extension requests to fail
