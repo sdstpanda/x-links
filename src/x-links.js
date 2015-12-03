@@ -10209,6 +10209,29 @@
 			return xhr;
 		};
 
+		var remove_waiting_registrations = function (count) {
+			var de = document.documentElement,
+				attr, value;
+
+			// Decrease register count
+			if (de) {
+				attr = "data-xlinks-extensions-waiting";
+				value = de.getAttribute(attr);
+				if (value) {
+					value = (parseInt(value, 10) || 0) - count;
+					if (value > 0) {
+						de.setAttribute(attr, value);
+					}
+					else {
+						de.removeAttribute(attr);
+						return true;
+					}
+				}
+			}
+
+			return false;
+		};
+
 		ExtensionAPI.handlers_init = {
 			init: function (data, channel, reply) {
 				var reply_data, reg, enabled, name, author, description, version,
@@ -10244,6 +10267,9 @@
 						reply,
 						{ err: "Extension disabled" }
 					);
+					i = data.registrations;
+					if (typeof(i) !== "number") i = 1;
+					Main.start_processing(!remove_waiting_registrations(i));
 					return;
 				}
 
@@ -10298,25 +10324,8 @@
 						linkifiers: [],
 						commands: [],
 					},
-					de = document.documentElement,
-					complete = false,
-					k, o, i, ii;
-
-				// Decrease register count
-				if (de) {
-					k = "data-xlinks-extensions-waiting";
-					o = de.getAttribute(k);
-					if (o) {
-						o = (parseInt(o, 10) || 0) - 1;
-						if (o > 0) {
-							de.setAttribute(k, o);
-						}
-						else {
-							de.removeAttribute(k);
-							complete = true;
-						}
-					}
-				}
+					complete = remove_waiting_registrations(1),
+					o, i, ii;
 
 				// Settings
 				response.settings = this.register_settings(data.settings);

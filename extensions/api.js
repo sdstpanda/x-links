@@ -441,6 +441,8 @@ var xlinks_api = (function () {
 			count = 1;
 		}
 
+		send_info.registrations = count;
+
 		if (de) {
 			a = de.getAttribute("data-xlinks-extensions-waiting");
 			a = (a ? (parseInt(a, 10) || 0) : 0) + count;
