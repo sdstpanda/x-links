@@ -2,7 +2,7 @@
 // @name        X-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.5.3
+// @version     1.2.5.4
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -5338,7 +5338,7 @@
 					// Update offset for next search
 					offset_current.text_length += len;
 					offset_current.length -= len;
-					offset_current.next = next;
+					offset_current.node = next;
 				}
 
 				// Add the last segment
@@ -10761,7 +10761,7 @@
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,5,3],
+			version: [1,2,5,4],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,

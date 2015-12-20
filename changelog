@@ -1,5 +1,9 @@
 ﻿master
 
+1.2.5.4
+- dnsev-h
+  + Fixed a minor linkification bug that couuld result in strange linkification problems
+
 1.2.5.3
 - dnsev-h
   + Fixed a bug that would delay script load if extensions are disabled
