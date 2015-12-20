@@ -9648,6 +9648,8 @@
 		CommunicationChannel.prototype.post_channel = function (message, transfer) {
 			this.port.postMessage(message, transfer);
 		};
+		CommunicationChannel.prototype.post_null = function () {
+		};
 		CommunicationChannel.prototype.on_window_message = function (event) {
 			var data = event.data;
 			if (
@@ -9682,6 +9684,7 @@
 					this.port = null;
 				}
 				this.on_message = null;
+				this.post = this.post_null;
 			}
 		};
 

@@ -247,6 +247,8 @@ var xlinks_api = (function () {
 	CommunicationChannel.prototype.post_channel = function (message, transfer) {
 		this.port.postMessage(message, transfer);
 	};
+	CommunicationChannel.prototype.post_null = function () {
+	};
 	CommunicationChannel.prototype.on_window_message = function (event) {
 		var data = event.data;
 		if (
@@ -276,6 +278,7 @@ var xlinks_api = (function () {
 				this.port = null;
 			}
 			this.on_message = null;
+			this.post = this.post_null;
 		}
 	};
 
@@ -442,6 +445,8 @@ var xlinks_api = (function () {
 		}
 
 		send_info.registrations = count;
+
+		send_info.main = (typeof(info.main) === "function") ? info.main.toString() : null;
 
 		if (de) {
 			a = de.getAttribute("data-xlinks-extensions-waiting");
