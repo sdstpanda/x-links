@@ -10073,7 +10073,7 @@
 
 		ExtensionAPI.prototype.finalize_init = function (data, channel, reply, reply_key) {
 			var main = data.main,
-				reply_data, reply_channel;
+				main_fn, reply_data, reply_channel, i;
 
 			// Register
 			this.registrations[reply_key] = {
@@ -10090,14 +10090,39 @@
 
 			// Internal main function
 			if (typeof(main) === "string") {
-				// Not implemented
-				this.send(
-					channel,
-					null,
-					reply,
-					{ err: "Not implemented" }
-				);
-				return;
+				main_fn = this.create_main_function(main);
+				if (main_fn !== null) {
+					// Remove registrations waiting
+					i = data.registrations;
+					if (typeof(i) !== "number") i = 1;
+					remove_waiting_registrations(i);
+
+					// Internal execution
+					this.send(
+						channel,
+						null,
+						reply,
+						{ err: "Internal" }
+					);
+
+					// Execute
+					setTimeout(function () {
+						if (internal_api === null) {
+							internal_api = internal_api_create();
+						}
+
+
+						try {
+							main_fn(internal_api);
+						}
+						catch (e) {
+							Debug.log("Internalized extension error:", e);
+						}
+					}, 1);
+
+					// Done
+					return;
+				}
 			}
 
 			// Create a reply channel
@@ -10113,6 +10138,14 @@
 				undefined,
 				reply_channel.get_port_transfer()
 			);
+		};
+		ExtensionAPI.prototype.create_main_function = function (source) {
+			try {
+				var fn = new Function("unsafeWindow,cloneInto,exportFunction,createObjectIn,GM_xmlhttpRequest,GM_setValue,GM_getValue,GM_deleteValue,GM_listValues", "return (" + source + ");"); // jshint ignore:line
+				return fn();
+			}
+			catch (e) {}
+			return null;
 		};
 
 		ExtensionAPI.details_validator = function (data, cb) {
@@ -10473,6 +10506,13 @@
 					{ id: req.data.id }
 				);
 			};
+		};
+
+
+		var internal_api = null;
+		var internal_api_create = function () {
+			// TODO : xlinks_api
+			return null;
 		};
 
 
