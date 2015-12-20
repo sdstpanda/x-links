@@ -228,6 +228,7 @@
 			start_parens = -1,
 			token_pre = null,
 			token_pre_name = null,
+			token_pre_any = null,
 			function_starts = [],
 			output = "",
 			function_names = [],
@@ -265,8 +266,14 @@
 							(fs = function_starts[function_starts.length - 1])[0] === parens
 						) {
 							function_starts.pop();
-							if (start_parens >= 0 && parens >= start_parens) {
-								after = "._w(" + fs[1] + ")";
+							if (token_pre_any !== null && token_pre_any.isType("MULTI_LINE_COMMENT") && (m = /\/\*\s*no_debug\s*\*\//.exec(token_pre_any.content)) !== null) {
+								// Remove
+								output = output.substr(0, output.length - m[0].length);
+							}
+							else {
+								if (start_parens >= 0 && parens >= start_parens) {
+									after = "._w(" + fs[1] + ")";
+								}
 							}
 						}
 					}
@@ -314,6 +321,8 @@
 			output += before;
 			output += c;
 			output += after;
+
+			token_pre_any = token;
 		}
 
 		if (function_name_pos >= 0) {
