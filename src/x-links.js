@@ -20,6 +20,7 @@
 	/*#{begin_debug}#*/
 
 	var document = window.document,
+		document_element = document.documentElement,
 		Blob = window.Blob,
 		Node = window.Node,
 		FormData = window.FormData,
@@ -1353,7 +1354,7 @@
 						activate_actions(actions, index);
 
 						// Position
-						update_actions_position(actions, this, tag_bg, document.documentElement.getBoundingClientRect());
+						update_actions_position(actions, this, tag_bg, document_element.getBoundingClientRect());
 					}
 					else {
 						// Create
@@ -1368,7 +1369,7 @@
 										if (err === null) {
 											actions_nodes[index] = actions;
 											activate_actions(actions, index);
-											update_actions_position(actions, n, tag_bg, document.documentElement.getBoundingClientRect());
+											update_actions_position(actions, n, tag_bg, document_element.getBoundingClientRect());
 										}
 									});
 								}
@@ -1941,10 +1942,8 @@
 			}
 		};
 		var update_details_position = function (details, link, mouse_x, mouse_y) {
-			var w = window,
-				de = document.documentElement,
-				win_width = (de.clientWidth || w.innerWidth || 0),
-				win_height = (de.clientHeight || w.innerHeight || 0),
+			var win_width = (document_element.clientWidth || window.innerWidth || 0),
+				win_height = (document_element.clientHeight || window.innerHeight || 0),
 				rect = details.getBoundingClientRect(),
 				link_rect = link.getBoundingClientRect(),
 				is_low = (link_rect.top + link_rect.height / 2 >= win_height / 2), // (mouse_y >= win_height / 2)
@@ -1986,7 +1985,7 @@
 				right = false;
 			}
 			else {
-				right = (rect.left + rect.width / 2 <= (document.documentElement.clientWidth || window.innerWidth || 0) / 2);
+				right = (rect.left + rect.width / 2 <= (document_element.clientWidth || window.innerWidth || 0) / 2);
 				xpos = right ? "right" : "left";
 			}
 
@@ -1997,7 +1996,7 @@
 				below = false;
 			}
 			else {
-				below = (rect.top + rect.height / 2 <= (document.documentElement.clientHeight || window.innerHeight || 0) / 2);
+				below = (rect.top + rect.height / 2 <= (document_element.clientHeight || window.innerHeight || 0) / 2);
 				ypos = below ? "below" : "above";
 			}
 
@@ -2028,7 +2027,7 @@
 			actions.setAttribute("data-xl-actions-vpos", ypos);
 		};
 		var update_active_actions_position = function () {
-			var de_rect = document.documentElement.getBoundingClientRect(),
+			var de_rect = document_element.getBoundingClientRect(),
 				index, actions, tag, tag_bg, xpos, ypos;
 
 			for (index in actions_nodes_active) {
@@ -2056,7 +2055,7 @@
 
 			if (++actions_nodes_active_count === 1) {
 				$.on(window, "resize", on_window_resize);
-				$.on(document.documentElement, "click", on_document_click);
+				$.on(document_element, "click", on_document_click);
 			}
 		};
 		var deactivate_actions = function (index) {
@@ -2065,7 +2064,7 @@
 			delete actions_nodes_active[index];
 			if (--actions_nodes_active_count === 0) {
 				$.off(window, "resize", on_window_resize);
-				$.off(document.documentElement, "click", on_document_click);
+				$.off(document_element, "click", on_document_click);
 				if (actions_close_timeout !== null) {
 					clearTimeout(actions_close_timeout);
 					actions_close_timeout = null;
@@ -4811,12 +4810,10 @@
 			hover.style.left = "0";
 			hover.style.top = "0";
 
-			var w = window,
-				de = document.documentElement,
-				x = event.clientX,
+			var x = event.clientX,
 				y = event.clientY,
-				win_width = (de.clientWidth || w.innerWidth || 0),
-				win_height = (de.clientHeight || w.innerHeight || 0),
+				win_width = (document_element.clientWidth || window.innerWidth || 0),
+				win_height = (document_element.clientHeight || window.innerHeight || 0),
 				rect = hover.getBoundingClientRect();
 
 			x -= rect.width / 2;
@@ -6572,7 +6569,7 @@
 			if (domain === "4chan.org") {
 				Module.mode = "4chan";
 				Module.is_4chan = true;
-				Module.is_4chan_x3 = (document.documentElement.className.length > 0) || ($("head>style#layout", document.documentElement) !== null); // appchan-x doesn't insert the fourchan-x class early enough
+				Module.is_4chan_x3 = (document_element.className.length > 0) || ($("head>style#layout", document_element) !== null); // appchan-x doesn't insert the fourchan-x class early enough
 			}
 			else if (domain === "desustorage.org" || domain === "fgts.jp") {
 				if (document.doctype.publicId) {
@@ -7454,14 +7451,11 @@
 			return n;
 		};
 		var detect = function () {
-			var doc_el = document.documentElement,
-				body = document.body,
+			var body = document.body,
 				n = document.createElement("div"),
 				color, colors, i, j, a, a_inv;
 
-			if (!doc_el || !body) {
-				return null;
-			}
+			if (!body) return null;
 
 			if (Config.is_ipb) {
 				n.className = "post2";
@@ -7474,7 +7468,7 @@
 			}
 			$.add(body, n);
 
-			color = parse_css_color(get_computed_style(doc_el).backgroundColor);
+			color = parse_css_color(get_computed_style(document_element).backgroundColor);
 			colors = [
 				parse_css_color(get_computed_style(body).backgroundColor),
 				parse_css_color(get_computed_style(n).backgroundColor),
@@ -8761,12 +8755,12 @@
 			if (active !== null && active.parentNode !== null) {
 				$.remove(active);
 			}
-			document.documentElement.classList.add("xl-popup-overlaying");
+			document_element.classList.add("xl-popup-overlaying");
 			hovering(overlay);
 			active = overlay;
 		};
 		var close = function (overlay) {
-			document.documentElement.classList.remove("xl-popup-overlaying");
+			document_element.classList.remove("xl-popup-overlaying");
 			if (overlay.parentNode !== null) {
 				$.remove(overlay);
 			}
@@ -9129,7 +9123,7 @@
 		var on_menu_item_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
-				document.documentElement.click();
+				document_element.click();
 			}
 		};
 		var on_body_observe = function (records) {
@@ -9454,7 +9448,7 @@
 					locations.add("#settingsWindowLinkClassic", Flags.Before);
 				}
 				else {
-					cl = document.documentElement.classList;
+					cl = document_element.classList;
 					if (
 						!cl.contains("catalog-mode") &&
 						!cl.contains("archive") &&
@@ -10224,22 +10218,18 @@
 		};
 
 		var remove_waiting_registrations = function (count) {
-			var de = document.documentElement,
-				attr, value;
-
 			// Decrease register count
-			if (de) {
-				attr = "data-xlinks-extensions-waiting";
-				value = de.getAttribute(attr);
-				if (value) {
-					value = (parseInt(value, 10) || 0) - count;
-					if (value > 0) {
-						de.setAttribute(attr, value);
-					}
-					else {
-						de.removeAttribute(attr);
-						return true;
-					}
+			var attr = "data-xlinks-extensions-waiting",
+				value = document_element.getAttribute(attr);
+
+			if (value) {
+				value = (parseInt(value, 10) || 0) - count;
+				if (value > 0) {
+					document_element.setAttribute(attr, value);
+				}
+				else {
+					document_element.removeAttribute(attr);
+					return true;
 				}
 			}
 
@@ -10482,7 +10472,7 @@
 		};
 
 		var should_defer_processing = function () {
-			return document.documentElement.hasAttribute("data-xlinks-extensions-waiting");
+			return document_element.hasAttribute("data-xlinks-extensions-waiting");
 		};
 
 		var get_registered_extensions = function () {
