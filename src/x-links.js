@@ -5310,7 +5310,7 @@
 					// Update offset for next search
 					offset_current.text_length += len;
 					offset_current.length -= len;
-					offset_current.next = next;
+					offset_current.node = next;
 				}
 
 				// Add the last segment
