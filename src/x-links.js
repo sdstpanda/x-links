@@ -372,9 +372,9 @@
 
 		})();
 
-		Module.frag = function (content) {
+		Module.html_fragment = function (content) {
 			var frag = d.createDocumentFragment(),
-				div = $.node_simple("div"),
+				div = d.createElement("div"),
 				n, next;
 
 			div.innerHTML = content;
@@ -482,11 +482,11 @@
 
 		Module.scroll_focus = function (element) {
 			// Focus
-			var n = $.node_simple("textarea");
-			$.prepend(element, n);
+			var n = d.createElement("textarea");
+			element.insertBefore(n, element.firstChild);
 			n.focus();
 			n.blur();
-			$.remove(n);
+			element.removeChild(n);
 
 			// Scroll to top
 			element.scrollTop = 0;
@@ -6227,7 +6227,7 @@
 			n = $.link("#", "xl-settings-filter-guide-toggle", "Click here to toggle the guide");
 			$.on(n, "click", on_toggle_filter_guide);
 			$.add(content_container, generate_section_header("Filtering", n));
-			n = $.frag(html_filter_guide());
+			n = $.html_fragment(html_filter_guide());
 			Theme.apply(n);
 			$.on($("input.xl-settings-color-input[type=color]", n), "change", on_color_helper_change);
 			$.add(content_container, n);
