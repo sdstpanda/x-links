@@ -1,6 +1,6 @@
 /* jshint eqnull:true, noarg:true, noempty:true, eqeqeq:true, bitwise:false, strict:true, undef:true, curly:false, browser:true, devel:true, newcap:false, maxerr:50 */
 /* globals unsafeWindow, GM_xmlhttpRequest, GM_setValue, GM_getValue, GM_deleteValue, GM_listValues */
-(function () {
+(function (window) {
 	"use strict";
 
 	var timing = (function () {
@@ -19,10 +19,19 @@
 
 	/*#{begin_debug}#*/
 
-	var d = document;
+	var d = window.document,
+		document = window.document,
+		Blob = window.Blob,
+		Node = window.Node,
+		FormData = window.FormData,
+		DOMParser = window.DOMParser,
+		FileReader = window.FileReader,
+		Uint8Array = window.Uint8Array,
+		Uint32Array = window.Uint32Array;
+
 	var browser = {
-		is_opera: /presto/i.test("" + navigator.userAgent),
-		is_firefox: /firefox/i.test("" + navigator.userAgent)
+		is_opera: /presto/i.test("" + window.navigator.userAgent),
+		is_firefox: /firefox/i.test("" + window.navigator.userAgent)
 	};
 	var domains = {
 		exhentai: "exhentai.org",
@@ -10748,5 +10757,5 @@
 	Main.init();
 	Debug.timer_log("init.full duration", timing.start);
 
-})();
+})(window);
 
