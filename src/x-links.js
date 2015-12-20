@@ -10108,13 +10108,8 @@
 					// Execute
 					ext_name = data.name;
 					setTimeout(function () {
-						if (internal_api === null) {
-							internal_api = internal_api_create();
-						}
-
-
 						try {
-							main_fn(internal_api);
+							main_fn(internal_api_create());
 						}
 						catch (e) {
 							Debug.log("Internalized extension error (" + ext_name + "):", e);
@@ -10510,7 +10505,6 @@
 		};
 
 
-		var internal_api = null;
 		var internal_api_create = function () {
 			// TODO : xlinks_api
 			return null;
