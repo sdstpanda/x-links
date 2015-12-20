@@ -19,8 +19,7 @@
 
 	/*#{begin_debug}#*/
 
-	var d = window.document,
-		document = window.document,
+	var document = window.document,
 		Blob = window.Blob,
 		Node = window.Node,
 		FormData = window.FormData,
@@ -306,11 +305,12 @@
 
 	})();
 	var $$ = function (selector, root) {
-		return (root || d).querySelectorAll(selector);
+		return (root || document).querySelectorAll(selector);
 	};
 	var $ = (function () {
 
-		var re_full_domain = /^(?:[\w\-]+):\/*((?:[\w\-]+\.)+[\w\-]+)/i,
+		var d = document,
+			re_full_domain = /^(?:[\w\-]+):\/*((?:[\w\-]+\.)+[\w\-]+)/i,
 			re_short_domain = /^(?:[\w\-]+):\/*(?:[\w\-]+\.)*([\w\-]+\.[\w\-]+)/i,
 			re_change_domain = /^([\w\-]+:\/*)([\w\-]+(?:\.[\w\-]+)*)([\w\W]*)$/i;
 
@@ -1353,7 +1353,7 @@
 						activate_actions(actions, index);
 
 						// Position
-						update_actions_position(actions, this, tag_bg, d.documentElement.getBoundingClientRect());
+						update_actions_position(actions, this, tag_bg, document.documentElement.getBoundingClientRect());
 					}
 					else {
 						// Create
@@ -1368,7 +1368,7 @@
 										if (err === null) {
 											actions_nodes[index] = actions;
 											activate_actions(actions, index);
-											update_actions_position(actions, n, tag_bg, d.documentElement.getBoundingClientRect());
+											update_actions_position(actions, n, tag_bg, document.documentElement.getBoundingClientRect());
 										}
 									});
 								}
@@ -1769,7 +1769,7 @@
 			callback(null, actions);
 		};
 		var create_tags = function (data, domain) {
-			var tagfrag = d.createDocumentFragment(),
+			var tagfrag = document.createDocumentFragment(),
 				site = data.type,
 				tags_ns = data.tags_ns,
 				theme = Theme.classes,
@@ -1942,7 +1942,7 @@
 		};
 		var update_details_position = function (details, link, mouse_x, mouse_y) {
 			var w = window,
-				de = d.documentElement,
+				de = document.documentElement,
 				win_width = (de.clientWidth || w.innerWidth || 0),
 				win_height = (de.clientHeight || w.innerHeight || 0),
 				rect = details.getBoundingClientRect(),
@@ -1986,7 +1986,7 @@
 				right = false;
 			}
 			else {
-				right = (rect.left + rect.width / 2 <= (d.documentElement.clientWidth || window.innerWidth || 0) / 2);
+				right = (rect.left + rect.width / 2 <= (document.documentElement.clientWidth || window.innerWidth || 0) / 2);
 				xpos = right ? "right" : "left";
 			}
 
@@ -1997,7 +1997,7 @@
 				below = false;
 			}
 			else {
-				below = (rect.top + rect.height / 2 <= (d.documentElement.clientHeight || window.innerHeight || 0) / 2);
+				below = (rect.top + rect.height / 2 <= (document.documentElement.clientHeight || window.innerHeight || 0) / 2);
 				ypos = below ? "below" : "above";
 			}
 
@@ -2028,7 +2028,7 @@
 			actions.setAttribute("data-xl-actions-vpos", ypos);
 		};
 		var update_active_actions_position = function () {
-			var de_rect = d.documentElement.getBoundingClientRect(),
+			var de_rect = document.documentElement.getBoundingClientRect(),
 				index, actions, tag, tag_bg, xpos, ypos;
 
 			for (index in actions_nodes_active) {
@@ -2056,7 +2056,7 @@
 
 			if (++actions_nodes_active_count === 1) {
 				$.on(window, "resize", on_window_resize);
-				$.on(d.documentElement, "click", on_document_click);
+				$.on(document.documentElement, "click", on_document_click);
 			}
 		};
 		var deactivate_actions = function (index) {
@@ -2065,7 +2065,7 @@
 			delete actions_nodes_active[index];
 			if (--actions_nodes_active_count === 0) {
 				$.off(window, "resize", on_window_resize);
-				$.off(d.documentElement, "click", on_document_click);
+				$.off(document.documentElement, "click", on_document_click);
 				if (actions_close_timeout !== null) {
 					clearTimeout(actions_close_timeout);
 					actions_close_timeout = null;
@@ -2164,7 +2164,7 @@
 
 		// Public
 		var create_rating_stars = function (rating) {
-			var frag = d.createDocumentFragment(),
+			var frag = document.createDocumentFragment(),
 				star, tmp, i;
 
 			rating = Math.round(rating * 2);
@@ -4401,8 +4401,8 @@
 			"hitomi.la": "Hi"
 		};
 		var get_tag_from_domain = function (domain) {
-			var d = domain_tags[domain];
-			return (d === undefined) ? "?" : d;
+			var tag = domain_tags[domain];
+			return (tag === undefined) ? "?" : tag;
 		};
 
 		var get_ehentai_gallery_full = function (info, data, callback) {
@@ -4812,7 +4812,7 @@
 			hover.style.top = "0";
 
 			var w = window,
-				de = d.documentElement,
+				de = document.documentElement,
 				x = event.clientX,
 				y = event.clientY,
 				win_width = (de.clientWidth || w.innerWidth || 0),
@@ -6572,10 +6572,10 @@
 			if (domain === "4chan.org") {
 				Module.mode = "4chan";
 				Module.is_4chan = true;
-				Module.is_4chan_x3 = (d.documentElement.className.length > 0) || ($("head>style#layout", d.documentElement) !== null); // appchan-x doesn't insert the fourchan-x class early enough
+				Module.is_4chan_x3 = (document.documentElement.className.length > 0) || ($("head>style#layout", document.documentElement) !== null); // appchan-x doesn't insert the fourchan-x class early enough
 			}
 			else if (domain === "desustorage.org" || domain === "fgts.jp") {
-				if (d.doctype.publicId) {
+				if (document.doctype.publicId) {
 					Module.mode = "fuuka";
 					Module.is_fuuka = true;
 				}
@@ -7273,7 +7273,7 @@
 			// Merge
 			matches = matches_to_segments(text, info.matches);
 
-			frag = d.createDocumentFragment();
+			frag = document.createDocumentFragment();
 			for (i = 0; i < matches.length; ++i) {
 				segment = matches[i];
 				t = text.substring(segment.start, segment.end);
@@ -7454,9 +7454,9 @@
 			return n;
 		};
 		var detect = function () {
-			var doc_el = d.documentElement,
-				body = d.body,
-				n = d.createElement("div"),
+			var doc_el = document.documentElement,
+				body = document.body,
+				n = document.createElement("div"),
 				color, colors, i, j, a, a_inv;
 
 			if (!doc_el || !body) {
@@ -7575,8 +7575,8 @@
 		var ready = function () {
 			update(false);
 
-			if (d.head) {
-				new MutationObserver(on_head_mutate).observe(d.head, { childList: true });
+			if (document.head) {
+				new MutationObserver(on_head_mutate).observe(document.head, { childList: true });
 			}
 		};
 		var bg = function (node, opacity) {
@@ -8761,12 +8761,12 @@
 			if (active !== null && active.parentNode !== null) {
 				$.remove(active);
 			}
-			d.documentElement.classList.add("xl-popup-overlaying");
+			document.documentElement.classList.add("xl-popup-overlaying");
 			hovering(overlay);
 			active = overlay;
 		};
 		var close = function (overlay) {
-			d.documentElement.classList.remove("xl-popup-overlaying");
+			document.documentElement.classList.remove("xl-popup-overlaying");
 			if (overlay.parentNode !== null) {
 				$.remove(overlay);
 			}
@@ -8780,10 +8780,10 @@
 				hovering_container = $.node("div", "xl-hovering-elements");
 				if (Config.is_tinyboard) {
 					// Fix some poor choices of selectors (div.post:last) that infinity uses
-					$.prepend(d.body, hovering_container);
+					$.prepend(document.body, hovering_container);
 				}
 				else {
-					$.add(d.body, hovering_container);
+					$.add(document.body, hovering_container);
 				}
 			}
 			$.add(hovering_container, node);
@@ -9129,7 +9129,7 @@
 		var on_menu_item_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
-				d.documentElement.click();
+				document.documentElement.click();
 			}
 		};
 		var on_body_observe = function (records) {
@@ -9177,7 +9177,7 @@
 				on_header_bar_detected(n);
 			}
 			else {
-				new MutationObserver(on_body_observe).observe(d.body, { childList: true, subtree: false });
+				new MutationObserver(on_body_observe).observe(document.body, { childList: true, subtree: false });
 			}
 		};
 		var insert_shortcut_icon = function (namespace, title, url, on_click, svg_setup) {
@@ -9319,7 +9319,7 @@
 				k.push(this, flags, separator);
 				if (waiting_observer === null) {
 					waiting_observer = new MutationObserver(on_observe_all);
-					waiting_observer.observe(d.body, { childList: true, subtree: true });
+					waiting_observer.observe(document.body, { childList: true, subtree: true });
 				}
 			}
 		};
@@ -9454,7 +9454,7 @@
 					locations.add("#settingsWindowLinkClassic", Flags.Before);
 				}
 				else {
-					cl = d.documentElement.classList;
+					cl = document.documentElement.classList;
 					if (
 						!cl.contains("catalog-mode") &&
 						!cl.contains("archive") &&
@@ -10482,7 +10482,7 @@
 		};
 
 		var should_defer_processing = function () {
-			return d.documentElement.hasAttribute("data-xlinks-extensions-waiting");
+			return document.documentElement.hasAttribute("data-xlinks-extensions-waiting");
 		};
 
 		var get_registered_extensions = function () {
@@ -10513,7 +10513,7 @@
 			if (all_posts_reloaded) return;
 			all_posts_reloaded = true;
 
-			Linkifier.relinkify_posts(Post.get_all_posts(d));
+			Linkifier.relinkify_posts(Post.get_all_posts(document));
 		};
 
 		var on_ready = function () {
@@ -10526,7 +10526,7 @@
 			var style = $.node_simple("style");
 
 			style.textContent = "#{style:../resources/stylesheets/style.css}#";
-			$.add(d.head, style);
+			$.add(document.head, style);
 
 			Theme.ready();
 			EasyList.ready();
@@ -10706,7 +10706,7 @@
 			font.rel = "stylesheet";
 			font.type = "text/css";
 			font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
-			$.add(d.head, font);
+			$.add(document.head, font);
 		};
 		var start_processing = function (defer) {
 			if (processing_started || !ready) return;
@@ -10728,11 +10728,11 @@
 				// Start processing
 				processing_started = true;
 
-				Linkifier.queue_posts(Post.get_all_posts(d), Linkifier.queue_posts.Flags.UseDelay);
+				Linkifier.queue_posts(Post.get_all_posts(document), Linkifier.queue_posts.Flags.UseDelay);
 
 				if (Config.dynamic) {
 					var updater = new MutationObserver(on_body_observe);
-					updater.observe(d.body, { childList: true, subtree: true });
+					updater.observe(document.body, { childList: true, subtree: true });
 				}
 			}
 		};
