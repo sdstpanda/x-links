@@ -464,6 +464,10 @@ var xlinks_api = (function () {
 				10000,
 				function (err, data) {
 					err = self.on_init(err, data, namespace);
+					if (err === "Internal") {
+						self.channel.close();
+						this.init_state = 3;
+					}
 					if (typeof(callback) === "function") callback.call(null, err);
 				}
 			);
