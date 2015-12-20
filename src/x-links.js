@@ -10073,7 +10073,7 @@
 
 		ExtensionAPI.prototype.finalize_init = function (data, channel, reply, reply_key) {
 			var main = data.main,
-				main_fn, reply_data, reply_channel, i;
+				main_fn, reply_data, reply_channel, ext_name, i;
 
 			// Register
 			this.registrations[reply_key] = {
@@ -10106,6 +10106,7 @@
 					);
 
 					// Execute
+					ext_name = data.name;
 					setTimeout(function () {
 						if (internal_api === null) {
 							internal_api = internal_api_create();
@@ -10116,7 +10117,7 @@
 							main_fn(internal_api);
 						}
 						catch (e) {
-							Debug.log("Internalized extension error:", e);
+							Debug.log("Internalized extension error (" + ext_name + "):", e);
 						}
 					}, 1);
 
