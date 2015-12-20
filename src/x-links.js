@@ -10071,6 +10071,50 @@
 			);
 		};
 
+		ExtensionAPI.prototype.finalize_init = function (data, channel, reply, reply_key) {
+			var main = data.main,
+				reply_data, reply_channel;
+
+			// Register
+			this.registrations[reply_key] = {
+				name: data.namespace,
+				key: reply_key,
+				apis: []
+			};
+			reply_data = {
+				err: null,
+				key: reply_key,
+				cache_prefix: API.cache_get_prefix(),
+				cache_mode: config.debug.cache_mode
+			};
+
+			// Internal main function
+			if (typeof(main) === "string") {
+				// Not implemented
+				this.send(
+					channel,
+					null,
+					reply,
+					{ err: "Not implemented" }
+				);
+				return;
+			}
+
+			// Create a reply channel
+			reply_channel = this.create_extension_channel(data.namespace, reply_key);
+
+			// Send reply
+			this.send(
+				channel,
+				null,
+				reply,
+				reply_data,
+				-1,
+				undefined,
+				reply_channel.get_port_transfer()
+			);
+		};
+
 		ExtensionAPI.details_validator = function (data, cb) {
 			if (typeof(data) !== "string") {
 				cb("Invalid extension response", null);
@@ -10241,8 +10285,8 @@
 
 		ExtensionAPI.handlers_init = {
 			init: function (data, channel, reply) {
-				var reply_data, reg, enabled, name, author, description, version,
-					reply_key, reply_channel, i;
+				var reg, enabled, name, author, description, version,
+					reply_key, i;
 
 				// Add to list
 				if (
@@ -10294,31 +10338,8 @@
 					);
 				}
 				else {
-					// Register
-					this.registrations[reply_key] = {
-						name: data.namespace,
-						key: reply_key,
-						apis: []
-					};
-					reply_data = {
-						err: null,
-						key: reply_key,
-						cache_prefix: API.cache_get_prefix(),
-						cache_mode: config.debug.cache_mode
-					};
-
-					reply_channel = this.create_extension_channel(data.namespace, reply_key);
-
-					// Send reply
-					this.send(
-						channel,
-						null,
-						reply,
-						reply_data,
-						-1,
-						undefined,
-						reply_channel.get_port_transfer()
-					);
+					// Finalize init
+					this.finalize_init(data, channel, reply, reply_key);
 				}
 			},
 		};
