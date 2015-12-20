@@ -1062,11 +1062,11 @@ var xlinks_api = (function () {
 	var insert_styles = function (styles) {
 		var head = document.head,
 			n;
-		if (!head) return false;
-		n = document.createElement("style");
-		n.textContent = styles;
-		head.appendChild(n);
-		return true;
+		if (head) {
+			n = document.createElement("style");
+			n.textContent = styles;
+			head.appendChild(n);
+		}
 	};
 
 	var parse_json = function (text, def) {

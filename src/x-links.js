@@ -481,6 +481,15 @@
 			}
 		};
 
+		Module.insert_styles = function (styles) {
+			var head = d.head,
+				n;
+			if (head) {
+				n = d.createElement("style");
+				n.textContent = styles;
+				head.appendChild(n);
+			}
+		};
 		Module.scroll_focus = function (element) {
 			// Focus
 			var n = d.createElement("textarea");
@@ -10572,10 +10581,7 @@
 			if (!Config.ready()) return;
 			Settings.ready();
 
-			var style = $.node_simple("style");
-
-			style.textContent = "#{style:../resources/stylesheets/style.css}#";
-			$.add(document.head, style);
+			$.insert_styles("#{style:../resources/stylesheets/style.css}#");
 
 			Theme.ready();
 			EasyList.ready();
