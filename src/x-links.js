@@ -9505,6 +9505,8 @@
 	var ExtensionAPI = (function () {
 
 		// Private
+		var internalization_allowed = true;
+
 		var ttl_1_hour = 60 * 60 * 1000;
 		var ttl_1_day = 24 * ttl_1_hour;
 		var ttl_1_year = 365 * ttl_1_day;
@@ -10109,7 +10111,7 @@
 		};
 
 		ExtensionAPI.prototype.finalize_init = function (data, channel, reply, reply_key) {
-			var main = data.main,
+			var main = (internalization_allowed ? data.main : null),
 				main_fn, reply_data, reply_channel, ext_name, registrations;
 
 			// Register
