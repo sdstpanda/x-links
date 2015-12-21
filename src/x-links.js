@@ -4037,6 +4037,7 @@
 			callback(null, info.sha1 === null ? null : lookup_get_results(info.sha1));
 		};
 		rt_ehentai_lookup.set_data = function (data, info, callback) {
+			void(info); // to make jshint ignore the unused var
 			lookup_set_results(data);
 			callback(null);
 		};
