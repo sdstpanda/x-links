@@ -686,6 +686,14 @@
 			catch (e) {}
 		};
 
+		Module.get_regex_flags = function (regex) {
+			var s = "";
+			if (regex.global) s += "g";
+			if (regex.ignoreCase) s += "i";
+			if (regex.multiline) s += "m";
+			return s;
+		};
+
 		Module.clone = function (object) {
 			var target = {},
 				k;
@@ -10587,7 +10595,7 @@
 				}
 				else if (re_data instanceof RegExp) {
 					re_str = re_data.source;
-					re_flags = re_data.flags;
+					re_flags = $.get_regex_flags(re_data);
 				}
 				else if (Array.isArray(re_data)) {
 					if (typeof(re_data[0]) === "string") {

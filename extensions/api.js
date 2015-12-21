@@ -99,6 +99,14 @@ var xlinks_api = (function () {
 		return (obj !== null && typeof(obj) === "object");
 	};
 
+	var get_regex_flags = function (regex) {
+		var s = "";
+		if (regex.global) s += "g";
+		if (regex.ignoreCase) s += "i";
+		if (regex.multiline) s += "m";
+		return s;
+	};
+
 	var create_temp_storage = function () {
 		var data = {};
 
@@ -625,7 +633,7 @@ var xlinks_api = (function () {
 					a_data.regex = [ v ];
 				}
 				else if (v instanceof RegExp) {
-					a_data.regex = [ v.source, v.flags ];
+					a_data.regex = [ v.source, get_regex_flags(v) ];
 				}
 				else if (Array.isArray(v)) {
 					if (typeof(v[0]) === "string") {
