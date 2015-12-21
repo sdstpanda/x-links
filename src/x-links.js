@@ -2785,7 +2785,7 @@
 				groups: "group"
 			};
 
-		var Flags = {
+		var ImageFlags = {
 			None: 0x0,
 			ThumbnailNoLeech: 0x1
 		};
@@ -3156,7 +3156,7 @@
 
 			// Create data
 			data = create_empty_gallery_info("hitomi");
-			data.flags |= Flags.ThumbnailNoLeech; // no cross origin thumbnails
+			data.flags |= ImageFlags.ThumbnailNoLeech; // no cross origin thumbnails
 			data.uploader = "hitomi.la";
 			data.full = true;
 			data.tags = tags = [];
@@ -3984,7 +3984,7 @@
 													top: 0,
 													width: parseInt(m[1][1], 10),
 													height: parseInt(m[2][1], 10),
-													flags: Flags.None
+													flags: ImageFlags.None
 												}]);
 												return;
 											}
@@ -4002,7 +4002,7 @@
 												top: 0,
 												width: -1,
 												height: -1,
-												flags: Flags.None
+												flags: ImageFlags.None
 											}]);
 											return;
 										}
@@ -4127,7 +4127,7 @@
 					top: 0,
 					width: -1,
 					height: -1,
-					flags: Flags.None
+					flags: ImageFlags.None
 				}]);
 			}
 			else {
@@ -4194,7 +4194,7 @@
 					top: 0,
 					width: -1,
 					height: -1,
-					flags: Flags.ThumbnailNoLeech
+					flags: ImageFlags.ThumbnailNoLeech
 				}]);
 			}
 			else {
@@ -4502,7 +4502,7 @@
 			}
 
 			// Use direct URL
-			if ((flags & Flags.ThumbnailNoLeech) === 0 && !config.general.image_leeching_disabled)  {
+			if ((flags & ImageFlags.ThumbnailNoLeech) === 0 && !config.general.image_leeching_disabled)  {
 				callback.call(null, null, thumbnail_url);
 				return;
 			}
@@ -4613,8 +4613,9 @@
 
 		// Exports
 		return {
-			Flags: Flags,
+			ImageFlags: ImageFlags,
 			RequestType: RequestType,
+			RequestErrorMode: RequestErrorMode,
 			get_url_info: get_url_info,
 			get_url_info_saved: get_url_info_saved,
 			get_ehentai_gallery_full: get_ehentai_gallery_full,
