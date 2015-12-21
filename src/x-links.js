@@ -20,14 +20,7 @@
 	/*#{begin_debug}#*/
 
 	var document = window.document,
-		document_element = document.documentElement,
-		Blob = window.Blob,
-		Node = window.Node,
-		FormData = window.FormData,
-		DOMParser = window.DOMParser,
-		FileReader = window.FileReader,
-		Uint8Array = window.Uint8Array,
-		Uint32Array = window.Uint32Array;
+		document_element = document.documentElement;
 
 	var browser = {
 		is_opera: /presto/i.test("" + window.navigator.userAgent),
