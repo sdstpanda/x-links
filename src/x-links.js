@@ -9896,6 +9896,35 @@
 		ExtensionAPI.prototype.register_request_api = function (reg_info, channel) {
 			if (!is_object(reg_info)) return "Invalid";
 
+			var req_function_ids = {},
+				req;
+
+			req = this.register_request_api_from_data(reg_info, function (fns, req_functions) {
+				var fn, fn_id, i, ii, v;
+				if (Array.isArray(fns)) {
+					for (i = 0, ii = fns.length; i < ii; ++i) {
+						v = fns[i];
+						if (Object.prototype.hasOwnProperty.call(ExtensionAPI.request_api_functions, v)) {
+							fn = ExtensionAPI.request_api_functions[v];
+							fn_id = random_string(32);
+							req_functions[v] = fn(this, fn_id, channel);
+							req_function_ids[v] = fn_id;
+						}
+					}
+				}
+			});
+
+			// Error
+			if (typeof(req) === "string") return req;
+
+			// More setup
+			req.request_init = api_request_init_fn;
+			req.request_complete = create_api_request_complete_fn(channel);
+
+			// Done
+			return req_function_ids;
+		};
+		ExtensionAPI.prototype.register_request_api_from_data = function (data, functions_setup) {
 			var req_group = "other",
 				req_namespace = "other",
 				req_type = "other",
@@ -9904,36 +9933,29 @@
 				req_delay_okay = 200,
 				req_delay_error = 5000,
 				req_functions = {},
-				req_function_ids = {},
-				fns, fn, fn_id, req, i, ii, k, o, v;
+				req, i, ii, k, o, v;
 
 			// Settings
-			if (typeof((v = reg_info.group)) === "string") req_group = v;
-			if (typeof((v = reg_info.namespace)) === "string") req_namespace = v;
-			if (typeof((v = reg_info.type)) === "string") req_type = v;
-			if (typeof((v = reg_info.count)) === "number") req_count = Math.max(1, v);
-			if (typeof((v = reg_info.concurrent)) === "number") req_concurrent = Math.max(1, v);
-			if (typeof((v = reg_info.delay_okay)) === "number") req_delay_okay = Math.max(0, v);
-			if (typeof((v = reg_info.delay_error)) === "number") req_delay_error = Math.max(0, v);
+			if (typeof((v = data.group)) === "string") req_group = v;
+			if (typeof((v = data.namespace)) === "string") req_namespace = v;
+			if (typeof((v = data.type)) === "string") req_type = v;
+			if (typeof((v = data.count)) === "number") req_count = Math.max(1, v);
+			if (typeof((v = data.concurrent)) === "number") req_concurrent = Math.max(1, v);
+			if (typeof((v = data.delay_okay)) === "number") req_delay_okay = Math.max(0, v);
+			if (typeof((v = data.delay_error)) === "number") req_delay_error = Math.max(0, v);
 
 			// Functions
-			if (Array.isArray((fns = reg_info.functions))) {
-				for (i = 0, ii = fns.length; i < ii; ++i) {
-					v = fns[i];
-					if (Object.prototype.hasOwnProperty.call(ExtensionAPI.request_api_functions, v)) {
-						fn = ExtensionAPI.request_api_functions[v];
-						fn_id = random_string(32);
-						req_functions[v] = fn(this, fn_id, channel);
-						req_function_ids[v] = fn_id;
-					}
-				}
+			if (is_object((o = data.functions))) {
+				functions_setup.call(this, o, req_functions);
 			}
 
 			// Validate
 			for (i = 0, ii = ExtensionAPI.request_api_functions_required.length; i < ii; ++i) {
 				if (!Object.prototype.hasOwnProperty.call(req_functions, ExtensionAPI.request_api_functions_required[i])) break;
 			}
-			if (i < ii) return "Missing functions";
+			if (i < ii) {
+				return "Missing functions";
+			}
 
 			// Check to see if the namespace/type is unique
 			if (
@@ -9956,15 +9978,14 @@
 			for (k in req_functions) {
 				req[k] = req_functions[k];
 			}
-			req.request_init = api_request_init_fn;
-			req.request_complete = create_api_request_complete_fn(channel);
 
 			if (o === undefined) {
 				this.request_apis[req_namespace] = o = {};
 			}
 			o[req_type] = req;
 
-			return req_function_ids;
+			// Done
+			return req;
 		};
 		ExtensionAPI.prototype.register_linkifier = function (reg_info) {
 			if (!is_object(reg_info)) return "Invalid";
@@ -10096,7 +10117,7 @@
 
 		ExtensionAPI.prototype.finalize_init = function (data, channel, reply, reply_key) {
 			var main = data.main,
-				main_fn, reply_data, reply_channel, ext_name, i;
+				main_fn, reply_data, reply_channel, ext_name, registrations;
 
 			// Register
 			this.registrations[reply_key] = {
@@ -10116,9 +10137,8 @@
 				main_fn = this.create_main_function(main);
 				if (main_fn !== null) {
 					// Remove registrations waiting
-					i = data.registrations;
-					if (typeof(i) !== "number") i = 1;
-					remove_waiting_registrations(i);
+					registrations = data.registrations;
+					if (typeof(registrations) !== "number" || registrations < 0) registrations = 1;
 
 					// Internal execution
 					this.send(
@@ -10135,6 +10155,7 @@
 							main_fn(internal_api_create(config));
 						}
 						catch (e) {
+							remove_waiting_registrations(registrations);
 							Debug.log("Internalized extension error (" + ext_name + "):", e);
 						}
 					}, 1);
@@ -10160,12 +10181,25 @@
 		};
 		ExtensionAPI.prototype.create_main_function = function (source) {
 			try {
-				var fn = new Function("unsafeWindow,cloneInto,exportFunction,createObjectIn,GM_xmlhttpRequest,GM_setValue,GM_getValue,GM_deleteValue,GM_listValues", "return (" + source + ");"); // jshint ignore:line
+				var fn = new Function("var xlinks_api," + ExtensionAPI.internalization_hidden_vars.join(",") + ";return (" + source + ");"); // jshint ignore:line
 				return fn();
 			}
 			catch (e) {}
 			return null;
 		};
+
+		ExtensionAPI.internalization_hidden_vars = [
+			"unsafeWindow",
+			"cloneInto",
+			"exportFunction",
+			"createObjectIn",
+			"GM_xmlhttpRequest",
+			"GM_setValue",
+			"GM_getValue",
+			"GM_deleteValue",
+			"GM_listValues",
+			"GM_info"
+		];
 
 		ExtensionAPI.details_validator = function (data, cb) {
 			if (typeof(data) !== "string") {
@@ -10325,14 +10359,12 @@
 				value = (parseInt(value, 10) || 0) - count;
 				if (value > 0) {
 					document_element.setAttribute(attr, value);
+					return false;
 				}
-				else {
-					document_element.removeAttribute(attr);
-					return true;
-				}
+				document_element.removeAttribute(attr);
 			}
 
-			return false;
+			return true;
 		};
 
 		ExtensionAPI.handlers_init = {
@@ -10528,6 +10560,102 @@
 		};
 
 
+		var internal_api_fns = {
+			register_settings: function (settings, config) {
+				var c1, c2, k1, k2, target;
+
+				// Settings
+				c1 = api.register_settings(settings);
+				for (k1 in c1) {
+					if (Object.prototype.hasOwnProperty.call(c1, k1)) {
+						c2 = c1[k1];
+						target = Object.prototype.hasOwnProperty.call(config, k1) ? (config[k1]) : (config[k1] = {});
+						for (k2 in c2) {
+							if (Object.prototype.hasOwnProperty.call(c2, k2)) {
+								target[k2] = c2[k2];
+							}
+						}
+					}
+				}
+			},
+			register_linkifier: function (data) {
+				var re_data = data.regex,
+					prefix_group = data.prefix_group,
+					prefix = data.prefix,
+					re_flags = "g",
+					re_str = null,
+					regex;
+
+				// Regex creation
+				if (typeof(re_data) === "string") {
+					re_str = re_data;
+				}
+				else if (re_data instanceof RegExp) {
+					re_str = re_data.source;
+					re_flags = re_data.flags;
+				}
+				else if (Array.isArray(re_data)) {
+					if (typeof(re_data[0]) === "string") {
+						re_str = re_data[0];
+						if (typeof(re_data[1]) === "string") re_flags = re_data[1];
+					}
+				}
+
+				// Requires global flag
+				if (re_flags.indexOf("g") < 0) {
+					re_flags += "g";
+				}
+
+				// Create
+				if (
+					re_str === null ||
+					(regex = $.create_regex_safe(re_str, re_flags)) === null
+				) {
+					return "Invalid regex";
+				}
+
+				// Prefix
+				if (typeof(prefix_group) !== "number") prefix_group = 0;
+				if (typeof(prefix) !== "string") prefix = "";
+
+				// Register
+				Linkifier.linkify_register(regex, prefix_group, prefix, null, null);
+
+				// Done
+				return null;
+			},
+			register_command: function (data) {
+				var url_info = data.url_info,
+					to_data = data.to_data,
+					index, fn;
+
+				if (typeof(url_info) !== "function" || typeof(to_data) !== "function") {
+					return "Invalid";
+				}
+
+				index = API.register_url_info_function(url_info, to_data);
+
+				if (typeof((fn = data.details)) === "function") {
+					UI.register_details_creation(index, fn);
+				}
+				if (typeof((fn = data.actions)) === "function") {
+					UI.register_actions_creation(index, fn);
+				}
+
+				return null;
+			},
+			register_request_api: function (data) {
+				var req = api.register_request_api_from_data(data, function (fns, req_functions) {
+					var k;
+					for (k in fns) {
+						if (Object.prototype.hasOwnProperty.call(ExtensionAPI.request_api_functions, k)) {
+							req_functions[k] = fns[k];
+						}
+					}
+				});
+				return (typeof(req) === "string") ? req : null;
+			}
+		};
 		var internal_api_create = function (global_config) {
 
 			var config = {};
@@ -10573,12 +10701,45 @@
 			};
 
 			var register = function (data, callback) {
-				// TODO
-				if (typeof(callback) === "function") {
-					callback("Not implemented");
+				var complete = remove_waiting_registrations(1),
+					arr, o, i, ii;
+
+				// Settings
+				internal_api_fns.register_settings(data.settings, config);
+
+				// Linkifiers
+				if (Array.isArray((arr = data.linkifiers))) {
+					for (i = 0, ii = arr.length; i < ii; ++i) {
+						if (is_object((o = arr[i]))) {
+							internal_api_fns.register_linkifier(o);
+						}
+					}
 				}
+
+				// Request APIs
+				if (Array.isArray((arr = data.request_apis))) {
+					for (i = 0, ii = arr.length; i < ii; ++i) {
+						if (is_object((o = arr[i]))) {
+							internal_api_fns.register_request_api(o);
+						}
+					}
+				}
+
+				// URL info function
+				if (Array.isArray((arr = data.commands))) {
+					for (i = 0, ii = arr.length; i < ii; ++i) {
+						if (is_object((o = arr[i]))) {
+							internal_api_fns.register_command(o);
+						}
+					}
+				}
+
+				// Done
+				if (typeof(callback) === "function") callback(null);
+				Main.start_processing(!complete);
 			};
 
+			// This should match api.js
 			return {
 				RequestErrorMode: API.RequestErrorMode,
 				ImageFlags: API.ImageFlags,
