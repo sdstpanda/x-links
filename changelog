@@ -1,5 +1,10 @@
 ﻿master
 
+1.2.6
+- dnsev-h
+  + Improvements to the extensions API to make it perform better and faster
+  + Fixed a problem with regex.flags not being available in all browsers
+
 1.2.5.4
 - dnsev-h
   + Fixed a minor linkification bug that couuld result in strange linkification problems

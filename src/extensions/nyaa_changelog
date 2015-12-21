@@ -1,5 +1,10 @@
 ﻿master
 
+1.0.0.7
+- dnsev-h
+  + Use updated api.js
+  + Now has the ability to run as an internalized extension (better performance)
+
 1.0.0.6
 - dnsev-h
   + Use updated api.js

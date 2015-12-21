@@ -7,6 +7,8 @@
 
 	/*#{require:../../extensions/api.js#tabs=1}#*/
 
+	var main = function main_fn(xlinks_api) {
+
 	// DOM helpers
 	var $$ = function (selector, root) {
 		return (root || document).querySelectorAll(selector);
@@ -2160,7 +2162,8 @@
 		author: "#{json:#author}#",
 		description: "#{json:#description}#",
 		version: [/*#{version:,}#*/],
-		registrations: 1
+		registrations: 1,
+		main: main_fn
 	}, function (err) {
 		if (err === null) {
 			xlinks_api.insert_styles("#{style:../../resources/stylesheets/extensions/multimedia.css}#");
@@ -2506,6 +2509,9 @@
 			});
 		}
 	});
+
+	};
+	main(xlinks_api);
 
 })();
 

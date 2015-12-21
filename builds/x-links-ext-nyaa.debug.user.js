@@ -2,7 +2,7 @@
 // @name        X-links Extension - Nyaa Torrents (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.0.6.-0xDB
+// @version     1.0.0.7.-0xDB
 // @description Linkify and format nyaa.se links
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -319,6 +319,14 @@
 			return (obj !== null && typeof(obj) === "object");
 		}._w(8);
 
+		var get_regex_flags = function (regex) {
+			var s = "";
+			if (regex.global) s += "g";
+			if (regex.ignoreCase) s += "i";
+			if (regex.multiline) s += "m";
+			return s;
+		}._w(9);
+
 		var create_temp_storage = function () {
 			var data = {};
 
@@ -326,33 +334,33 @@
 				length: 0,
 				key: function (index) {
 					return Object.keys(data)[index];
-				}._w(10),
+				}._w(11),
 				getItem: function (key) {
 					if (Object.prototype.hasOwnProperty.call(data, key)) {
 						return data[key];
 					}
 					return null;
-				}._w(11),
+				}._w(12),
 				setItem: function (key, value) {
 					if (!Object.prototype.hasOwnProperty.call(data, key)) {
 						++fn.length;
 					}
 					data[key] = value;
-				}._w(12),
+				}._w(13),
 				removeItem: function (key) {
 					if (Object.prototype.hasOwnProperty.call(data, key)) {
 						delete data[key];
 						--fn.length;
 					}
-				}._w(13),
+				}._w(14),
 				clear: function () {
 					data = {};
 					fn.length = 0;
-				}._w(14)
+				}._w(15)
 			};
 
 			return fn;
-		}._w(9);
+		}._w(10);
 
 		var set_shared_node = function (node) {
 			var par = document.querySelector(".xl-extension-sharing-elements"),
@@ -374,7 +382,7 @@
 			}
 
 			return id;
-		}._w(15);
+		}._w(16);
 
 		var settings_descriptor_info_normalize = function (input) {
 			var info = {},
@@ -402,7 +410,7 @@
 			}
 
 			return info;
-		}._w(16);
+		}._w(17);
 
 		var config = {};
 
@@ -431,7 +439,7 @@
 				this.post = this.post_window;
 				this.on_message = function (event) {
 					self.on_window_message(event);
-				}._w(18);
+				}._w(19);
 				window.addEventListener("message", this.on_message, false);
 			}
 			else {
@@ -440,11 +448,11 @@
 				this.post = this.post_channel;
 				this.on_message = function (event) {
 					self.on_port_message(event);
-				}._w(19);
+				}._w(20);
 				this.port.addEventListener("message", this.on_message, false);
 				this.port.start();
 			}
-		}._w(17);
+		}._w(18);
 
 		CommunicationChannel.prototype.post_window = function (message, transfer) {
 			var msg = {
@@ -463,10 +471,12 @@
 				}
 				catch (e2) {}
 			}
-		}._w(20);
+		}._w(21);
 		CommunicationChannel.prototype.post_channel = function (message, transfer) {
 			this.port.postMessage(message, transfer);
-		}._w(21);
+		}._w(22);
+		CommunicationChannel.prototype.post_null = function () {
+		}._w(23);
 		CommunicationChannel.prototype.on_window_message = function (event) {
 			var data = event.data;
 			if (
@@ -478,13 +488,13 @@
 			) {
 				this.callback(event, data, this);
 			}
-		}._w(22);
+		}._w(24);
 		CommunicationChannel.prototype.on_port_message = function (event) {
 			var data = event.data;
 			if (is_object(data)) {
 				this.callback(event, data, this);
 			}
-		}._w(23);
+		}._w(25);
 		CommunicationChannel.prototype.close = function () {
 			if (this.on_message !== null) {
 				if (this.port === null) {
@@ -496,8 +506,9 @@
 					this.port = null;
 				}
 				this.on_message = null;
+				this.post = this.post_null;
 			}
-		}._w(24);
+		}._w(26);
 
 
 		var api = null;
@@ -522,9 +533,9 @@
 				null,
 				function (event, data, channel) {
 					self.on_message(event, data, channel, {});
-				}._w(26)
+				}._w(28)
 			);
-		}._w(25);
+		}._w(27);
 		API.prototype.on_message = function (event, data, channel, handlers) {
 			var action = data.xlinks_action,
 				action_is_null = (action === null),
@@ -566,7 +577,7 @@
 					);
 				}
 			}
-		}._w(27);
+		}._w(29);
 		API.prototype.send = function (channel, action, reply_to, data, timeout_delay, on_reply) {
 			var self = this,
 				id = null,
@@ -586,7 +597,7 @@
 					}
 
 					on_reply.apply(this, arguments);
-				}._w(29);
+				}._w(31);
 
 				this.reply_callbacks[id] = cb;
 				cb = null;
@@ -596,7 +607,7 @@
 						timeout = null;
 						delete self.reply_callbacks[id];
 						on_reply.call(self, "Response timeout");
-					}._w(30), timeout_delay);
+					}._w(32), timeout_delay);
 				}
 			}
 
@@ -606,7 +617,7 @@
 				id: id,
 				reply: reply_to
 			});
-		}._w(28);
+		}._w(30);
 		API.prototype.reply_error = function (channel, reply_to, err) {
 			channel.post({
 				xlinks_action: null,
@@ -614,7 +625,7 @@
 				id: null,
 				reply: reply_to
 			});
-		}._w(31);
+		}._w(33);
 		API.prototype.post_message = function (msg) {
 			try {
 				window.postMessage(msg, this.origin);
@@ -629,7 +640,7 @@
 					console.log("window.postMessage exception:", e, e2);
 				}
 			}
-		}._w(32);
+		}._w(34);
 		API.prototype.init = function (info, callback) {
 			if (this.init_state !== 0) {
 				if (typeof(callback) === "function") callback.call(null, this.init_state === 1 ? "Init active" : "Already started");
@@ -663,6 +674,8 @@
 
 			send_info.registrations = count;
 
+			send_info.main = (typeof(info.main) === "function") ? info.main.toString() : null;
+
 			if (de) {
 				a = de.getAttribute("data-xlinks-extensions-waiting");
 				a = (a ? (parseInt(a, 10) || 0) : 0) + count;
@@ -679,11 +692,15 @@
 					10000,
 					function (err, data) {
 						err = self.on_init(err, data, namespace);
+						if (err === "Internal") {
+							self.channel.close();
+							this.init_state = 3;
+						}
 						if (typeof(callback) === "function") callback.call(null, err);
-					}._w(35)
+					}._w(37)
 				);
-			}._w(34));
-		}._w(33);
+			}._w(36));
+		}._w(35);
 		API.prototype.on_init = function (err, data, namespace) {
 			var self = this,
 				api_key, ch, v;
@@ -726,7 +743,7 @@
 							ch,
 							function (event, data, channel) {
 								self.on_message(event, data, channel, API.handlers);
-							}._w(37)
+							}._w(39)
 						);
 					}
 				}
@@ -734,7 +751,7 @@
 
 			this.init_state = (err === null) ? 2 : 0;
 			return err;
-		}._w(36);
+		}._w(38);
 		API.prototype.register = function (data, callback) {
 			if (this.init_state !== 2) {
 				if (typeof(callback) === "function") callback.call(null, "API not init'd", 0);
@@ -836,7 +853,7 @@
 						a_data.regex = [ v ];
 					}
 					else if (v instanceof RegExp) {
-						a_data.regex = [ v.source, v.flags ];
+						a_data.regex = [ v.source, get_regex_flags(v) ];
 					}
 					else if (Array.isArray(v)) {
 						if (typeof(v[0]) === "string") {
@@ -915,9 +932,9 @@
 						var okay = this.register_complete(o, request_apis_response, command_fns, send_data.settings);
 						if (typeof(callback) === "function") callback.call(null, null, okay);
 					}
-				}._w(39)
+				}._w(41)
 			);
-		}._w(38);
+		}._w(40);
 		API.prototype.register_complete = function (data, request_apis, command_fns, settings) {
 			var reg_count = 0,
 				setting_ns, errors, name, fn, e, o, i, ii, k, v;
@@ -1000,7 +1017,7 @@
 			}
 
 			return reg_count;
-		}._w(40);
+		}._w(42);
 
 		API.handlers_init = {};
 		API.handlers = {
@@ -1010,7 +1027,7 @@
 					// Remove request
 					delete requests_active[id];
 				}
-			}._w(41),
+			}._w(43),
 			api_function: function (data, channel, reply) {
 				var self = this,
 					req = null,
@@ -1062,11 +1079,11 @@
 							args: arguments_copy
 						}
 					);
-				}._w(43));
+				}._w(45));
 
 				// Call
 				ret = fn.apply(req, args);
-			}._w(42),
+			}._w(44),
 			url_info: function (data, channel, reply) {
 				var self = this,
 					id, url, fn;
@@ -1099,8 +1116,8 @@
 							data: data
 						}
 					);
-				}._w(45));
-			}._w(44),
+				}._w(47));
+			}._w(46),
 			url_info_to_data: function (data, channel, reply) {
 				var self = this,
 					id, url_info;
@@ -1132,8 +1149,8 @@
 							data: data
 						}
 					);
-				}._w(47));
-			}._w(46),
+				}._w(49));
+			}._w(48),
 			create_actions: function (data, channel, reply) {
 				var self = this,
 					id, fn_data, fn_info;
@@ -1166,8 +1183,8 @@
 							data: data
 						}
 					);
-				}._w(49));
-			}._w(48),
+				}._w(51));
+			}._w(50),
 			create_details: function (data, channel, reply) {
 				var self = this,
 					id, fn_data, fn_info;
@@ -1200,8 +1217,8 @@
 							data: set_shared_node(data)
 						}
 					);
-				}._w(51));
-			}._w(50),
+				}._w(53));
+			}._w(52),
 		};
 
 		var RequestErrorMode = {
@@ -1217,20 +1234,20 @@
 
 		var requests_active = {};
 		var Request = function () {
-		}._w(52);
+		}._w(54);
 
 		var load_request_state = function (request, state) {
 			for (var k in state) {
 				request[k] = state[k];
 			}
-		}._w(53);
+		}._w(55);
 
 
 		// Public
 		var init = function (info, callback) {
 			if (api === null) api = new API();
 			api.init(info, callback);
-		}._w(54);
+		}._w(56);
 
 		var register = function (data, callback) {
 			if (api === null) {
@@ -1239,7 +1256,7 @@
 			}
 
 			api.register(data, callback);
-		}._w(55);
+		}._w(57);
 
 		var request = function (namespace, type, unique_id, info, callback) {
 			if (api === null || api.init_state !== 2) {
@@ -1266,49 +1283,46 @@
 						err = "Invalid extension data";
 					}
 					callback.call(null, err, data);
-				}._w(57)
+				}._w(59)
 			);
-		}._w(56);
+		}._w(58);
 
 		var insert_styles = function (styles) {
 			var head = document.head,
 				n;
-			if (!head) return false;
-			n = document.createElement("style");
-			n.textContent = styles;
-			head.appendChild(n);
-			return true;
-		}._w(58);
+			if (head) {
+				n = document.createElement("style");
+				n.textContent = styles;
+				head.appendChild(n);
+			}
+		}._w(60);
 
 		var parse_json = function (text, def) {
 			try {
 				return JSON.parse(text);
 			}
-			catch (e) {
-				return def;
-			}
-		}._w(59);
+			catch (e) {}
+			return def;
+		}._w(61);
 		var parse_html = function (text, def) {
 			try {
 				return new DOMParser().parseFromString(text, "text/html");
 			}
-			catch (e) {
-				return def;
-			}
-		}._w(60);
+			catch (e) {}
+			return def;
+		}._w(62);
 		var parse_xml = function (text, def) {
 			try {
 				return new DOMParser().parseFromString(text, "text/xml");
 			}
-			catch (e) {
-				return def;
-			}
-		}._w(61);
+			catch (e) {}
+			return def;
+		}._w(63);
 
 		var get_domain = function (url) {
 			var m = /^(?:[\w\-]+):\/*((?:[\w\-]+\.)*)([\w\-]+\.[\w\-]+)/i.exec(url);
 			return (m === null) ? [ "", "" ] : [ m[1].toLowerCase(), m[2].toLowerCase() ];
-		}._w(62);
+		}._w(64);
 
 		var get_image = function (url, flags, callback) {
 			if (api === null || api.init_state !== 2) {
@@ -1336,9 +1350,9 @@
 					}
 
 					callback.call(null, err, data);
-				}._w(64)
+				}._w(66)
 			);
-		}._w(63);
+		}._w(65);
 
 
 		// Exports
@@ -1369,23 +1383,25 @@
 
 
 
+	var main = function main_fn(xlinks_api) {
+
 	var $$ = function (selector, root) {
 		return (root || document).querySelectorAll(selector);
-	}._w(65);
+	}._w(68);
 	var $ = (function () {
 
 		var d = document;
 
 		var Module = function (selector, root) {
 			return (root || d).querySelector(selector);
-		}._w(67);
+		}._w(70);
 
 		Module.add = function (parent, child) {
 			return parent.appendChild(child);
-		}._w(68);
+		}._w(71);
 		Module.tnode = function (text) {
 			return d.createTextNode(text);
-		}._w(69);
+		}._w(72);
 		Module.node = function (tag, class_name, text) {
 			var elem = d.createElement(tag);
 			elem.className = class_name;
@@ -1393,19 +1409,19 @@
 				elem.textContent = text;
 			}
 			return elem;
-		}._w(70);
+		}._w(73);
 		Module.node_ns = function (namespace, tag, class_name) {
 			var elem = d.createElementNS(namespace, tag);
 			elem.setAttribute("class", class_name);
 			return elem;
-		}._w(71);
+		}._w(74);
 		Module.node_simple = function (tag) {
 			return d.createElement(tag);
-		}._w(72);
+		}._w(75);
 
 		return Module;
 
-	}._w(66))();
+	}._w(69))();
 
 	var re_html = /[<>&]/g,
 		re_html_full = /[<>&'"]/g,
@@ -1420,8 +1436,8 @@
 	var escape_html = function (text, regex) {
 		return text.replace(regex, function (m) {
 			return html_replace_map[m];
-		}._w(74));
-	}._w(73);
+		}._w(77));
+	}._w(76);
 
 	var innerhtml_to_safe_text = function (node) {
 		var text = "",
@@ -1500,7 +1516,7 @@
 		}
 
 		return text;
-	}._w(75);
+	}._w(78);
 	var apply_safe_text_to_node = function (node, safe_text) {
 		// Safe version of: node.innerHTML = safe_text;
 		// Cannot inject any <script> tags or similar
@@ -1516,7 +1532,7 @@
 		var entity_replace_fn = function (m, entity) {
 			var e = apply_safe_text_to_node.entities[entity];
 			return (e === undefined) ? m : e;
-		}._w(77);
+		}._w(80);
 
 		while (true) {
 			re_start.lastIndex = pos;
@@ -1601,7 +1617,7 @@
 		if (text.length > 0) {
 			current.appendChild(document.createTextNode(text));
 		}
-	}._w(76);
+	}._w(79);
 	apply_safe_text_to_node.tags = {
 		a: { href: true },
 		b: {},
@@ -1636,16 +1652,16 @@
 					}
 				}
 			}
-		}._w(78),
+		}._w(81),
 		information: function (node, data) {
 			data.information = innerhtml_to_safe_text(node);
-		}._w(79),
+		}._w(82),
 		stardom: function (node, data) {
 			var n = node.querySelector("b");
 			if (n !== null) {
 				data.fans = parseInt(n.textContent.trim(), 10) || 0;
 			}
-		}._w(80),
+		}._w(83),
 		date: function (node, data) {
 			var m = /(\d+)-(\d+)-(\d+),\s*(\d+):(\d+)/.exec(node.textContent);
 			if (m !== null) {
@@ -1659,7 +1675,7 @@
 					0
 				).getTime();
 			}
-		}._w(81),
+		}._w(84),
 		seeders: function (node, data) {
 			if ($("b", node) !== null) {
 				data.seeders = -1;
@@ -1667,7 +1683,7 @@
 			else {
 				data.seeders = parseInt(node.textContent.trim(), 10) || 0;
 			}
-		}._w(82),
+		}._w(85),
 		leechers: function (node, data) {
 			if ($("b", node) !== null) {
 				data.leechers = -1;
@@ -1675,18 +1691,18 @@
 			else {
 				data.leechers = parseInt(node.textContent.trim(), 10) || 0;
 			}
-		}._w(83),
+		}._w(86),
 		downloads: function (node, data) {
 			data.downloads = parseInt(node.textContent.trim(), 10) || 0;
-		}._w(84),
+		}._w(87),
 		"file size": function (node, data) {
 			data.file_size = file_size_text_to_number(node.textContent.trim());
-		}._w(85)
+		}._w(88)
 	};
 
 	var pad = function (n, sep) {
 		return (n < 10 ? "0" : "") + n + sep;
-	}._w(86);
+	}._w(89);
 	var format_date = function (timestamp) {
 		var d = new Date(timestamp);
 		return d.getUTCFullYear() + "-" +
@@ -1694,7 +1710,7 @@
 			pad(d.getUTCDate(), " ") +
 			pad(d.getUTCHours(), ":") +
 			pad(d.getUTCMinutes(), "");
-	}._w(87);
+	}._w(90);
 
 	var file_size_scale = {
 		k: 1024,
@@ -1717,7 +1733,7 @@
 		}
 
 		return v;
-	}._w(88);
+	}._w(91);
 	var file_size_number_to_text = function (size) {
 		var scale = 1024,
 			i, ii;
@@ -1727,7 +1743,7 @@
 		}
 
 		return size.toFixed(3).replace(/\.?0+$/, "") + " " + file_size_labels[i];
-	}._w(89);
+	}._w(92);
 
 	var category_to_button_style_map = {
 		"english-translated anime": "cosplay",
@@ -1752,16 +1768,16 @@
 		if (data.sukebei) return "doujinshi";
 		var subcat = category_to_button_style_map[data.subcategory.toLowerCase()];
 		return (subcat === undefined ? "misc" : subcat);
-	}._w(90);
+	}._w(93);
 
 	var nyaa_get_data = function (info, callback) {
 		var data = xlinks_api.cache_get(info.id);
 		callback(null, data);
-	}._w(91);
+	}._w(94);
 	var nyaa_set_data = function (data, info, callback) {
 		xlinks_api.cache_set(info.id, data, xlinks_api.ttl_1_day);
 		callback(null);
-	}._w(92);
+	}._w(95);
 	var nyaa_setup_xhr = function (callback) {
 		var info = this.infos[0];
 		callback(null, {
@@ -1769,7 +1785,7 @@
 			url: "http://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/?page=view&tid=" + info.gid + "&showfiles=1",
 			headers: { "Cookie": "" }
 		});
-	}._w(93);
+	}._w(96);
 	var nyaa_parse_response = function (xhr, callback) {
 		var html = xlinks_api.parse_html(xhr.responseText, null),
 			info = this.infos[0],
@@ -1879,7 +1895,7 @@
 		}
 
 		callback(null, [ data ]);
-	}._w(94);
+	}._w(97);
 
 	var url_get_info = function (url, callback) {
 		var m = /^(?:https?:\/*)?((www\.|sukebei\.)?nyaa\.(?:eu|se))(\/[\w\W]*)?/i.exec(url),
@@ -1903,10 +1919,10 @@
 		else {
 			callback(null, null);
 		}
-	}._w(95);
+	}._w(98);
 	var url_info_to_data = function (url_info, callback) {
 		xlinks_api.request("nyaa", "torrent", url_info.id, url_info, callback);
-	}._w(96);
+	}._w(99);
 	var create_actions = function (data, info, callback) {
 		var urls = [],
 			url_base = "http://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/";
@@ -1918,7 +1934,7 @@
 		urls.push([ null, url_base + "?page=download&tid=" + info.gid + "&txt=1", "Txt File" ]);
 
 		callback(null, urls);
-	}._w(97);
+	}._w(100);
 	var create_details = function (data, info, callback) {
 		var container = $.node("div", "xl-details-limited-size"),
 			n1, n2;
@@ -1960,15 +1976,16 @@
 
 		// Done
 		callback(null, container);
-	}._w(98);
+	}._w(101);
 
 	xlinks_api.init({
 		namespace: "nyaa_torrents",
 		name: "Nyaa Torrents",
 		author: "dnsev-h",
 		description: "Linkify and format nyaa.se links",
-		version: [1,0,0,6,-0xDB],
-		registrations: 1
+		version: [1,0,0,7,-0xDB],
+		registrations: 1,
+		main: main_fn
 	}, function (err) {
 		if (err === null) {
 			xlinks_api.insert_styles(".xl-site-tag-icon[data-xl-site-tag-icon=nyaa]{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAABPlBMVEX////n9P7X6/0id+UpfOYRbeNtw/4wq/83hej4/P8dov8Zivgvg+fd7Pzw+P642vs4i+wzu/898v856v865P804/80zv4+qv3J5fwop//C4Ps6j+wqoPqz1Pir1foWmv+jyfgOl/8MkP8Chf+K3/wkf+6AyfwYc+sZdeNp4P0PePICePgAcfUAavK76v2OzfvO6v2sz/k3ovcysv81lvGx2/s1xf8q1/8kw/+DwPqTvvUysPCDtPE/oPVu5/+Y8f563/111Pl1xfub3f1my/xF7Pswie9a1/wtm/clmfgtj/JK3f4mguV8vflouf1srfVio+5auv1csPhRq/lLs/1DmfIod94/+f+e1fuby/k/iOfQ5fsBe/s21f8IN28AS949w/443P9C//0Fi//L9f5I0+5Pzf1BqPFYlOo4oeiBsk1bAAACPUlEQVR4XoXS1ZLbQBAF0EExmJkZl5mZmTlM//8D6ZbsWJuXvX5RVZ+6PSOZvH0Q8sa5fJeTEyuxVpOYlpQArPfj7O2vueX2pmy1TpZ3f/wBIIIgm5tSp8PhjXYiFo18hQDQRiusQ8NIp9XwQq0dj0Ui9z6QQiDhwjoqFxFARW3/CzSgQHDHRb3TrVa/VcrFgficeEVxf4+g1+t1uy8vCCqV4sFMLpeeDs8lXrFiBAbiiEueM9QbNTwHFSgA9P0KEKYmIbn01iV0wJL47gAMl4RwzqfOFP8Y82vr0QgCv6JrwhyzegPnTCs7Pzf09bgHQNTrHUtIPzNJwzCULWWM6O1YFIBsik6nM3pbF0rSUJUGnXBq7eMYAt7s97XhuGUtXqnFy8b4LNse25+PA+BNq/k0nHMuCsnyJT1V1XE2tnD8HcCd1ILfS5xWcrPkpqykHsKbDvVWjPZzweV15ZoS+uDSxjahCEZjyfGmZlUhmAlGiM6wIQAE3LJazSDQdVTbASA8kzVNc4IMo+8EAMf/IN8LHZnj5F/o/w0hDX6LPnCgKRUAFsdTWln5VEgRRikI2BFcoUGLJTi/oGfPGbeQongVH1zkV544F01LE3zvdJIsZhjLuAD0hgc0Gx5Ldfgkvdvz/CSlDmWUMV1Pna96YIlg6JK7dE6IzahNqM7s1FkyFJoCwCUlXtxMyQFg26B1hxWuLH5gAPj0m/gprTjAWB7xc4k+5qU8WEUwOQArtjdCZT8+2y7j4lAD8EH+Amg5gZiqRIpYAAAAAElFTkSuQmCC)}.xl-site-tag-icon[data-xl-site-tag-icon=nyaasukebei]{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAABPlBMVEX////+7Oj92tfkMSTmNyr+onP/fDj/XybnRjn/+vnmPTD84N74GhrjIBH5WTL7ubn+8/D80cv9pjX/kzv/jzX/hj37x8P8akb/ZzL7yovsQTj/Sh7/RBf/qzXsQzr4uLT5sq3/MhH9tmnsNCbqLRrjJxn4qqTyGxD6pYb4DgL2DAD/AwP9gGz/gz/9f1L947vuaWL2TTLmUED7i2P5s63xi4P939D5fX36wrT4Z1/6r5T90pz5XVT6slz9wXv+tnD/hjz1dG37pnn2VD/ySET4Rir/sDX70tH5m5v6uqPuOzL1mpPxNTXyMy7+o0r5w3X/pSXcOir/nzfkMCjvojX7BwH/jTn4hob/lCv1TEPyEQD7jkX+xpj8u2hwDwjxdEj/GAreKgD8s0D9tU//fUPulkjqaVj+5cz/mznneD/8V0gnAAACP0lEQVR4XoXS1XLlSAwG4CYzHGZm5jAzM/Mg7L7/C4xkx4kzN5Fvukpf/ZLbJi+fFHnh3PpQl5d6eDXlHGuWBUD/2M5vfdm5Kp9atdrl1eOv/wEIP8jbm/JaLrdSDkduYj+hAKjvI/RtRUkm5dxZqhyNxGI9F1hCIOFCP85mEEBEavk/SECB4JyLSqPV6XwtZTOv4nv4AkWvh6Ddbrda19cISqXM6Mi2k2u5nfAFRrwBTxxzi9uK3JdzOxCBAsCDGwHCVHFTO7kxgQwYEn18Bd6QNPb5Zldy17hbfbqJIXAjWib0se77sGdSev6xoj1FHQCiUmno3oUdJRRFkTakAdHKkRsAVlU0Go332xpKCUWWmnQmmCqfRBDw6sOD6rVr+u28nJk0F+bY4mD5LgqAV/Xq2OtzLoqJ7ITOyvICG5yd/AFwbqn+7yVmS/Yc6Wel0H7uNEidEe/zueDWUmmJErofoM1FQhFg2+vjm5odiWDNMEI0hgk+ALOOOp04Ak1DtegD7iJ50zRniFfasw9w/Af5QfrYXCBvRf9NSKvw3LogCEkhH9A5bqnnrXExRBilIGCGf4QKKbrgfEi7u/FAMUTxVVwwLEyPORdVXRX8YHaK3MYZiwcAaE0HqAYc6xX4JO2t9cIUpUHKKGOaFlq/d8Chu/Bh4HCdEINRg1CNGaFuIp3edG6SEqcC8XoQgGGA1oKsOK/zkQLg22/iVn0a+oQVEO/W6V7Bskb3CKZewbThtFAZe7tGgHGxrQL4pP4Cd0mKEKiat4wAAAAASUVORK5CYII=)}");
@@ -2013,7 +2030,10 @@
 				}]
 			});
 		}
-	}._w(99));
+	}._w(102));
+
+	}._w(67);
+	main(xlinks_api);
 
 })();
 

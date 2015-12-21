@@ -7,6 +7,8 @@
 
 	/*#{require:../../extensions/api.js#tabs=1}#*/
 
+	var main = function main_fn(xlinks_api) {
+
 	var $$ = function (selector, root) {
 		return (root || document).querySelectorAll(selector);
 	};
@@ -606,7 +608,8 @@
 		author: "#{json:#author}#",
 		description: "#{json:#description}#",
 		version: [/*#{version:,}#*/],
-		registrations: 1
+		registrations: 1,
+		main: main_fn
 	}, function (err) {
 		if (err === null) {
 			xlinks_api.insert_styles("#{style:../../resources/stylesheets/extensions/nyaa.css}#");
@@ -652,6 +655,9 @@
 			});
 		}
 	});
+
+	};
+	main(xlinks_api);
 
 })();
 
