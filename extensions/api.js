@@ -1073,25 +1073,22 @@ var xlinks_api = (function () {
 		try {
 			return JSON.parse(text);
 		}
-		catch (e) {
-			return def;
-		}
+		catch (e) {}
+		return def;
 	};
 	var parse_html = function (text, def) {
 		try {
 			return new DOMParser().parseFromString(text, "text/html");
 		}
-		catch (e) {
-			return def;
-		}
+		catch (e) {}
+		return def;
 	};
 	var parse_xml = function (text, def) {
 		try {
 			return new DOMParser().parseFromString(text, "text/xml");
 		}
-		catch (e) {
-			return def;
-		}
+		catch (e) {}
+		return def;
 	};
 
 	var get_domain = function (url) {
