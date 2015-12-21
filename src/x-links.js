@@ -659,6 +659,13 @@
 			catch (e) {}
 			return def;
 		};
+		Module.xml_parse_safe = function (text, def) {
+			try {
+				return new DOMParser().parseFromString(text, "text/xml");
+			}
+			catch (e) {}
+			return def;
+		};
 		Module.get_domain = function (url) {
 			var m = re_short_domain.exec(url);
 			return (m === null) ? "" : m[1].toLowerCase();
@@ -4616,6 +4623,7 @@
 			ImageFlags: ImageFlags,
 			RequestType: RequestType,
 			RequestErrorMode: RequestErrorMode,
+			create_temp_storage: create_temp_storage,
 			get_url_info: get_url_info,
 			get_url_info_saved: get_url_info_saved,
 			get_ehentai_gallery_full: get_ehentai_gallery_full,
@@ -9503,6 +9511,10 @@
 	var ExtensionAPI = (function () {
 
 		// Private
+		var ttl_1_hour = 60 * 60 * 1000;
+		var ttl_1_day = 24 * ttl_1_hour;
+		var ttl_1_year = 365 * ttl_1_day;
+
 		var random_string_alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 		var random_string = function (count) {
 			var alpha_len = random_string_alphabet.length,
@@ -10119,7 +10131,7 @@
 					ext_name = data.name;
 					setTimeout(function () {
 						try {
-							main_fn(internal_api_create());
+							main_fn(internal_api_create(config));
 						}
 						catch (e) {
 							Debug.log("Internalized extension error (" + ext_name + "):", e);
@@ -10515,9 +10527,79 @@
 		};
 
 
-		var internal_api_create = function () {
-			// TODO : xlinks_api
-			return null;
+		var internal_api_create = function (global_config) {
+
+			var config = {};
+
+			var cache_prefix = "";
+			var cache_storage = window.localStorage;
+			var cache_set = function (key, data, ttl) {
+				cache_storage.setItem(cache_prefix + "ext-" + key, JSON.stringify({
+					expires: Date.now() + ttl,
+					data: data
+				}));
+			};
+			var cache_get = function (key) {
+				var json = $.json_parse_safe(cache_storage.getItem(cache_prefix + "ext-" + key), null);
+
+				if (
+					json !== null &&
+					typeof(json) === "object" &&
+					Date.now() < json.expires &&
+					typeof(json.data) === "object"
+				) {
+					return json.data;
+				}
+
+				cache_storage.removeItem(key);
+				return null;
+			};
+
+			var init = function (info, callback) {
+				// Setup vars
+				cache_prefix = API.cache_get_prefix();
+
+				if (global_config.debug.cache_mode === "session") {
+					cache_storage = window.sessionStorage;
+				}
+				else if (global_config.debug.cache_mode === "none") {
+					cache_storage = API.create_temp_storage();
+				}
+
+				// Done
+				void(info); // to make jshint ignore the unused var
+				callback(null);
+			};
+
+			var register = function (data, callback) {
+				// TODO
+				if (typeof(callback) === "function") {
+					callback("Not implemented");
+				}
+			};
+
+			return {
+				RequestErrorMode: API.RequestErrorMode,
+				ImageFlags: API.ImageFlags,
+				init: init,
+				config: config,
+				register: register,
+				request: request,
+				get_image: API.get_thumbnail,
+				insert_styles: $.insert_styles,
+				parse_json: $.json_parse_safe,
+				parse_html: $.html_parse_safe,
+				parse_xml: $.xml_parse_safe,
+				get_domain: $.get_domain,
+				random_string: random_string,
+				is_object: is_object,
+				ttl_1_hour: ttl_1_hour,
+				ttl_1_day: ttl_1_day,
+				ttl_1_year: ttl_1_year,
+				cache_set: cache_set,
+				cache_get: cache_get
+			};
+
 		};
 
 
