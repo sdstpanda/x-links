@@ -2050,7 +2050,8 @@
 				id: "github_gist_" + id,
 				site: "githubgist",
 				gid: id,
-				tag: "Gist"
+				tag: "Gist",
+				classes_remove: [ "gist" ]
 			};
 		}
 
