@@ -672,6 +672,7 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 .xl-link-events {
 }
 .xl-site-tag {
+	cursor: pointer;
 	white-space: nowrap;
 	display: inline-block;
 	margin-right: 0.25em;
