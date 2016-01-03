@@ -757,6 +757,11 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 	width: 0;
 	height: 0;
 }
+s:not(:hover) .xl-site-tag:not(.xl-site-tag-active)>.xl-site-tag-icon,
+.spoiler:not(:hover) .xl-site-tag:not(.xl-site-tag-active)>.xl-site-tag-icon,
+.spoilers:not(:hover) .xl-site-tag:not(.xl-site-tag-active)>.xl-site-tag-icon {
+	opacity: 0;
+}
 .xl-link.xl-link-formatted {
 	text-decoration: none !important;
 }
