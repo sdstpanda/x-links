@@ -1,5 +1,9 @@
 ﻿master
 
+1.0.0.6
+- dnsev-h
+  + Removed 4chan-x twitter image from links
+
 1.0.0.5
 - dnsev-h
   + Added support for YouTube /embed/??????????? links

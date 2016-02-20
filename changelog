@@ -1,5 +1,9 @@
 ﻿master
 
+1.2.7.1
+- dnsev-h
+  + Additional visual improvements to newline'd tag namespaces
+
 1.2.7
 - dnsev-h
   + Fixed some potential conflicts with 4chan-x's link (embed)ing

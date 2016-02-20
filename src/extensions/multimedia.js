@@ -1477,7 +1477,8 @@
 				site: "twitter",
 				tid: id,
 				user: user,
-				tag: "Twitter"
+				tag: "Twitter",
+				classes_remove: [ "twitter" ]
 			};
 		}
 

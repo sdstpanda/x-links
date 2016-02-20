@@ -2,7 +2,7 @@
 // @name        X-links Extension - Multimedia (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.0.5.-0xDB
+// @version     1.0.0.6.-0xDB
 // @description Linkify and format various multimedia links
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -2853,7 +2853,8 @@
 				site: "twitter",
 				tid: id,
 				user: user,
-				tag: "Twitter"
+				tag: "Twitter",
+				classes_remove: [ "twitter" ]
 			};
 		}
 
@@ -3541,7 +3542,7 @@
 		name: "Multimedia",
 		author: "dnsev-h",
 		description: "Linkify and format various multimedia links",
-		version: [1,0,0,5,-0xDB],
+		version: [1,0,0,6,-0xDB],
 		registrations: 1,
 		main: main_fn
 	}, function (err) {
