@@ -1,5 +1,11 @@
 ﻿master
 
+1.2.7
+- dnsev-h
+  + Fixed some potential conflicts with 4chan-x's link (embed)ing
+  + Made site tag icons hidden while in spoiler tags
+  + Added a setting to change how tag namespaces are displayed in details hovers
+
 1.2.6
 - dnsev-h
   + Improvements to the extensions API to make it perform better and faster

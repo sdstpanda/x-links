@@ -2,7 +2,7 @@
 // @name        X-links Extension - Multimedia (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.0.4.-0xDB
+// @version     1.0.0.5.-0xDB
 // @description Linkify and format various multimedia links
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -1779,6 +1779,9 @@
 				}
 				else {
 					m2 = /[\?\&]v=([a-zA-Z0-9_-]{11})/.exec(m[2]);
+					if (m2 === null) {
+						m2 = /^\/embed\/([a-zA-Z0-9_-]{11})/.exec(m[2]);
+					}
 				}
 			}
 
@@ -3423,7 +3426,8 @@
 				id: "github_gist_" + id,
 				site: "githubgist",
 				gid: id,
-				tag: "Gist"
+				tag: "Gist",
+				classes_remove: [ "gist" ]
 			};
 		}
 
@@ -3537,7 +3541,7 @@
 		name: "Multimedia",
 		author: "dnsev-h",
 		description: "Linkify and format various multimedia links",
-		version: [1,0,0,4,-0xDB],
+		version: [1,0,0,5,-0xDB],
 		registrations: 1,
 		main: main_fn
 	}, function (err) {

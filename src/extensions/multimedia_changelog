@@ -1,5 +1,10 @@
 ﻿master
 
+1.0.0.5
+- dnsev-h
+  + Added support for YouTube /embed/??????????? links
+  + Removed 4chan-x gist image from links
+
 1.0.0.4
 - dnsev-h
   + Use updated api.js
