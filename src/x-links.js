@@ -1842,7 +1842,7 @@
 					ns_container = $.node("span", "xl-tag-namespace" + namespace_style);
 					tag = $.node("span", "xl-tag-namespace-block" + namespace_style);
 					link = $.node("span", "xl-tag-namespace-label", namespace);
-					ns_c = $.node("span", "xl-tag-namespace-first");
+					ns_c = $.node("span", "xl-tag-namespace-first-tag");
 					$.add(tag, link);
 					$.add(tag, $.tnode(":"));
 					$.add(ns_c, tag);

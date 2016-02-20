@@ -598,14 +598,19 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 }
 .xl-details-tag-block.xl-details-tag-block-multiline>.xl-details-tags>.xl-tag-namespace {
 	display: block;
+	margin-left: 1em;
+	text-indent: -1em;
+}
+.xl-details-tag-block.xl-details-tag-block-multiline>.xl-details-tags>.xl-tag-namespace>* {
+	text-indent: 0;
 }
 .xl-details-tag-block.xl-details-tag-block-multiline>.xl-details-tags>.xl-tag-namespace+.xl-tag-namespace {
 	margin-top: 0.1em;
 }
-.xl-tag-namespace-first {
+.xl-tag-namespace-first-tag {
 	display: inline-block;
 }
-.xl-tag-namespace-first>.xl-tag-block {
+.xl-tag-namespace-first-tag>.xl-tag-block {
 	display: inline;
 }
 
