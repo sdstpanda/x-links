@@ -93,6 +93,10 @@
 				"Enabled", "Show details for gallery links on hover",
 				"Gallery Details"
 			],
+			[ "tag_namespace_newline", false,
+				"Namespace New Lines", "Each tag namespace will be displayed on its own line",
+				null
+			],
 			[ "hover_position", -0.25,
 				"Hovering position", "Change the horizontal offset of the gallery details from the cursor",
 				"Details Hover Position",
@@ -1652,7 +1656,7 @@
 			$.add(n1, $.node("strong", "xl-details-upload-date", format_date(data.date_created)));
 
 			// Tags
-			$.add(content, n1 = $.node("div", "xl-details-tag-block" + theme));
+			$.add(content, n1 = $.node("div", "xl-details-tag-block" + (config.details.tag_namespace_newline ? " xl-details-tag-block-multiline" : "") + theme));
 			$.add(n1, $.node("strong", "xl-details-tag-block-label", "Tags:"));
 			$.add(n1, n2 = $.node("span", "xl-details-tags"));
 			$.add(n2, create_tags(data, info.domain));
@@ -1807,11 +1811,13 @@
 				theme = Theme.classes,
 				tag = null,
 				last = null,
-				namespace, namespace_style, tags, link, tf, i, ii;
+				ns_container = null,
+				namespace, namespace_style, tags, link, ns_c, i, ii;
 
 			if (tags_ns === null) {
 				// Non-namespaced tags
 				tags = data.tags;
+				ns_container = $.node("span", "xl-tag-non-namespace" + theme);
 				for (i = 0, ii = tags.length; i < ii; ++i) {
 					tag = $.node("span", "xl-tag-block" + theme);
 					link = $.link(CreateURL.to_tag(tags[i], site, domain), "xl-tag", tags[i]);
@@ -1819,10 +1825,11 @@
 					Filter.highlight("tags", link, data, Filter.None);
 
 					$.add(tag, link);
-					$.add(tag, last = $.tnode(","));
-					$.add(tagfrag, tag);
+					$.add(tag, (last = $.tnode(",")));
+					$.add(ns_container, tag);
 				}
 				if (last !== null) $.remove(last);
+				$.add(tagfrag, ns_container);
 			}
 			else {
 				// Namespaced tags
@@ -1830,18 +1837,20 @@
 					tags = tags_ns[namespace];
 					ii = tags.length;
 					if (ii === 0) continue;
-					namespace_style = theme + " xl-tag-namespace-" + namespace.replace(/\s+/g, "-");
+					namespace_style = " xl-tag-namespace-" + namespace.replace(/\s+/g, "-") + theme;
 
+					ns_container = $.node("span", "xl-tag-namespace" + namespace_style);
 					tag = $.node("span", "xl-tag-namespace-block" + namespace_style);
-					link = $.node("span", "xl-tag-namespace", namespace);
-					tf = $.node("span", "xl-tag-namespace-first");
+					link = $.node("span", "xl-tag-namespace-label", namespace);
+					ns_c = $.node("span", "xl-tag-namespace-first");
 					$.add(tag, link);
 					$.add(tag, $.tnode(":"));
-					$.add(tf, tag);
-					$.add(tagfrag, tf);
+					$.add(ns_c, tag);
+					$.add(ns_container, ns_c);
+					$.add(tagfrag, ns_container);
 
 					for (i = 0; i < ii; ++i) {
-						tag = $.node("span", "xl-tag-block" + namespace_style);
+						tag = $.node("span", "xl-tag-block" + theme);
 						link = $.link(CreateURL.to_tag_ns(tags[i], namespace, site, domain), "xl-tag", tags[i]);
 
 						Filter.highlight("tags", link, data, Filter.None);
@@ -1853,8 +1862,8 @@
 						else {
 							tag.classList.add("xl-tag-block-last-of-namespace");
 						}
-						$.add(tf, tag);
-						tf = tagfrag;
+						$.add(ns_c, tag);
+						ns_c = ns_container;
 					}
 				}
 
@@ -8097,7 +8106,7 @@
 					namespace_style = " xl-tag-namespace-" + namespace.replace(/\ /g, "-") + theme;
 					$.add(n2, n3 = $.node("div", "xl-easylist-item-tag-cell xl-easylist-item-tag-cell-label" + theme));
 					$.add(n3, n4 = $.node("span", "xl-tag-namespace-block xl-tag-namespace-block-no-outline" + namespace_style));
-					$.add(n4, $.node("span", "xl-tag-namespace", namespace));
+					$.add(n4, $.node("span", "xl-tag-namespace-label", namespace));
 					$.add(n3, $.tnode(":"));
 				}
 

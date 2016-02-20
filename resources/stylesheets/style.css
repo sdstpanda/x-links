@@ -551,12 +551,20 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 }
 
 .xl-details-tag-block {
-	font-size: 1.075em !important;
-	display: inline !important;
+	font-size: 1.075em;
+	display: inline;
 	line-height: 1.4em;
 }
 .xl-details-tag-block-label {
-	margin-right: 0.25em !important;
+	margin-right: 0.25em;
+}
+.xl-details-tag-block.xl-details-tag-block-multiline {
+	display: block;
+	text-align: left;
+	overflow: hidden;
+}
+.xl-details-tag-block.xl-details-tag-block-multiline>.xl-details-tag-block-label {
+	display: none;
 }
 .xl-details-tags {
 }
@@ -585,6 +593,15 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 	margin-right: 0;
 }
 
+.xl-tag-namespace {
+	display: inline;
+}
+.xl-details-tag-block.xl-details-tag-block-multiline>.xl-details-tags>.xl-tag-namespace {
+	display: block;
+}
+.xl-details-tag-block.xl-details-tag-block-multiline>.xl-details-tags>.xl-tag-namespace+.xl-tag-namespace {
+	margin-top: 0.1em;
+}
 .xl-tag-namespace-first {
 	display: inline-block;
 }
@@ -596,60 +613,60 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 	display: inline-block;
 	margin: 0 0.125em;
 }
-.xl-tag-namespace {
+.xl-tag-namespace-label {
 	display: inline-block;
 	border: 1px solid rgba(0,0,0,0.4);
 	border-radius: 0.25em;
 	padding: 0 0.25em;
 	line-height: normal;
 }
-.xl-tag-namespace-block.xl-tag-namespace-block-no-outline>.xl-tag-namespace {
+.xl-tag-namespace-block.xl-tag-namespace-block-no-outline>.xl-tag-namespace-label {
 	border-style: none;
 }
-.xl-tag-namespace-block.xl-theme-dark>.xl-tag-namespace {
+.xl-tag-namespace-block.xl-theme-dark>.xl-tag-namespace-label {
 	border-color: rgba(255,255,255,0.4);
 }
-.xl-tag-namespace-block.xl-tag-namespace-language>.xl-tag-namespace {
+.xl-tag-namespace-block.xl-tag-namespace-language>.xl-tag-namespace-label {
 	color: #6721c6;
 }
-.xl-tag-namespace-block.xl-tag-namespace-group>.xl-tag-namespace {
+.xl-tag-namespace-block.xl-tag-namespace-group>.xl-tag-namespace-label {
 	color: #9f8636;
 }
-.xl-tag-namespace-block.xl-tag-namespace-artist>.xl-tag-namespace {
+.xl-tag-namespace-block.xl-tag-namespace-artist>.xl-tag-namespace-label {
 	color: #c47525;
 }
-.xl-tag-namespace-block.xl-tag-namespace-parody>.xl-tag-namespace {
+.xl-tag-namespace-block.xl-tag-namespace-parody>.xl-tag-namespace-label {
 	color: #0ea79e;
 }
-.xl-tag-namespace-block.xl-tag-namespace-character>.xl-tag-namespace {
+.xl-tag-namespace-block.xl-tag-namespace-character>.xl-tag-namespace-label {
 	color: #288028;
 }
-.xl-tag-namespace-block.xl-tag-namespace-male>.xl-tag-namespace {
+.xl-tag-namespace-block.xl-tag-namespace-male>.xl-tag-namespace-label {
 	color: #0659ae;
 }
-.xl-tag-namespace-block.xl-tag-namespace-female>.xl-tag-namespace {
+.xl-tag-namespace-block.xl-tag-namespace-female>.xl-tag-namespace-label {
 	color: #e0338d;
 }
 
-.xl-tag-namespace-block.xl-tag-namespace-language.xl-theme-dark>.xl-tag-namespace {
+.xl-tag-namespace-block.xl-tag-namespace-language.xl-theme-dark>.xl-tag-namespace-label {
 	color: #895cc6;
 }
-.xl-tag-namespace-block.xl-tag-namespace-group.xl-theme-dark>.xl-tag-namespace {
+.xl-tag-namespace-block.xl-tag-namespace-group.xl-theme-dark>.xl-tag-namespace-label {
 	color: #e8c44f;
 }
-.xl-tag-namespace-block.xl-tag-namespace-artist.xl-theme-dark>.xl-tag-namespace {
+.xl-tag-namespace-block.xl-tag-namespace-artist.xl-theme-dark>.xl-tag-namespace-label {
 	color: #e89c4f;
 }
-.xl-tag-namespace-block.xl-tag-namespace-parody.xl-theme-dark>.xl-tag-namespace {
+.xl-tag-namespace-block.xl-tag-namespace-parody.xl-theme-dark>.xl-tag-namespace-label {
 	color: #21eda2;
 }
-.xl-tag-namespace-block.xl-tag-namespace-character.xl-theme-dark>.xl-tag-namespace {
+.xl-tag-namespace-block.xl-tag-namespace-character.xl-theme-dark>.xl-tag-namespace-label {
 	color: #6ce769;
 }
-.xl-tag-namespace-block.xl-tag-namespace-male.xl-theme-dark>.xl-tag-namespace {
+.xl-tag-namespace-block.xl-tag-namespace-male.xl-theme-dark>.xl-tag-namespace-label {
 	color: #23add0;
 }
-.xl-tag-namespace-block.xl-tag-namespace-female.xl-theme-dark>.xl-tag-namespace {
+.xl-tag-namespace-block.xl-tag-namespace-female.xl-theme-dark>.xl-tag-namespace-label {
 	color: #e89cc4;
 }
 
