@@ -8561,7 +8561,7 @@
 
 			if (
 				(id = this.getAttribute("data-xl-id")) &&
-				(entry = data_map[id]) !== undefined &&
+				((entry = data_map[id]) !== undefined || (entry = custom_links_map[id]) !== undefined) &&
 				(data = API.get_data(entry.info)) !== null
 			) {
 				API.get_ehentai_gallery_full(entry.info, data, function (err, data) {
