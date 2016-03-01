@@ -1,5 +1,9 @@
 ﻿master
 
+1.2.7.2
+- dnsev-h
+  + Fixed a bug causing the EasyList to not update namespaced tags from E*Hentai
+
 1.2.7.1
 - dnsev-h
   + Additional visual improvements to newline'd tag namespaces

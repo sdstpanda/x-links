@@ -2,7 +2,7 @@
 // @name        X-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.7.1
+// @version     1.2.7.2
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -8589,7 +8589,7 @@
 
 			if (
 				(id = this.getAttribute("data-xl-id")) &&
-				(entry = data_map[id]) !== undefined &&
+				((entry = data_map[id]) !== undefined || (entry = custom_links_map[id]) !== undefined) &&
 				(data = API.get_data(entry.info)) !== null
 			) {
 				API.get_ehentai_gallery_full(entry.info, data, function (err, data) {
@@ -11098,7 +11098,7 @@
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,7,1],
+			version: [1,2,7,2],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
