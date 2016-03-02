@@ -1400,10 +1400,67 @@
 			}
 		};
 		var gallery_error_event = function (event) {
-			if ($.is_left_mouse(event)) {
-				// TODO : open a menu to clear errors
-
+			if ($.is_left_mouse(event) && config.actions.enabled) {
 				event.preventDefault();
+
+				var id = this.getAttribute("xl-actions-id");
+				if (!id) {
+					id = "" + actions_nodes_index;
+					++actions_nodes_index;
+					this.setAttribute("xl-actions-id", id);
+				}
+
+				enable_actions_menu_on_node(this, undefined, id, function (info, id, callback) {
+					var actions = create_actions_menu(id, [
+						{
+							label: "An error occured",
+							modify: function (container) {
+								var n = $(".xl-actions-table-header", container);
+								if (n !== null) {
+									n.style.paddingRight = "6em";
+								}
+							}
+						},
+						{
+							text: "",
+							modify: function (container) {
+								var n = $(".xl-actions-option-text", container);
+								if (n !== null) {
+									n.textContent = "If this error persists and you believe it shouldn't, clearing the cache may help";
+									// $.add(n, $.node_simple("br"));
+									// $.add(n, $.tnode("you can try clearing the cache"));
+								}
+							}
+						},
+						null,
+						{
+							text: "Clear cache",
+							url: "#",
+							modify: function (container) {
+								var n = $(".xl-actions-option", container);
+								console.log(n);
+								if (n !== null) {
+									$.on(n, "click", function (event) {
+										if ($.is_left_mouse(event)) {
+											event.preventDefault();
+
+											// Clear cache
+											var clears = API.cache_clear();
+											Debug.log("Cleared cache; entries_removed=" + clears);
+										}
+									}, false);
+								}
+							}
+						},
+						null,
+						{
+							text: "Support",
+							url: Main.support_url
+						}
+					]);
+					callback(null, actions);
+				});
+
 				return false;
 			}
 		};
@@ -1914,9 +1971,12 @@
 							label: "Uploader:",
 							text: data.uploader,
 							url: CreateURL.to_uploader(data, domain),
-							modify: function (n1, n2, n3) {
-								n3.classList.add("xl-actions-uploader");
-								Filter.highlight("uploader", n3, data, Filter.None);
+							modify: function (container) {
+								var n = $(".xl-actions-option", container);
+								if (n !== null) {
+									n.classList.add("xl-actions-uploader");
+									Filter.highlight("uploader", n, data, Filter.None);
+								}
 							}
 						},
 						null,
@@ -1929,8 +1989,11 @@
 							label: null,
 							text: "Archiver",
 							url: "http://" + domains.gehentai + "/archiver.php?gid=" + gid + "&token=" + token + "&or=" + data.archiver_key,
-							modify: function (n1, n2, n3) {
-								n3.removeAttribute("target");
+							modify: function (container) {
+								var n = $(".xl-actions-option", container);
+								if (n !== null) {
+									n.removeAttribute("target");
+								}
 							}
 						},
 						null,
@@ -2139,7 +2202,7 @@
 		var create_actions_menu = function (id, entries) {
 			var theme = Theme.classes,
 				actions = $.node("div", "xl-actions xl-hover-shadow" + theme),
-				label, text, url, fn, n1, n2, n3, n4, n5, i, ii, e;
+				count, label, text, url, fn, n1, n2, n3, n4, n5, i, ii, e;
 
 			$.on(actions, "click", on_actions_menu_click);
 			Theme.bg(actions);
@@ -2162,28 +2225,33 @@
 					text = e.text;
 					url = e.url;
 					fn = e.modify;
+					count = 0;
 
 					n3 = $.node("div", "xl-actions-table-row" + theme);
-					$.add(n3, n4 = $.node("div", "xl-actions-table-cell" + theme));
-					if (typeof(label) === "string") {
-						$.add(n4, $.node("div", "xl-actions-table-header", label));
+					if (label !== undefined) {
+						$.add(n3, n4 = $.node("div", "xl-actions-table-cell xl-actions-table-cell-label" + theme));
+						if (typeof(label) === "string") {
+							$.add(n4, $.node("div", "xl-actions-table-header", label));
+						}
+						++count;
 					}
 					if (typeof(text) === "string") {
 						$.add(n3, n4 = $.node("div", "xl-actions-table-cell" + theme));
 						if (typeof(url) === "string") {
 							$.add(n4, n5 = $.link(url, "xl-actions-option" + theme, text));
+							$.on(n5, "click", $.bind(on_actions_menu_entry_click, n5, actions, id));
 						}
 						else {
-							$.add(n4, n5 = $.node("span", "xl-actions-option" + theme, text));
+							$.add(n4, n5 = $.node("span", "xl-actions-option-text" + theme, text));
 						}
-						$.on(n5, "click", $.bind(on_actions_menu_entry_click, n5, actions, id));
+						++count;
 					}
-					else {
+					if (count === 1) {
 						n4.classList.add("xl-actions-table-cell-full");
 					}
 
 					if (typeof(fn) === "function") {
-						fn(n3, n4, n5);
+						fn(n3);
 					}
 
 					$.add(n2, n3);
@@ -2371,7 +2439,6 @@
 			}
 
 			// Format
-			// err = "TODO";
 			if (err === null) {
 				format_link(link, data, info);
 				if (event_listeners.format.length > 0) {
@@ -2455,11 +2522,12 @@
 			link.classList.add("xl-link-formatted", "xl-link-error");
 			n = $(".xl-link-error-message", link);
 			if (n === null) {
-				$.add(link, $.node("span", "xl-link-error-message", text));
+				$.add(link, n = $.node("span", "xl-link-error-message", text));
 			}
 			else {
 				n.textContent = text;
 			}
+			n.setAttribute("data-xl-error-message", text);
 		};
 		var get_links_formatted = function (parent) {
 			return $$("a.xl-link.xl-link-formatted", parent);

@@ -319,10 +319,10 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 .xl-actions-table-cell {
 	display: table-cell;
 	height: 100%;
-	vertical-align: middle;
+	vertical-align: top;
 	text-align: left;
 }
-.xl-actions-table-cell:first-of-type {
+.xl-actions-table-cell.xl-actions-table-cell-label {
 	width: 0;
 	white-space: nowrap;
 	text-align: right;
@@ -336,13 +336,19 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 	padding: 0 0.25em 0 1em;
 	line-height: 1.325em;
 }
-.xl-actions-table-cell.xl-actions-table-cell-full>.xl-actions-table-header {
-	padding-right: 1em;
-}
-.xl-actions-option {
+.xl-actions-option,
+.xl-actions-option-text {
 	padding: 0 1em 0 0.25em;
 	line-height: 1.325em;
 	display: block;
+}
+.xl-actions-table-cell.xl-actions-table-cell-full>.xl-actions-table-header {
+	padding-right: 1em;
+}
+.xl-actions-table-cell.xl-actions-table-cell-full>.xl-actions-option,
+.xl-actions-table-cell.xl-actions-table-cell-full>.xl-actions-option-text {
+	padding-left: 1em;
+	padding-right: 1em;
 }
 .xl-actions-option:hover {
 	background-color: rgba(0,0,0,0.05);
