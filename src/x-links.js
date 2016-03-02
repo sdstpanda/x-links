@@ -1354,61 +1354,23 @@
 				if ($.is_left_mouse(event) && config.actions.enabled) {
 					event.preventDefault();
 
-					var index = this.getAttribute("xl-actions-index"),
-						actions, tag_bg, info, link, n;
-
-					if (!index) {
-						index = "" + actions_nodes_index;
+					var id = this.getAttribute("xl-actions-id");
+					if (!id) {
+						id = "" + actions_nodes_index;
 						++actions_nodes_index;
-						this.setAttribute("xl-actions-index", index);
+						this.setAttribute("xl-actions-id", id);
 					}
 
-					if (this.classList.toggle("xl-site-tag-active")) {
-						// Create bg
-						tag_bg = $(".xl-site-tag-bg", this);
-						if (tag_bg === null) tag_bg = create_tag_bg(this);
-
-						// Show
-						actions = actions_nodes[index];
-						if (actions !== undefined) {
-							actions.classList.remove("xl-actions-hidden");
-							Popup.hovering(actions);
-							activate_actions(actions, index);
-
-							// Position
-							update_actions_position(actions, this, tag_bg, document_element.getBoundingClientRect());
-						}
-						else {
-							// Create
-							if (
-								(link = get_link_from_site_tag(this)) !== null &&
-								(info = API.get_url_info_saved(link.href)) !== null
-							) {
-								n = this;
-								API.get_data_from_url_info(info, function (err, data) {
-									if (err === null) {
-										create_actions(data, info, index, function (err, actions) {
-											if (err === null) {
-												actions_nodes[index] = actions;
-												activate_actions(actions, index);
-												update_actions_position(actions, n, tag_bg, document_element.getBoundingClientRect());
-											}
-										});
-									}
-								});
+					enable_actions_menu_on_node(this, undefined, id, function (info, id, callback) {
+						API.get_data_from_url_info(info, function (err, data) {
+							if (err === null) {
+								create_actions(data, info, id, callback);
 							}
-						}
-					}
-					else {
-						// Hide
-						actions = actions_nodes[index];
-						if (actions !== undefined) {
-							close_actions(actions, index);
-						}
-					}
+						});
+					});
 				}
 			},
-			mousedown: function (event) {
+			mousedown: function () {
 				var node = this;
 				node.href = node.getAttribute("data-xl-href") || "";
 
@@ -1439,6 +1401,8 @@
 		};
 		var gallery_error_event = function (event) {
 			if ($.is_left_mouse(event)) {
+				// TODO : open a menu to clear errors
+
 				event.preventDefault();
 				return false;
 			}
@@ -1684,126 +1648,6 @@
 			// Done
 			callback(null, content);
 		};
-		var create_actions = function (data, info, index, callback) {
-			var theme = Theme.classes,
-				gid = data.gid,
-				token = data.token,
-				type = data.type,
-				actions = $.node("div", "xl-actions xl-hover-shadow" + theme),
-				domain = info.domain,
-				created = false,
-				n1, n2, n3, fn;
-
-			$.on(actions, "click", on_actions_click);
-			Theme.bg(actions);
-
-			$.add(actions, n1 = $.node("div", "xl-actions-inner" + theme));
-			$.add(n1, n2 = $.node("div", "xl-actions-table" + theme));
-
-			var gen_entry = function (container, label, url, text) {
-				var n1, n2, n3;
-				$.add(container, n1 = $.node("div", "xl-actions-table-row" + theme));
-				$.add(n1, n2 = $.node("div", "xl-actions-table-cell" + theme));
-				if (label !== null) {
-					$.add(n2, $.node("div", "xl-actions-table-header", label));
-				}
-				if (text !== null) {
-					$.add(n1, n2 = $.node("div", "xl-actions-table-cell" + theme));
-					$.add(n2, n3 = $.link(url, "xl-actions-option" + theme, text));
-					$.on(n3, "click", $.bind(on_actions_link_click, n3, actions, index));
-				}
-				else {
-					n2.classList.add("xl-actions-table-cell-full");
-				}
-				return n3;
-			};
-			var gen_sep = function (container) {
-				var n1, n2;
-				$.add(container, n1 = $.node("div", "xl-actions-table-row" + theme));
-				$.add(n1, n2 = $.node("div", "xl-actions-table-cell" + theme));
-				$.add(n2, $.node("div", "xl-actions-table-sep"));
-			};
-
-			if (data.subtype === "gallery") {
-				if (type === "ehentai") {
-					gen_entry(n2, "View on:", CreateURL.to_gallery(data, domains.gehentai), "E-Hentai");
-					gen_entry(n2, null, CreateURL.to_gallery(data, domains.exhentai), "ExHentai");
-
-					gen_sep(n2);
-
-					n3 = gen_entry(n2, "Uploader:", CreateURL.to_uploader(data, domain), data.uploader);
-					n3.classList.add("xl-actions-uploader");
-					Filter.highlight("uploader", n3, data, Filter.None);
-
-					gen_sep(n2);
-
-					gen_entry(n2, "Download:", "http://" + domain + "/gallerytorrents.php?gid=" + gid + "&t=" + token, "Torrent (" + data.torrent_count + ")");
-					gen_entry(n2, null, "http://" + domains.gehentai + "/archiver.php?gid=" + gid + "&token=" + token + "&or=" + data.archiver_key, "Archiver");
-					n3 = gen_entry(n2, null, "http://" + domain + "/hathdler.php?gid=" + gid + "&t=" + token, "via H@H");
-					n3.removeAttribute("target");
-
-					gen_sep(n2);
-
-					gen_entry(n2, "Other:", "http://" + domain + "/gallerypopups.php?gid=" + gid + "&t=" + token + "&act=addfav", "Favorite");
-					gen_entry(n2, null, "http://" + domains.gehentai + "/stats.php?gid=" + gid + "&t=" + token, "Stats");
-
-					created = true;
-				}
-				else if (type === "nhentai") {
-					gen_entry(n2, "View on:", CreateURL.to_gallery(data, domain), "nhentai.net");
-
-					created = true;
-				}
-				else if (type === "hitomi") {
-					gen_entry(n2, "View on:", CreateURL.to_gallery(data, domain), "hitomi.la");
-
-					created = true;
-				}
-			}
-
-			// Empty
-			if (!created) {
-				fn = custom_actions_functions[info._custom_id];
-				if (fn !== undefined) {
-					fn(data, info, function (err, gen_info) {
-						if (err === null) {
-							var ii = gen_info.length,
-								i, g;
-
-							if (ii === 0) {
-								gen_entry(n2, "No actions available", null, null);
-							}
-							else {
-								for (i = 0; i < ii; ++i) {
-									g = gen_info[i];
-									if (g === null) {
-										gen_sep(n2);
-									}
-									else {
-										gen_entry(n2, g[0] || null, g[1] || null, g[2] || null);
-									}
-								}
-							}
-
-							Popup.hovering(actions);
-							callback(null, actions);
-						}
-						else {
-							callback(err, null);
-						}
-					});
-					return;
-				}
-
-				gen_entry(n2, "No actions available", null, null);
-			}
-
-			// Prepare
-			Popup.hovering(actions);
-
-			// Done
-			callback(null, actions);
-		};
 		var create_tags = function (data, domain) {
 			var tagfrag = document.createDocumentFragment(),
 				site = data.type,
@@ -1996,21 +1840,172 @@
 			details.style.left = mouse_x + "px";
 			details.style.top = mouse_y + "px";
 		};
-		var close_actions = function (actions, index) {
-			var ns = $$(".xl-site-tag.xl-site-tag-active[xl-actions-index='" + index + "']"),
-				i, ii;
 
-			for (i = 0, ii = ns.length; i < ii; ++i) {
-				ns[i].classList.remove("xl-site-tag-active");
-			}
-
-			actions.classList.add("xl-actions-hidden");
-			deactivate_actions(index);
+		var on_window_resize = function () {
+			update_active_actions_position();
 		};
-		var close_all_actions = function () {
-			for (var index in actions_nodes_active) {
-				close_actions(actions_nodes_active[index], index);
+		var on_document_click = function (event) {
+			if (actions_close_timeout === null) {
+				if (config.actions.close_on_click) {
+					if ($.is_left_mouse(event)) {
+						close_all_actions_menus();
+					}
+				}
+				else {
+					// Re-position
+					setTimeout(update_active_actions_position, 1);
+				}
 			}
+		};
+		var create_tag_bg = function (parent) {
+			var tag_bg = $.node("div", "xl-site-tag-bg" + Theme.classes),
+				outline = $.node("div", "xl-site-tag-bg-shadow xl-hover-shadow" + Theme.classes),
+				inner = $.node("div", "xl-site-tag-bg-inner" + Theme.classes);
+
+			Theme.bg(inner);
+
+			$.add(tag_bg, inner);
+
+			$.before(parent, parent.firstChild, tag_bg);
+			$.before(parent, parent.firstChild, outline);
+
+			return tag_bg;
+		};
+
+		var mark_site_tag = function (button, text) {
+			if ((button = get_site_tag_text_node(button)) !== null) {
+				button.textContent = button.textContent.replace(/\]\s*$/, text + "]");
+			}
+		};
+		var update_site_tag = function (button, info) {
+			var n;
+			if ((n = get_site_tag_text_node(button)) !== null) {
+				n.textContent = create_site_tag_text(info);
+			}
+			if (info.icon !== undefined && (n = $(".xl-site-tag-icon", button)) !== null) {
+				n.setAttribute("data-xl-site-tag-icon", info.icon);
+			}
+		};
+
+		// Actions menus
+		var create_actions = function (data, info, index, callback) {
+			var entries = null,
+				gid = data.gid,
+				token = data.token,
+				type = data.type,
+				domain = info.domain,
+				actions, fn;
+
+			if (data.subtype === "gallery") {
+				if (type === "ehentai") {
+					entries = [
+						{
+							label: "View on:",
+							text: "E-Hentai",
+							url: CreateURL.to_gallery(data, domains.gehentai)
+						},
+						{
+							label: null,
+							text: "ExHentai",
+							url: CreateURL.to_gallery(data, domains.exhentai)
+						},
+						null,
+						{
+							label: "Uploader:",
+							text: data.uploader,
+							url: CreateURL.to_uploader(data, domain),
+							modify: function (n1, n2, n3) {
+								n3.classList.add("xl-actions-uploader");
+								Filter.highlight("uploader", n3, data, Filter.None);
+							}
+						},
+						null,
+						{
+							label: "Download:",
+							text: "Torrent (" + data.torrent_count + ")",
+							url: "http://" + domain + "/gallerytorrents.php?gid=" + gid + "&t=" + token,
+						},
+						{
+							label: null,
+							text: "Archiver",
+							url: "http://" + domains.gehentai + "/archiver.php?gid=" + gid + "&token=" + token + "&or=" + data.archiver_key,
+							modify: function (n1, n2, n3) {
+								n3.removeAttribute("target");
+							}
+						},
+						null,
+						{
+							label: "Other:",
+							text: "Favorite",
+							url: "http://" + domain + "/gallerypopups.php?gid=" + gid + "&t=" + token + "&act=addfav"
+						},
+						{
+							label: null,
+							text: "Stats",
+							url: "http://" + domains.gehentai + "/stats.php?gid=" + gid + "&t=" + token
+						}
+					];
+				}
+				else if (type === "nhentai") {
+					entries = [
+						{
+							label: "View on:",
+							text: "nhentai.net",
+							url: CreateURL.to_gallery(data, domain)
+						}
+					];
+				}
+				else if (type === "hitomi") {
+					entries = [
+						{
+							label: "View on:",
+							text: "hitomi.la",
+							url: CreateURL.to_gallery(data, domain)
+						}
+					];
+				}
+			}
+
+			// Empty
+			if (entries === null) {
+				fn = custom_actions_functions[info._custom_id];
+				if (fn !== undefined) {
+					fn(data, info, function (err, gen_info) {
+						if (err === null) {
+							var ii = gen_info.length,
+								entries = [],
+								actions, i, g;
+
+							if (ii === 0) {
+								entries.push({ label: "No actions available" });
+							}
+							else {
+								for (i = 0; i < ii; ++i) {
+									g = gen_info[i];
+									entries.push((g === null) ? null : {
+										label: g[0],
+										text: g[2],
+										url: g[1]
+									});
+								}
+							}
+
+							actions = create_actions_menu(index, entries);
+							callback(null, actions);
+						}
+						else {
+							callback(err, null);
+						}
+					});
+					return;
+				}
+
+				entries = [{ label: "No actions available" }];
+			}
+
+			// Done
+			actions = create_actions_menu(index, entries);
+			callback(null, actions);
 		};
 		var update_actions_position = function (actions, tag, tag_bg, de_rect, xpos, ypos) {
 			// Position
@@ -2073,7 +2068,7 @@
 			for (index in actions_nodes_active) {
 				actions = actions_nodes_active[index];
 				if (
-					(tag = $(".xl-site-tag.xl-site-tag-active[xl-actions-index='" + index + "']")) !== null &&
+					(tag = $(".xl-site-tag.xl-site-tag-active[xl-actions-id='" + index + "']")) !== null &&
 					(tag_bg = $(".xl-site-tag-bg", tag)) !== null
 				) {
 					xpos = actions.getAttribute("data-xl-actions-hpos");
@@ -2083,12 +2078,42 @@
 			}
 		};
 
-		var activate_actions = function (node, index) {
-			if (config.actions.close_on_click && actions_nodes_active_count !== 0) {
-				close_all_actions();
+		var on_actions_menu_click = function (event) {
+			if ($.is_left_mouse(event)) {
+				event.stopPropagation();
+			}
+		};
+		var on_actions_menu_entry_click = function (actions, id, event) {
+			if ($.is_left_mouse(event)) {
+				event.stopPropagation();
+
+				if (config.actions.close_on_click) {
+					close_actions_menu(actions, id);
+				}
+			}
+		};
+		var close_actions_menu = function (actions, id) {
+			var ns = $$(".xl-site-tag.xl-site-tag-active[xl-actions-id='" + id + "']"),
+				i, ii;
+
+			for (i = 0, ii = ns.length; i < ii; ++i) {
+				ns[i].classList.remove("xl-site-tag-active");
 			}
 
-			actions_nodes_active[index] = node;
+			actions.classList.add("xl-actions-hidden");
+			deactivate_actions_menu(id);
+		};
+		var close_all_actions_menus = function () {
+			for (var id in actions_nodes_active) {
+				close_actions_menu(actions_nodes_active[id], id);
+			}
+		};
+		var activate_actions_menu = function (node, id) {
+			if (config.actions.close_on_click && actions_nodes_active_count !== 0) {
+				close_all_actions_menus();
+			}
+
+			actions_nodes_active[id] = node;
 
 			if (actions_close_timeout !== null) clearTimeout(actions_close_timeout);
 			actions_close_timeout = setTimeout(function () { actions_close_timeout = null; }, 1);
@@ -2098,10 +2123,10 @@
 				$.on(document_element, "click", on_document_click);
 			}
 		};
-		var deactivate_actions = function (index) {
-			if (actions_nodes_active[index] === undefined) return;
+		var deactivate_actions_menu = function (id) {
+			if (actions_nodes_active[id] === undefined) return;
 
-			delete actions_nodes_active[index];
+			delete actions_nodes_active[id];
 			if (--actions_nodes_active_count === 0) {
 				$.off(window, "resize", on_window_resize);
 				$.off(document_element, "click", on_document_click);
@@ -2111,63 +2136,122 @@
 				}
 			}
 		};
-		var on_window_resize = function () {
-			update_active_actions_position();
-		};
-		var on_document_click = function (event) {
-			if (actions_close_timeout === null) {
-				if (config.actions.close_on_click) {
-					if ($.is_left_mouse(event)) {
-						close_all_actions();
-					}
+		var create_actions_menu = function (id, entries) {
+			var theme = Theme.classes,
+				actions = $.node("div", "xl-actions xl-hover-shadow" + theme),
+				label, text, url, fn, n1, n2, n3, n4, n5, i, ii, e;
+
+			$.on(actions, "click", on_actions_menu_click);
+			Theme.bg(actions);
+
+			$.add(actions, n1 = $.node("div", "xl-actions-inner" + theme));
+			$.add(n1, n2 = $.node("div", "xl-actions-table" + theme));
+
+			for (i = 0, ii = entries.length; i < ii; ++i) {
+				e = entries[i];
+				if (e === null) {
+					// Separator
+					n3 = $.node("div", "xl-actions-table-row" + theme);
+					$.add(n3, n4 = $.node("div", "xl-actions-table-cell" + theme));
+					$.add(n4, $.node("div", "xl-actions-table-sep"));
+					$.add(n2, n3);
 				}
 				else {
-					// Re-position
-					setTimeout(update_active_actions_position, 1);
+					// Entry
+					label = e.label;
+					text = e.text;
+					url = e.url;
+					fn = e.modify;
+
+					n3 = $.node("div", "xl-actions-table-row" + theme);
+					$.add(n3, n4 = $.node("div", "xl-actions-table-cell" + theme));
+					if (typeof(label) === "string") {
+						$.add(n4, $.node("div", "xl-actions-table-header", label));
+					}
+					if (typeof(text) === "string") {
+						$.add(n3, n4 = $.node("div", "xl-actions-table-cell" + theme));
+						if (typeof(url) === "string") {
+							$.add(n4, n5 = $.link(url, "xl-actions-option" + theme, text));
+						}
+						else {
+							$.add(n4, n5 = $.node("span", "xl-actions-option" + theme, text));
+						}
+						$.on(n5, "click", $.bind(on_actions_menu_entry_click, n5, actions, id));
+					}
+					else {
+						n4.classList.add("xl-actions-table-cell-full");
+					}
+
+					if (typeof(fn) === "function") {
+						fn(n3, n4, n5);
+					}
+
+					$.add(n2, n3);
 				}
 			}
-		};
-		var on_actions_click = function (event) {
-			if ($.is_left_mouse(event)) {
-				event.stopPropagation();
-			}
-		};
-		var on_actions_link_click = function (actions, index, event) {
-			if ($.is_left_mouse(event)) {
-				event.stopPropagation();
 
-				if (config.actions.close_on_click) {
-					close_actions(actions, index);
+			// Prepare
+			Popup.hovering(actions);
+			return actions;
+		};
+		var enable_actions_menu_on_node = function (node, enabled, id, setup_fn) {
+			var cls = "xl-site-tag-active",
+				actions, tag_bg, info, link;
+
+			if (enabled !== undefined) {
+				if (node.classList.contains(cls) === enabled) return;
+			}
+			enabled = node.classList.toggle(cls);
+
+			if (enabled) {
+				// Create bg
+				tag_bg = $(".xl-site-tag-bg", node);
+				if (tag_bg === null) tag_bg = create_tag_bg(node);
+
+				// Show
+				actions = actions_nodes[id];
+				if (actions !== undefined) {
+					actions.classList.remove("xl-actions-hidden");
+					Popup.hovering(actions);
+					activate_actions_menu(actions, id);
+
+					// Position
+					update_actions_position(actions, node, tag_bg, document_element.getBoundingClientRect());
+				}
+				else {
+					// Create
+					if (
+						(link = get_link_from_site_tag(node)) !== null &&
+						(info = API.get_url_info_saved(link.href)) !== null
+					) {
+						setup_fn(info, id, function (err, actions) {
+							if (err === null) {
+								actions_nodes[id] = actions;
+								activate_actions_menu(actions, id);
+								update_actions_position(actions, node, tag_bg, document_element.getBoundingClientRect());
+							}
+						});
+
+						// API.get_data_from_url_info(info, function (err, data) {
+							// if (err === null) {
+								// create_actions(data, info, id, function (err, actions) {
+									// if (err === null) {
+										// actions_nodes[id] = actions;
+										// activate_actions_menu(actions, id);
+										// update_actions_position(actions, node, tag_bg, document_element.getBoundingClientRect());
+									// }
+								// });
+							// }
+						// });
+					}
 				}
 			}
-		};
-		var create_tag_bg = function (parent) {
-			var tag_bg = $.node("div", "xl-site-tag-bg" + Theme.classes),
-				outline = $.node("div", "xl-site-tag-bg-shadow xl-hover-shadow" + Theme.classes),
-				inner = $.node("div", "xl-site-tag-bg-inner" + Theme.classes);
-
-			Theme.bg(inner);
-
-			$.add(tag_bg, inner);
-
-			$.before(parent, parent.firstChild, tag_bg);
-			$.before(parent, parent.firstChild, outline);
-
-			return tag_bg;
-		};
-
-		var mark_site_tag = function (button, text) {
-			if ((button = get_site_tag_text_node(button)) !== null) {
-				button.textContent = button.textContent.replace(/\]\s*$/, text + "]");
-			}
-		};
-		var update_site_tag = function (button, info) {
-			var n;
-			if ((n = get_site_tag_text_node(button)) !== null) {
-				n.textContent = create_site_tag_text(info);
-			}
-			if (info.icon !== undefined && (n = $(".xl-site-tag-icon", button)) !== null) {
-				n.setAttribute("data-xl-site-tag-icon", info.icon);
+			else {
+				// Hide
+				actions = actions_nodes[id];
+				if (actions !== undefined) {
+					close_actions_menu(actions, id);
+				}
 			}
 		};
 
@@ -2287,6 +2371,7 @@
 			}
 
 			// Format
+			// err = "TODO";
 			if (err === null) {
 				format_link(link, data, info);
 				if (event_listeners.format.length > 0) {
@@ -2417,11 +2502,11 @@
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				nodes[i].classList.add("xl-actions-hidden");
 			}
-			nodes = $$(".xl-site-tag[xl-actions-index]", post);
+			nodes = $$(".xl-site-tag[xl-actions-id]", post);
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				n = nodes[i];
 				n.classList.remove("xl-site-tag-active");
-				n.removeAttribute("xl-actions-index");
+				n.removeAttribute("xl-actions-id");
 			}
 			nodes = $$(".xl-linkified:not(.xl-link-formatted)", post);
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
@@ -2430,14 +2515,14 @@
 		};
 		var cleanup_post_removed = function (post) {
 			var nodes, index, n, i, ii;
-			nodes = $$(".xl-site-tag[xl-actions-index]", post);
+			nodes = $$(".xl-site-tag[xl-actions-id]", post);
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
-				index = nodes[i].getAttribute("xl-actions-index") || "";
+				index = nodes[i].getAttribute("xl-actions-id") || "";
 				n = actions_nodes[index];
 				if (n !== undefined) {
 					if (n.parentNode !== null) $.remove(n);
 					delete actions_nodes[index];
-					deactivate_actions(index);
+					deactivate_actions_menu(index);
 				}
 			}
 		};
