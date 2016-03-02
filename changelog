@@ -1,5 +1,10 @@
 ﻿master
 
+1.2.7.3
+- dnsev-h
+  + Changes to make [Tag] menus more generic
+  + Added a [Tag] menu for broken links (has an option to clear cache, which may resolve issues)
+
 1.2.7.2
 - dnsev-h
   + Fixed a bug causing the EasyList to not update namespaced tags from E*Hentai
