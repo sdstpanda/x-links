@@ -315,6 +315,11 @@
 				header += "// @include     " + list[i] + "\n";
 			}
 		}
+		if (Array.isArray((list = json.connect_targets))) {
+			for (i = 0, ii = list.length; i < ii; ++i) {
+				header += "// @connect     " + list[i] + "\n";
+			}
+		}
 		if (json.urls !== null && typeof(json.urls) === "object") {
 			if (typeof((f = json.urls.homepage)) === "string") {
 				header += "// @homepage    " + f + "\n";

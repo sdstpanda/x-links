@@ -27,6 +27,14 @@
 		"http://forums.e-hentai.org/*",
 		"https://forums.e-hentai.org/*"
 	],
+	"connect_targets": [
+		"exhentai.org",
+		"e-hentai.org",
+		"ehgt.org",
+		"nhentai.net",
+		"hitomi.la",
+		"*"
+	],
 	"gm_permissions": [
 		"GM_xmlhttpRequest",
 		"GM_setValue",
