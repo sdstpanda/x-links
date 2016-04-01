@@ -327,6 +327,9 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 	white-space: nowrap;
 	text-align: right;
 }
+.xl-actions-table-cell.xl-actions-table-cell-label.xl-actions-table-cell-full {
+	text-align: left;
+}
 .xl-actions-table-sep {
 	height: 0.25em;
 }
