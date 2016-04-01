@@ -1048,7 +1048,8 @@
 					site: "dailymotion",
 					type: "video",
 					vid: s,
-					tag: "DailyMotion"
+					tag: "DailyMotion",
+					classes_remove: [ "dailymotion" ]
 				};
 			}
 			else {
@@ -1058,7 +1059,8 @@
 					site: "dailymotion",
 					type: "user",
 					name: s,
-					tag: "DailyMotion"
+					tag: "DailyMotion",
+					classes_remove: [ "dailymotion" ]
 				};
 			}
 		}
