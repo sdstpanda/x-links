@@ -1,5 +1,11 @@
 ﻿master
 
+1.2.8
+- dnsev-h
+  + Fixed another linkification conflict with 4chan-inline
+  + Added @connect tags to the metadata to make Tampermonkey less annoying
+  + A few style fixes
+
 1.2.7.3
 - dnsev-h
   + Changes to make [Tag] menus more generic

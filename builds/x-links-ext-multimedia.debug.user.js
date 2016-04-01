@@ -2,7 +2,7 @@
 // @name        X-links Extension - Multimedia (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.0.6.-0xDB
+// @version     1.0.0.7.-0xDB
 // @description Linkify and format various multimedia links
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -2424,7 +2424,8 @@
 					site: "dailymotion",
 					type: "video",
 					vid: s,
-					tag: "DailyMotion"
+					tag: "DailyMotion",
+					classes_remove: [ "dailymotion" ]
 				};
 			}
 			else {
@@ -2434,7 +2435,8 @@
 					site: "dailymotion",
 					type: "user",
 					name: s,
-					tag: "DailyMotion"
+					tag: "DailyMotion",
+					classes_remove: [ "dailymotion" ]
 				};
 			}
 		}
@@ -3542,7 +3544,7 @@
 		name: "Multimedia",
 		author: "dnsev-h",
 		description: "Linkify and format various multimedia links",
-		version: [1,0,0,6,-0xDB],
+		version: [1,0,0,7,-0xDB],
 		registrations: 1,
 		main: main_fn
 	}, function (err) {

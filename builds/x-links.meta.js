@@ -2,7 +2,7 @@
 // @name        X-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.7.3
+// @version     1.2.8
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -15,6 +15,13 @@
 // @include     http://boards.38chan.net/*
 // @include     http://forums.e-hentai.org/*
 // @include     https://forums.e-hentai.org/*
+// @connect     exhentai.org
+// @connect     e-hentai.org
+// @connect     ehgt.org
+// @connect     nhentai.net
+// @connect     hitomi.la
+// @connect     raw.githubusercontent.com
+// @connect     *
 // @homepage    https://dnsev-h.github.io/x-links/
 // @supportURL  https://github.com/dnsev-h/x-links/issues
 // @updateURL   https://raw.githubusercontent.com/dnsev-h/x-links/stable/builds/x-links.meta.js
