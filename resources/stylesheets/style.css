@@ -796,6 +796,8 @@ s:not(:hover) .xl-site-tag:not(.xl-site-tag-active)>.xl-site-tag-icon,
 .xl-link.xl-link-error {
 	font-style: italic;
 }
+.xl-link-inner {
+}
 .xl-link-error-message {
 	opacity: 0.75;
 }

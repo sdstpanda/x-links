@@ -1427,8 +1427,6 @@
 								var n = $(".xl-actions-option-text", container);
 								if (n !== null) {
 									n.textContent = "If this error persists and you believe it shouldn't, clearing the cache may help";
-									// $.add(n, $.node_simple("br"));
-									// $.add(n, $.tnode("you can try clearing the cache"));
 								}
 							}
 						},
@@ -2457,7 +2455,7 @@
 		};
 		var format_link = function (link, data, info) {
 			var button = get_site_tag_from_link(link),
-				url, hl, c, n;
+				url, hl, c, n, n2;
 
 			// Smart links
 			if ((url = API.rewrite_link_smart(link, info, data)) !== null) {
@@ -2479,12 +2477,14 @@
 			}
 
 			// Link title
-			link.textContent = data.title;
+			n = $.node("span", "xl-link-inner", data.title);
+			link.textContent = "";
+			$.add(link, n);
 			link.classList.add("xl-link-formatted");
 
 			// Button
 			if (button !== null) {
-				hl = Filter.check(link, data);
+				hl = Filter.check(n, data);
 				if (hl[0] !== Filter.None) {
 					c = (hl[0] === Filter.Good) ? config.filter.good_tag_marker : config.filter.bad_tag_marker;
 					mark_site_tag(button, c);
@@ -2495,24 +2495,25 @@
 
 			// URL node
 			if (Config.is_4chan && !Config.is_4chan_x3) {
-				// This is for certain 4chan-inline functionality
-				$.before(link, link.firstChild, $.node("span", "xl-link-url-text", link.href + " "));
+				// This is for certain 4chan-inline functionality (youtube "Embed" link hover image preview)
+				n2 = $.node("span", "xl-link-url-text", " " + link.href + " ");
+				$.before(link, link.firstChild, n2);
 			}
 
 			// Page
 			if (info.page !== undefined) {
-				n = $.node("span", "xl-link-page", " (page " + info.page + ")");
-				link.appendChild(n);
+				n2 = $.node("span", "xl-link-page", " (page " + info.page + ")");
+				$.add(n, n2);
 			}
 			else if (info.title_extra !== undefined) {
-				n = $.node("span", "xl-link-extra", " " + info.title_extra);
-				link.appendChild(n);
+				n2 = $.node("span", "xl-link-extra", " " + info.title_extra);
+				$.add(n, n2);
 			}
 		};
 		var format_link_error = function (link, error) {
 			var text = " (" + error.trim().replace(/\.$/, "") + ")",
 				button = get_site_tag_from_link(link),
-				n;
+				n, n2;
 
 			if (button !== null) {
 				Linkifier.change_link_events(button, "gallery_error");
@@ -2520,14 +2521,21 @@
 			}
 
 			link.classList.add("xl-link-formatted", "xl-link-error");
-			n = $(".xl-link-error-message", link);
-			if (n === null) {
-				$.add(link, n = $.node("span", "xl-link-error-message", text));
+
+			n = $.node("span", "xl-link-inner");
+			while (link.firstChild !== null) {
+				$.add(n, link.firstChild);
+			}
+			$.add(link, n);
+
+			n2 = $(".xl-link-error-message", link);
+			if (n2 === null) {
+				$.add(n, n2 = $.node("span", "xl-link-error-message", text));
 			}
 			else {
-				n.textContent = text;
+				n2.textContent = text;
 			}
-			n.setAttribute("data-xl-error-message", text);
+			n2.setAttribute("data-xl-error-message", text);
 		};
 		var get_links_formatted = function (parent) {
 			return $$("a.xl-link.xl-link-formatted", parent);
@@ -5957,6 +5965,31 @@
 		};
 
 		// Fixing
+		var fix_inline_linkified_link = function (node) {
+			var removals, i, ii, n;
+
+			if (
+				(node = node.nextSibling) !== null &&
+				node.tagName === "A" &&
+				node.classList.contains("linkified")
+			) {
+				removals = [];
+				n = node;
+				while ((n = n.nextSibling) !== null) {
+					if (n.nodeType === Node.TEXT_NODE) {
+						removals.push(n);
+					}
+					else {
+						if (n.tagName === "SPAN" && n.classList.contains("xl-link-inner")) {
+							$.remove(node);
+							for (i = 0, ii = removals.length; i < ii; ++i) $.remove(removals[i]);
+							$.remove(n);
+						}
+						break;
+					}
+				}
+			}
+		};
 		var unlinkify_post = function (post) {
 			var nodes, i, ii;
 
@@ -5973,6 +6006,7 @@
 			nodes = $$(".xl-linkified", post);
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				nodes[i].classList.remove("xl-linkified");
+				fix_inline_linkified_link(nodes[i]);
 			}
 		};
 		var relinkify_posts = function (posts) {
