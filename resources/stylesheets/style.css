@@ -1821,7 +1821,7 @@ button.xl-settings-entry-input.xl-theme-dark:hover {
 
 /* Header */
 .xl-header-bar-link {
-	vertical-align: bottom;
+	vertical-align: baseline;
 	cursor: pointer;
 }
 .xl-header-bar-svg {
