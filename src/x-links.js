@@ -676,9 +676,35 @@
 			return (m === null) ? url : m[1] + new_domain + m[3];
 		};
 
-		Module.create_url_from_data = function (data, media_type) {
+		if (typeof(window.btoa) === "function") {
+			Module.base64_encode = function (data) {
+				return window.btoa(data);
+			};
+			Module.base64_decode = function (data) {
+				return window.atob(data);
+			};
+		}
+
+		var uint8_array_to_string = function (data) {
+			var s = "",
+				step = 1000,
+				ii = data.length,
+				i;
+
+			for (i = 0; i < ii; i += step) {
+				s += String.fromCharCode.apply(String, data.subarray(i, i + step));
+			}
+
+			return s;
+		};
+		var create_data_uri = function (data, media_type) {
+			return "data:" + media_type + ";base64," + Module.base64_encode(uint8_array_to_string(data));
+		};
+		Module.create_url_from_data = function (data, media_type, as_data_uri) {
 			try {
-				return (window.URL || window.webkitURL).createObjectURL(new Blob([ data ], { type: media_type }));
+				return as_data_uri ?
+					create_data_uri(data, media_type) :
+					(window.URL || window.webkitURL).createObjectURL(new Blob([ data ], { type: media_type }));
 			}
 			catch (e) {}
 			return null;
@@ -4697,7 +4723,7 @@
 			}
 
 			// Use direct URL
-			if ((flags & ImageFlags.ThumbnailNoLeech) === 0 && !config.general.image_leeching_disabled)  {
+			if ((flags & ImageFlags.ThumbnailNoLeech) === 0 && !config.general.image_leeching_disabled && !Config.is_8ch)  {
 				callback.call(null, null, thumbnail_url);
 				return;
 			}
@@ -4712,7 +4738,7 @@
 			// Fetch
 			get_image(thumbnail_url, function (err, data, data_length, media_type) {
 				if (err === null) {
-					var img_url = $.create_url_from_data(data.subarray(0, data_length), media_type);
+					var img_url = $.create_url_from_data(data.subarray(0, data_length), media_type, Config.is_8ch);
 
 					if (img_url !== null) {
 						cached_thumbnail_urls[thumbnail_url] = img_url;
@@ -6510,7 +6536,7 @@
 
 			// Config
 			export_data_string = JSON.stringify(create_export_data(), null, 2);
-			export_url = $.create_url_from_data(export_data_string, "application/json");
+			export_url = $.create_url_from_data(export_data_string, "application/json", false);
 
 			// Popup
 			popup = Popup.create("settings", [[{
@@ -6830,6 +6856,7 @@
 				Module.mode = "tinyboard";
 				Module.is_tinyboard = true;
 				Module.linkify = false;
+				if (domain === "8ch.net") Module.is_8ch = true;
 				if ($("form[name=postcontrols]") === null) return false;
 			}
 
@@ -6945,6 +6972,7 @@
 			mode: "4chan", // foolz, fuuka, tinyboard, ipb, ipb_lofi
 			is_4chan: false,
 			is_4chan_x3: false,
+			is_8ch: false,
 			is_foolz: false,
 			is_fuuka: false,
 			is_tinyboard: false,
