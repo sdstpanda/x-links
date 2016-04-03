@@ -1,5 +1,10 @@
 ﻿master
 
+1.2.8.1
+- dnsev-h
+  + Minor style changes
+  + Workaround to make thumbnails work on 8ch (Content-Security-Policy prevents blobs/external images, but allows data URIs)
+
 1.2.8
 - dnsev-h
   + Fixed another linkification conflict with 4chan-inline
