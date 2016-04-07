@@ -1,5 +1,9 @@
 ﻿master
 
+1.2.8.2
+- dnsev-h
+  + Remove the text shadow on Japanese shadows because it can render incorrectly in certain browsers
+
 1.2.8.1
 - dnsev-h
   + Minor style changes
