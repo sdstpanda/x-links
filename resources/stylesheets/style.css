@@ -785,6 +785,7 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 	color: rgba(0,0,0,0);
 	width: 0;
 	height: 0;
+	overflow: hidden;
 }
 s:not(:hover) .xl-site-tag:not(.xl-site-tag-active)>.xl-site-tag-icon,
 .spoiler:not(:hover) .xl-site-tag:not(.xl-site-tag-active)>.xl-site-tag-icon,
