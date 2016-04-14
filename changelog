@@ -1,5 +1,9 @@
 ﻿master
 
+1.2.8.3
+- dnsev-h
+  + Fixed a bug with site icons not properly hiding [Tags]
+
 1.2.8.2
 - dnsev-h
   + Remove the text shadow on Japanese shadows because it can render incorrectly in certain browsers
