@@ -28,7 +28,7 @@ To quickly install, here are the links to the different userscript versions:
 #### build.js usage
 
 ```batch
-node build.js [options] <meta files...>
+node x-build [options] <meta files...>
 
 Available options:
   --dev   Enable continous builds when relevant script files are updated

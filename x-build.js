@@ -13,7 +13,7 @@
 	try {
 		html_minifier = require("html-minifier");
 		CleanCSS = require("clean-css");
-		debug_wrap = require("./src/debug_wrap");
+		debug_wrap = require("./x-build-src/debug_wrap");
 	}
 	catch (e) {
 		process.stderr.write("Dependencies not installed\n");
@@ -91,6 +91,124 @@
 	};
 
 
+	var DependencyGraph = (function () {
+
+		var Node = function (file_name, depth, index) {
+			this.file = file_name;
+			this.source = null;
+			this.max_depth = depth;
+			this.index = index;
+			this.children = [];
+		};
+
+		var DependencyGraph = function () {
+			this.children = [];
+			this.nodes = [];
+			this.new_nodes = [];
+			this.stack = [];
+			this.stack.push(this);
+		};
+
+		DependencyGraph.prototype.push = function (file_name) {
+			var top = this.stack[this.stack.length - 1],
+				depth = this.stack.length,
+				n, i, ii;
+
+			for (i = 0, ii = this.nodes.length; i < ii; ++i) {
+				n = this.nodes[i];
+				if (n.file === file_name) {
+					// Already exists
+					n.max_depth = Math.max(n.max_depth, depth);
+					return null;
+				}
+			}
+
+			n = new Node(file_name, depth, this.nodes.length);
+			this.nodes.push(n);
+			this.new_nodes.push(n);
+			top.children.push(n);
+			this.stack.push(n);
+			return n;
+		};
+		DependencyGraph.prototype.pop = function () {
+			this.stack.pop();
+		};
+		DependencyGraph.prototype.is_start = function () {
+			return (this.stack.length <= 1);
+		};
+		DependencyGraph.prototype.stringify = function (tabstr) {
+			var tab_start = 1,
+				full_src = "",
+				i, ii, src, nl;
+
+			this.new_nodes.sort(sort_function);
+
+			for (i = 0, ii = this.new_nodes.length; i < ii; ++i) {
+				if (i > 0) {
+					full_src += nl + nl;
+				}
+
+				src = this.new_nodes[i].source;
+				nl = get_newline.call(this, src);
+				src = src.trim();
+				if (tabstr.length > 0) {
+					src = indent(src, tabstr, tab_start);
+					tab_start = 0;
+				}
+
+				full_src += src;
+			}
+			this.new_nodes = [];
+
+			// Done
+			return full_src;
+		};
+
+		var sort_function = function (n1, n2) {
+			if (n1.max_depth > n2.max_depth) return -1;
+			return (n1.index > n2.index) ? -1 : 1;
+		};
+		var indent = function (src, tabstr, i) {
+			var i, ii, line;
+			src = src.split("\n");
+			for (ii = src.length; i < ii; ++i) {
+				line = src[i];
+				if (line.length > 0 && line !== "\r") {
+					src[i] = tabstr + line;
+				}
+			}
+			return src.join("\n");
+		};
+		var get_newline = function (src) {
+			var p = src.indexOf("\n");
+			if (p < 0) return "\n"; // Default
+			return (p > 0 && src[p - 1] === "\r" ? "\r\n" : "\n");
+		};
+
+		return DependencyGraph;
+
+	})();
+
+	var get_tabbing = function (text, position) {
+		var tabbing = "",
+			c, o;
+		while (--position >= 0) {
+			c = text[position];
+			switch (c) {
+				case ' ':
+				case '\t':
+					tabbing += c;
+					break;
+				case '\r':
+				case '\n':
+					position = 0;
+					break;
+				default:
+					tabbing = "";
+			}
+		}
+		return tabbing;
+	};
 	var to_args = function (text) {
 		var args = {},
 			m, i;
@@ -173,34 +291,34 @@
 
 			return "" + json_select(json, selector);
 		},
-		require: function (content, settings) {
-			var file = split_fragment(path.normalize(path.resolve(settings.file, content || ""))),
-				src = get_source(file[0], settings.data),
+		require: function (content, settings, info) {
+			var dependencies = settings.data.dependencies,
+				file = split_fragment(path.normalize(path.resolve(settings.file, content || ""))),
 				args = to_args(file[1]),
 				tabchar = "\t",
-				tabstr = "",
-				i, v;
+				tabstr = info.tabbing,
+				i, v, n;
 
 			settings.comment = false;
 
+			n = dependencies.push(file[0]);
+			if (n !== null) {
+				n.source = get_source(file[0], settings.data);
+				settings.data.files.push(file[0]);
+				dependencies.pop();
+			}
+
+			// Dependencies
+			if (!dependencies.is_start()) return "";
+
 			if ((v = args.tabs) !== undefined && !isNaN((v = parseInt(v, 10)))) {
+				tabstr = "";
 				for (i = 0; i < v; ++i) {
 					tabstr += tabchar;
 				}
 			}
-			if (tabstr.length > 0) {
-				src = src.split("\n");
-				for (i = 1; i < src.length; ++i) {
-					if (src[i].length > 0 && src[i] !== "\r") {
-						src[i] = tabstr + src[i];
-					}
-				}
-				src = src.join("\n");
-			}
 
-			settings.data.files.push(file[0]);
-
-			return src;
+			return dependencies.stringify(tabstr);
 		}
 	};
 	var get_source = function (file, data) {
@@ -211,8 +329,11 @@
 		file = path.normalize(path.resolve(file));
 		settings.file = path.dirname(file);
 
-		source = fs.readFileSync(file, "utf8").replace(re_preprocess, function (m, opener, type, content, closer) {
-			var any = false;
+		source = fs.readFileSync(file, "utf8");
+		source = remove_special_comments(source);
+		source = source.replace(re_preprocess, function (m, opener, type, content, closer, offset, source) {
+			var any = false,
+				info = { tabbing: "" };
 
 			if (opener.length > 0 && closer.length > 0) {
 				if (opener === closer) {
@@ -222,11 +343,12 @@
 				else if (opener === "/*" && closer === "*/") {
 					settings.comment = true;
 					any = true;
+					info.tabbing = get_tabbing(source, offset);
 				}
 			}
 
 			if (Object.prototype.hasOwnProperty.call(preprocessors, type)) {
-				m = preprocessors[type].call(null, content, settings);
+				m = preprocessors[type].call(null, content, settings, info);
 				if (settings.comment) {
 					opener = "/*";
 					closer = "*/";
@@ -249,7 +371,10 @@
 
 		return source;
 	};
-
+	var remove_special_comments = function (source) {
+		return source.replace(/([\r\n]\s*)?\/\*\s*(jshint|globals)\s+.*\*\/(?:\r?\n)?/g, "");
+	};
+	
 
 	var uniquify = function (array) {
 		var obj = {},
@@ -367,11 +492,10 @@
 			source += get_source(input_files[i], {
 				version: version,
 				json: json,
-				files: requirements
+				files: requirements,
+				dependencies: new DependencyGraph()
 			});
 		}
-
-		source = source.replace(/\/\*\s*(jshint|globals)\s+.*\*\/(?:\r?\n)?/g, "");
 
 
 		// Debug
