@@ -2,7 +2,7 @@
 // @name        X-links (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.8.2.-0xDB
+// @version     1.2.8.4.-0xDB
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -395,6 +395,16 @@
 						[ domains.exhentai, domains.exhentai ]
 					]
 				}
+			],
+		],
+		easy_list: [
+			[ "enabled", true,
+				"Enabled", "Add Easy List links to the page",
+				null
+			],
+			[ "only_header_icon", false,
+				"Icon only", "Only show the panda icon in the header (don't generate [Easy List] links)",
+				null
 			],
 		],
 		filter: [
@@ -5519,7 +5529,7 @@
 	var Linkifier = (function () {
 
 		// Private
-		var re_url = /(https?:\/*)?(?:(?:forums|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)(?:\/[^<>()\s\'\"]*)?/ig,
+		var re_url = /(https?:\/*)?(?:(?:forums|lofi|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)(?:\/[^<>()\s\'\"]*)?/ig,
 			re_url_class_ignore = /(?:\binlined?\b|\bxl-)/,
 			re_4chan_deferrer = /^(?:https?:)?\/\/sys\.4chan\.org\/derefer\?url=([\w\W]*)$/i;
 
@@ -6688,6 +6698,12 @@
 			n = generate_section();
 			generate_section_options(n, "sauce", options.sauce, config_temp.sauce);
 			generate_section_options_custom(n, "sauce", custom_options, config_custom_temp);
+			$.add(content_container, n);
+
+			$.add(content_container, generate_section_header("Easy List"));
+			n = generate_section();
+			generate_section_options(n, "easy_list", options.easy_list, config_temp.easy_list);
+			generate_section_options_custom(n, "easy_list", custom_options, config_custom_temp);
 			$.add(content_container, n);
 
 			n = $.link("#", "xl-settings-filter-guide-toggle", "Click here to toggle the guide");
@@ -9092,7 +9108,11 @@
 			}
 		}._w(586);
 		var ready = function () {
-			Navigation.insert_link("normal", "Easy List", Main.homepage, " xl-nav-link-easylist", on_open_click);
+			if (!config.easy_list.enabled) return;
+
+			if (!config.easy_list.only_header_icon) {
+				Navigation.insert_link("normal", "Easy List", Main.homepage, " xl-nav-link-easylist", on_open_click);
+			}
 
 			HeaderBar.insert_shortcut_icon(
 				"panda",
@@ -11496,7 +11516,7 @@
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,8,2,-0xDB],
+			version: [1,2,8,4,-0xDB],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,

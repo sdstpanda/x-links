@@ -1,5 +1,10 @@
 ﻿master
 
+1.2.8.4
+- dnsev-h
+  + Added support for lofi URLs
+  + Added options for disabling the [Easy List] links
+
 1.2.8.3
 - dnsev-h
   + Fixed a bug with site icons not properly hiding [Tags]
