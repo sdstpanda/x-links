@@ -32,6 +32,7 @@
 		".jpg": "image/jpeg",
 		".jpeg": "image/jpeg",
 		".css": "text/css",
+		".svg": "image/svg+xml",
 		"": "text/plain"
 	};
 
@@ -145,7 +146,7 @@
 
 			for (i = 0, ii = this.new_nodes.length; i < ii; ++i) {
 				if (i > 0) {
-					full_src += nl + nl;
+					full_src += nl;
 				}
 
 				src = this.new_nodes[i].source;
@@ -169,7 +170,7 @@
 			return (n1.index > n2.index) ? -1 : 1;
 		};
 		var indent = function (src, tabstr, i) {
-			var i, ii, line;
+			var ii, line;
 			src = src.split("\n");
 			for (ii = src.length; i < ii; ++i) {
 				line = src[i];
@@ -191,7 +192,7 @@
 
 	var get_tabbing = function (text, position) {
 		var tabbing = "",
-			c, o;
+			c;
 		while (--position >= 0) {
 			c = text[position];
 			switch (c) {
@@ -240,7 +241,7 @@
 		style: function (content, settings) {
 			var file = path.normalize(path.resolve(settings.file, content || "")),
 				src = get_source(file, settings.data);
-			src = new CleanCSS({}).minify(src).styles;
+			src = new CleanCSS({ roundingPrecision: -1 }).minify(src).styles;
 
 			if (settings.quote !== null) {
 				settings.quote = null;
@@ -248,6 +249,26 @@
 			}
 
 			settings.data.files.push(file);
+
+			return src;
+		},
+		styles: function (content, settings) {
+			var files = content.split(","),
+				src = "",
+				file, i, ii;
+
+			for (i = 0, ii = files.length; i < ii; ++i) {
+				file = path.normalize(path.resolve(settings.file, files[i]));
+				settings.data.files.push(file);
+				src += get_source(file, settings.data);
+			}
+
+			src = new CleanCSS({ roundingPrecision: -1 }).minify(src).styles;
+
+			if (settings.quote !== null) {
+				settings.quote = null;
+				src = JSON.stringify(src);
+			}
 
 			return src;
 		},
@@ -374,7 +395,7 @@
 	var remove_special_comments = function (source) {
 		return source.replace(/([\r\n]\s*)?\/\*\s*(jshint|globals)\s+.*\*\/(?:\r?\n)?/g, "");
 	};
-	
+
 
 	var uniquify = function (array) {
 		var obj = {},
