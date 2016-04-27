@@ -186,6 +186,16 @@
 				}
 			],
 		],
+		easy_list: [
+			[ "enabled", true,
+				"Enabled", "Add Easy List links to the page",
+				null
+			],
+			[ "only_header_icon", false,
+				"Icon only", "Only show the panda icon in the header (don't generate [Easy List] links)",
+				null
+			],
+		],
 		filter: [
 			[ "enabled", true,
 				"Enabled", "Enable filtering of galleries",
@@ -6479,6 +6489,12 @@
 			generate_section_options_custom(n, "sauce", custom_options, config_custom_temp);
 			$.add(content_container, n);
 
+			$.add(content_container, generate_section_header("Easy List"));
+			n = generate_section();
+			generate_section_options(n, "easy_list", options.easy_list, config_temp.easy_list);
+			generate_section_options_custom(n, "easy_list", custom_options, config_custom_temp);
+			$.add(content_container, n);
+
 			n = $.link("#", "xl-settings-filter-guide-toggle", "Click here to toggle the guide");
 			$.on(n, "click", on_toggle_filter_guide);
 			$.add(content_container, generate_section_header("Filtering", n));
@@ -8881,7 +8897,11 @@
 			}
 		};
 		var ready = function () {
-			Navigation.insert_link("normal", "Easy List", Main.homepage, " xl-nav-link-easylist", on_open_click);
+			if (!config.easy_list.enabled) return;
+
+			if (!config.easy_list.only_header_icon) {
+				Navigation.insert_link("normal", "Easy List", Main.homepage, " xl-nav-link-easylist", on_open_click);
+			}
 
 			HeaderBar.insert_shortcut_icon(
 				"panda",
