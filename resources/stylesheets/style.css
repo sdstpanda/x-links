@@ -1818,6 +1818,23 @@ button.xl-settings-entry-input.xl-theme-dark:hover {
 	margin-top: 0.5em !important;
 }
 
+/* Compatibility warnings */
+.xl-compatibility-warnings {
+}
+.xl-compatibility-warning {
+}
+.xl-compatibility-warning+.xl-compatibility-warning {
+	margin-top: 1em;
+}
+.xl-compatibility-warning-title {
+	font-weight: bold;
+	font-size: 1.25em;
+	line-height: 1.4em;
+}
+.xl-compatibility-warning-content {
+	margin: 0 0 0 1em
+}
+
 /* Header */
 .xl-header-bar-link {
 	vertical-align: baseline;

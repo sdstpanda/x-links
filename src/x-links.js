@@ -56,6 +56,10 @@
 				"Hide referrer for thumbnails", "Thumbnails fetching should not send referrer information",
 				"Disable Image Leeching"
 			],
+			[ "compatibility_check", true,
+				"Compatibility check", "Run a compatibility check on script start",
+				null
+			],
 			[ "rewrite_links", "none",
 				"Rewrite link URLs", "Rewrite all E*Hentai links to use a specific site",
 				"Rewrite Links",
@@ -11104,6 +11108,10 @@
 				Changelog.open(" updated to ");
 			}
 
+			if (config.general.compatibility_check) {
+				setTimeout(function () { run_compatibility_check(); }, 1000);
+			}
+
 			Debug.timer_log("init.ready.full duration", "init");
 		};
 		var on_body_observe = function (records) {
@@ -11207,6 +11215,91 @@
 		};
 		var is_post_group_container = function (node) {
 			return node.id === "qp" || node.classList.contains("thread") || node.classList.contains("inline");
+		};
+
+		var run_compatibility_check = function () {
+			var n = $(".exlinksOptionsLink");
+
+			if (n !== null) {
+				show_compatibility_error([
+					{
+						title: "ExLinks enabled",
+						description: "Both ExLinks and X-links have been detected as enabled.\nDisable ExLinks for best functionality."
+					}
+				]);
+			}
+		};
+
+		var show_compatibility_error = function (errors) {
+			var theme = Theme.classes,
+				popup;
+
+			var on_close_click = function (event) {
+				if ($.is_left_mouse(event)) {
+					event.preventDefault();
+					if (popup !== null) {
+						Popup.close(popup);
+						popup = null;
+					}
+				}
+			};
+			var on_change_save = function () {
+				config.general.compatibility_check = this.checked;
+				Config.save();
+			};
+
+
+			popup = Popup.create("settings", [[{
+				small: true,
+				setup: function (container) {
+					$.add(container, $.node("span", "xl-settings-title" + theme, "Compatibility Warning"));
+				}
+			}, {
+				align: "right",
+				setup: function (container) {
+					var n1, n2;
+					$.add(container, n1 = $.node("label", "xl-settings-button" + theme));
+					$.add(n1, n2 = $.node("input", "xl-settings-button-checkbox"));
+					$.add(n1, $.node("span", "xl-settings-button-text xl-settings-button-checkbox-text", " Show warnings"));
+					$.add(n1, $.node("span", "xl-settings-button-text xl-settings-button-checkbox-text", " Don't show warnings"));
+					n2.type = "checkbox";
+					n2.checked = config.general.compatibility_check;
+					$.on(n2, "change", on_change_save);
+
+					$.add(container, n1 = $.link("#", "xl-settings-button" + theme));
+					$.add(n1, $.node("span", "xl-settings-button-text", "Close"));
+					$.on(n1, "click", on_close_click);
+				}
+			}], {
+				body: true,
+				padding: false,
+				setup: function (container) {
+					var i, ii, j, jj, err, n1, n2, lines;
+
+					container.classList.add("xl-compatibility-warnings");
+
+					for (i = 0, ii = errors.length; i < ii; ++i) {
+						err = errors[i];
+
+						n1 = $.node("div", "xl-compatibility-warning" + theme);
+						$.add(container, n1);
+
+						$.add(n1, $.node("div", "xl-compatibility-warning-title" + theme, err.title));
+
+						$.add(n1, (n2 = $.node("div", "xl-compatibility-warning-content" + theme)));
+						lines = err.description.split("\n");
+						for (j = 0, jj = lines.length; j < jj; ++j) {
+							if (j > 0) {
+								$.add(n2, $.node_simple("br"));
+							}
+							$.add(n2, $.tnode(lines[j]));
+						}
+					}
+				}
+			}]);
+
+			$.on(popup, "click", on_close_click);
+			Popup.open(popup);
 		};
 
 		// Public
