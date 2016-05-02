@@ -1,5 +1,9 @@
 ﻿master
 
+1.2.8.5
+- dnsev-h
+  + Added a compatibility check warning to check if ExLinks is also enabled
+
 1.2.8.4
 - dnsev-h
   + Added support for lofi URLs
