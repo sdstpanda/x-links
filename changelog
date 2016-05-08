@@ -1,5 +1,9 @@
 ﻿master
 
+1.2.8.6
+- dnsev-h
+  + Work-around for a Tampermonkey issue where the "window" object has undefined fields
+
 1.2.8.5
 - dnsev-h
   + Added a compatibility check warning to check if ExLinks is also enabled

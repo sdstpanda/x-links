@@ -2,7 +2,7 @@
 // @name        X-links (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.8.5.-0xDB
+// @version     1.2.8.6.-0xDB
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -36,6 +36,11 @@
 (function (window) {
 	"use strict";
 
+	// Tampermonkey bug fix
+	if (window.document === undefined) {
+		window = window.unsafeWindow;
+	}
+
 	var timing = (function () {
 		var perf = window.performance,
 			now, fn;
@@ -49,6 +54,9 @@
 		fn.start = now.call(perf);
 		return fn;
 	})();
+
+	var document = window.document,
+		document_element = document.documentElement;
 
 	(function (simple) {
 		var error_node = null,
@@ -229,9 +237,6 @@
 			};
 		};
 	})(true);
-
-	var document = window.document,
-		document_element = document.documentElement;
 
 	var browser = {
 		is_opera: /presto/i.test("" + window.navigator.userAgent),
@@ -11609,7 +11614,7 @@
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,8,5,-0xDB],
+			version: [1,2,8,6,-0xDB],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
