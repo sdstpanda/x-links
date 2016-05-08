@@ -3,6 +3,11 @@
 (function (window) {
 	"use strict";
 
+	// Tampermonkey bug fix
+	if (window.document === undefined) {
+		window = window.unsafeWindow;
+	}
+
 	var timing = (function () {
 		var perf = window.performance,
 			now, fn;
@@ -17,10 +22,10 @@
 		return fn;
 	})();
 
-	/*#{begin_debug}#*/
-
 	var document = window.document,
 		document_element = document.documentElement;
+
+	/*#{begin_debug}#*/
 
 	var browser = {
 		is_opera: /presto/i.test("" + window.navigator.userAgent),
