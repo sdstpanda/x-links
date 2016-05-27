@@ -5754,6 +5754,11 @@
 			return link;
 		};
 		var preprocess_link = function (node, url, update_on_fail, auto_load) {
+			if (!first_link_preprocessed) {
+				first_link_preprocessed = true;
+				trigger(event_listeners.before_first_link_preprocess, null);
+			}
+			
 			API.get_url_info(url, function (err, info) {
 				if (node.parentNode === null || node.classList.contains("xl-linkified")) return;
 
@@ -6105,6 +6110,38 @@
 			}
 		};
 
+		// Events
+		var first_link_preprocessed = false;
+		var event_listeners = {
+			before_first_link_preprocess: []
+		};
+		var on = function (event_name, callback) {
+			var listeners = event_listeners[event_name];
+			if (listeners === undefined) return false;
+			listeners.push(callback);
+			return true;
+		};
+		var off = function (event_name, callback) {
+			var listeners = event_listeners[event_name],
+				i, ii;
+			if (listeners !== undefined) {
+				for (i = 0, ii = listeners.length; i < ii; ++i) {
+					if (listeners[i] === callback) {
+						listeners.splice(i, 1);
+						return true;
+					}
+				}
+			}
+			return false;
+		};
+		var trigger = function (listeners, data) {
+			var i, ii;
+			for (i = 0, ii = listeners.length; i < ii; ++i) {
+				listeners[i].call(null, data);
+			}
+		};
+
+		
 		// Exports
 		return {
 			parse_text_for_urls: parse_text_for_urls,
@@ -6115,7 +6152,9 @@
 			register_link_events: register_link_events,
 			relinkify_posts: relinkify_posts,
 			fix_broken_4chanx_linkification: fix_broken_4chanx_linkification,
-			linkify_register: linkify_register
+			linkify_register: linkify_register,
+			on: on,
+			off: off
 		};
 
 	})();
@@ -8912,7 +8951,7 @@
 				Navigation.insert_link("normal", "Easy List", Main.homepage, " xl-nav-link-easylist", on_open_click);
 			}
 
-			HeaderBar.insert_shortcut_icon(
+			var link = HeaderBar.insert_shortcut_icon(
 				"panda",
 				Main.title + " Easy List",
 				Main.homepage,
@@ -8926,6 +8965,10 @@
 					$.add(svg, path);
 				}
 			);
+			link.classList.add("xl-header-bar-link-dim");
+			Linkifier.on("before_first_link_preprocess", function () {
+				link.classList.remove("xl-header-bar-link-dim");
+			});
 		};
 		var open = function () {
 			if (popup === null) {
@@ -9482,6 +9525,8 @@
 			shortcut_icons.push(n1);
 
 			if (header_bar !== null) add_svg_icons([ n1 ]);
+			
+			return n1;
 		};
 		var insert_menu_link = function (menu_node) {
 			menu_node.classList.add("entry");

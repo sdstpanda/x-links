@@ -1855,3 +1855,6 @@ button.xl-settings-entry-input.xl-theme-dark:hover {
 	width: 100%;
 	height: 100%;
 }
+.xl-header-bar-link.xl-header-bar-link-dim {
+	opacity: 0.45;
+}
