@@ -1,5 +1,9 @@
 ﻿master
 
+1.2.8.7
+- dnsev-h
+  + Made the Easy List icon be dim unless any links are found
+
 1.2.8.6
 - dnsev-h
   + Work-around for a Tampermonkey issue where the "window" object has undefined fields
