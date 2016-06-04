@@ -1,5 +1,9 @@
 ﻿master
 
+1.2.8.8
+- dnsev-h
+  + Added favorite information to the details popup
+
 1.2.8.7
 - dnsev-h
   + Made the Easy List icon be dim unless any links are found
