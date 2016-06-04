@@ -8293,7 +8293,8 @@
 			return n1;
 		};
 		var create_gallery_nodes = function (data, index, info) {
-			var domain = info.domain,
+			var category = API.get_category(data.category),
+				domain = info.domain,
 				url = CreateURL.to_gallery(data, domain),
 				theme = Theme.classes,
 				n1, n2, n3, n4, n5, n6, n7, i, t;
@@ -8382,9 +8383,9 @@
 			$.add(n4, n5 = $.node("div", "xl-easylist-item-info" + theme));
 
 			$.add(n5, n6 = $.link(CreateURL.to_category(data, domain),
-				"xl-easylist-item-info-button xl-button xl-button-eh xl-button-" + API.get_category(data.category).short_name + theme
+				"xl-easylist-item-info-button xl-button xl-button-eh xl-button-" + category.short_name + theme
 			));
-			$.add(n6, $.node("div", "xl-noise", API.get_category(data.category).name));
+			$.add(n6, $.node("div", "xl-noise", category.name));
 
 
 			$.add(n5, n6 = $.node("div", "xl-easylist-item-info-item xl-easylist-item-info-item-rating" + theme));
