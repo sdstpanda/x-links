@@ -67,7 +67,7 @@
 	background-image: -o-linear-gradient(top, #ffffff, #e6e6e6);
 	background-image: linear-gradient(to bottom, #ffffff, #e6e6e6);
 	background-image: -moz-linear-gradient(top, #ffffff, #e6e6e6);
-	background-repeat: repeat-x;
+	background-repeat: no-repeat;
 	border: 1px solid #bbbbbb;
 	border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
 	border-color: #e6e6e6 #e6e6e6 #bfbfbf;
@@ -76,7 +76,7 @@
 	box-shadow: inset 0 0.08em 0 rgba(255, 255, 255, 0.2), 0 0.08em 0.16em rgba(0, 0, 0, 0.05);
 }
 .xl-button-eh {
-	font-family: 'Source Sans Pro', Tahoma, sans-serif !important;
+	font-family: 'Source Sans Pro', Tahoma, sans-serif;
 	font-weight: 900;
 	font-size: 0.86em;
 	width: 100%;
@@ -86,8 +86,9 @@
 	text-shadow: 0.09em 0.09em 0 rgba(0,0,0,0.5), 0 0 0.3em #000;
 	-webkit-font-smoothing: antialiased;
 }
+.xl-button1,
 .xl-button-doujinshi {
-	background-color: hsl(0, 92%, 27%) !important;
+	background-color: hsl(0, 92%, 27%);
 	background-image: -khtml-gradient(linear, left top, left bottom, from(#f74040), to(#840505));
 	background-image: -moz-linear-gradient(top, #f74040, #840505);
 	background-image: -ms-linear-gradient(top, #f74040, #840505);
@@ -97,8 +98,9 @@
 	background-image: linear-gradient(#f74040, #840505);
 	border-color: #840505 #840505 hsl(0, 92%, 18.5%);
 }
+.xl-button2,
 .xl-button-manga {
-	background-color: hsl(20, 100%, 24%) !important;
+	background-color: hsl(20, 100%, 24%);
 	background-image: -khtml-gradient(linear, left top, left bottom, from(#ff7632), to(#7a2800));
 	background-image: -moz-linear-gradient(top, #ff7632, #7a2800);
 	background-image: -ms-linear-gradient(top, #ff7632, #7a2800);
@@ -108,8 +110,9 @@
 	background-image: linear-gradient(#ff7632, #7a2800);
 	border-color: #7a2800 #7a2800 hsl(20, 100%, 15%);
 }
+.xl-button3,
 .xl-button-artistcg {
-	background-color: hsl(52, 100%, 24%) !important;
+	background-color: hsl(52, 100%, 24%);
 	background-image: -khtml-gradient(linear, left top, left bottom, from(#ffe95b), to(#7a6a00));
 	background-image: -moz-linear-gradient(top, #ffe95b, #7a6a00);
 	background-image: -ms-linear-gradient(top, #ffe95b, #7a6a00);
@@ -119,8 +122,9 @@
 	background-image: linear-gradient(#ffe95b, #7a6a00);
 	border-color: #7a6a00 #7a6a00 hsl(52, 100%, 13%);
 }
+.xl-button4,
 .xl-button-gamecg {
-	background-color: hsl(82, 42%, 14%) !important;
+	background-color: hsl(82, 42%, 14%);
 	background-image: -moz-linear-gradient(top, #96ba58, #273214);
 	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #96ba58), color-stop(100%, #273214));
 	background-image: -webkit-linear-gradient(top, #96ba58, #273214);
@@ -128,8 +132,9 @@
 	background-image: linear-gradient(#96ba58, #273214);
 	border-color: #273214 #273214 hsl(82, 42%, 4%);
 }
+.xl-button5,
 .xl-button-western {
-	background-color: hsl(82, 100%, 24%) !important;
+	background-color: hsl(82, 100%, 24%);
 	background-image: -moz-linear-gradient(top, #c3ff5b, #4d7a00);
 	background-image: -ms-linear-gradient(top, #c3ff5b, #4d7a00);
 	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #c3ff5b), color-stop(100%, #4d7a00));
@@ -138,8 +143,9 @@
 	background-image: linear-gradient(#c3ff5b, #4d7a00);
 	border-color: #4d7a00 #4d7a00 hsl(82, 100%, 13%);
 }
+.xl-button6,
 .xl-button-non-h {
-	background-color: hsl(185, 44%, 24%) !important;
+	background-color: hsl(185, 44%, 24%);
 	background-image: -moz-linear-gradient(top, #73c1c8, #225358);
 	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #73c1c8), color-stop(100%, #225358));
 	background-image: -webkit-linear-gradient(top, #73c1c8, #225358);
@@ -147,8 +153,9 @@
 	background-image: linear-gradient(#73c1c8, #225358);
 	border-color: #225358 #225358 hsl(185, 44%, 14.5%);
 }
+.xl-button7,
 .xl-button-imageset {
-	background-color: hsl(209, 74%, 22%) !important;
+	background-color: hsl(209, 74%, 22%);
 	background-image: -moz-linear-gradient(top, #56a0e5, #0e3961);
 	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #56a0e5), color-stop(100%, #0e3961));
 	background-image: -webkit-linear-gradient(top, #56a0e5, #0e3961);
@@ -156,8 +163,9 @@
 	background-image: linear-gradient(#56a0e5, #0e3961);
 	border-color: #0e3961 #0e3961 hsl(209, 74%, 12%);
 }
+.xl-button8,
 .xl-button-cosplay {
-	background-color: hsl(259, 41%, 27%) !important;
+	background-color: hsl(259, 41%, 27%);
 	background-image: -moz-linear-gradient(top, #a996d3, #3a2861);
 	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #a996d3), color-stop(100%, #3a2861));
 	background-image: -webkit-linear-gradient(top, #a996d3, #3a2861);
@@ -165,8 +173,9 @@
 	background-image: linear-gradient(#a996d3, #3a2861);
 	border-color: #3a2861 #3a2861 hsl(259, 41%, 16%);
 }
+.xl-button9,
 .xl-button-asianporn {
-	background-color: hsl(321, 76%, 26%) !important;
+	background-color: hsl(321, 76%, 26%);
 	background-image: -moz-linear-gradient(top, #ec78c3, #740f51);
 	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #ec78c3), color-stop(100%, #740f51));
 	background-image: -webkit-linear-gradient(top, #ec78c3, #740f51);
@@ -174,8 +183,9 @@
 	background-image: linear-gradient(#ec78c3, #740f51);
 	border-color: #740f51 #740f51 hsl(321, 76%, 15%);
 }
+.xl-button0,
 .xl-button-misc {
-	background-color: hsl(321, 0%, 21%) !important;
+	background-color: hsl(321, 0%, 21%);
 	background-image: -moz-linear-gradient(top, #bfbfbf, #353535);
 	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #bfbfbf), color-stop(100%, #353535));
 	background-image: -webkit-linear-gradient(top, #bfbfbf, #353535);
@@ -548,6 +558,10 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 	font-size: 1em;
 	margin-bottom: 1em;
 }
+.xl-details-upload-info-inner {
+	display: inline-block;
+	vertical-align: baseline;
+}
 .xl-details-uploader {
 	font-size: 1em !important;
 	margin: 0 0.625em;
@@ -555,6 +569,33 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 .xl-details-upload-date {
 	font-size: 1em !important;
 	margin-left: 0.625em;
+}
+
+.xl-details-favorite-info.xl-details-favorite-info-hidden {
+	display: none;
+}
+.xl-details-favorite-info {
+	display: inline-block;
+	padding-right: 1em;
+	vertical-align: baseline;
+}
+.xl-details-favorite-category {
+	padding: 0.25em 0.5em;
+	display: inline-block;
+	font-size: 0.875em;
+	font-weight: normal;
+	-font-family: inherit;
+	line-height: 1.125em;
+	width: auto;
+}
+.xl-details-favorite-label {
+	font-weight: bold;
+	margin-right: 0.375em;
+	display: none;
+}
+.xl-details-favorite-name {
+}
+.xl-details-favorite-category {
 }
 
 .xl-details-tag-block {
