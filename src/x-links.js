@@ -1667,7 +1667,7 @@
 			// Sidebar
 			$.add(content, n1 = $.node("div", "xl-details-side-panel"));
 
-			$.add(n1, n2 = $.node("div", "xl-button xl-button-eh xl-button-" + category.short_name + theme));
+			$.add(n1, n2 = $.node("div", "xl-button xl-button-eh xl-button" + category.color_id + theme));
 			$.add(n2, $.node("div", "xl-noise", category.name));
 
 			if (data.rating >= 0) {
@@ -2991,17 +2991,17 @@
 
 		// Categories
 		var categories = {
-			artistcg:  { sort: 0,  short_name: "artistcg",  name: "Artist CG" },
-			asianporn: { sort: 1,  short_name: "asianporn", name: "Asian Porn" },
-			cosplay:   { sort: 2,  short_name: "cosplay",   name: "Cosplay" },
-			doujinshi: { sort: 3,  short_name: "doujinshi", name: "Doujinshi" },
-			gamecg:    { sort: 4,  short_name: "gamecg",    name: "Game CG" },
-			imageset:  { sort: 5,  short_name: "imageset",  name: "Image Set" },
-			manga:     { sort: 6,  short_name: "manga",     name: "Manga" },
-			misc:      { sort: 7,  short_name: "misc",      name: "Misc" },
-			non_h:     { sort: 8,  short_name: "non-h",     name: "Non-H" },
-			"private": { sort: 9,  short_name: "private",   name: "Private" },
-			western:   { sort: 10, short_name: "western",   name: "Western" }
+			artistcg:  { sort: 0,  color_id: 3, short_name: "artistcg",  name: "Artist CG" },
+			asianporn: { sort: 1,  color_id: 9, short_name: "asianporn", name: "Asian Porn" },
+			cosplay:   { sort: 2,  color_id: 8, short_name: "cosplay",   name: "Cosplay" },
+			doujinshi: { sort: 3,  color_id: 1, short_name: "doujinshi", name: "Doujinshi" },
+			gamecg:    { sort: 4,  color_id: 4, short_name: "gamecg",    name: "Game CG" },
+			imageset:  { sort: 5,  color_id: 7, short_name: "imageset",  name: "Image Set" },
+			manga:     { sort: 6,  color_id: 2, short_name: "manga",     name: "Manga" },
+			misc:      { sort: 7,  color_id: 0, short_name: "misc",      name: "Misc" },
+			non_h:     { sort: 8,  color_id: 6, short_name: "non-h",     name: "Non-H" },
+			"private": { sort: 9,  color_id: 0, short_name: "private",   name: "Private" },
+			western:   { sort: 10, color_id: 5, short_name: "western",   name: "Western" }
 		};
 		var ehentai_category_mapping = {
 			"artist cg sets": "artistcg",
@@ -8383,7 +8383,7 @@
 			$.add(n4, n5 = $.node("div", "xl-easylist-item-info" + theme));
 
 			$.add(n5, n6 = $.link(CreateURL.to_category(data, domain),
-				"xl-easylist-item-info-button xl-button xl-button-eh xl-button-" + category.short_name + theme
+				"xl-easylist-item-info-button xl-button xl-button-eh xl-button" + category.color_id + theme
 			));
 			$.add(n6, $.node("div", "xl-noise", category.name));
 
