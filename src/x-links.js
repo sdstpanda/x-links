@@ -1232,6 +1232,125 @@
 				}
 			}
 		};
+		var types = {
+			to_gallery: [ to_gallery, [ "data", "domain" ] ],
+			to_uploader: [ to_uploader, [ "data", "domain" ] ],
+			to_category: [ to_category, [ "data", "domain" ] ],
+			to_tag: [ to_tag, [ "tag", "domain" ] ],
+			to_tag_ns: [ to_tag_ns, [ "tag", "namespace", "domain" ] ]
+		};
+
+		var eq = function (a, b) { return a === b; },
+			neq = function (a, b) { return a !== b; },
+			operators = {
+				"==": eq,
+				"===": eq,
+				"!=": neq,
+				"!==": neq,
+				">": function (a, b) { return a > b; },
+				">=": function (a, b) { return a >= b; },
+				"<": function (a, b) { return a < b; },
+				"<=": function (a, b) { return a <= b; }
+			};
+
+		var get_var = function (vars, name) {
+			var v = vars,
+				i, ii, k;
+			name = name.split(".");
+			for (i = 0, ii = name.length; i < ii; ++i) {
+				k = name[i];
+				if (Object.prototype.hasOwnProperty.call(v, k)) {
+					v = v[k];
+				}
+				else {
+					return undefined;
+				}
+			}
+			return v;
+		};
+
+		var re_format = /\{([^\}]+)\}/;
+		var format = function (str, vars) {
+			return str.replace(re_format, function (k, g1) {
+				return get_var(vars, g1);
+			});
+		};
+
+		var check_args = function (array, vars) {
+			var i, ii, op;
+			for (i = 1, ii = array.length; i < ii; i += 3) {
+				op = array[i + 1];
+				if (
+					!Object.prototype.hasOwnProperty.call(operators, op) ||
+					!operators[op](get_var(vars, array[i]), array[i + 2])
+				) {
+					return false;
+				}
+			}
+			return true;
+		};
+
+		var create_generic = function (data, arg_names) {
+			if (typeof(data) === "string") {
+				return function () {
+					var vars = {},
+						i, ii;
+					for (i = 0, ii = arg_names.length; i < ii; ++i) {
+						vars[arg_names[i]] = arguments[i];
+					}
+					return format(data);
+				};
+			}
+			if (Array.isArray(data) && data.length > 0) {
+				// Normalize
+				var i, ii, d;
+				for (i = 0, ii = data.length; i < ii; ++i) {
+					d = data[i];
+					if (typeof(d) !== "string" && !(Array.isArray(d) && d.length > 0 && typeof(d[0]) === "string")) {
+						data[i] = "#";
+					}
+				}
+
+				return function () {
+					var vars = {},
+						i, ii, d;
+					for (i = 0, ii = arg_names.length; i < ii; ++i) {
+						vars[arg_names[i]] = arguments[i];
+					}
+					for (i = 0, ii = data.length; i < ii; ++i) {
+						d = data[i];
+						if (typeof(d) === "string") {
+							return d;
+						}
+						if (Array.isArray(d) && check_args(d, vars)) {
+							return format(d[0]);
+						}
+					}
+					return "#";
+				};
+			}
+
+			return function () {
+				return "#";
+			};
+		};
+
+		var register = function (namespace, data) {
+			if (typeof(data) === "object" && data !== null) {
+				var keys = Object.keys(types),
+					i, ii, k, info;
+
+				for (i = 0, ii = keys.length; i < ii; ++i) {
+					k = keys[i];
+					if (Object.prototype.hasOwnProperty.call(data, k)) {
+						info = types[k];
+						if (!Object.prototype.hasOwnProperty.call(info[0], k)) {
+							info[0][namespace] = create_generic(data, info[1]);
+						}
+					}
+				}
+			}
+		};
 
 		// Exports
 		return {
@@ -1254,7 +1373,8 @@
 			to_tag_ns: function (tag, namespace, domain_type, domain) {
 				var fn = to_tag_ns[domain_type];
 				return (typeof(fn) !== "function") ? "#" : fn(tag, namespace, domain);
-			}
+			},
+			register: register
 		};
 
 	})();
