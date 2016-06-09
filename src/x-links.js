@@ -1236,19 +1236,24 @@
 		// Exports
 		return {
 			to_gallery: function (data, domain) {
-				return to_gallery[data.type].call(null, data, domain);
+				var fn = to_gallery[data.type];
+				return (typeof(fn) !== "function") ? "#" : fn(data, domain);
 			},
 			to_uploader: function (data, domain) {
-				return to_uploader[data.type].call(null, data, domain);
+				var fn = to_uploader[data.type];
+				return (typeof(fn) !== "function") ? "#" : fn(data, domain);
 			},
 			to_category: function (data, domain) {
-				return to_category[data.type].call(null, data, domain);
+				var fn = to_category[data.type];
+				return (typeof(fn) !== "function") ? "#" : fn(data, domain);
 			},
 			to_tag: function (tag, domain_type, domain) {
-				return to_tag[domain_type].call(null, tag, domain);
+				var fn = to_tag[domain_type];
+				return (typeof(fn) !== "function") ? "#" : fn(tag, domain);
 			},
 			to_tag_ns: function (tag, namespace, domain_type, domain) {
-				return to_tag_ns[domain_type].call(null, tag, namespace, domain);
+				var fn = to_tag_ns[domain_type];
+				return (typeof(fn) !== "function") ? "#" : fn(tag, namespace, domain);
 			}
 		};
 
@@ -1677,10 +1682,12 @@
 				$.add(n2, $.node("div", "xl-details-rating-text", "(Avg. " + data.rating.toFixed(2) + ")"));
 			}
 
-			$.add(n1, n2 = $.node("div", "xl-details-side-box xl-details-side-box-rating" + theme));
-			$.add(n2, $.node("div", "xl-details-file-count", data.file_count + " image" + (data.file_count === 1 ? "" : "s")));
-			if (data.total_size >= 0) {
-				$.add(n2, $.node("div", "xl-details-file-size", "(" + file_size + " MB)"));
+			if (data.file_count >= 0) {
+				$.add(n1, n2 = $.node("div", "xl-details-side-box xl-details-side-box-rating" + theme));
+				$.add(n2, $.node("div", "xl-details-file-count", data.file_count + " image" + (data.file_count === 1 ? "" : "s")));
+				if (data.total_size >= 0) {
+					$.add(n2, $.node("div", "xl-details-file-size", "(" + file_size + " MB)"));
+				}
 			}
 
 			if (data.torrent_count >= 0) {
@@ -3040,7 +3047,6 @@
 			var c = categories[name];
 			return (c !== undefined) ? c.sort : Object.keys(categories).length;
 		};
-
 
 
 		// Private
@@ -8399,13 +8405,15 @@
 				$.add(n6, $.node("span", "xl-easylist-item-info-light", "(n/a)"));
 			}
 
-			$.add(n5, n6 = $.node("div", "xl-easylist-item-info-item xl-easylist-item-info-item-files" + theme));
 			i = data.file_count;
-			$.add(n6, $.node("span", "", i + " image" + (i === 1 ? "" : "s")));
-			if (data.total_size >= 0) {
-				$.add(n6, $.node_simple("br"));
-				i = (data.total_size / 1024 / 1024).toFixed(2).replace(/\.?0+$/, "");
-				$.add(n6, $.node("span", "xl-easylist-item-info-light", "(" + i + " MB)"));
+			if (i >= 0) {
+				$.add(n5, n6 = $.node("div", "xl-easylist-item-info-item xl-easylist-item-info-item-files" + theme));
+				$.add(n6, $.node("span", "", i + " image" + (i === 1 ? "" : "s")));
+				if (data.total_size >= 0) {
+					$.add(n6, $.node_simple("br"));
+					i = (data.total_size / 1024 / 1024).toFixed(2).replace(/\.?0+$/, "");
+					$.add(n6, $.node("span", "xl-easylist-item-info-light", "(" + i + " MB)"));
+				}
 			}
 
 			// Highlight
