@@ -1254,22 +1254,21 @@
 			};
 
 		var get_var = function (vars, name) {
-			var v = vars,
-				i, ii, k;
+			var i, ii, k;
 			name = name.split(".");
 			for (i = 0, ii = name.length; i < ii; ++i) {
 				k = name[i];
-				if (Object.prototype.hasOwnProperty.call(v, k)) {
-					v = v[k];
+				if (typeof(vars) === "object" && vars !== null && Object.prototype.hasOwnProperty.call(vars, k)) {
+					vars = vars[k];
 				}
 				else {
 					return undefined;
 				}
 			}
-			return v;
+			return vars;
 		};
 
-		var re_format = /\{([^\}]+)\}/;
+		var re_format = /\{([^\}]+)\}/g;
 		var format = function (str, vars) {
 			return str.replace(re_format, function (k, g1) {
 				return get_var(vars, g1);
@@ -1298,7 +1297,7 @@
 					for (i = 0, ii = arg_names.length; i < ii; ++i) {
 						vars[arg_names[i]] = arguments[i];
 					}
-					return format(data);
+					return format(data, vars);
 				};
 			}
 			if (Array.isArray(data) && data.length > 0) {
@@ -1323,7 +1322,7 @@
 							return d;
 						}
 						if (Array.isArray(d) && check_args(d, vars)) {
-							return format(d[0]);
+							return format(d[0], vars);
 						}
 					}
 					return "#";
@@ -1345,7 +1344,7 @@
 					if (Object.prototype.hasOwnProperty.call(data, k)) {
 						info = types[k];
 						if (!Object.prototype.hasOwnProperty.call(info[0], k)) {
-							info[0][namespace] = create_generic(data, info[1]);
+							info[0][namespace] = create_generic(data[k], info[1]);
 						}
 					}
 				}
@@ -10598,6 +10597,9 @@
 				);
 			};
 		};
+		ExtensionAPI.prototype.register_create_url = function (info) {
+			return internal_api_fns.register_create_url(info);
+		};
 
 		ExtensionAPI.prototype.create_extension_channel = function (api_name, api_key) {
 			var self = this;
@@ -10932,6 +10934,7 @@
 						request_apis: [],
 						linkifiers: [],
 						commands: [],
+						create_url: null
 					},
 					complete = remove_waiting_registrations(1),
 					o, i, ii;
@@ -10958,6 +10961,11 @@
 					for (i = 0, ii = o.length; i < ii; ++i) {
 						response.commands.push(this.register_command(o[i], channel));
 					}
+				}
+
+				// URL create functions
+				if (is_object((o = data.create_url))) {
+					response.create_url = this.register_create_url(o);
 				}
 
 				// Okay
@@ -11151,6 +11159,18 @@
 					}
 				});
 				return (typeof(req) === "string") ? req : null;
+			},
+			register_create_url: function (info) {
+				var keys = Object.keys(info),
+					i, ii, k, o;
+				for (i = 0, ii = keys.length; i < ii; ++i) {
+					k = keys[i];
+					o = info[k];
+					if (is_object(o)) {
+						CreateURL.register(k, o);
+					}
+				}
+				return null;
 			}
 		};
 		var internal_api_create = function (global_config) {
@@ -11229,6 +11249,11 @@
 							internal_api_fns.register_command(o);
 						}
 					}
+				}
+
+				// URL create functions
+				if (is_object((o = data.create_url))) {
+					internal_api_fns.register_create_url(o);
 				}
 
 				// Done

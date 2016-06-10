@@ -544,6 +544,7 @@ var xlinks_api = (function () {
 			request_apis: [],
 			linkifiers: [],
 			commands: [],
+			create_url: null
 		};
 
 		var request_apis_response = [],
@@ -691,6 +692,12 @@ var xlinks_api = (function () {
 				command_fns.push(o);
 				send_data.commands.push(a_data);
 			}
+		}
+
+		// URL create functions
+		o = data.create_url;
+		if (is_object(o)) {
+			send_data.create_url = o;
 		}
 
 		// Send
