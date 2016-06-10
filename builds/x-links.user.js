@@ -2,7 +2,7 @@
 // @name        X-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.8.8
+// @version     1.2.8.9
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -1267,24 +1267,149 @@
 				}
 			}
 		};
+		var types = {
+			to_gallery: [ to_gallery, [ "data", "domain" ] ],
+			to_uploader: [ to_uploader, [ "data", "domain" ] ],
+			to_category: [ to_category, [ "data", "domain" ] ],
+			to_tag: [ to_tag, [ "tag", "domain" ] ],
+			to_tag_ns: [ to_tag_ns, [ "tag", "namespace", "domain" ] ]
+		};
+
+		var eq = function (a, b) { return a === b; },
+			neq = function (a, b) { return a !== b; },
+			operators = {
+				"==": eq,
+				"===": eq,
+				"!=": neq,
+				"!==": neq,
+				">": function (a, b) { return a > b; },
+				">=": function (a, b) { return a >= b; },
+				"<": function (a, b) { return a < b; },
+				"<=": function (a, b) { return a <= b; }
+			};
+
+		var get_var = function (vars, name) {
+			var i, ii, k;
+			name = name.split(".");
+			for (i = 0, ii = name.length; i < ii; ++i) {
+				k = name[i];
+				if (typeof(vars) === "object" && vars !== null && Object.prototype.hasOwnProperty.call(vars, k)) {
+					vars = vars[k];
+				}
+				else {
+					return undefined;
+				}
+			}
+			return vars;
+		};
+
+		var re_format = /\{([^\}]+)\}/g;
+		var format = function (str, vars) {
+			return str.replace(re_format, function (k, g1) {
+				void(k); // to make jshint ignore the unused var
+				return get_var(vars, g1);
+			});
+		};
+
+		var check_args = function (array, vars) {
+			var i, ii, op;
+			for (i = 1, ii = array.length; i < ii; i += 3) {
+				op = array[i + 1];
+				if (
+					!Object.prototype.hasOwnProperty.call(operators, op) ||
+					!operators[op](get_var(vars, array[i]), array[i + 2])
+				) {
+					return false;
+				}
+			}
+			return true;
+		};
+
+		var create_generic = function (data, arg_names) {
+			if (typeof(data) === "string") {
+				return function () {
+					var vars = {},
+						i, ii;
+					for (i = 0, ii = arg_names.length; i < ii; ++i) {
+						vars[arg_names[i]] = arguments[i];
+					}
+					return format(data, vars);
+				};
+			}
+			if (Array.isArray(data) && data.length > 0) {
+				// Normalize
+				var i, ii, d;
+				for (i = 0, ii = data.length; i < ii; ++i) {
+					d = data[i];
+					if (typeof(d) !== "string" && !(Array.isArray(d) && d.length > 0 && typeof(d[0]) === "string")) {
+						data[i] = "#";
+					}
+				}
+
+				return function () {
+					var vars = {},
+						i, ii, d;
+					for (i = 0, ii = arg_names.length; i < ii; ++i) {
+						vars[arg_names[i]] = arguments[i];
+					}
+					for (i = 0, ii = data.length; i < ii; ++i) {
+						d = data[i];
+						if (typeof(d) === "string") {
+							return format(d, vars);
+						}
+						if (Array.isArray(d) && check_args(d, vars)) {
+							return format(d[0], vars);
+						}
+					}
+					return "#";
+				};
+			}
+
+			return function () {
+				return "#";
+			};
+		};
+
+		var register = function (namespace, data) {
+			if (typeof(data) === "object" && data !== null) {
+				var keys = Object.keys(types),
+					i, ii, k, info;
+
+				for (i = 0, ii = keys.length; i < ii; ++i) {
+					k = keys[i];
+					if (Object.prototype.hasOwnProperty.call(data, k)) {
+						info = types[k];
+						if (!Object.prototype.hasOwnProperty.call(info[0], k)) {
+							info[0][namespace] = create_generic(data[k], info[1]);
+						}
+					}
+				}
+			}
+		};
 
 		// Exports
 		return {
 			to_gallery: function (data, domain) {
-				return to_gallery[data.type].call(null, data, domain);
+				var fn = to_gallery[data.type];
+				return (typeof(fn) !== "function") ? "#" : fn(data, domain);
 			},
 			to_uploader: function (data, domain) {
-				return to_uploader[data.type].call(null, data, domain);
+				var fn = to_uploader[data.type];
+				return (typeof(fn) !== "function") ? "#" : fn(data, domain);
 			},
 			to_category: function (data, domain) {
-				return to_category[data.type].call(null, data, domain);
+				var fn = to_category[data.type];
+				return (typeof(fn) !== "function") ? "#" : fn(data, domain);
 			},
 			to_tag: function (tag, domain_type, domain) {
-				return to_tag[domain_type].call(null, tag, domain);
+				var fn = to_tag[domain_type];
+				return (typeof(fn) !== "function") ? "#" : fn(tag, domain);
 			},
 			to_tag_ns: function (tag, namespace, domain_type, domain) {
-				return to_tag_ns[domain_type].call(null, tag, namespace, domain);
-			}
+				var fn = to_tag_ns[domain_type];
+				return (typeof(fn) !== "function") ? "#" : fn(tag, namespace, domain);
+			},
+			register: register
 		};
 
 	})();
@@ -1491,6 +1616,7 @@
 				}
 
 				enable_actions_menu_on_node(this, undefined, id, function (info, id, callback) {
+					void(info); // to make jshint ignore the unused var
 					var actions = create_actions_menu(id, [
 						{
 							label: "An error occured",
@@ -1712,10 +1838,12 @@
 				$.add(n2, $.node("div", "xl-details-rating-text", "(Avg. " + data.rating.toFixed(2) + ")"));
 			}
 
-			$.add(n1, n2 = $.node("div", "xl-details-side-box xl-details-side-box-rating" + theme));
-			$.add(n2, $.node("div", "xl-details-file-count", data.file_count + " image" + (data.file_count === 1 ? "" : "s")));
-			if (data.total_size >= 0) {
-				$.add(n2, $.node("div", "xl-details-file-size", "(" + file_size + " MB)"));
+			if (data.file_count >= 0) {
+				$.add(n1, n2 = $.node("div", "xl-details-side-box xl-details-side-box-rating" + theme));
+				$.add(n2, $.node("div", "xl-details-file-count", data.file_count + " image" + (data.file_count === 1 ? "" : "s")));
+				if (data.total_size >= 0) {
+					$.add(n2, $.node("div", "xl-details-file-size", "(" + file_size + " MB)"));
+				}
 			}
 
 			if (data.torrent_count >= 0) {
@@ -3075,7 +3203,6 @@
 			var c = categories[name];
 			return (c !== undefined) ? c.sort : Object.keys(categories).length;
 		};
-
 
 
 		// Private
@@ -8434,13 +8561,15 @@
 				$.add(n6, $.node("span", "xl-easylist-item-info-light", "(n/a)"));
 			}
 
-			$.add(n5, n6 = $.node("div", "xl-easylist-item-info-item xl-easylist-item-info-item-files" + theme));
 			i = data.file_count;
-			$.add(n6, $.node("span", "", i + " image" + (i === 1 ? "" : "s")));
-			if (data.total_size >= 0) {
-				$.add(n6, $.node_simple("br"));
-				i = (data.total_size / 1024 / 1024).toFixed(2).replace(/\.?0+$/, "");
-				$.add(n6, $.node("span", "xl-easylist-item-info-light", "(" + i + " MB)"));
+			if (i >= 0) {
+				$.add(n5, n6 = $.node("div", "xl-easylist-item-info-item xl-easylist-item-info-item-files" + theme));
+				$.add(n6, $.node("span", "", i + " image" + (i === 1 ? "" : "s")));
+				if (data.total_size >= 0) {
+					$.add(n6, $.node_simple("br"));
+					i = (data.total_size / 1024 / 1024).toFixed(2).replace(/\.?0+$/, "");
+					$.add(n6, $.node("span", "xl-easylist-item-info-light", "(" + i + " MB)"));
+				}
 			}
 
 			// Highlight
@@ -8454,7 +8583,7 @@
 				domain_type = data.type,
 				domain = info.domain,
 				namespace_style = "",
-				all_tags, namespace, tags, n2, n3, n4, i, ii;
+				all_tags, namespace, tags, n2, n3, n4, i, ii, empty_ns;
 
 			if (data.tags_ns !== null) {
 				all_tags = data.tags_ns;
@@ -8465,10 +8594,11 @@
 
 			for (namespace in all_tags) {
 				tags = all_tags[namespace];
+				empty_ns = (namespace.length === 0);
 
 				$.add(n1, n2 = $.node("div", "xl-easylist-item-tag-row" + theme));
 
-				if (namespace !== "") {
+				if (!empty_ns) {
 					namespace_style = " xl-tag-namespace-" + namespace.replace(/\ /g, "-") + theme;
 					$.add(n2, n3 = $.node("div", "xl-easylist-item-tag-cell xl-easylist-item-tag-cell-label" + theme));
 					$.add(n3, n4 = $.node("span", "xl-tag-namespace-block xl-tag-namespace-block-no-outline" + namespace_style));
@@ -8481,7 +8611,8 @@
 
 				for (i = 0, ii = tags.length; i < ii; ++i) {
 					$.add(n2, n3 = $.node("span", "xl-tag-block" + namespace_style));
-					$.add(n3, n4 = $.link(CreateURL.to_tag(tags[i], domain_type, domain),
+					$.add(n3, n4 = $.link(
+						empty_ns ? CreateURL.to_tag(tags[i], domain_type, domain) : CreateURL.to_tag_ns(tags[i], namespace, domain_type, domain),
 						"xl-tag xl-tag-color-inherit xl-easylist-item-tag",
 						tags[i]
 					));
@@ -10505,6 +10636,9 @@
 				);
 			};
 		};
+		ExtensionAPI.prototype.register_create_url = function (info) {
+			return internal_api_fns.register_create_url(info);
+		};
 
 		ExtensionAPI.prototype.create_extension_channel = function (api_name, api_key) {
 			var self = this;
@@ -10839,6 +10973,7 @@
 						request_apis: [],
 						linkifiers: [],
 						commands: [],
+						create_url: null
 					},
 					complete = remove_waiting_registrations(1),
 					o, i, ii;
@@ -10865,6 +11000,11 @@
 					for (i = 0, ii = o.length; i < ii; ++i) {
 						response.commands.push(this.register_command(o[i], channel));
 					}
+				}
+
+				// URL create functions
+				if (is_object((o = data.create_url))) {
+					response.create_url = this.register_create_url(o);
 				}
 
 				// Okay
@@ -11058,6 +11198,18 @@
 					}
 				});
 				return (typeof(req) === "string") ? req : null;
+			},
+			register_create_url: function (info) {
+				var keys = Object.keys(info),
+					i, ii, k, o;
+				for (i = 0, ii = keys.length; i < ii; ++i) {
+					k = keys[i];
+					o = info[k];
+					if (is_object(o)) {
+						CreateURL.register(k, o);
+					}
+				}
+				return null;
 			}
 		};
 		var internal_api_create = function (global_config) {
@@ -11136,6 +11288,11 @@
 							internal_api_fns.register_command(o);
 						}
 					}
+				}
+
+				// URL create functions
+				if (is_object((o = data.create_url))) {
+					internal_api_fns.register_create_url(o);
 				}
 
 				// Done
@@ -11535,7 +11692,7 @@
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,8,8],
+			version: [1,2,8,9],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,

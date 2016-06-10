@@ -1,5 +1,10 @@
 ﻿master
 
+1.2.8.9
+- dnsev-h
+  + Some minor internal changes
+  + Updates to the extensions API
+
 1.2.8.8
 - dnsev-h
   + Added favorite information to the details popup
