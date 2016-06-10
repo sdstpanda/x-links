@@ -1271,6 +1271,7 @@
 		var re_format = /\{([^\}]+)\}/g;
 		var format = function (str, vars) {
 			return str.replace(re_format, function (k, g1) {
+				void(k); // to make jshint ignore the unused var
 				return get_var(vars, g1);
 			});
 		};
@@ -1580,6 +1581,7 @@
 				}
 
 				enable_actions_menu_on_node(this, undefined, id, function (info, id, callback) {
+					void(info); // to make jshint ignore the unused var
 					var actions = create_actions_menu(id, [
 						{
 							label: "An error occured",
