@@ -1319,7 +1319,7 @@
 					for (i = 0, ii = data.length; i < ii; ++i) {
 						d = data[i];
 						if (typeof(d) === "string") {
-							return d;
+							return format(d, vars);
 						}
 						if (Array.isArray(d) && check_args(d, vars)) {
 							return format(d[0], vars);
@@ -8546,7 +8546,7 @@
 				domain_type = data.type,
 				domain = info.domain,
 				namespace_style = "",
-				all_tags, namespace, tags, n2, n3, n4, i, ii;
+				all_tags, namespace, tags, n2, n3, n4, i, ii, empty_ns;
 
 			if (data.tags_ns !== null) {
 				all_tags = data.tags_ns;
@@ -8557,10 +8557,11 @@
 
 			for (namespace in all_tags) {
 				tags = all_tags[namespace];
+				empty_ns = (namespace.length === 0);
 
 				$.add(n1, n2 = $.node("div", "xl-easylist-item-tag-row" + theme));
 
-				if (namespace !== "") {
+				if (!empty_ns) {
 					namespace_style = " xl-tag-namespace-" + namespace.replace(/\ /g, "-") + theme;
 					$.add(n2, n3 = $.node("div", "xl-easylist-item-tag-cell xl-easylist-item-tag-cell-label" + theme));
 					$.add(n3, n4 = $.node("span", "xl-tag-namespace-block xl-tag-namespace-block-no-outline" + namespace_style));
@@ -8573,7 +8574,8 @@
 
 				for (i = 0, ii = tags.length; i < ii; ++i) {
 					$.add(n2, n3 = $.node("span", "xl-tag-block" + namespace_style));
-					$.add(n3, n4 = $.link(CreateURL.to_tag(tags[i], domain_type, domain),
+					$.add(n3, n4 = $.link(
+						empty_ns ? CreateURL.to_tag(tags[i], domain_type, domain) : CreateURL.to_tag_ns(tags[i], namespace, domain_type, domain),
 						"xl-tag xl-tag-color-inherit xl-easylist-item-tag",
 						tags[i]
 					));
