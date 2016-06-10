@@ -1,0 +1,19 @@
+{
+	"name": "X-links Extension - FAKKU",
+	"version": "1.0",
+	"author": "dnsev-h",
+	"description": "Linkify and format FAKKU links",
+	"namespace": "dnsev-h",
+	"urls": {
+		"homepage": "https://dnsev-h.github.io/x-links/",
+		"support": "https://github.com/dnsev-h/x-links/issues",
+		"update_base": "https://raw.githubusercontent.com/dnsev-h/x-links/stable/",
+		"changelog": "https://raw.githubusercontent.com/dnsev-h/x-links/stable/src/extensions/fakku_changelog"
+	},
+	"inputs": [ "./fakku.js" ],
+	"output": "../../builds/x-links-ext-fakku.user.js",
+	"icon48": "../../resources/images/extensions/icon48.png",
+	"icon64": "../../resources/images/extensions/icon64.png",
+	"targets": "@:../main.json#targets",
+	"gm_permissions": []
+}
