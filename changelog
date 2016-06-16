@@ -1,5 +1,9 @@
 ﻿master
 
+1.2.8.10
+- dnsev-h
+  + Added a custom error message for "poni" codes encountered while reverse image searching
+
 1.2.8.9
 - dnsev-h
   + Some minor internal changes
