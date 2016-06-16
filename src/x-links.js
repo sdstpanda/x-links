@@ -1584,7 +1584,7 @@
 					void(info); // to make jshint ignore the unused var
 					var actions = create_actions_menu(id, [
 						{
-							label: "An error occured",
+							label: "An error occurred",
 							modify: function (container) {
 								var n = $(".xl-actions-table-header", container);
 								if (n !== null) {
@@ -3385,12 +3385,17 @@
 						err = "Similarity lookup does not work on monotone images";
 					}
 				}
+				else if ((m = /[?&]poni=([^\?\&\#]*)/.exec(final_url)) !== null) {
+					// Strange error
+					err = "poni-code encountered: you likely have erroneous cookies.\n" + m[1];
+					Debug.log("poni-code encountered: " + final_url);
+				}
 				else {
 					if (/please\s+wait\s+a\s+bit\s+longer\s+between\s+each\s+file\s+search/i.test(text)) {
 						err = "Wait longer between lookups";
 					}
 					else {
-						Debug.log("An error occured while reverse image searching", xhr);
+						Debug.log("An error occurred while reverse image searching", xhr);
 						err = "Unknown error";
 						html = $.html_parse_safe(text, null);
 						if (html !== null) {
@@ -5343,7 +5348,7 @@
 
 		var create_error = function (node, error) {
 			var id = hover_nodes_id,
-				hover;
+				hover, n, i, ii;
 
 			// Update id
 			++hover_nodes_id;
@@ -5351,7 +5356,12 @@
 			// Create hover
 			hover = $.node("div", "xl-exsauce-hover xl-exsauce-hover-hidden xl-hover-shadow" + Theme.classes);
 			Theme.bg(hover);
-			$.add(hover, $.node("span", "xl-exsauce-hover-link", error));
+			$.add(hover, n = $.node("span", "xl-exsauce-hover-link"));
+			error = error.trim().split("\n");
+			for (i = 0, ii = error.length; i < ii; ++i) {
+				if (i > 0) $.add(n, $.node_simple("br"));
+				$.add(n, $.tnode(error[i]));
+			}
 
 			// Ids
 			hover.setAttribute("data-xl-sauce-hover-id", id);
