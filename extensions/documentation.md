@@ -177,7 +177,8 @@ The descriptor format is the following.
     author: &lt;string&gt;,
     description: &lt;string&gt;,
     version: [array-of-number],
-    registrations: [number]
+    registrations: [number],
+    main: [function(xlinks_api)]
 }</pre>
 </p>
 <p>
@@ -247,7 +248,17 @@ The descriptor format is the following.
             details: &lt;function(data,info,callback)&gt;
         },
         ...
-    ]
+    ],
+    create_url: {
+        type: {
+            to_gallery: &lt;string | array of string conditions&gt;,
+            to_uploader: ...,
+            to_category: ...,
+            to_tag: ...,
+            to_tag_ns: ...
+        },
+        ...
+    }
 }</pre>
 </p>
 
