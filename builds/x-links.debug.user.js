@@ -2,7 +2,7 @@
 // @name        X-links (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.8.10.-0xDB
+// @version     1.2.8.11.-0xDB
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -3598,7 +3598,7 @@
 				}
 				else if ((m = /[?&]poni=([^\?\&\#]*)/.exec(final_url)) !== null) {
 					// Strange error
-					err = "poni-code encountered (cookie error?)\n" + m[1];
+					err = "poni-code encountered: you likely have erroneous cookies.\n" + m[1];
 					Debug.log("poni-code encountered: " + final_url);
 				}
 				else {
@@ -4498,13 +4498,19 @@
 			callback(null, {
 				method: "GET",
 				url: "http://" + info.domain + "/g/" + info.gid + "/" + info.token + "/" + info.search,
+				any_status: true
 			});
 		}._w(311);
 		rt_ehentai_gallery_full.parse_response = function (xhr, callback) {
 			var info = this.infos[0];
-			ehentai_response_process_generic.call(this, xhr, info, this.type.delay_okay, callback, function (err, html) {
-				callback(null, [ err === null ? ehentai_parse_gallery_info(html, info.data) : ehentai_make_removed(info.data) ]);
-			}._w(313));
+			if (xhr.status === 200 || xhr.status === 404) {
+				ehentai_response_process_generic.call(this, xhr, info, this.type.delay_okay, callback, function (err, html) {
+					callback(null, [ err === null ? ehentai_parse_gallery_info(html, info.data) : ehentai_make_removed(info.data) ]);
+				}._w(313));
+			}
+			else {
+				callback(null, [ ehentai_make_removed(info.data) ]);
+			}
 		}._w(312);
 		var ehentai_response_process_generic = function (xhr, info, retry_delay, callback, process_callback) {
 			var content_type = header_string_parse(xhr.responseHeaders)["content-type"],
@@ -11878,7 +11884,7 @@
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,8,10,-0xDB],
+			version: [1,2,8,11,-0xDB],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
