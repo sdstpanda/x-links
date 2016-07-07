@@ -1461,8 +1461,7 @@ button.xl-settings-entry-input.xl-theme-dark:hover {
 	display: inline-block;
 	vertical-align: middle;
 	position: relative;
-	line-height: normal;
-	white-space: normal;
+	text-align: center;
 }
 .xl-easylist-item-image {
 	margin: 0 !important;
@@ -1473,6 +1472,20 @@ button.xl-settings-entry-input.xl-theme-dark:hover {
 	max-width: 140px;
 	max-height: 200px;
 }
+.xl-easylist-item-image-error-aligner {
+	display: inline-block;
+	vertical-align: middle;
+	width: 0;
+	height: 100%;
+}
+.xl-easylist-item-image-error {
+	font-size: 0.75em;
+	padding: 0.25em;
+	display: inline-block;
+	vertical-align: middle;
+	line-height: normal;
+	white-space: pre-wrap;
+}
 .xl-easylist-item-image-index {
 	display: block;
 	position: absolute;
@@ -1481,6 +1494,7 @@ button.xl-settings-entry-input.xl-theme-dark:hover {
 	padding: 0.25em;
 	color: #000000;
 	text-shadow: 0 0 0.125em #ffffff, 0 0 0.25em #ffffff;
+	line-height: normal;
 }
 .xl-easylist-item-image-index.xl-theme-dark {
 	color: #ffffff ;

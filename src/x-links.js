@@ -2813,6 +2813,10 @@
 			});
 		};
 
+		var strings = {
+			thumbnail_failed: "Thumbnail failed to load\n\nThis may be due to an extension conflict - check any adblocker or similar extensions that are installed"
+		};
+		
 		// Exports
 		return {
 			setup_link: setup_link,
@@ -2827,7 +2831,8 @@
 			register_actions_creation: register_actions_creation,
 			init: init,
 			on: on,
-			off: off
+			off: off,
+			strings: strings
 		};
 
 	})();
@@ -9065,7 +9070,11 @@
 			if (par === null) return;
 			par.style.width = "100%";
 			par.style.height = "100%";
-			this.style.visibility = "hidden";
+			this.style.display = "none";
+
+			var n = $.node("div", "xl-easylist-item-image-error" + Theme.classes, UI.strings.thumbnail_failed);
+			$.before(par, par.firstChild, n);
+			$.before(par, n, $.node("div", "xl-easylist-item-image-error-aligner" + Theme.classes));
 		};
 		var on_link_format = function (event) {
 			add_links([ event.link ]);
