@@ -756,6 +756,16 @@
 			return target;
 		};
 
+		Module.xhr_error_string = function (xhr) {
+			var s = "Response error ";
+			s += xhr.status;
+			if (xhr.statusText) {
+				s += " - ";
+				s += xhr.statusText;
+			}
+			return s;
+		};
+
 		return Module;
 
 	})();
@@ -2815,7 +2825,7 @@
 		var strings = {
 			thumbnail_failed: "Thumbnail failed to load\n\nThis may be due to an extension conflict - check any adblocker or similar extensions that are installed"
 		};
-		
+
 		// Exports
 		return {
 			setup_link: setup_link,
@@ -3767,7 +3777,7 @@
 						callback.call(null, null, ta, ii, content_type, xhr.finalUrl);
 					}
 					else {
-						callback.call(null, "Response error " + xhr.status, null, 0, null, null);
+						callback.call(null, $.xhr_error_string(xhr), null, 0, null, null);
 					}
 				},
 				onerror: function () {
@@ -4084,7 +4094,7 @@
 					});
 				}
 				else {
-					self.xhr_error("Response error " + xhr.status)();
+					self.xhr_error($.xhr_error_string(xhr))();
 				}
 			};
 
@@ -9440,7 +9450,7 @@
 						callback.call(null, null, xhr.responseText);
 					}
 					else {
-						callback.call(null, "Response error " + xhr.status, null);
+						callback.call(null, $.xhr_error_string(xhr), null);
 					}
 				},
 				onerror: function () {
