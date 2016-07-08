@@ -1607,7 +1607,6 @@
 							url: "#",
 							modify: function (container) {
 								var n = $(".xl-actions-option", container);
-								console.log(n);
 								if (n !== null) {
 									$.on(n, "click", function (event) {
 										if ($.is_left_mouse(event)) {
