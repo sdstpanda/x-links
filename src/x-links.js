@@ -2599,28 +2599,34 @@
 				}
 			});
 		};
-		var setup_link = function (link, url, info, auto_load) {
-			var button = $.link(url, "xl-site-tag" + Theme.classes),
-				text = $.node("span", "xl-site-tag-text", create_site_tag_text(info)),
-				n;
+		var setup_link = function (link, url, info, auto_load, add_tag) {
+			var button, text, n;
 
-			button.setAttribute("data-xl-site", info.site);
-			button.setAttribute("data-xl-href", button.href);
-			button.removeAttribute("href");
+			if (add_tag) {
+				button = $.link(url, "xl-site-tag" + Theme.classes);
+				text = $.node("span", "xl-site-tag-text", create_site_tag_text(info));
 
-			set_node_id(link, info);
+				button.setAttribute("data-xl-site", info.site);
+				button.setAttribute("data-xl-href", button.href);
+				button.removeAttribute("href");
 
-			if (info.icon !== undefined) {
-				$.add(button, n = $.node("span", "xl-site-tag-icon" + Theme.classes));
-				n.setAttribute("data-xl-site-tag-icon", info.icon);
+				if (info.icon !== undefined) {
+					$.add(button, n = $.node("span", "xl-site-tag-icon" + Theme.classes));
+					n.setAttribute("data-xl-site-tag-icon", info.icon);
+				}
+
+				$.add(button, text);
+
+				Linkifier.change_link_events(button, "gallery_fetch");
+
+				$.before(link.parentNode, link, button);
+			}
+			else {
+				link.setAttribute("data-xl-no-content-update", "true");
 			}
 
-			$.add(button, text);
-
+			set_node_id(link, info);
 			Linkifier.change_link_events(link, "gallery_link");
-			Linkifier.change_link_events(button, "gallery_fetch");
-
-			$.before(link.parentNode, link, button);
 
 			if (auto_load) load_link(link, info);
 		};
@@ -2665,7 +2671,8 @@
 		};
 		var format_link = function (link, data, info) {
 			var button = get_site_tag_from_link(link),
-				url, hl, c, n, n2;
+				n = null,
+				url, hl, c, n2;
 
 			// Smart links
 			if ((url = API.rewrite_link_smart(link, info, data)) !== null) {
@@ -2687,13 +2694,15 @@
 			}
 
 			// Link title
-			n = $.node("span", "xl-link-inner", data.title);
-			link.textContent = "";
-			$.add(link, n);
-			link.classList.add("xl-link-formatted");
+			if (link.getAttribute("data-xl-no-content-update") !== "true") {
+				n = $.node("span", "xl-link-inner", data.title);
+				link.textContent = "";
+				$.add(link, n);
+				link.classList.add("xl-link-formatted");
+			}
 
 			// Button
-			if (button !== null) {
+			if (button !== null && n !== null) {
 				hl = Filter.check(n, data);
 				if (hl[0] !== Filter.None) {
 					c = (hl[0] === Filter.Good) ? config.filter.good_tag_marker : config.filter.bad_tag_marker;
@@ -2711,19 +2720,20 @@
 			}
 
 			// Page
-			if (info.page !== undefined) {
-				n2 = $.node("span", "xl-link-page", " (page " + info.page + ")");
-				$.add(n, n2);
-			}
-			else if (info.title_extra !== undefined) {
-				n2 = $.node("span", "xl-link-extra", " " + info.title_extra);
-				$.add(n, n2);
+			if (n !== null) {
+				if (info.page !== undefined) {
+					n2 = $.node("span", "xl-link-page", " (page " + info.page + ")");
+					$.add(n, n2);
+				}
+				else if (info.title_extra !== undefined) {
+					n2 = $.node("span", "xl-link-extra", " " + info.title_extra);
+					$.add(n, n2);
+				}
 			}
 		};
 		var format_link_error = function (link, error) {
-			var text = " (" + error.trim().replace(/\.$/, "") + ")",
-				button = get_site_tag_from_link(link),
-				n, n2;
+			var button = get_site_tag_from_link(link),
+				text, n, n2;
 
 			if (button !== null) {
 				Linkifier.change_link_events(button, "gallery_error");
@@ -2732,20 +2742,24 @@
 
 			link.classList.add("xl-link-formatted", "xl-link-error");
 
-			n = $.node("span", "xl-link-inner");
-			while (link.firstChild !== null) {
-				$.add(n, link.firstChild);
-			}
-			$.add(link, n);
+			if (link.getAttribute("data-xl-no-content-update") !== "true") {
+				text = " (" + error.trim().replace(/\.$/, "") + ")";
 
-			n2 = $(".xl-link-error-message", link);
-			if (n2 === null) {
-				$.add(n, n2 = $.node("span", "xl-link-error-message", text));
+				n = $.node("span", "xl-link-inner");
+				while (link.firstChild !== null) {
+					$.add(n, link.firstChild);
+				}
+				$.add(link, n);
+
+				n2 = $(".xl-link-error-message", link);
+				if (n2 === null) {
+					$.add(n, n2 = $.node("span", "xl-link-error-message", text));
+				}
+				else {
+					n2.textContent = text;
+				}
+				n2.setAttribute("data-xl-error-message", text);
 			}
-			else {
-				n2.textContent = text;
-			}
-			n2.setAttribute("data-xl-error-message", text);
 		};
 		var get_links_formatted = function (parent) {
 			return $$("a.xl-link.xl-link-formatted", parent);
@@ -5968,6 +5982,8 @@
 			}
 
 			API.get_url_info(url, function (err, info) {
+				var modify_link = true;
+
 				if (node.parentNode === null || node.classList.contains("xl-linkified")) return;
 
 				if (err !== null || info === null || (config.sites[info.site] === false || Config.get_custom("sites", info.site) === false)) {
@@ -5980,16 +5996,18 @@
 					return;
 				}
 
-				url = API.rewrite_link(url, info);
+				if (modify_link) {
+					url = API.rewrite_link(url, info);
 
-				node.href = url;
-				node.target = "_blank";
-				node.rel = "noreferrer";
+					node.href = url;
+					node.target = "_blank";
+					node.rel = "noreferrer";
+				}
 
 				node.classList.add("xl-link");
 				node.classList.add("xl-linkified");
 
-				UI.setup_link(node, url, info, auto_load);
+				UI.setup_link(node, url, info, auto_load, modify_link);
 			});
 		};
 
