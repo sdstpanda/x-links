@@ -1,5 +1,11 @@
 ﻿master
 
+1.2.8.12
+- dnsev-h
+  + Added an error message for thumbnails that fail to load in the Easy List
+  + Improved the status messages for AJAX errors
+  + Added a "random" link at the top of the Easy List
+
 1.2.8.11
 - dnsev-h
   + Fixed removed E-Hentai galleries not being detected properly
