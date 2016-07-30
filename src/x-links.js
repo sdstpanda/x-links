@@ -8209,6 +8209,7 @@
 			this.info = info;
 			this.data = data;
 			this.node = null;
+			this.url = "#";
 		};
 
 		// Private
@@ -8289,6 +8290,9 @@
 
 				// Close
 				$.add(container, n1 = $.node("div", "xl-easylist-control-links"));
+
+				$.add(n1, n2 = $.link("#", "xl-easylist-control-link xl-easylist-control-link-random", "random"));
+				$.on(n2, "mouseover", on_random_link_generate);
 
 				$.add(n1, n2 = $.link(undefined, "xl-easylist-control-link xl-easylist-control-link-options", "options"));
 				$.on(n2, "click", on_options_click);
@@ -8588,7 +8592,7 @@
 			// Highlight
 			update_filters(n1, data, true, false);
 
-			return n1;
+			return [ n1, url ];
 		};
 		var create_full_tags = function (data, info) {
 			var theme = Theme.classes,
@@ -8641,11 +8645,12 @@
 		var add_gallery = function (content_index, entry, index, force_reorder) {
 			var info = entry.info,
 				data = entry.data,
-				entries, n;
+				url, n;
 
 			if (data.subtype === "gallery") {
-				entries = contents[content_index].entries;
 				n = create_gallery_nodes(data, index, info);
+				url = n[1];
+				n = n[0];
 				n.setAttribute("data-xl-easylist-item-parity", (contents[content_index].visible % 2) === 0 ? "odd" : "even");
 
 				Main.insert_custom_fonts();
@@ -8653,7 +8658,8 @@
 				$.add(contents[content_index].container, n);
 
 				entry.node = n;
-				entries.push(entry);
+				entry.url = url;
+				contents[content_index].entries.push(entry);
 				++contents[content_index].visible;
 
 				if (content_index === content_current) {
@@ -9164,6 +9170,15 @@
 
 				event.preventDefault();
 				return false;
+			}
+		};
+		var on_random_link_generate = function (event) {
+			var entries = contents[content_current].entries,
+				i;
+
+			if (entries.length > 0) {
+				i = Math.floor(Math.random() * entries.length);
+				this.href = entries[i].url;
 			}
 		};
 
