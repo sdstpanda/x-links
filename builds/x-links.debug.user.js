@@ -2,7 +2,7 @@
 // @name        X-links (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.8.12.-0xDB
+// @version     1.2.8.13.-0xDB
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -8504,6 +8504,7 @@
 
 				$.add(n1, n2 = $.link("#", "xl-easylist-control-link xl-easylist-control-link-random", "random"));
 				$.on(n2, "mouseover", on_random_link_generate);
+				$.on(n2, "mouseup", on_random_link_generate_delayed);
 
 				$.add(n1, n2 = $.link(undefined, "xl-easylist-control-link xl-easylist-control-link-options", "options"));
 				$.on(n2, "click", on_options_click);
@@ -9392,11 +9393,17 @@
 				this.href = entries[i].url;
 			}
 		}._w(606);
+		var on_random_link_generate_delayed = function (event) {
+			var self = this;
+			setTimeout(function () {
+				on_random_link_generate.call(self, event);
+			}._w(608), 1);
+		}._w(607);
 
 		// Public
 		var get_saved_settings = function () {
 			return $.json_parse_safe(Config.storage.getItem(settings_key), null);
-		}._w(607);
+		}._w(609);
 		var set_saved_settings = function (data) {
 			if (data === null) {
 				Config.storage.removeItem(settings_key);
@@ -9404,7 +9411,7 @@
 			else {
 				Config.storage.setItem(settings_key, JSON.stringify(data));
 			}
-		}._w(608);
+		}._w(610);
 		var ready = function () {
 			if (!config.easy_list.enabled) return;
 
@@ -9424,13 +9431,13 @@
 						"M 47.316173,40.278702 c -1.977441,10.244331 -5.318272,21.474541 -5.662805,29.784036 -0.242507,5.848836 2.420726,7.5586 5.348383,2.078223 5.586237,-10.45706 7.896687,-21.139251 10.839979,-32.018641 -1.376342,0.732535 -2.33581,0.805482 -3.567752,1.104816 2.20065,-1.826801 1.797963,-1.259845 4.683397,-4.356147 3.702042,-3.972588 11.505701,-7.842675 15.187296,-4.490869 4.597776,4.185917 3.4537,13.920509 -0.431829,18.735387 -1.301987,5.219157 -3.278232,10.993981 -4.691055,14.211545 1.650129,0.951997 7.1775,2.647886 8.723023,6.808838 1.818473,4.895806 0.447993,8.335081 -3.207776,12.929618 8.781279,-6.214409 9.875004,-12.24852 10.586682,-20.251062 C 85.596887,59.244915 85.615915,54.42819 83.82437,47.181873 82.032825,39.935556 77.484187,30.527275 73.806105,23.780748 70.128023,17.034221 68.465076,12.376515 60.467734,7.5782428 54.534892,4.0186364 44.006601,5.3633006 39.960199,11.716546 c -4.046402,6.353245 -2.052295,11.417199 0.339979,17.673546 -0.06795,1.969646 -1.145015,4.295256 0.105508,5.751383 1.875243,-0.914979 2.772108,-1.957655 4.421995,-2.639606 -0.01451,1.529931 0.320921,4.192236 -1.17535,5.722167 1.758316,1.116252 1.80495,1.414307 3.663842,2.054666 z"
 					);
 					$.add(svg, path);
-				}._w(610)
+				}._w(612)
 			);
 			link.classList.add("xl-header-bar-link-dim");
 			Linkifier.on("before_first_link_preprocess", function () {
 				link.classList.remove("xl-header-bar-link-dim");
-			}._w(611));
-		}._w(609);
+			}._w(613));
+		}._w(611);
 		var open = function () {
 			if (popup === null) {
 				settings_load();
@@ -9442,17 +9449,17 @@
 
 			Popup.open(popup);
 			$.scroll_focus(popup);
-		}._w(612);
+		}._w(614);
 		var close = function () {
 			Popup.close(popup);
 
 			set_options_visible(false);
 
 			UI.off("format", on_link_format);
-		}._w(613);
+		}._w(615);
 		var is_open = function () {
 			return (popup !== null && Popup.is_open(popup));
-		}._w(614);
+		}._w(616);
 
 		// Exports
 		return {
@@ -9475,14 +9482,14 @@
 			if ($.is_left_mouse(event)) {
 				event.stopPropagation();
 			}
-		}._w(616);
+		}._w(618);
 		var on_overlay_event = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				event.stopPropagation();
 				return false;
 			}
-		}._w(617);
+		}._w(619);
 
 		// Public
 		var create = function (class_ns, setup) {
@@ -9543,7 +9550,7 @@
 			}
 
 			return n1;
-		}._w(618);
+		}._w(620);
 		var open = function (overlay) {
 			if (active !== null && active.parentNode !== null) {
 				$.remove(active);
@@ -9551,17 +9558,17 @@
 			document_element.classList.add("xl-popup-overlaying");
 			hovering(overlay);
 			active = overlay;
-		}._w(619);
+		}._w(621);
 		var close = function (overlay) {
 			document_element.classList.remove("xl-popup-overlaying");
 			if (overlay.parentNode !== null) {
 				$.remove(overlay);
 			}
 			active = null;
-		}._w(620);
+		}._w(622);
 		var is_open = function (overlay) {
 			return (overlay.parentNode !== null);
-		}._w(621);
+		}._w(623);
 		var hovering = function (node) {
 			if (hovering_container === null) {
 				hovering_container = $.node("div", "xl-hovering-elements");
@@ -9574,7 +9581,7 @@
 				}
 			}
 			$.add(hovering_container, node);
-		}._w(622);
+		}._w(624);
 
 		// Exports
 		return {
@@ -9585,7 +9592,7 @@
 			hovering: hovering
 		};
 
-	}._w(615))();
+	}._w(617))();
 	var Changelog = (function () {
 
 		// Private
@@ -9644,7 +9651,7 @@
 				error: null,
 				log_data: versions
 			};
-		}._w(624);
+		}._w(626);
 		var display = function (container, theme) {
 			var versions, authors, changes,
 				e, n1, n2, n3, n4, n5, i, ii, j, jj, k, kk;
@@ -9684,7 +9691,7 @@
 			}
 
 			$.add(container, n1);
-		}._w(625);
+		}._w(627);
 		var acquire = function (callback) {
 			HttpRequest({
 				method: "GET",
@@ -9696,15 +9703,15 @@
 					else {
 						callback.call(null, $.xhr_error_string(xhr), null);
 					}
-				}._w(627),
+				}._w(629),
 				onerror: function () {
 					callback.call(null, "Connection error", null);
-				}._w(628),
+				}._w(630),
 				onabort: function () {
 					callback.call(null, "Connection aborted", null);
-				}._w(629)
+				}._w(631)
 			});
-		}._w(626);
+		}._w(628);
 
 		var on_changelog_get = function (err, data) {
 			if (err !== null) {
@@ -9721,17 +9728,17 @@
 					display(n, Theme.classes);
 				}
 			}
-		}._w(630);
+		}._w(632);
 		var on_close_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				close();
 			}
-		}._w(631);
+		}._w(633);
 		var on_change_save = function () {
 			config.general.changelog_on_update = this.checked;
 			Config.save();
-		}._w(632);
+		}._w(634);
 
 		// Public
 		var open = function (message) {
@@ -9754,7 +9761,7 @@
 						}
 					}
 					$.add(container, $.link(Module.url, "xl-settings-version" + cls + theme, Main.version.join(".")));
-				}._w(634)
+				}._w(636)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -9770,25 +9777,25 @@
 					$.add(container, n1 = $.link("#", "xl-settings-button" + theme));
 					$.add(n1, $.node("span", "xl-settings-button-text", "Close"));
 					$.on(n1, "click", on_close_click);
-				}._w(635)
+				}._w(637)
 			}], {
 				body: true,
 				padding: false,
 				setup: function (container) {
 					container.classList.add("xl-changelog-content");
 					display(container, theme);
-				}._w(636)
+				}._w(638)
 			}]);
 
 			$.on(popup, "click", on_close_click);
 			Popup.open(popup);
-		}._w(633);
+		}._w(635);
 		var close = function () {
 			if (popup !== null) {
 				Popup.close(popup);
 				popup = null;
 			}
-		}._w(637);
+		}._w(639);
 
 		// Exports
 		var Module = {
@@ -9799,7 +9806,7 @@
 
 		return Module;
 
-	}._w(623))();
+	}._w(625))();
 	var HeaderBar = (function () {
 
 		// Private
@@ -9857,7 +9864,7 @@
 				}
 				n2.setAttribute("data-xl-color", color);
 			}
-		}._w(639);
+		}._w(641);
 
 		var on_header_bar_detected = function (node) {
 			header_bar = node;
@@ -9882,7 +9889,7 @@
 			if (shortcut_icons.length > 0) {
 				add_svg_icons(shortcut_icons);
 			}
-		}._w(640);
+		}._w(642);
 		var on_icon_mouseover = $.wrap_mouseenterleave_event(function () {
 			var n = $("svg", this),
 				c;
@@ -9895,13 +9902,13 @@
 				}
 				n.style.fill = c;
 			}
-		}._w(641));
+		}._w(643));
 		var on_icon_mouseout = $.wrap_mouseenterleave_event(function () {
 			var n = $("svg", this);
 			if (n !== null) {
 				n.style.fill = this.getAttribute("data-xl-color");
 			}
-		}._w(642));
+		}._w(644));
 		var on_menu_item_mouseover = $.wrap_mouseenterleave_event(function () {
 			var entries = $$(".entry", this.parent),
 				i, ii;
@@ -9909,16 +9916,16 @@
 				entries[i].classList.remove("focused");
 			}
 			this.classList.add("focused");
-		}._w(643));
+		}._w(645));
 		var on_menu_item_mouseout = $.wrap_mouseenterleave_event(function () {
 			this.classList.remove("focused");
-		}._w(644));
+		}._w(646));
 		var on_menu_item_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				document_element.click();
 			}
-		}._w(645);
+		}._w(647);
 		var on_body_observe = function (records) {
 			var nodes, node, i, ii, j, jj;
 
@@ -9934,7 +9941,7 @@
 					}
 				}
 			}
-		}._w(646);
+		}._w(648);
 		var on_header_observe = function (records) {
 			var nodes, node, i, ii, j, jj;
 
@@ -9955,7 +9962,7 @@
 					}
 				}
 			}
-		}._w(647);
+		}._w(649);
 
 		// Public
 		var ready = function () {
@@ -9966,7 +9973,7 @@
 			else {
 				new MutationObserver(on_body_observe).observe(document.body, { childList: true, subtree: false });
 			}
-		}._w(648);
+		}._w(650);
 		var insert_shortcut_icon = function (namespace, title, url, on_click, svg_setup) {
 			var svgns = "http://www.w3.org/2000/svg",
 				n1, svg;
@@ -9988,7 +9995,7 @@
 			if (header_bar !== null) add_svg_icons([ n1 ]);
 
 			return n1;
-		}._w(649);
+		}._w(651);
 		var insert_menu_link = function (menu_node) {
 			menu_node.classList.add("entry");
 			menu_node.style.order = 112;
@@ -9998,7 +10005,7 @@
 			$.on(menu_node, "click", on_menu_item_click);
 
 			menu_nodes.push(menu_node);
-		}._w(650);
+		}._w(652);
 
 		// Exports
 		return {
@@ -10007,7 +10014,7 @@
 			insert_menu_link: insert_menu_link
 		};
 
-	}._w(638))();
+	}._w(640))();
 	var Navigation = (function () {
 
 		// Private
@@ -10043,7 +10050,7 @@
 					}
 					$.remove(link);
 				}
-			}._w(652)
+			}._w(654)
 		};
 
 		var on_observe_all = function (records) {
@@ -10085,7 +10092,7 @@
 				this.disconnect();
 				waiting_observer = null;
 			}
-		}._w(653);
+		}._w(655);
 
 		var LocationData = function (text, url, class_name, on_click) {
 			this.nodes = [];
@@ -10093,7 +10100,7 @@
 			this.url = url;
 			this.class_name = class_name;
 			this.on_click = on_click;
-		}._w(654);
+		}._w(656);
 		LocationData.prototype.add = function (selector, flags, separator) {
 			var node = $(selector);
 			if (node !== null) {
@@ -10111,10 +10118,10 @@
 					waiting_observer.observe(document.body, { childList: true, subtree: true });
 				}
 			}
-		}._w(655);
+		}._w(657);
 		LocationData.prototype.add_node = function (node, flags, separator) {
 			this.nodes.push(node, flags, separator);
-		}._w(656);
+		}._w(658);
 		LocationData.prototype.add_all = function (selector, flags, separator) {
 			var nodes = $$(selector),
 				i, ii;
@@ -10122,7 +10129,7 @@
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				this.nodes.push(nodes[i], flags, separator);
 			}
-		}._w(657);
+		}._w(659);
 		LocationData.prototype.insert = function () {
 			var first_mobile = true,
 				container, flags, node, par, pre, next, sep, i, ii, n1, t, t2, t_opt;
@@ -10228,7 +10235,7 @@
 			}
 
 			this.nodes = null;
-		}._w(658);
+		}._w(660);
 
 		// Public
 		var insert_link = function (mode, text, url, class_name, on_click) {
@@ -10277,14 +10284,14 @@
 			}
 
 			locations.insert();
-		}._w(659);
+		}._w(661);
 
 		// Exports
 		return {
 			insert_link: insert_link
 		};
 
-	}._w(651))();
+	}._w(653))();
 	var ExtensionAPI = (function () {
 
 		// Private
@@ -10303,11 +10310,11 @@
 				s += random_string_alphabet[Math.floor(Math.random() * alpha_len)];
 			}
 			return s;
-		}._w(661);
+		}._w(663);
 
 		var is_object = function (obj) {
 			return (obj !== null && typeof(obj) === "object");
-		}._w(662);
+		}._w(664);
 
 		var get_shared_node = function (id) {
 			var par, n;
@@ -10325,14 +10332,14 @@
 			if (par.firstChild === null) $.remove(par);
 
 			return n;
-		}._w(663);
+		}._w(665);
 		var get_shared_node_by_id = function (parent, id) {
 			try {
 				return $("[data-xl-sharing-id='" + id + "']", parent);
 			}
 			catch (e) {}
 			return null;
-		}._w(664);
+		}._w(666);
 
 		var disabled_extensions_key = "xlinks-extensions-disabled";
 		var disabled_extensions;
@@ -10355,7 +10362,7 @@
 				Config.storage.removeItem(disabled_extensions_key);
 				disabled_extensions = null;
 			}
-		}._w(665);
+		}._w(667);
 		var set_extensions_enabled = function (enabled_array) {
 			if (enabled_array === null) return;
 
@@ -10363,7 +10370,7 @@
 				registered[i][0] = enabled_array[i];
 			}
 			save_extensions_enabled_states();
-		}._w(666);
+		}._w(668);
 		var extension_is_enabled = function (name, author, description) {
 			if (disabled_extensions === undefined) {
 				disabled_extensions = $.json_parse_safe(Config.storage.getItem(disabled_extensions_key), null);
@@ -10377,7 +10384,7 @@
 			}
 
 			return true;
-		}._w(667);
+		}._w(669);
 
 		var registered = [];
 
@@ -10406,7 +10413,7 @@
 				this.post = this.post_window;
 				this.on_message = function (event) {
 					self.on_window_message(event);
-				}._w(669);
+				}._w(671);
 				window.addEventListener("message", this.on_message, false);
 			}
 			else {
@@ -10415,11 +10422,11 @@
 				this.post = this.post_channel;
 				this.on_message = function (event) {
 					self.on_port_message(event);
-				}._w(670);
+				}._w(672);
 				this.port.addEventListener("message", this.on_message, false);
 				this.port.start();
 			}
-		}._w(668);
+		}._w(670);
 
 		CommunicationChannel.create_channel = function () {
 			try {
@@ -10427,7 +10434,7 @@
 			}
 			catch (e) {}
 			return null;
-		}._w(671);
+		}._w(673);
 		CommunicationChannel.prototype.post_window = function (message, transfer) {
 			var msg = {
 				ext: this.is_extension,
@@ -10445,12 +10452,12 @@
 				}
 				catch (e2) {}
 			}
-		}._w(672);
+		}._w(674);
 		CommunicationChannel.prototype.post_channel = function (message, transfer) {
 			this.port.postMessage(message, transfer);
-		}._w(673);
+		}._w(675);
 		CommunicationChannel.prototype.post_null = function () {
-		}._w(674);
+		}._w(676);
 		CommunicationChannel.prototype.on_window_message = function (event) {
 			var data = event.data;
 			if (
@@ -10462,18 +10469,18 @@
 			) {
 				this.callback(event, data, this);
 			}
-		}._w(675);
+		}._w(677);
 		CommunicationChannel.prototype.on_port_message = function (event) {
 			var data = event.data;
 			if (is_object(data)) {
 				this.callback(event, data, this);
 			}
-		}._w(676);
+		}._w(678);
 		CommunicationChannel.prototype.get_port_transfer = function () {
 			var p = this.port_other;
 			this.port_other = null;
 			return (p === null ? [] : [ p ]);
-		}._w(677);
+		}._w(679);
 		CommunicationChannel.prototype.close = function () {
 			if (this.on_message !== null) {
 				if (this.port === null) {
@@ -10487,7 +10494,7 @@
 				this.on_message = null;
 				this.post = this.post_null;
 			}
-		}._w(678);
+		}._w(680);
 
 
 		var api = null;
@@ -10507,9 +10514,9 @@
 				null,
 				function (event, data, channel) {
 					self.on_message(event, data, channel, ExtensionAPI.handlers_init);
-				}._w(680)
+				}._w(682)
 			);
-		}._w(679);
+		}._w(681);
 		ExtensionAPI.prototype.on_message = function (event, data, channel, handlers) {
 			var action = data.xlinks_action,
 				action_is_null = (action === null),
@@ -10551,7 +10558,7 @@
 					);
 				}
 			}
-		}._w(681);
+		}._w(683);
 		ExtensionAPI.prototype.send = function (channel, action, reply_to, data, timeout_delay, on_reply, transfer) {
 			var self = this,
 				id = null,
@@ -10571,7 +10578,7 @@
 					}
 
 					on_reply.apply(this, arguments);
-				}._w(683);
+				}._w(685);
 
 				this.reply_callbacks[id] = cb;
 				cb = null;
@@ -10581,7 +10588,7 @@
 						timeout = null;
 						delete self.reply_callbacks[id];
 						on_reply.call(self, "Response timeout");
-					}._w(684), timeout_delay);
+					}._w(686), timeout_delay);
 				}
 			}
 
@@ -10591,7 +10598,7 @@
 				id: id,
 				reply: reply_to
 			}, transfer);
-		}._w(682);
+		}._w(684);
 		ExtensionAPI.prototype.request_api_fn_callback = function (callback) {
 			return function (err, data) {
 				var args;
@@ -10605,8 +10612,8 @@
 					args = JSON.parse(JSON.stringify(args));
 					callback.apply(null, args);
 				}
-			}._w(686);
-		}._w(685);
+			}._w(688);
+		}._w(687);
 		ExtensionAPI.prototype.register_settings = function (reg_info) {
 			var response = {},
 				name, default_value, title, description, descriptor,
@@ -10641,7 +10648,7 @@
 			}
 
 			return response;
-		}._w(687);
+		}._w(689);
 		ExtensionAPI.prototype.register_settings_descriptor_info = function (input) {
 			if (!is_object(input)) return null;
 
@@ -10670,7 +10677,7 @@
 			}
 
 			return info;
-		}._w(688);
+		}._w(690);
 		ExtensionAPI.prototype.register_request_api = function (reg_info, channel) {
 			if (!is_object(reg_info)) return "Invalid";
 
@@ -10690,7 +10697,7 @@
 						}
 					}
 				}
-			}._w(690));
+			}._w(692));
 
 			// Error
 			if (typeof(req) === "string") return req;
@@ -10701,7 +10708,7 @@
 
 			// Done
 			return req_function_ids;
-		}._w(689);
+		}._w(691);
 		ExtensionAPI.prototype.register_request_api_from_data = function (data, functions_setup) {
 			var req_group = "other",
 				req_namespace = "other",
@@ -10764,7 +10771,7 @@
 
 			// Done
 			return req;
-		}._w(691);
+		}._w(693);
 		ExtensionAPI.prototype.register_linkifier = function (reg_info) {
 			if (!is_object(reg_info)) return "Invalid";
 
@@ -10796,7 +10803,7 @@
 			// Register
 			Linkifier.linkify_register(regex, prefix_group, prefix, null, null);
 			return null;
-		}._w(692);
+		}._w(694);
 		ExtensionAPI.prototype.register_command = function (reg_info, channel) {
 			if (!is_object(reg_info) || reg_info.url_info !== true || reg_info.to_data !== true) {
 				return "Invalid";
@@ -10828,7 +10835,7 @@
 			}
 
 			return id_data;
-		}._w(693);
+		}._w(695);
 		ExtensionAPI.prototype.register_command_fn = function (event, send_data, channel) {
 			var self = this;
 
@@ -10851,10 +10858,10 @@
 						else {
 							cb(null, data.data);
 						}
-					}._w(696)
+					}._w(698)
 				);
-			}._w(695);
-		}._w(694);
+			}._w(697);
+		}._w(696);
 		ExtensionAPI.prototype.register_details_actions_fn = function (event, send_data, channel, validator) {
 			var self = this;
 
@@ -10875,13 +10882,13 @@
 						else {
 							validator(data.data, cb);
 						}
-					}._w(699)
+					}._w(701)
 				);
-			}._w(698);
-		}._w(697);
+			}._w(700);
+		}._w(699);
 		ExtensionAPI.prototype.register_create_url = function (info) {
 			return internal_api_fns.register_create_url(info);
-		}._w(700);
+		}._w(702);
 
 		ExtensionAPI.prototype.create_extension_channel = function (api_name, api_key) {
 			var self = this;
@@ -10892,9 +10899,9 @@
 				CommunicationChannel.create_channel(),
 				function (event, data, channel) {
 					self.on_message(event, data, channel, ExtensionAPI.handlers);
-				}._w(702)
+				}._w(704)
 			);
-		}._w(701);
+		}._w(703);
 
 		ExtensionAPI.prototype.finalize_init = function (data, channel, reply, reply_key) {
 			var main = (internalization_allowed ? data.main : null),
@@ -10939,7 +10946,7 @@
 							remove_waiting_registrations(registrations);
 							Debug.log("Internalized extension error (" + ext_name + "):", e);
 						}
-					}._w(704), 1);
+					}._w(706), 1);
 
 					// Done
 					return;
@@ -10959,7 +10966,7 @@
 				undefined,
 				reply_channel.get_port_transfer()
 			);
-		}._w(703);
+		}._w(705);
 		ExtensionAPI.prototype.create_main_function = function (source) {
 			try {
 				var fn = new Function("var xlinks_api," + ExtensionAPI.internalization_hidden_vars.join(",") + ";return (" + source + ");"); // jshint ignore:line
@@ -10967,7 +10974,7 @@
 			}
 			catch (e) {}
 			return null;
-		}._w(705);
+		}._w(707);
 
 		ExtensionAPI.internalization_hidden_vars = [
 			"unsafeWindow",
@@ -10995,7 +11002,7 @@
 					cb(null, data);
 				}
 			}
-		}._w(706);
+		}._w(708);
 		ExtensionAPI.actions_validator = function (data, cb) {
 			if (!Array.isArray(data)) {
 				cb("Invalid extension response", null);
@@ -11013,7 +11020,7 @@
 
 				cb(null, response);
 			}
-		}._w(707);
+		}._w(709);
 
 		ExtensionAPI.request_api_functions_required = [
 			"setup_xhr",
@@ -11034,8 +11041,8 @@
 						-1,
 						self.request_api_fn_callback(callback)
 					);
-				}._w(709);
-			}._w(708),
+				}._w(711);
+			}._w(710),
 			set_data: function (self, fn_id, channel) {
 				return function (data, info, callback) {
 					var state = {
@@ -11060,8 +11067,8 @@
 						-1,
 						self.request_api_fn_callback(callback)
 					);
-				}._w(711);
-			}._w(710),
+				}._w(713);
+			}._w(712),
 			setup_xhr: function (self, fn_id, channel) {
 				return function (callback) {
 					var state = {
@@ -11086,8 +11093,8 @@
 						-1,
 						self.request_api_fn_callback(callback)
 					);
-				}._w(713);
-			}._w(712),
+				}._w(715);
+			}._w(714),
 			parse_response: function (self, fn_id, channel) {
 				return function (xhr, callback) {
 					var state = {
@@ -11116,8 +11123,8 @@
 						-1,
 						self.request_api_fn_callback(callback)
 					);
-				}._w(715);
-			}._w(714)
+				}._w(717);
+			}._w(716)
 		};
 
 		var remove_response_xml = function (xhr) {
@@ -11129,7 +11136,7 @@
 				xhr.responseXML = null;
 			}
 			return xhr;
-		}._w(716);
+		}._w(718);
 
 		var remove_waiting_registrations = function (count) {
 			// Decrease register count
@@ -11146,7 +11153,7 @@
 			}
 
 			return true;
-		}._w(717);
+		}._w(719);
 
 		ExtensionAPI.handlers_init = {
 			init: function (data, channel, reply) {
@@ -11206,7 +11213,7 @@
 					// Finalize init
 					this.finalize_init(data, channel, reply, reply_key);
 				}
-			}._w(718),
+			}._w(720),
 		};
 		ExtensionAPI.handlers = {
 			register: function (data, channel, reply) {
@@ -11263,7 +11270,7 @@
 
 				// Done
 				Main.start_processing(!complete);
-			}._w(719),
+			}._w(721),
 			request: function (data, channel, reply) {
 				var self = this,
 					namespace, type, unique_id, info;
@@ -11298,8 +11305,8 @@
 							data: data
 						}
 					);
-				}._w(721));
-			}._w(720),
+				}._w(723));
+			}._w(722),
 			get_image: function (data, channel, reply) {
 				var self = this,
 					url, flags;
@@ -11325,8 +11332,8 @@
 						reply,
 						{ err: err, url: url }
 					);
-				}._w(723));
-			}._w(722),
+				}._w(725));
+			}._w(724),
 		};
 
 		var api_request_init_fn = function (req) {
@@ -11334,7 +11341,7 @@
 				id: random_string(32),
 				sent: false
 			};
-		}._w(724);
+		}._w(726);
 		var create_api_request_complete_fn = function (channel) {
 			return function (req) {
 				api.send(
@@ -11343,8 +11350,8 @@
 					null,
 					{ id: req.data.id }
 				);
-			}._w(726);
-		}._w(725);
+			}._w(728);
+		}._w(727);
 
 
 		var internal_api_fns = {
@@ -11364,7 +11371,7 @@
 						}
 					}
 				}
-			}._w(727),
+			}._w(729),
 			register_linkifier: function (data) {
 				var re_data = data.regex,
 					prefix_group = data.prefix_group,
@@ -11410,7 +11417,7 @@
 
 				// Done
 				return null;
-			}._w(728),
+			}._w(730),
 			register_command: function (data) {
 				var url_info = data.url_info,
 					to_data = data.to_data,
@@ -11430,7 +11437,7 @@
 				}
 
 				return null;
-			}._w(729),
+			}._w(731),
 			register_request_api: function (data) {
 				var req = api.register_request_api_from_data(data, function (fns, req_functions) {
 					var k;
@@ -11439,9 +11446,9 @@
 							req_functions[k] = fns[k];
 						}
 					}
-				}._w(731));
+				}._w(733));
 				return (typeof(req) === "string") ? req : null;
-			}._w(730),
+			}._w(732),
 			register_create_url: function (info) {
 				var keys = Object.keys(info),
 					i, ii, k, o;
@@ -11453,7 +11460,7 @@
 					}
 				}
 				return null;
-			}._w(732)
+			}._w(734)
 		};
 		var internal_api_create = function (global_config) {
 
@@ -11466,7 +11473,7 @@
 					expires: Date.now() + ttl,
 					data: data
 				}));
-			}._w(734);
+			}._w(736);
 			var cache_get = function (key) {
 				var json = $.json_parse_safe(cache_storage.getItem(cache_prefix + "ext-" + key), null);
 
@@ -11481,7 +11488,7 @@
 
 				cache_storage.removeItem(key);
 				return null;
-			}._w(735);
+			}._w(737);
 
 			var init = function (info, callback) {
 				// Setup vars
@@ -11497,7 +11504,7 @@
 				// Done
 				void(info); // to make jshint ignore the unused var
 				callback(null);
-			}._w(736);
+			}._w(738);
 
 			var register = function (data, callback) {
 				var complete = remove_waiting_registrations(1),
@@ -11541,7 +11548,7 @@
 				// Done
 				if (typeof(callback) === "function") callback(null);
 				Main.start_processing(!complete);
-			}._w(737);
+			}._w(739);
 
 			// This should match api.js
 			return {
@@ -11566,13 +11573,13 @@
 				cache_get: cache_get
 			};
 
-		}._w(733);
+		}._w(735);
 
 
 		// Public
 		var init = function () {
 			if (api === null) api = new ExtensionAPI();
-		}._w(738);
+		}._w(740);
 
 		var request = function (namespace, type, unique_id, info, callback) {
 			var req_data;
@@ -11586,15 +11593,15 @@
 			}
 
 			return req_data.add(unique_id, info, false, callback);
-		}._w(739);
+		}._w(741);
 
 		var should_defer_processing = function () {
 			return document_element.hasAttribute("data-xlinks-extensions-waiting");
-		}._w(740);
+		}._w(742);
 
 		var get_registered_extensions = function () {
 			return registered;
-		}._w(741);
+		}._w(743);
 
 
 		// Exports
@@ -11606,7 +11613,7 @@
 			set_extensions_enabled: set_extensions_enabled
 		};
 
-	}._w(660))();
+	}._w(662))();
 	var Main = (function () {
 
 		// Private
@@ -11621,7 +11628,7 @@
 			all_posts_reloaded = true;
 
 			Linkifier.relinkify_posts(Post.get_all_posts(document));
-		}._w(743);
+		}._w(745);
 
 		var on_ready = function () {
 			ready = true;
@@ -11646,11 +11653,11 @@
 			}
 
 			if (config.general.compatibility_check) {
-				setTimeout(function () { run_compatibility_check(); }._w(745), 1000);
+				setTimeout(function () { run_compatibility_check(); }._w(747), 1000);
 			}
 
 			Debug.timer_log("init.ready.full duration", "init");
-		}._w(744);
+		}._w(746);
 		var on_body_observe = function (records) {
 			var post_list = [],
 				reload_all = false,
@@ -11732,7 +11739,7 @@
 			if (reload_all) {
 				reload_all_posts();
 			}
-		}._w(746);
+		}._w(748);
 		var check_removed_nodes = function (nodes) {
 			var node, ns, i, ii, j, jj;
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
@@ -11749,10 +11756,10 @@
 					}
 				}
 			}
-		}._w(747);
+		}._w(749);
 		var is_post_group_container = function (node) {
 			return node.id === "qp" || node.classList.contains("thread") || node.classList.contains("inline");
-		}._w(748);
+		}._w(750);
 
 		var run_compatibility_check = function () {
 			var n = $(".exlinksOptionsLink");
@@ -11765,7 +11772,7 @@
 					}
 				]);
 			}
-		}._w(749);
+		}._w(751);
 
 		var show_compatibility_error = function (errors) {
 			var theme = Theme.classes,
@@ -11779,18 +11786,18 @@
 						popup = null;
 					}
 				}
-			}._w(751);
+			}._w(753);
 			var on_change_save = function () {
 				config.general.compatibility_check = this.checked;
 				Config.save();
-			}._w(752);
+			}._w(754);
 
 
 			popup = Popup.create("settings", [[{
 				small: true,
 				setup: function (container) {
 					$.add(container, $.node("span", "xl-settings-title" + theme, "Compatibility Warning"));
-				}._w(753)
+				}._w(755)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -11806,7 +11813,7 @@
 					$.add(container, n1 = $.link("#", "xl-settings-button" + theme));
 					$.add(n1, $.node("span", "xl-settings-button-text", "Close"));
 					$.on(n1, "click", on_close_click);
-				}._w(754)
+				}._w(756)
 			}], {
 				body: true,
 				padding: false,
@@ -11832,12 +11839,12 @@
 							$.add(n2, $.tnode(lines[j]));
 						}
 					}
-				}._w(755)
+				}._w(757)
 			}]);
 
 			$.on(popup, "click", on_close_click);
 			Popup.open(popup);
-		}._w(750);
+		}._w(752);
 
 		// Public
 		var init = function () {
@@ -11855,7 +11862,7 @@
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
 			$.ready(on_ready);
-		}._w(756);
+		}._w(758);
 		var version_compare = function (v1, v2) {
 			// Returns: -1 if v1<v2, 0 if v1==v2, 1 if v1>v2
 			var ii = Math.min(v1.length, v2.length),
@@ -11888,7 +11895,7 @@
 			}
 
 			return 0;
-		}._w(757);
+		}._w(759);
 		var insert_custom_fonts = function () {
 			if (fonts_inserted) return;
 			fonts_inserted = true;
@@ -11900,7 +11907,7 @@
 			font.type = "text/css";
 			font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
 			$.add(document.head, font);
-		}._w(758);
+		}._w(760);
 		var start_processing = function (defer) {
 			if (processing_started || !ready) return;
 
@@ -11915,7 +11922,7 @@
 				processing_start_timer = setTimeout(function () {
 					processing_start_timer = null;
 					start_processing(false);
-				}._w(760), 10000);
+				}._w(762), 10000);
 			}
 			else {
 				// Start processing
@@ -11928,14 +11935,14 @@
 					updater.observe(document.body, { childList: true, subtree: true });
 				}
 			}
-		}._w(759);
+		}._w(761);
 
 		// Exports
 		var Module = {
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,8,12,-0xDB],
+			version: [1,2,8,13,-0xDB],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
@@ -11945,7 +11952,7 @@
 
 		return Module;
 
-	}._w(742))();
+	}._w(744))();
 
 	Main.init();
 	Debug.timer_log("init.full duration", timing.start);

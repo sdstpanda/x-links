@@ -2,7 +2,7 @@
 // @name        X-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.8.12
+// @version     1.2.8.13
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -8328,6 +8328,7 @@
 
 				$.add(n1, n2 = $.link("#", "xl-easylist-control-link xl-easylist-control-link-random", "random"));
 				$.on(n2, "mouseover", on_random_link_generate);
+				$.on(n2, "mouseup", on_random_link_generate_delayed);
 
 				$.add(n1, n2 = $.link(undefined, "xl-easylist-control-link xl-easylist-control-link-options", "options"));
 				$.on(n2, "click", on_options_click);
@@ -9215,6 +9216,12 @@
 				i = Math.floor(Math.random() * entries.length);
 				this.href = entries[i].url;
 			}
+		};
+		var on_random_link_generate_delayed = function (event) {
+			var self = this;
+			setTimeout(function () {
+				on_random_link_generate.call(self, event);
+			}, 1);
 		};
 
 		// Public
@@ -11759,7 +11766,7 @@
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,8,12],
+			version: [1,2,8,13],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,

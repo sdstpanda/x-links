@@ -1,5 +1,9 @@
 ﻿master
 
+1.2.8.13
+- dnsev-h
+  + Fixed the "random" link not updating its URL after being clicked
+
 1.2.8.12
 - dnsev-h
   + Added an error message for thumbnails that fail to load in the Easy List
