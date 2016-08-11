@@ -311,7 +311,7 @@
 	};
 
 	var url_get_info = function (url, callback) {
-		var m = /\/(manga|magazines)\/([^\/#?]*)(?:\/read\/page\/([0-9]+))?/.exec(url),
+		var m = /\/(hentai|manga|magazines)\/([^\/#?]*)(?:\/read\/page\/([0-9]+))?/.exec(url),
 			data;
 
 		if (m !== null) {
