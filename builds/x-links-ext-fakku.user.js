@@ -2,7 +2,7 @@
 // @name        X-links Extension - FAKKU
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0
+// @version     1.0.0.1
 // @description Linkify and format FAKKU links
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -1502,7 +1502,7 @@
 	};
 
 	var url_get_info = function (url, callback) {
-		var m = /\/(manga|magazines)\/([^\/#?]*)(?:\/read\/page\/([0-9]+))?/.exec(url),
+		var m = /\/(hentai|manga|magazines)\/([^\/#?]*)(?:\/read\/page\/([0-9]+))?/.exec(url),
 			data;
 
 		if (m !== null) {
@@ -1542,7 +1542,7 @@
 		name: "FAKKU",
 		author: "dnsev-h",
 		description: "Linkify and format FAKKU links",
-		version: [1,0],
+		version: [1,0,0,1],
 		registrations: 1,
 		main: main_fn
 	}, function (err) {
