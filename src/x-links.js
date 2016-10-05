@@ -7119,7 +7119,7 @@
 				Module.is_4chan = true;
 				Module.is_4chan_x3 = (document_element.className.length > 0) || ($("head>style#layout", document_element) !== null); // appchan-x doesn't insert the fourchan-x class early enough
 			}
-			else if (domain === "desustorage.org" || domain === "fgts.jp") {
+			else if (domain === "desuarchive.org" || domain === "fgts.jp") {
 				if (document.doctype.publicId) {
 					Module.mode = "fuuka";
 					Module.is_fuuka = true;
