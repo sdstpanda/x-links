@@ -2,14 +2,14 @@
 // @name        X-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.8.13
+// @version     1.2.8.14
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
 // @include     http://8ch.net/*
 // @include     https://8ch.net/*
-// @include     http://desustorage.org/*
-// @include     https://desustorage.org/*
+// @include     http://desuarchive.org/*
+// @include     https://desuarchive.org/*
 // @include     http://fgts.jp/*
 // @include     https://fgts.jp/*
 // @include     http://boards.38chan.net/*
@@ -7154,7 +7154,7 @@
 				Module.is_4chan = true;
 				Module.is_4chan_x3 = (document_element.className.length > 0) || ($("head>style#layout", document_element) !== null); // appchan-x doesn't insert the fourchan-x class early enough
 			}
-			else if (domain === "desustorage.org" || domain === "fgts.jp") {
+			else if (domain === "desuarchive.org" || domain === "fgts.jp") {
 				if (document.doctype.publicId) {
 					Module.mode = "fuuka";
 					Module.is_fuuka = true;
@@ -11766,7 +11766,7 @@
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,8,13],
+			version: [1,2,8,14],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
