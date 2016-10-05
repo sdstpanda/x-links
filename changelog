@@ -1,5 +1,9 @@
 ﻿master
 
+1.2.8.14
+- dnsev-h
+  + Changed desustorage.org to desuarchive.org
+
 1.2.8.13
 - dnsev-h
   + Fixed the "random" link not updating its URL after being clicked
