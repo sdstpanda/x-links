@@ -4510,7 +4510,7 @@
 
 				callback(null, {
 					method: "POST",
-					url: "http://ul." + domain + "/image_lookup.php",
+					url: (config.sauce.lookup_domain === domains.exhentai ? "https://exhentai.org/upload/image_lookup.php" : "https://upload.e-hentai.org/image_lookup.php"),
 					data: form_data
 				});
 			}
