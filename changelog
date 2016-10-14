@@ -1,5 +1,9 @@
 ﻿master
 
+1.2.8.15
+- dnsev-h
+  + Updated the image similarity search upload URLs
+
 1.2.8.14
 - dnsev-h
   + Changed desustorage.org to desuarchive.org
