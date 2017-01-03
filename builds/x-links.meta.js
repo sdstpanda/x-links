@@ -15,6 +15,7 @@
 // @include     http://boards.38chan.net/*
 // @include     http://forums.e-hentai.org/*
 // @include     https://forums.e-hentai.org/*
+// @include     https://meguca.org/*
 // @connect     exhentai.org
 // @connect     e-hentai.org
 // @connect     ehgt.org

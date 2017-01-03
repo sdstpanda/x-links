@@ -15,6 +15,7 @@
 // @include     http://boards.38chan.net/*
 // @include     http://forums.e-hentai.org/*
 // @include     https://forums.e-hentai.org/*
+// @include     https://meguca.org/*
 // @connect     exhentai.org
 // @connect     e-hentai.org
 // @connect     ehgt.org
@@ -898,7 +899,8 @@
 			"fuuka": ".content>div[id],.content>table",
 			"tinyboard": ".post",
 			"ipb": ".borderwrap",
-			"ipb_lofi": ".postwrapper"
+			"ipb_lofi": ".postwrapper",
+			"meguca": "#thread-container article"
 		};
 		var post_body_selector = {
 			"4chan": "blockquote",
@@ -906,7 +908,8 @@
 			"fuuka": "blockquote>p",
 			"tinyboard": ".body",
 			"ipb": ".postcolor",
-			"ipb_lofi": ".postcontent"
+			"ipb_lofi": ".postcontent",
+			"meguca": "blockquote"
 		};
 		var body_links_selector = {
 			"4chan": "a:not(.quotelink)",
@@ -914,7 +917,8 @@
 			"fuuka": "a:not(.backlink)",
 			"tinyboard": "a:not([onclick])",
 			"ipb": "a[target=_blank]",
-			"ipb_lofi": "a[target=_blank]"
+			"ipb_lofi": "a[target=_blank]",
+			"meguca": "a:not(.history):not(.embed)"
 		};
 		var post_parent_find = {
 			"4chan": function (node) {
@@ -964,6 +968,9 @@
 					if (node.classList.contains("postwrapper")) return node;
 				}
 				return null;
+			},
+			"meguca": function (node) {
+				return node.closest("article")
 			}
 		};
 		var get_file_info = {
@@ -1107,6 +1114,9 @@
 			},
 			"ipb_lofi": function () {
 				return [];
+			},
+			"meguca": function () {
+				return [];
 			}
 		};
 		var belongs_to_default = function (node, post) {
@@ -1124,7 +1134,8 @@
 			"fuuka": belongs_to_default,
 			"tinyboard": belongs_to_default,
 			"ipb": belongs_to_default,
-			"ipb_lofi": belongs_to_default
+			"ipb_lofi": belongs_to_default,
+			"meguca": belongs_to_default
 		};
 		var create_image_meta_link_default = function (file_info, node) {
 			var par = file_info.options;
@@ -1172,7 +1183,8 @@
 			},
 			"tinyboard": create_image_meta_link_default,
 			"ipb": create_image_meta_link_default,
-			"ipb_lofi": create_image_meta_link_default
+			"ipb_lofi": create_image_meta_link_default,
+			"meguca": create_image_meta_link_default
 		};
 
 		// Exports
@@ -7177,6 +7189,10 @@
 				Module.linkify = false;
 				Module.dynamic = false;
 			}
+			else if (domain === "meguca.org") {
+				Module.mode = "meguca"
+				Module.is_meguca = true
+			}
 			else { // assume tinyboard
 				Module.mode = "tinyboard";
 				Module.is_tinyboard = true;
@@ -8152,6 +8168,9 @@
 
 		// Public
 		var ready = function () {
+			if (Config.is_meguca) {
+				return
+			}
 			update(false);
 
 			if (document.head) {
@@ -8159,6 +8178,9 @@
 			}
 		};
 		var bg = function (node, opacity) {
+			if (Config.is_meguca) {
+				return node.classList.add("popup-menu", "glass")
+			}
 			node.classList.add("xl-theme-post-bg");
 			if (opacity === undefined || opacity === 1) {
 				node.style.backgroundColor = post_bg;
@@ -10106,6 +10128,9 @@
 			else if (Config.is_ipb_lofi) {
 				locations.add(".ipbnavsmall", Flags.Prepend | Flags.OuterSpace, "-");
 			}
+			else if (Config.is_meguca) {
+				locations.add("#banner-extensions", Flags.OuterSpace | Flags.Brackets)
+			}
 
 			locations.insert();
 		};
@@ -11582,7 +11607,10 @@
 			}
 		};
 		var is_post_group_container = function (node) {
-			return node.id === "qp" || node.classList.contains("thread") || node.classList.contains("inline");
+			return node.id === "qp" ||
+				node.id === "thread-container" ||
+				node.classList.contains("thread") ||
+				node.classList.contains("inline");
 		};
 
 		var run_compatibility_check = function () {
