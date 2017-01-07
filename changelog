@@ -1,5 +1,9 @@
 ﻿master
 
+1.2.8.16
+- bakape
+  + Added meguca.org integration
+
 1.2.8.15
 - dnsev-h
   + Updated the image similarity search upload URLs
