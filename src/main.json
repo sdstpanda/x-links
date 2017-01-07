@@ -10,7 +10,9 @@
 		"update_base": "https://raw.githubusercontent.com/dnsev-h/x-links/stable/",
 		"changelog": "https://raw.githubusercontent.com/dnsev-h/x-links/stable/changelog"
 	},
-	"inputs": [ "./x-links.js" ],
+	"inputs": [
+		"./x-links.js"
+	],
 	"output": "../builds/x-links.user.js",
 	"icon48": "../resources/images/icon48.png",
 	"icon64": "../resources/images/icon64.png",
@@ -25,7 +27,8 @@
 		"https://fgts.jp/*",
 		"http://boards.38chan.net/*",
 		"http://forums.e-hentai.org/*",
-		"https://forums.e-hentai.org/*"
+		"https://forums.e-hentai.org/*",
+		"https://meguca.org/*"
 	],
 	"connect_targets": [
 		"exhentai.org",
