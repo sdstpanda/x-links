@@ -2,14 +2,14 @@
 // @name        X-links Extension - Nyaa Torrents
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.0.7
+// @version     1.0.0.8
 // @description Linkify and format nyaa.se links
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
 // @include     http://8ch.net/*
 // @include     https://8ch.net/*
-// @include     http://desustorage.org/*
-// @include     https://desustorage.org/*
+// @include     http://desuarchive.org/*
+// @include     https://desuarchive.org/*
 // @include     http://fgts.jp/*
 // @include     https://fgts.jp/*
 // @include     http://boards.38chan.net/*
@@ -575,6 +575,7 @@
 				request_apis: [],
 				linkifiers: [],
 				commands: [],
+				create_url: null
 			};
 
 			var request_apis_response = [],
@@ -722,6 +723,12 @@
 					command_fns.push(o);
 					send_data.commands.push(a_data);
 				}
+			}
+
+			// URL create functions
+			o = data.create_url;
+			if (is_object(o)) {
+				send_data.create_url = o;
 			}
 
 			// Send
@@ -1191,9 +1198,6 @@
 
 	})();
 
-
-
-
 	var main = function main_fn(xlinks_api) {
 
 	var $$ = function (selector, root) {
@@ -1593,7 +1597,7 @@
 		var info = this.infos[0];
 		callback(null, {
 			method: "GET",
-			url: "http://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/?page=view&tid=" + info.gid + "&showfiles=1",
+			url: "https://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/?page=view&tid=" + info.gid + "&showfiles=1",
 			headers: { "Cookie": "" }
 		});
 	};
@@ -1736,7 +1740,7 @@
 	};
 	var create_actions = function (data, info, callback) {
 		var urls = [],
-			url_base = "http://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/";
+			url_base = "https://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/";
 
 		urls.push([ "View on:", url_base + "?page=view&tid=" + info.gid + "&showfiles=1" + (data.comments_key ? "&showcomments=" + data.comments_key : ""), "Nyaa.se" ]);
 		urls.push(null);
@@ -1794,7 +1798,7 @@
 		name: "Nyaa Torrents",
 		author: "dnsev-h",
 		description: "Linkify and format nyaa.se links",
-		version: [1,0,0,7],
+		version: [1,0,0,8],
 		registrations: 1,
 		main: main_fn
 	}, function (err) {
@@ -1831,7 +1835,7 @@
 				linkifiers: [{
 					regex: /(https?:\/*)?(?:www\.|sukebei\.)?nyaa\.(?:eu|se)(?:\/[^<>()\s\'\"]*)?/i,
 					prefix_group: 1,
-					prefix: "http://",
+					prefix: "https://",
 				}],
 				commands: [{
 					url_info: url_get_info,

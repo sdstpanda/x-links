@@ -406,7 +406,7 @@
 		var info = this.infos[0];
 		callback(null, {
 			method: "GET",
-			url: "http://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/?page=view&tid=" + info.gid + "&showfiles=1",
+			url: "https://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/?page=view&tid=" + info.gid + "&showfiles=1",
 			headers: { "Cookie": "" }
 		});
 	};
@@ -549,7 +549,7 @@
 	};
 	var create_actions = function (data, info, callback) {
 		var urls = [],
-			url_base = "http://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/";
+			url_base = "https://" + (info.sukebei ? "sukebei" : "www") + ".nyaa.se/";
 
 		urls.push([ "View on:", url_base + "?page=view&tid=" + info.gid + "&showfiles=1" + (data.comments_key ? "&showcomments=" + data.comments_key : ""), "Nyaa.se" ]);
 		urls.push(null);
@@ -644,7 +644,7 @@
 				linkifiers: [{
 					regex: /(https?:\/*)?(?:www\.|sukebei\.)?nyaa\.(?:eu|se)(?:\/[^<>()\s\'\"]*)?/i,
 					prefix_group: 1,
-					prefix: "http://",
+					prefix: "https://",
 				}],
 				commands: [{
 					url_info: url_get_info,

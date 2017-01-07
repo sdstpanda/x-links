@@ -1,5 +1,9 @@
 ﻿master
 
+1.0.0.8
+- dnsev-h
+  + Update URLs to HTTPS
+
 1.0.0.7
 - dnsev-h
   + Use updated api.js
