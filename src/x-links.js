@@ -1516,14 +1516,16 @@
 								}
 							});
 						}
+						document_element.classList.add("xl-details-visible");
 					}
 				});
-
 			}),
 			mouseout: $.wrap_mouseenterleave_event(function () {
 				var details = details_nodes[get_node_id_full(this)];
 
 				gallery_link_events_data.link = null;
+
+				document_element.classList.remove("xl-details-visible");
 
 				if (details === undefined) return;
 

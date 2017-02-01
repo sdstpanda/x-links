@@ -611,6 +611,12 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 	clear: both;
 }
 
+:root.xl-details-visible #ihover {
+	display: none !important;
+	visibility: hidden !important;
+	opacity: 0 !important;
+}
+
 /* Tags */
 .xl-tag-block {
 	display: inline-block;
