@@ -1,5 +1,11 @@
 ﻿master
 
+1.2.8.18
+- dnsev-h
+  + Fixed a 4chan-x link preview conflict which could show multiple YouTube/etc. thumbnail previews
+  + Fixed e-hentai.org gallery links not working when they didn't contain the "g." subdomain
+  + Fixed some styling of the [Tags]
+
 1.2.8.17
 - dnsev-h, shamoke, S0X-LT
   + Updated EHentai API URLs
