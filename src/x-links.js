@@ -4685,11 +4685,11 @@
 
 			if (
 				info.site === "ehentai" &&
-				((is_ex = ((rewrite = config.general.rewrite_links) === domains.exhentai)) || rewrite === domains.gehentai) &&
+				((is_ex = ((rewrite = config.general.rewrite_links) === domains.exhentai)) || rewrite === domains.gehentai || rewrite === domains.ehentai) &&
 				info.domain !== rewrite
 			) {
 				info.domain = rewrite;
-				info.tag = get_tag_from_domain(rewrite);
+				info.tag = get_tag_from_domain(is_ex ? domains.exhentai : domains.ehentai);
 				if (info.icon !== undefined) {
 					info.icon = (is_ex ? "exhentai" : "ehentai");
 				}
@@ -4706,7 +4706,7 @@
 					fjord = is_fjording(data);
 
 				if (fjord !== is_ex) {
-					info.domain = fjord ? domains.exhentai : domains.gehentai;
+					info.domain = fjord ? domains.exhentai : domains.ehentai;
 					info.tag = get_tag_from_domain(info.domain);
 					if (info.icon !== undefined) {
 						info.icon = (fjord ? "exhentai" : "ehentai");
@@ -4749,7 +4749,7 @@
 			domain = (match[1]).toLowerCase();
 			remaining = match[2];
 
-			if ((is_ex = (domain === domains.exhentai)) || domain === domains.gehentai) {
+			if ((is_ex = (domain === domains.exhentai)) || domain === domains.gehentai || domain === domains.ehentai) {
 				m = /^\/(?:g|mpv)\/(\d+)\/([0-9a-f]+)/.exec(remaining);
 				if (m !== null) {
 					data = {
@@ -4759,7 +4759,7 @@
 						gid: parseInt(m[1], 10),
 						token: m[2],
 						domain: domain,
-						tag: get_tag_from_domain(domain)
+						tag: get_tag_from_domain(is_ex ? domains.exhentai : domains.ehentai)
 					};
 					m = /#page(\d+)/.exec(remaining);
 					if (m !== null) data.page = parseInt(m[1], 10);
@@ -4774,7 +4774,7 @@
 						page: parseInt(m[3], 10),
 						page_token: m[1],
 						domain: domain,
-						tag: get_tag_from_domain(domain)
+						tag: get_tag_from_domain(is_ex ? domains.exhentai : domains.ehentai)
 					};
 					icon_site = is_ex ? "exhentai" : "ehentai";
 				}
@@ -4872,12 +4872,11 @@
 			return url_info_registrations.length - 1;
 		};
 
-		var domain_tags = {
-			"exhentai.org": "Ex",
-			"g.e-hentai.org": "EH",
-			"nhentai.net": "n",
-			"hitomi.la": "Hi"
-		};
+		var domain_tags = {};
+		domain_tags[domains.exhentai] = "Ex";
+		domain_tags[domains.ehentai] = "EH";
+		domain_tags[domains.nhentai] = "n";
+		domain_tags[domains.hitomi] = "Hi";
 		var get_tag_from_domain = function (domain) {
 			var tag = domain_tags[domain];
 			return (tag === undefined) ? "?" : tag;
