@@ -10187,7 +10187,12 @@
 		};
 		var extension_is_enabled = function (name, author, description) {
 			if (disabled_extensions === undefined) {
-				disabled_extensions = $.json_parse_safe(Config.storage.getItem(disabled_extensions_key), null);
+				try {
+					disabled_extensions = $.json_parse_safe(Config.storage.getItem(disabled_extensions_key), null);
+				}
+				catch (e) {
+					return false;
+				}
 			}
 			if (disabled_extensions === null) return true;
 
