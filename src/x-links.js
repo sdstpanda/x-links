@@ -8073,6 +8073,7 @@
 					post_bg_opac = new_theme[2];
 					if (change_nodes) update_nodes_bg();
 				}
+				trigger(event_listeners.theme_change, null);
 				return true;
 			}
 			return false;
@@ -8212,6 +8213,36 @@
 			return [ 0 , 0 , 0 , 0 ];
 		};
 
+		// Events
+		var event_listeners = {
+			theme_change: []
+		};
+		var on = function (event_name, callback) {
+			var listeners = event_listeners[event_name];
+			if (listeners === undefined) return false;
+			listeners.push(callback);
+			return true;
+		};
+		var off = function (event_name, callback) {
+			var listeners = event_listeners[event_name],
+				i, ii;
+			if (listeners !== undefined) {
+				for (i = 0, ii = listeners.length; i < ii; ++i) {
+					if (listeners[i] === callback) {
+						listeners.splice(i, 1);
+						return true;
+					}
+				}
+			}
+			return false;
+		};
+		var trigger = function (listeners, data) {
+			var i, ii;
+			for (i = 0, ii = listeners.length; i < ii; ++i) {
+				listeners[i].call(null, data);
+			}
+		};
+
 		// Exports
 		var Module =  {
 			classes: " xl-theme",
@@ -8219,7 +8250,9 @@
 			bg: bg,
 			apply: apply,
 			get_computed_style: get_computed_style,
-			parse_css_color: parse_css_color
+			parse_css_color: parse_css_color,
+			on: on,
+			off: off
 		};
 
 		return Module;
@@ -9671,6 +9704,10 @@
 
 				update_svg_color(n2);
 			}
+
+			if (nodes.length > 0) {
+				update_svg_color_changes(nodes);
+			}
 		};
 
 		var update_svg_color = function (node) {
@@ -9681,6 +9718,14 @@
 				n1.setAttribute("style", "fill:" + color + ";");
 			}
 			node.setAttribute("data-xl-color", color);
+		};
+		var update_svg_color_changes = function (nodes) {
+			Theme.on("theme_change", function () {
+				var i, ii;
+				for (i = 0, ii = nodes.length; i < ii; ++i) {
+					update_svg_color(nodes[i]);
+				}
+			});
 		};
 
 		var on_header_bar_detected = function (node) {
