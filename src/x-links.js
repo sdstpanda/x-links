@@ -935,7 +935,7 @@
 				return null;
 			},
 			"meguca": function (node) {
-				return node.closest("article")
+				return node.closest("article");
 			}
 		};
 		var get_file_info = {
@@ -7155,8 +7155,8 @@
 				Module.dynamic = false;
 			}
 			else if (domain === "meguca.org") {
-				Module.mode = "meguca"
-				Module.is_meguca = true
+				Module.mode = "meguca";
+				Module.is_meguca = true;
 			}
 			else { // assume tinyboard
 				Module.mode = "tinyboard";
@@ -8134,7 +8134,7 @@
 		// Public
 		var ready = function () {
 			if (Config.is_meguca) {
-				return
+				return;
 			}
 			update(false);
 
@@ -8144,7 +8144,7 @@
 		};
 		var bg = function (node, opacity) {
 			if (Config.is_meguca) {
-				return node.classList.add("popup-menu", "glass")
+				return node.classList.add("popup-menu", "glass");
 			}
 			node.classList.add("xl-theme-post-bg");
 			if (opacity === undefined || opacity === 1) {
@@ -10100,7 +10100,7 @@
 				locations.add(".ipbnavsmall", Flags.Prepend | Flags.OuterSpace, "-");
 			}
 			else if (Config.is_meguca) {
-				locations.add("#banner-extensions", Flags.OuterSpace | Flags.Brackets)
+				locations.add("#banner-extensions", Flags.OuterSpace | Flags.Brackets);
 			}
 
 			locations.insert();
