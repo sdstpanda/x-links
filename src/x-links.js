@@ -840,6 +840,7 @@
 	})();
 	var Post = (function () {
 
+
 		// Private
 		var file_ext = function (url) {
 			var m = /\.[^\.]*$/.exec(url);
@@ -9629,7 +9630,7 @@
 		var add_svg_icons = function (nodes) {
 			var par = null,
 				is_appchan = (mode === "appchanx"),
-				next, color, n1, n2, i, ii;
+				next, n1, n2, i, ii;
 
 			if (is_appchan) {
 				if (
@@ -9669,12 +9670,18 @@
 					$.before(par, next, n1);
 				}
 
-				color = Theme.get_computed_style(n2).color;
-				if (color && (n1 = $("svg", n2)) !== null) {
-					n1.setAttribute("style", "fill:" + color + ";");
-				}
-				n2.setAttribute("data-xl-color", color);
+				update_svg_color(n2);
 			}
+		};
+
+		var update_svg_color = function (node) {
+			var color = Theme.get_computed_style(node).color,
+				n1;
+
+			if (color && (n1 = $("svg", node)) !== null) {
+				n1.setAttribute("style", "fill:" + color + ";");
+			}
+			node.setAttribute("data-xl-color", color);
 		};
 
 		var on_header_bar_detected = function (node) {
