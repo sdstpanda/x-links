@@ -4509,8 +4509,7 @@
 			if (info.similar) {
 				var blob = info.blob,
 					form_data = new FormData(),
-					ext = (blob.type || "").split("/"),
-					domain = (config.sauce.lookup_domain === domains.exhentai ? domains.exhentai : domains.ehentai);
+					ext = (blob.type || "").split("/");
 
 				info.blob = null;
 
@@ -4524,7 +4523,7 @@
 
 				callback(null, {
 					method: "POST",
-					url: (config.sauce.lookup_domain === domains.exhentai ? "https://exhentai.org/upload/image_lookup.php" : "https://upload.e-hentai.org/image_lookup.php"),
+					url: (config.sauce.lookup_domain === domains.exhentai ? "https://" + domains.exhentai + "/upload/image_lookup.php" : "https://upload." + domains.ehentai + "/image_lookup.php"),
 					data: form_data
 				});
 			}
@@ -9196,7 +9195,7 @@
 				return false;
 			}
 		};
-		var on_random_link_generate = function (event) {
+		var on_random_link_generate = function () {
 			var entries = contents[content_current].entries,
 				i;
 
