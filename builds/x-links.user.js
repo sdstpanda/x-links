@@ -2,7 +2,7 @@
 // @name        X-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.8.18
+// @version     1.2.8.19
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -876,6 +876,7 @@
 	})();
 	var Post = (function () {
 
+
 		// Private
 		var file_ext = function (url) {
 			var m = /\.[^\.]*$/.exec(url);
@@ -970,7 +971,7 @@
 				return null;
 			},
 			"meguca": function (node) {
-				return node.closest("article")
+				return node.closest("article");
 			}
 		};
 		var get_file_info = {
@@ -4544,8 +4545,7 @@
 			if (info.similar) {
 				var blob = info.blob,
 					form_data = new FormData(),
-					ext = (blob.type || "").split("/"),
-					domain = (config.sauce.lookup_domain === domains.exhentai ? domains.exhentai : domains.ehentai);
+					ext = (blob.type || "").split("/");
 
 				info.blob = null;
 
@@ -4559,7 +4559,7 @@
 
 				callback(null, {
 					method: "POST",
-					url: (config.sauce.lookup_domain === domains.exhentai ? "https://exhentai.org/upload/image_lookup.php" : "https://upload.e-hentai.org/image_lookup.php"),
+					url: (config.sauce.lookup_domain === domains.exhentai ? "https://" + domains.exhentai + "/upload/image_lookup.php" : "https://upload." + domains.ehentai + "/image_lookup.php"),
 					data: form_data
 				});
 			}
@@ -6442,7 +6442,7 @@
 			popup = null;
 
 		var html_filter_guide = function () {
-			return "<div class=\"xl-settings-group xl-settings-filter-guide xl-theme\">Lines starting with <code>/</code> will be treated as <a href=\"https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions\" target=\"_blank\" rel=\"noreferrer nofollow\">regular expressions</a>. <span style=\"opacity: 0.75\">(This is very similar to 4chan-x style filtering)</span><br>Lines starting with <code>#</code> are comments and will be ignored.<br>Lines starting with neither <code>#</code> nor <code>/</code> will be treated as a case-insensitive string to match anywhere.<br>For example, <code>/touhou/i</code> will highlight entries containing the string `<code>touhou</code>`, case-insensitive.<br><br>The lower a filter appears in this list, the greater its priority will be.<br><br>You can use these additional settings with each regular expression, separating them with semicolons:<br><ul><li><strong>Apply the filter to different scopes:</strong><br><code>tags;</code>, <code>title;</code> or <code>uploader;</code>. By default the scope is <code>title;tags;</code><br></li><li><strong>Force a gallery to not be highlighted:</strong> <span style=\"opacity: 0.75\">If omitted, the gallery will be highlighted as normal</span><br><code>bad:no;</code>, <code>bad:yes;</code>, or just <code>bad;</code></li><li><strong>Only apply the filter to certain categories:</strong><br><code>only:doujinshi,manga;</code>.<div style=\"font-size: 0.9em; margin-top: 0.1em; opacity: 0.75\">Categories: <span>artistcg, asianporn, cosplay, doujinshi, gamecg, imageset, manga, misc, <span style=\"white-space: nowrap\">non-h</span>, private, western</span></div></li><li><strong>Only apply the filter if it <em>is not</em> a certain category:</strong><br><code>not:western,non-h;</code>.</li><li><strong>Only apply the filter to certain sites:</strong><br><code>only:ehentai;</code>.<div style=\"font-size: 0.9em; margin-top: 0.1em; opacity: 0.75\">Sites: <span>ehentai, nhentai, hitomi</span></div></li><li><strong>Apply a colored decoration to the matched text:</strong><br><code>color:red;</code>, <code>underline:#0080f0;</code>, or <code>background:rgba(0,255,0,0.5);</code></li><li><strong>Apply a colored decoration to the [Ex] or [EH] tag:</strong><br><code>link-color:blue;</code>, <code>link-underline:#bf48b5;</code>, or <code>link-background:rgba(220,200,20,0.5);</code></li><li><strong>Apply a colored decoration to <em>BOTH</em> the matched text and tag:</strong><br><code>colors:blue;</code>, <code>underlines:#bf48b5;</code>, or <code>backgrounds:rgba(220,200,20,0.5);</code></li><li><strong>Disable any coloring, including the default:</strong><br><code>no-colors;</code> or <code>nocolor;</code></li></ul>Additionally, some settings have aliases. If multiple are used, only the main one will be used.<br><ul><li><code>tags: tag</code></li><li><code>only: category, cat</code></li><li class=\"xl-settings-li-no-space\"><code>not: no</code></li><li class=\"xl-settings-li-no-space\"><code>site: sites</code></li><li><code>colors: cs</code></li><li class=\"xl-settings-li-no-space\"><code>underlines: us</code></li><li class=\"xl-settings-li-no-space\"><code>backgrounds: bgs</code></li><li><code>color: c</code></li><li class=\"xl-settings-li-no-space\"><code>underline: u</code></li><li class=\"xl-settings-li-no-space\"><code>background: bg</code></li><li><code>link-color: link-c, lc</code></li><li class=\"xl-settings-li-no-space\"><code>link-underline: link-u, lu</code></li><li class=\"xl-settings-li-no-space\"><code>link-background: link-bg, lbg</code></li><li><code>no-colors: no-color, nocolors, nocolor</code></li></ul>For easy <a href=\"https://developer.mozilla.org/en-US/docs/Web/CSS/color_value#Color_keywords\" target=\"_blank\" rel=\"noreferrer nofollow\">HTML color</a> selection, you can use the following helper to select a color:<br><br><div><input type=\"color\" value=\"#808080\" class=\"xl-settings-color-input\"><input type=\"text\" value=\"#808080\" class=\"xl-settings-color-input\" readonly=\"readonly\"><input type=\"text\" value=\"rgba(128,128,128,1)\" class=\"xl-settings-color-input\" readonly=\"readonly\"></div></div>";
+			return "<div class=\"xl-settings-group xl-settings-filter-guide xl-theme\">Lines starting with <code>/</code> will be treated as <a href=\"https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions\" target=\"_blank\" rel=\"noreferrer nofollow\">regular expressions</a>. <span style=\"opacity: 0.75\">(This is very similar to 4chan-x style filtering)</span><br>Lines starting with <code>#</code> are comments and will be ignored.<br>Lines starting with neither <code>#</code> nor <code>/</code> will be treated as a case-insensitive string to match anywhere.<br>For example, <code>/touhou/i</code> will highlight entries containing the string `<code>touhou</code>`, case-insensitive.<br><br>The lower a filter appears in this list, the greater its priority will be.<br><br>You can use these additional settings with each regular expression, separating them with semicolons:<br><ul><li><strong>Apply the filter to different scopes:</strong><br><code>tags;</code>, <code>title;</code> or <code>uploader;</code>. By default the scope is <code>title;tags;</code><br></li><li><strong>Force a gallery to not be highlighted:</strong> <span style=\"opacity: 0.75\">If omitted, the gallery will be highlighted as normal</span><br><code>bad:no;</code>, <code>bad:yes;</code>, or just <code>bad;</code></li><li><strong>Only apply the filter to certain categories:</strong><br><code>only:doujinshi,manga;</code>.<div style=\"font-size: 0.9em; margin-top: 0.1em; opacity: 0.75\">Categories: <span>artistcg, asianporn, cosplay, doujinshi, gamecg, imageset, manga, misc, <span style=\"white-space: nowrap\">non-h</span>, private, western</span></div></li><li><strong>Only apply the filter if it <em>is not</em> a certain category:</strong><br><code>not:western,non-h;</code>.</li><li><strong>Only apply the filter to certain sites:</strong><br><code>site:ehentai;</code>.<div style=\"font-size: 0.9em; margin-top: 0.1em; opacity: 0.75\">Sites: <span>ehentai, nhentai, hitomi</span></div></li><li><strong>Apply a colored decoration to the matched text:</strong><br><code>color:red;</code>, <code>underline:#0080f0;</code>, or <code>background:rgba(0,255,0,0.5);</code></li><li><strong>Apply a colored decoration to the [Ex] or [EH] tag:</strong><br><code>link-color:blue;</code>, <code>link-underline:#bf48b5;</code>, or <code>link-background:rgba(220,200,20,0.5);</code></li><li><strong>Apply a colored decoration to <em>BOTH</em> the matched text and tag:</strong><br><code>colors:blue;</code>, <code>underlines:#bf48b5;</code>, or <code>backgrounds:rgba(220,200,20,0.5);</code></li><li><strong>Disable any coloring, including the default:</strong><br><code>no-colors;</code> or <code>nocolor;</code></li></ul>Additionally, some settings have aliases. If multiple are used, only the main one will be used.<br><ul><li><code>tags: tag</code></li><li><code>only: category, cat</code></li><li class=\"xl-settings-li-no-space\"><code>not: no</code></li><li class=\"xl-settings-li-no-space\"><code>site: sites</code></li><li><code>colors: cs</code></li><li class=\"xl-settings-li-no-space\"><code>underlines: us</code></li><li class=\"xl-settings-li-no-space\"><code>backgrounds: bgs</code></li><li><code>color: c</code></li><li class=\"xl-settings-li-no-space\"><code>underline: u</code></li><li class=\"xl-settings-li-no-space\"><code>background: bg</code></li><li><code>link-color: link-c, lc</code></li><li class=\"xl-settings-li-no-space\"><code>link-underline: link-u, lu</code></li><li class=\"xl-settings-li-no-space\"><code>link-background: link-bg, lbg</code></li><li><code>no-colors: no-color, nocolors, nocolor</code></li></ul>For easy <a href=\"https://developer.mozilla.org/en-US/docs/Web/CSS/color_value#Color_keywords\" target=\"_blank\" rel=\"noreferrer nofollow\">HTML color</a> selection, you can use the following helper to select a color:<br><br><div><input type=\"color\" value=\"#808080\" class=\"xl-settings-color-input\"><input type=\"text\" value=\"#808080\" class=\"xl-settings-color-input\" readonly=\"readonly\"><input type=\"text\" value=\"rgba(128,128,128,1)\" class=\"xl-settings-color-input\" readonly=\"readonly\"></div></div>";
 		};
 		var create_export_data = function () {
 			return {
@@ -7054,29 +7054,65 @@
 				return window.localStorage;
 			}
 
+			var log_error = function (/*e*/) {};
 			var storage = {
 				getItem: function (key) {
-					return GM_getValue(key, null);
+					try {
+						return GM_getValue(key, null);
+					}
+					catch (e) {
+						log_error(e);
+					}
+					return null;
 				},
 				setItem: function (key, value) {
-					GM_setValue(key, value);
+					try {
+						GM_setValue(key, value);
+					}
+					catch (e) {
+						log_error(e);
+					}
 				},
 				key: function (index) {
-					return GM_listValues()[index];
+					try {
+						return GM_listValues()[index];
+					}
+					catch (e) {
+						log_error(e);
+					}
+					return undefined;
 				},
 				removeItem: function (key) {
-					GM_deleteValue(key);
+					try {
+						GM_deleteValue(key);
+					}
+					catch (e) {
+						log_error(e);
+					}
 				},
 				clear: function () {
-					var v = GM_listValues(), i, ii;
-					for (i = 0, ii = v.length; i < ii; ++i) GM_deleteValue(v[i]);
+					try {
+						var v = GM_listValues(), i, ii;
+						for (i = 0, ii = v.length; i < ii; ++i) {
+							GM_deleteValue(v[i]);
+						}
+					}
+					catch (e) {
+						log_error(e);
+					}
 				}
 				// length: (getter)
 			};
 
 			// Length getter
 			var get_length = function () {
-				return GM_listValues().length;
+				try {
+					return GM_listValues().length;
+				}
+				catch (e) {
+					log_error(e);
+				}
+				return 0;
 			};
 			if (Object.defineProperty) {
 				Object.defineProperty(storage, "length", { get: get_length });
@@ -7191,8 +7227,8 @@
 				Module.dynamic = false;
 			}
 			else if (domain === "meguca.org") {
-				Module.mode = "meguca"
-				Module.is_meguca = true
+				Module.mode = "meguca";
+				Module.is_meguca = true;
 			}
 			else { // assume tinyboard
 				Module.mode = "tinyboard";
@@ -7210,14 +7246,16 @@
 			config.version = null;
 		};
 		var get_saved_settings = function () {
-			return $.json_parse_safe(storage.getItem(settings_key), null);
+			var v = storage.getItem(settings_key);
+			return $.json_parse_safe(v, null);
 		};
 		var set_saved_settings = function (data) {
 			if (data === null) {
 				storage.removeItem(settings_key);
 			}
 			else {
-				storage.setItem(settings_key, JSON.stringify(data));
+				var v = JSON.stringify(data);
+				storage.setItem(settings_key, v);
 			}
 		};
 
@@ -8109,6 +8147,7 @@
 					post_bg_opac = new_theme[2];
 					if (change_nodes) update_nodes_bg();
 				}
+				trigger(event_listeners.theme_change, null);
 				return true;
 			}
 			return false;
@@ -8170,7 +8209,7 @@
 		// Public
 		var ready = function () {
 			if (Config.is_meguca) {
-				return
+				return;
 			}
 			update(false);
 
@@ -8180,7 +8219,7 @@
 		};
 		var bg = function (node, opacity) {
 			if (Config.is_meguca) {
-				return node.classList.add("popup-menu", "glass")
+				return node.classList.add("popup-menu", "glass");
 			}
 			node.classList.add("xl-theme-post-bg");
 			if (opacity === undefined || opacity === 1) {
@@ -8248,6 +8287,36 @@
 			return [ 0 , 0 , 0 , 0 ];
 		};
 
+		// Events
+		var event_listeners = {
+			theme_change: []
+		};
+		var on = function (event_name, callback) {
+			var listeners = event_listeners[event_name];
+			if (listeners === undefined) return false;
+			listeners.push(callback);
+			return true;
+		};
+		var off = function (event_name, callback) {
+			var listeners = event_listeners[event_name],
+				i, ii;
+			if (listeners !== undefined) {
+				for (i = 0, ii = listeners.length; i < ii; ++i) {
+					if (listeners[i] === callback) {
+						listeners.splice(i, 1);
+						return true;
+					}
+				}
+			}
+			return false;
+		};
+		var trigger = function (listeners, data) {
+			var i, ii;
+			for (i = 0, ii = listeners.length; i < ii; ++i) {
+				listeners[i].call(null, data);
+			}
+		};
+
 		// Exports
 		var Module =  {
 			classes: " xl-theme",
@@ -8255,7 +8324,9 @@
 			bg: bg,
 			apply: apply,
 			get_computed_style: get_computed_style,
-			parse_css_color: parse_css_color
+			parse_css_color: parse_css_color,
+			on: on,
+			off: off
 		};
 
 		return Module;
@@ -9231,7 +9302,7 @@
 				return false;
 			}
 		};
-		var on_random_link_generate = function (event) {
+		var on_random_link_generate = function () {
 			var entries = contents[content_current].entries,
 				i;
 
@@ -9665,7 +9736,7 @@
 		var add_svg_icons = function (nodes) {
 			var par = null,
 				is_appchan = (mode === "appchanx"),
-				next, color, n1, n2, i, ii;
+				next, n1, n2, i, ii;
 
 			if (is_appchan) {
 				if (
@@ -9705,12 +9776,30 @@
 					$.before(par, next, n1);
 				}
 
-				color = Theme.get_computed_style(n2).color;
-				if (color && (n1 = $("svg", n2)) !== null) {
-					n1.setAttribute("style", "fill:" + color + ";");
-				}
-				n2.setAttribute("data-xl-color", color);
+				update_svg_color(n2);
 			}
+
+			if (nodes.length > 0) {
+				update_svg_color_changes(nodes);
+			}
+		};
+
+		var update_svg_color = function (node) {
+			var color = Theme.get_computed_style(node).color,
+				n1;
+
+			if (color && (n1 = $("svg", node)) !== null) {
+				n1.setAttribute("style", "fill:" + color + ";");
+			}
+			node.setAttribute("data-xl-color", color);
+		};
+		var update_svg_color_changes = function (nodes) {
+			Theme.on("theme_change", function () {
+				var i, ii;
+				for (i = 0, ii = nodes.length; i < ii; ++i) {
+					update_svg_color(nodes[i]);
+				}
+			});
 		};
 
 		var on_header_bar_detected = function (node) {
@@ -10130,7 +10219,7 @@
 				locations.add(".ipbnavsmall", Flags.Prepend | Flags.OuterSpace, "-");
 			}
 			else if (Config.is_meguca) {
-				locations.add("#banner-extensions", Flags.OuterSpace | Flags.Brackets)
+				locations.add("#banner-extensions", Flags.OuterSpace | Flags.Brackets);
 			}
 
 			locations.insert();
@@ -10223,7 +10312,12 @@
 		};
 		var extension_is_enabled = function (name, author, description) {
 			if (disabled_extensions === undefined) {
-				disabled_extensions = $.json_parse_safe(Config.storage.getItem(disabled_extensions_key), null);
+				try {
+					disabled_extensions = $.json_parse_safe(Config.storage.getItem(disabled_extensions_key), null);
+				}
+				catch (e) {
+					return false;
+				}
 			}
 			if (disabled_extensions === null) return true;
 
@@ -11795,7 +11889,7 @@
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,8,18],
+			version: [1,2,8,19],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,

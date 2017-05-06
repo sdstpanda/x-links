@@ -1,5 +1,11 @@
 ﻿master
 
+1.2.8.19
+- dnsev-h
+  + Fixed the site: modifier being mis-labeled in the filtering guide
+  + Fixed a few exceptions that started popping up in Firefox
+  + Fixed SVG icon color not working in Firefox
+
 1.2.8.18
 - dnsev-h
   + Fixed a 4chan-x link preview conflict which could show multiple YouTube/etc. thumbnail previews
