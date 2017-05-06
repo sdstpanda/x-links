@@ -7018,29 +7018,65 @@
 				return window.localStorage;
 			}
 
+			var log_error = function (/*e*/) {};
 			var storage = {
 				getItem: function (key) {
-					return GM_getValue(key, null);
+					try {
+						return GM_getValue(key, null);
+					}
+					catch (e) {
+						log_error(e);
+					}
+					return null;
 				},
 				setItem: function (key, value) {
-					GM_setValue(key, value);
+					try {
+						GM_setValue(key, value);
+					}
+					catch (e) {
+						log_error(e);
+					}
 				},
 				key: function (index) {
-					return GM_listValues()[index];
+					try {
+						return GM_listValues()[index];
+					}
+					catch (e) {
+						log_error(e);
+					}
+					return undefined;
 				},
 				removeItem: function (key) {
-					GM_deleteValue(key);
+					try {
+						GM_deleteValue(key);
+					}
+					catch (e) {
+						log_error(e);
+					}
 				},
 				clear: function () {
-					var v = GM_listValues(), i, ii;
-					for (i = 0, ii = v.length; i < ii; ++i) GM_deleteValue(v[i]);
+					try {
+						var v = GM_listValues(), i, ii;
+						for (i = 0, ii = v.length; i < ii; ++i) {
+							GM_deleteValue(v[i]);
+						}
+					}
+					catch (e) {
+						log_error(e);
+					}
 				}
 				// length: (getter)
 			};
 
 			// Length getter
 			var get_length = function () {
-				return GM_listValues().length;
+				try {
+					return GM_listValues().length;
+				}
+				catch (e) {
+					log_error(e);
+				}
+				return 0;
 			};
 			if (Object.defineProperty) {
 				Object.defineProperty(storage, "length", { get: get_length });
@@ -7174,14 +7210,16 @@
 			config.version = null;
 		};
 		var get_saved_settings = function () {
-			return $.json_parse_safe(storage.getItem(settings_key), null);
+			var v = storage.getItem(settings_key);
+			return $.json_parse_safe(v, null);
 		};
 		var set_saved_settings = function (data) {
 			if (data === null) {
 				storage.removeItem(settings_key);
 			}
 			else {
-				storage.setItem(settings_key, JSON.stringify(data));
+				var v = JSON.stringify(data);
+				storage.setItem(settings_key, v);
 			}
 		};
 
