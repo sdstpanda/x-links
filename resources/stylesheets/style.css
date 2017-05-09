@@ -432,6 +432,9 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 	transition: transform 0.25s ease-out 0s, opacity 0.25s ease-out 0s;
 	-moz-transition: -moz-transform 0.25s ease-out 0s, opacity 0.25s ease-out 0s;
 	-webkit-transition: -webkit-transform 0.25s ease-out 0s, opacity 0.25s ease-out 0s;
+	transform-style: preserve-3d;
+	-moz-transform-style: preserve-3d;
+	-webkit-transform-style: preserve-3d;
 }
 .xl-details-page-thumbnail-size {
 	position: absolute;
@@ -457,9 +460,6 @@ a.xl-exsauce-link.xl-exsauce-link-disabled {
 	perspective-origin: 100% 50%;
 	-moz-perspective-origin: 100% 50%;
 	-webkit-perspective-origin: 100% 50%;
-	transform-style: preserve-3d;
-	-moz-transform-style: preserve-3d;
-	-webkit-transform-style: preserve-3d;
 }
 .xl-details.xl-details-has-thumbnail>.xl-details-thumbnail>.xl-details-page-thumbnail {
 	display: block;
