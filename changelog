@@ -1,5 +1,11 @@
 ﻿master
 
+1.2.8.20
+- dnsev-h
+  + Workaround a firefox CSS layering bug causing page thumbnails to not show up
+  + Fixed a function returning null unexpectedly, resulting in errors
+  + Fixed nhentai thumbnails not working
+
 1.2.8.19
 - dnsev-h
   + Fixed the site: modifier being mis-labeled in the filtering guide
