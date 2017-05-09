@@ -3516,7 +3516,7 @@
 
 				if (
 					(n = $("img", n)) !== null &&
-					(t = n.getAttribute("src"))
+					(t = n.getAttribute("data-src"))
 				) {
 					data.thumbnail = $.resolve(t, url);
 				}
