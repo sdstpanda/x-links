@@ -8210,12 +8210,16 @@
 			}
 		};
 		var get_computed_style = function (node) {
+			var s;
 			try {
 				// Don't use window.getComputedStyle: https://code.google.com/p/chromium/issues/detail?id=538650
-				return document.defaultView.getComputedStyle(node);
+				s = document.defaultView.getComputedStyle(node);
 			}
 			catch (e) {}
-			return node.style || {};
+			if (!s) {
+				s = node.style || {};
+			}
+			return s;
 		};
 		var parse_css_color = function (color) {
 			if (color && color !== "transparent") {
