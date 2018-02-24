@@ -2,12 +2,14 @@
 // @name        X-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.8.20
+// @version     1.2.8.21
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
 // @include     http://8ch.net/*
 // @include     https://8ch.net/*
+// @include     https://archived.moe/*
+// @include     https://boards.fireden.net/*
 // @include     http://desuarchive.org/*
 // @include     https://desuarchive.org/*
 // @include     http://fgts.jp/*
@@ -33,11 +35,52 @@
 // @grant       GM_setValue
 // @grant       GM_getValue
 // @grant       GM_deleteValue
-// @grant       GM_listValues
+// @grant       GM.xmlHttpRequest
+// @grant       GM.setValue
+// @grant       GM.getValue
+// @grant       GM.deleteValue
 // @run-at      document-start
 // ==/UserScript==
 (function (window) {
 	"use strict";
+
+	// Greasemonkey 4 compatibility
+	var to_promise = function (fn, self) {
+		return function () {
+			var args = arguments;
+			return new Promise(function (resolve, reject) {
+				try {
+					resolve(fn.apply(self, args));
+				}
+				catch (e) {
+					reject(e);
+				}
+			});
+		};
+	};
+
+	var GM = (function () {
+		var GM = this.GM;
+		if (GM !== null && typeof(GM) === "object") {
+			return GM;
+		}
+
+		var mapping = [
+			[ "getValue", "GM_getValue" ],
+			[ "setValue", "GM_setValue" ],
+			[ "deleteValue", "GM_deleteValue" ],
+			[ "xmlHttpRequest", "GM_xmlhttpRequest" ]
+		];
+
+		GM = {};
+		var m, i, ii;
+		for (i = 0, ii = mapping.length; i < ii; ++i) {
+			m = mapping[i];
+			GM[m[0]] = to_promise(this[m[1]], this);
+		}
+
+		return GM;
+	}).call(this);
 
 	// Tampermonkey bug fix
 	if (window.document === undefined) {
@@ -625,10 +668,10 @@
 
 			if (m !== null) {
 				ret.protocol = m[0];
-				m = /^\/{0,2}([^\/\?\#]*)(\/[^\?\#]*)?(\?[^\#]*)?(\#[\w\W]*)?/.exec(url.substr(m.index + m[0].length));
+				m = /^\/{0,2}([^\/\?#]*)(\/[^\?#]*)?(\?[^#]*)?(#[\w\W]*)?/.exec(url.substr(m.index + m[0].length));
 			}
 			else {
-				m = /^(?:\/\/([^\/\?\#]*))?([^\?\#]+)?(\?[^\#]*)?(\#[\w\W]*)?/.exec(url);
+				m = /^(?:\/\/([^\/\?#]*))?([^\?#]+)?(\?[^#]*)?(#[\w\W]*)?/.exec(url);
 			}
 
 			if (m !== null) {
@@ -1438,9 +1481,7 @@
 	})();
 	var HttpRequest = (function () {
 
-		var debug_fn, request;
-
-		debug_fn = function (type, data, callback, start_time) {
+		var debug_fn = function (type, data, callback, start_time) {
 			return function (xhr) {
 				var t = timing(),
 					args = [
@@ -1458,42 +1499,50 @@
 			};
 		};
 
-		if ((function () {
+		var debug_begin = function (data) {
+			var upload = data.upload,
+				start = timing(),
+				fn;
+
+			Debug.log("HttpRequest:", data.method, data.url, { data: data });
+
+			if (typeof((fn = data.onload)) === "function") {
+				data.onload = debug_fn("load", data, fn, start);
+			}
+			if (typeof((fn = data.onerror)) === "function") {
+				data.onerror = debug_fn("error", data, fn, start);
+			}
+			if (typeof((fn = data.onabort)) === "function") {
+				data.onabort = debug_fn("abort", data, fn, start);
+			}
+
+			if (typeof(upload) === "object" && upload !== null) {
+				if (typeof((fn = upload.onerror)) === "function") {
+					upload.onerror = debug_fn("upload.error", data, fn, start);
+				}
+				if (typeof((fn = upload.onabort)) === "function") {
+					upload.onabort = debug_fn("upload.abort", data, fn, start);
+				}
+			}
+		};
+
+		var supported = function () {
 			try {
-				return (typeof(GM_xmlhttpRequest) === "function");
+				return (typeof(GM.xmlHttpRequest) === "function");
 			}
 			catch (e) {}
 			return false;
-		})()) {
+		};
+
+		var request;
+
+		if (supported()) {
 			request = function (data) {
-				if (Debug.enabled) {
-					var upload = data.upload,
-						start = timing(),
-						fn;
-
-					Debug.log("HttpRequest:", data.method, data.url, { data: data });
-
-					if (typeof((fn = data.onload)) === "function") {
-						data.onload = debug_fn("load", data, fn, start);
-					}
-					if (typeof((fn = data.onerror)) === "function") {
-						data.onerror = debug_fn("error", data, fn, start);
-					}
-					if (typeof((fn = data.onabort)) === "function") {
-						data.onabort = debug_fn("abort", data, fn, start);
-					}
-
-					if (typeof(upload) === "object" && upload !== null) {
-						if (typeof((fn = upload.onerror)) === "function") {
-							upload.onerror = debug_fn("upload.error", data, fn, start);
-						}
-						if (typeof((fn = upload.onabort)) === "function") {
-							upload.onabort = debug_fn("upload.abort", data, fn, start);
-						}
-					}
+				if (Debug.enabled || true) {
+					debug_begin(data);
 				}
 
-				return GM_xmlhttpRequest(data);
+				GM.xmlHttpRequest(data);
 			};
 		}
 		else {
@@ -3361,7 +3410,7 @@
 			var n;
 			return (
 				(n = $("title", html)) !== null &&
-				/^\s*Gallery\s+Not\s+Available/i.test(n.textContent) &&
+				(/^\s*Gallery\s+Not\s+Available/i).test(n.textContent) &&
 				$("#continue", html) !== null
 			);
 		};
@@ -3369,7 +3418,7 @@
 			var n;
 			return (
 				(n = $("h1", html)) !== null &&
-				/^\s*Content\s+Warning/i.test(n.textContent)
+				(/^\s*Content\s+Warning/i).test(n.textContent)
 			);
 		};
 		var ehentai_parse_gallery_info = function (html, data) {
@@ -4383,7 +4432,7 @@
 			var content_type = header_string_parse(xhr.responseHeaders)["content-type"],
 				html;
 
-			if (!/^text\/html/i.test(content_type || "")) {
+			if (!(/^text\/html/i).test(content_type || "")) {
 				// Panda
 				if (this.retry_count === 0 && info.domain === domains.exhentai) {
 					// Retry
@@ -4801,7 +4850,7 @@
 					if (m !== null) data.page = parseInt(m[1], 10);
 					icon_site = is_ex ? "exhentai" : "ehentai";
 				}
-				else if ((m = /^\/s\/([0-9a-f]+)\/(\d+)\-(\d+)/.exec(remaining)) !== null) {
+				else if ((m = /^\/s\/([0-9a-f]+)\/(\d+)-(\d+)/.exec(remaining)) !== null) {
 					data = {
 						id: "ehentai_" + m[2],
 						site: "ehentai",
@@ -5548,7 +5597,7 @@
 			sauce.setAttribute("data-xl-filename", file_info.name);
 			sauce.setAttribute("data-xl-image-index", index);
 			if (file_info.md5 !== null) {
-				sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
+				sauce.setAttribute("data-md5", file_info.md5.replace(/\=+/g, ""));
 			}
 			if (/^\.jpe?g$/i.test(file_info.type) && !Config.is_tinyboard) {
 				if (browser.is_firefox) {
@@ -6902,7 +6951,7 @@
 					$.on(fn, "change", function () {
 						var files = this.files,
 							reader;
-						if (files.length > 0 && /\.json$/i.test(files[0].name)) {
+						if (files.length > 0 && (/\.json$/i).test(files[0].name)) {
 							reader = new FileReader();
 							reader.addEventListener("load", function () {
 								var d = $.json_parse_safe(this.result, null);
@@ -7037,20 +7086,39 @@
 			custom = {},
 			custom_descriptor = null;
 
+		var gm_supported = function () {
+			try {
+				return (
+					typeof(GM_setValue) === "function" &&
+					typeof(GM_getValue) === "function" &&
+					typeof(GM_deleteValue) === "function"
+				);
+			}
+			catch (e) {}
+			return true;
+		};
+
 		// Public
+		var storage_new = (function () {
+			if (!gm_supported.call(this)) {
+				var s = window.localStorage;
+				return {
+					getItem: to_promise(s.getItem, s),
+					setItem: to_promise(s.setItem, s),
+					removeItem: to_promise(s.removeItem, s)
+				};
+			}
+			else {
+				return {
+					getItem: (k) => GM.getItem(k),
+					setItem: (k,v) => GM.setItem(k, v),
+					removeItem: (k) => GM.removeItem(k)
+				};
+			}
+		})();
+
 		var storage = (function () {
-			if ((function () {
-				try {
-					return (
-						typeof(GM_setValue) !== "function" ||
-						typeof(GM_getValue) !== "function" ||
-						typeof(GM_deleteValue) !== "function" ||
-						typeof(GM_listValues) !== "function"
-					);
-				}
-				catch (e) {}
-				return true;
-			})()) {
+			if (!gm_supported.call(this)) {
 				return window.localStorage;
 			}
 
@@ -7073,15 +7141,6 @@
 						log_error(e);
 					}
 				},
-				key: function (index) {
-					try {
-						return GM_listValues()[index];
-					}
-					catch (e) {
-						log_error(e);
-					}
-					return undefined;
-				},
 				removeItem: function (key) {
 					try {
 						GM_deleteValue(key);
@@ -7089,40 +7148,8 @@
 					catch (e) {
 						log_error(e);
 					}
-				},
-				clear: function () {
-					try {
-						var v = GM_listValues(), i, ii;
-						for (i = 0, ii = v.length; i < ii; ++i) {
-							GM_deleteValue(v[i]);
-						}
-					}
-					catch (e) {
-						log_error(e);
-					}
 				}
-				// length: (getter)
 			};
-
-			// Length getter
-			var get_length = function () {
-				try {
-					return GM_listValues().length;
-				}
-				catch (e) {
-					log_error(e);
-				}
-				return 0;
-			};
-			if (Object.defineProperty) {
-				Object.defineProperty(storage, "length", { get: get_length });
-			}
-			else if (Object.prototype.__defineGetter__) {
-				Object.prototype.__defineGetter__.call(storage, "length", get_length);
-			}
-			else {
-				storage.length = 0;
-			}
 
 			return storage;
 		})();
@@ -7203,7 +7230,7 @@
 				Module.is_4chan = true;
 				Module.is_4chan_x3 = (document_element.className.length > 0) || ($("head>style#layout", document_element) !== null); // appchan-x doesn't insert the fourchan-x class early enough
 			}
-			else if (domain === "desuarchive.org" || domain === "fgts.jp") {
+			else if (domain === "desuarchive.org" || domain === "fgts.jp" || domain === "archived.moe" || domain === "fireden.net") {
 				if (document.doctype.publicId) {
 					Module.mode = "fuuka";
 					Module.is_fuuka = true;
@@ -8187,7 +8214,7 @@
 					for (j = 0, jj = nodes.length; j < jj; ++j) {
 						node = nodes[j];
 						tag = node.tagName;
-						if (tag === "STYLE" || (tag === "LINK" && /\bstylesheet\b/.test(node.rel))) {
+						if (tag === "STYLE" || (tag === "LINK" && (/\bstylesheet\b/).test(node.rel))) {
 							update(true);
 							return;
 						}
@@ -8197,7 +8224,7 @@
 					for (j = 0, jj = nodes.length; j < jj; ++j) {
 						node = nodes[j];
 						tag = node.tagName;
-						if (tag === "STYLE" || (tag === "LINK" && /\bstylesheet\b/.test(node.rel))) {
+						if (tag === "STYLE" || (tag === "LINK" && (/\bstylesheet\b/).test(node.rel))) {
 							update(true);
 							return;
 						}
@@ -10929,11 +10956,11 @@
 			"cloneInto",
 			"exportFunction",
 			"createObjectIn",
+			"GM",
 			"GM_xmlhttpRequest",
 			"GM_setValue",
 			"GM_getValue",
 			"GM_deleteValue",
-			"GM_listValues",
 			"GM_info"
 		];
 
@@ -11893,7 +11920,7 @@
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,8,20],
+			version: [1,2,8,21],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
@@ -11908,5 +11935,5 @@
 	Main.init();
 	Debug.timer_log("init.full duration", timing.start);
 
-})(window);
+}).call(this, window);
 

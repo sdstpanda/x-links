@@ -2,12 +2,14 @@
 // @name        X-links (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.8.20.-0xDB
+// @version     1.2.8.21.-0xDB
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
 // @include     http://8ch.net/*
 // @include     https://8ch.net/*
+// @include     https://archived.moe/*
+// @include     https://boards.fireden.net/*
 // @include     http://desuarchive.org/*
 // @include     https://desuarchive.org/*
 // @include     http://fgts.jp/*
@@ -31,11 +33,52 @@
 // @grant       GM_setValue
 // @grant       GM_getValue
 // @grant       GM_deleteValue
-// @grant       GM_listValues
+// @grant       GM.xmlHttpRequest
+// @grant       GM.setValue
+// @grant       GM.getValue
+// @grant       GM.deleteValue
 // @run-at      document-start
 // ==/UserScript==
 (function (window) {
 	"use strict";
+
+	// Greasemonkey 4 compatibility
+	var to_promise = function (fn, self) {
+		return function () {
+			var args = arguments;
+			return new Promise(function (resolve, reject) {
+				try {
+					resolve(fn.apply(self, args));
+				}
+				catch (e) {
+					reject(e);
+				}
+			});
+		};
+	};
+
+	var GM = (function () {
+		var GM = this.GM;
+		if (GM !== null && typeof(GM) === "object") {
+			return GM;
+		}
+
+		var mapping = [
+			[ "getValue", "GM_getValue" ],
+			[ "setValue", "GM_setValue" ],
+			[ "deleteValue", "GM_deleteValue" ],
+			[ "xmlHttpRequest", "GM_xmlhttpRequest" ]
+		];
+
+		GM = {};
+		var m, i, ii;
+		for (i = 0, ii = mapping.length; i < ii; ++i) {
+			m = mapping[i];
+			GM[m[0]] = to_promise(this[m[1]], this);
+		}
+
+		return GM;
+	}).call(this);
 
 	// Tampermonkey bug fix
 	if (window.document === undefined) {
@@ -327,7 +370,7 @@
 						[ -0.25, "Default", "Offset slightly from the cursor" ],
 						[ 0.0, "ExLinks", "Use the original ExLinks style positioning" ]
 					],
-					set: function (v) { return parseFloat(v) || 0.0; }._w(3)
+					set: function (v) { return parseFloat(v) || 0.0; }._w(7)
 				}
 			],
 			[ "opacity", 1.0,
@@ -337,7 +380,7 @@
 					type: "textbox",
 					get: function (v) {
 						return "" + (v * 100);
-					}._w(4),
+					}._w(8),
 					set: function (v) {
 						v = parseFloat(v);
 						if (isNaN(v)) {
@@ -347,7 +390,7 @@
 							v = Math.max(0, Math.min(1, v / 100.0));
 						}
 						return v;
-					}._w(5)
+					}._w(9)
 				}
 			],
 			[ "opacity_bg", 0.93,
@@ -357,7 +400,7 @@
 					type: "textbox",
 					get: function (v) {
 						return "" + (v * 100);
-					}._w(6),
+					}._w(10),
 					set: function (v) {
 						v = parseFloat(v);
 						if (isNaN(v)) {
@@ -367,7 +410,7 @@
 							v = Math.max(0, Math.min(1, v / 100.0));
 						}
 						return v;
-					}._w(7)
+					}._w(11)
 				}
 			],
 		],
@@ -465,7 +508,7 @@
 					if (config_old["Disable Caching"]) return "none";
 					if (config_old["Disable Local Storage Cache"]) return "session";
 					return "local";
-				}._w(8),
+				}._w(12),
 				{
 					type: "select",
 					options: [ // [ value, label_text, description? ]
@@ -494,7 +537,7 @@
 					nextSibling: node.nextSibling,
 					previousSibling: node.previousSibling
 				}]);
-			}._w(10);
+			}._w(14);
 			var on_body_node_remove = function (event) {
 				var node = event.target;
 				this.callback.call(this, [{
@@ -504,21 +547,21 @@
 					nextSibling: node.nextSibling,
 					previousSibling: node.previousSibling
 				}]);
-			}._w(11);
+			}._w(15);
 
 			MutationObserver = function (callback) {
 				this.on_body_node_add = $.bind(on_body_node_add, this);
 				this.on_body_node_remove = $.bind(on_body_node_remove, this);
 				this.callback = callback;
 				this.nodes = [];
-			}._w(12);
+			}._w(16);
 			MutationObserver.prototype.observe = function (node, data) {
 				this.nodes.push(node);
 				if (data.childList) {
 					$.on(node, "DOMNodeInserted", this.on_body_node_add);
 					$.on(node, "DOMNodeRemoved", this.on_body_node_remove);
 				}
-			}._w(13);
+			}._w(17);
 			MutationObserver.prototype.disconnect = function () {
 				var node, i, ii;
 				for (i = 0, ii = this.nodes.length; i < ii; ++i) {
@@ -527,15 +570,15 @@
 					$.off(node, "DOMNodeRemoved", this.on_body_node_remove);
 				}
 				this.nodes = [];
-			}._w(14);
+			}._w(18);
 		}
 
 		return MutationObserver;
 
-	}._w(9))();
+	}._w(13))();
 	var $$ = function (selector, root) {
 		return (root || document).querySelectorAll(selector);
-	}._w(15);
+	}._w(19);
 	var $ = (function () {
 
 		var d = document,
@@ -545,7 +588,7 @@
 
 		var Module = function (selector, root) {
 			return (root || d).querySelector(selector);
-		}._w(17);
+		}._w(21);
 
 		Module.ready = (function () {
 
@@ -581,7 +624,7 @@
 				}
 
 				return false;
-			}._w(19);
+			}._w(23);
 
 			window.addEventListener("load", callback_check, false);
 			window.addEventListener("DOMContentLoaded", callback_check, false);
@@ -597,9 +640,9 @@
 						check_interval = setInterval(callback_check, check_interval_time);
 					}
 				}
-			}._w(20);
+			}._w(24);
 
-		}._w(18))();
+		}._w(22))();
 
 		Module.html_fragment = function (content) {
 			var frag = d.createDocumentFragment(),
@@ -612,28 +655,28 @@
 				frag.appendChild(n);
 			}
 			return frag;
-		}._w(21);
+		}._w(25);
 		Module.prepend = function (parent, child) {
 			return parent.insertBefore(child, parent.firstChild);
-		}._w(22);
+		}._w(26);
 		Module.add = function (parent, child) {
 			return parent.appendChild(child);
-		}._w(23);
+		}._w(27);
 		Module.before = function (root, next, node) {
 			return root.insertBefore(node, next);
-		}._w(24);
+		}._w(28);
 		Module.after = function (root, prev, node) {
 			return root.insertBefore(node, prev.nextSibling);
-		}._w(25);
+		}._w(29);
 		Module.replace = function (root, elem) {
 			return root.parentNode.replaceChild(elem, root);
-		}._w(26);
+		}._w(30);
 		Module.remove = function (elem) {
 			return elem.parentNode.removeChild(elem);
-		}._w(27);
+		}._w(31);
 		Module.tnode = function (text) {
 			return d.createTextNode(text);
-		}._w(28);
+		}._w(32);
 		Module.node = function (tag, class_name, text) {
 			var elem = d.createElement(tag);
 			elem.className = class_name;
@@ -641,15 +684,15 @@
 				elem.textContent = text;
 			}
 			return elem;
-		}._w(29);
+		}._w(33);
 		Module.node_ns = function (namespace, tag, class_name) {
 			var elem = d.createElementNS(namespace, tag);
 			elem.setAttribute("class", class_name);
 			return elem;
-		}._w(30);
+		}._w(34);
 		Module.node_simple = function (tag) {
 			return d.createElement(tag);
-		}._w(31);
+		}._w(35);
 		Module.link = function (href, class_name, text) {
 			var elem = d.createElement("a");
 			if (href !== undefined) {
@@ -664,7 +707,7 @@
 				elem.textContent = text;
 			}
 			return elem;
-		}._w(32);
+		}._w(36);
 		Module.on = function (elem, eventlist, handler) {
 			var event, i, ii;
 			if (eventlist instanceof Array) {
@@ -676,7 +719,7 @@
 			else {
 				elem.addEventListener(eventlist, handler, false);
 			}
-		}._w(33);
+		}._w(37);
 		Module.off = function (elem, eventlist, handler) {
 			var event, i, ii;
 			if (eventlist instanceof Array) {
@@ -688,14 +731,14 @@
 			else {
 				elem.removeEventListener(eventlist, handler, false);
 			}
-		}._w(34);
+		}._w(38);
 		Module.test = function (elem, selector) {
 			try {
 				return elem.matches ? elem.matches(selector) : elem.matchesSelector(selector);
 			}
 			catch (e) {}
 			return false;
-		}._w(35);
+		}._w(39);
 		Module.unwrap = function (node) {
 			var par = node.parentNode,
 				next, n;
@@ -707,7 +750,7 @@
 				}
 				par.removeChild(node);
 			}
-		}._w(36);
+		}._w(40);
 
 		Module.insert_styles = function (styles) {
 			var head = d.head,
@@ -717,7 +760,7 @@
 				n.textContent = styles;
 				head.appendChild(n);
 			}
-		}._w(37);
+		}._w(41);
 		Module.scroll_focus = function (element) {
 			// Focus
 			var n = d.createElement("textarea");
@@ -729,13 +772,13 @@
 			// Scroll to top
 			element.scrollTop = 0;
 			element.scrollLeft = 0;
-		}._w(38);
+		}._w(42);
 		Module.clamp = function (value, min, max) {
 			return Math.min(max, Math.max(min, value));
-		}._w(39);
+		}._w(43);
 		Module.is_left_mouse = function (event) {
 			return (event.which === undefined || event.which === 1);
-		}._w(40);
+		}._w(44);
 		Module.push_many = function (target, new_entries) {
 			var max_push = 1000;
 			if (new_entries.length < max_push) {
@@ -746,7 +789,7 @@
 					Array.prototype.push.apply(target, Array.prototype.slice.call(new_entries, i, i + max_push));
 				}
 			}
-		}._w(41);
+		}._w(45);
 		Module.bind = function (fn, self) {
 			if (arguments.length > 2) {
 				var i = 0,
@@ -764,14 +807,14 @@
 					}
 
 					return fn.apply(self, full_args);
-				}._w(43);
+				}._w(47);
 			}
 			else {
 				return function () {
 					return fn.apply(self, arguments);
-				}._w(44);
+				}._w(48);
 			}
-		}._w(42);
+		}._w(46);
 
 		var mouseenterleave_event_validate = function (self, parent) {
 			try {
@@ -782,12 +825,12 @@
 			}
 			catch (e) {}
 			return false;
-		}._w(45);
+		}._w(49);
 		Module.wrap_mouseenterleave_event = function (fn) {
 			return function (event) {
 				return mouseenterleave_event_validate(this, event.relatedTarget) ? fn.call(this, event) : undefined;
-			}._w(47);
-		}._w(46);
+			}._w(51);
+		}._w(50);
 
 		var parse_url = function (url) {
 			var ret = {
@@ -801,10 +844,10 @@
 
 			if (m !== null) {
 				ret.protocol = m[0];
-				m = /^\/{0,2}([^\/\?\#]*)(\/[^\?\#]*)?(\?[^\#]*)?(\#[\w\W]*)?/.exec(url.substr(m.index + m[0].length));
+				m = /^\/{0,2}([^\/\?#]*)(\/[^\?#]*)?(\?[^#]*)?(#[\w\W]*)?/.exec(url.substr(m.index + m[0].length));
 			}
 			else {
-				m = /^(?:\/\/([^\/\?\#]*))?([^\?\#]+)?(\?[^\#]*)?(\#[\w\W]*)?/.exec(url);
+				m = /^(?:\/\/([^\/\?#]*))?([^\?#]+)?(\?[^#]*)?(#[\w\W]*)?/.exec(url);
 			}
 
 			if (m !== null) {
@@ -829,7 +872,7 @@
 			}
 
 			return ret;
-		}._w(48);
+		}._w(52);
 		Module.resolve = function (url, from) {
 			var url_loc = parse_url(url || ""),
 				from_loc = parse_url(from !== undefined ? from : window.location.href),
@@ -861,7 +904,7 @@
 			if (url_loc.hash !== null) url += url_loc.hash;
 
 			return url;
-		}._w(49);
+		}._w(53);
 
 		Module.create_regex_safe = function (text, flags) {
 			try {
@@ -869,51 +912,51 @@
 			}
 			catch (e) {}
 			return null;
-		}._w(50);
+		}._w(54);
 		Module.regex_escape = function (text) {
 			return text.replace(/[\$\(\)\*\+\-\.\/\?\[\\\]\^\{\|\}]/g, "\\$&");
-		}._w(51);
+		}._w(55);
 		Module.json_parse_safe = function (text, def) {
 			try {
 				return JSON.parse(text);
 			}
 			catch (e) {}
 			return def;
-		}._w(52);
+		}._w(56);
 		Module.html_parse_safe = function (text, def) {
 			try {
 				return new DOMParser().parseFromString(text, "text/html");
 			}
 			catch (e) {}
 			return def;
-		}._w(53);
+		}._w(57);
 		Module.xml_parse_safe = function (text, def) {
 			try {
 				return new DOMParser().parseFromString(text, "text/xml");
 			}
 			catch (e) {}
 			return def;
-		}._w(54);
+		}._w(58);
 		Module.get_domain = function (url) {
 			var m = re_short_domain.exec(url);
 			return (m === null) ? "" : m[1].toLowerCase();
-		}._w(55);
+		}._w(59);
 		Module.get_full_domain = function (url) {
 			var m = re_full_domain.exec(url);
 			return (m === null) ? "" : m[1].toLowerCase();
-		}._w(56);
+		}._w(60);
 		Module.change_url_domain = function (url, new_domain) {
 			var m = re_change_domain.exec(url);
 			return (m === null) ? url : m[1] + new_domain + m[3];
-		}._w(57);
+		}._w(61);
 
 		if (typeof(window.btoa) === "function") {
 			Module.base64_encode = function (data) {
 				return window.btoa(data);
-			}._w(58);
+			}._w(62);
 			Module.base64_decode = function (data) {
 				return window.atob(data);
-			}._w(59);
+			}._w(63);
 		}
 
 		var uint8_array_to_string = function (data) {
@@ -927,10 +970,10 @@
 			}
 
 			return s;
-		}._w(60);
+		}._w(64);
 		var create_data_uri = function (data, media_type) {
 			return "data:" + media_type + ";base64," + Module.base64_encode(uint8_array_to_string(data));
-		}._w(61);
+		}._w(65);
 		Module.create_url_from_data = function (data, media_type, as_data_uri) {
 			try {
 				return as_data_uri ?
@@ -939,13 +982,13 @@
 			}
 			catch (e) {}
 			return null;
-		}._w(62);
+		}._w(66);
 		Module.revoke_url = function (url) {
 			try {
 				(window.URL || window.webkitURL).revokeObjectURL(url);
 			}
 			catch (e) {}
-		}._w(63);
+		}._w(67);
 
 		Module.get_regex_flags = function (regex) {
 			var s = "";
@@ -953,7 +996,7 @@
 			if (regex.ignoreCase) s += "i";
 			if (regex.multiline) s += "m";
 			return s;
-		}._w(64);
+		}._w(68);
 
 		Module.clone = function (object) {
 			var target = {},
@@ -966,7 +1009,7 @@
 			}
 
 			return target;
-		}._w(65);
+		}._w(69);
 
 		Module.xhr_error_string = function (xhr) {
 			var s = "Response error ";
@@ -976,17 +1019,17 @@
 				s += xhr.statusText;
 			}
 			return s;
-		}._w(66);
+		}._w(70);
 
 		return Module;
 
-	}._w(16))();
+	}._w(20))();
 	var Debug = (function () {
 
 		var started = false,
 			timer_names = null;
 
-		var dummy_fn = function () {}._w(68);
+		var dummy_fn = function () {}._w(72);
 		var log = dummy_fn;
 		var timer_log = function (label, timer) {
 			var t = timing(),
@@ -998,7 +1041,7 @@
 
 			if (!started) return [ label, value ];
 			log(label, value);
-		}._w(69);
+		}._w(73);
 
 		var init = function () {
 			started = true;
@@ -1022,7 +1065,7 @@
 				}
 
 				console.log.apply(console, args);
-			}._w(71);
+			}._w(75);
 			Module.log = log;
 			Module.timer = function (name, dont_format) {
 				var t1 = timing(),
@@ -1035,8 +1078,8 @@
 					return (t2 === undefined) ? -1 : (t1 - t2);
 				}
 				return (t2 === undefined) ? "???ms" : (t1 - t2).toFixed(3) + "ms";
-			}._w(72);
-		}._w(70);
+			}._w(76);
+		}._w(74);
 
 		// Exports
 		var Module = {
@@ -1049,7 +1092,7 @@
 
 		return Module;
 
-	}._w(67))();
+	}._w(71))();
 	var Post = (function () {
 
 
@@ -1057,18 +1100,18 @@
 		var file_ext = function (url) {
 			var m = /\.[^\.]*$/.exec(url);
 			return (m === null) ? "" : m[0].toLowerCase();
-		}._w(74);
+		}._w(78);
 		var file_name = function (url) {
 			url = url.split("/");
 			return url[url.length - 1];
-		}._w(75);
+		}._w(79);
 
 		var get_op_post_files_container_tinyboard = function (node) {
 			while (true) {
 				if ((node = node.previousSibling) === null) return null;
 				if (node.classList && node.classList.contains("files")) return node;
 			}
-		}._w(76);
+		}._w(80);
 
 		var post_selector = {
 			"4chan": ".postContainer,.post.inlined,#quote-preview",
@@ -1105,13 +1148,13 @@
 					if (node.classList.contains("post") && (node.classList.contains("inlined") || node.id === "quote-preview")) return node;
 				}
 				return null;
-			}._w(77),
+			}._w(81),
 			"foolz": function (node) {
 				while ((node = node.parentNode) !== null) {
 					if (node.tagName === "ARTICLE") return node;
 				}
 				return null;
-			}._w(78),
+			}._w(82),
 			"fuuka": function (node) {
 				while ((node = node.parentNode) !== null) {
 					if (
@@ -1122,7 +1165,7 @@
 					}
 				}
 				return null;
-			}._w(79),
+			}._w(83),
 			"tinyboard": function (node) {
 				while ((node = node.parentNode) !== null) {
 					if (node.classList.contains("post")) {
@@ -1133,22 +1176,22 @@
 					}
 				}
 				return null;
-			}._w(80),
+			}._w(84),
 			"ipb": function (node) {
 				while ((node = node.parentNode) !== null) {
 					if (node.classList.contains("borderwrap")) return node;
 				}
 				return null;
-			}._w(81),
+			}._w(85),
 			"ipb_lofi": function (node) {
 				while ((node = node.parentNode) !== null) {
 					if (node.classList.contains("postwrapper")) return node;
 				}
 				return null;
-			}._w(82),
+			}._w(86),
 			"meguca": function (node) {
 				return node.closest("article");
-			}._w(83)
+			}._w(87)
 		};
 		var get_file_info = {
 			"4chan": function (post) {
@@ -1177,7 +1220,7 @@
 					name: file_name(url),
 					md5: img.getAttribute("data-md5") || null
 				}];
-			}._w(84),
+			}._w(88),
 			"foolz": function (post) {
 				var n, ft, img, a1, url, i;
 
@@ -1204,7 +1247,7 @@
 					name: file_name(url),
 					md5: img.getAttribute("data-md5") || null
 				}];
-			}._w(85),
+			}._w(89),
 			"fuuka": function (post) {
 				var n, img, a1, url, i;
 
@@ -1230,7 +1273,7 @@
 					name: file_name(url),
 					md5: img.getAttribute("data-md5") || null
 				}];
-			}._w(86),
+			}._w(90),
 			"tinyboard": function (post) {
 				var results = [],
 					imgs, infos, img, array, ft, a1, n, url, i, ii, j;
@@ -1285,20 +1328,20 @@
 				}
 
 				return results;
-			}._w(87),
+			}._w(91),
 			"ipb": function () {
 				return [];
-			}._w(88),
+			}._w(92),
 			"ipb_lofi": function () {
 				return [];
-			}._w(89),
+			}._w(93),
 			"meguca": function () {
 				return [];
-			}._w(90)
+			}._w(94)
 		};
 		var belongs_to_default = function (node, post) {
 			return (Module.get_post_container(node) === post);
-		}._w(91);
+		}._w(95);
 		var belongs_to_re_non_digit = /\D+/g;
 		var belongs_to = {
 			"4chan": function (node, post) {
@@ -1306,7 +1349,7 @@
 					id2 = post.id.replace(belongs_to_re_non_digit, "");
 
 				return (id1 && id1 === id2);
-			}._w(92),
+			}._w(96),
 			"foolz": belongs_to_default,
 			"fuuka": belongs_to_default,
 			"tinyboard": belongs_to_default,
@@ -1318,7 +1361,7 @@
 			var par = file_info.options;
 			$.add(par, $.tnode(" "));
 			$.add(par, node);
-		}._w(93);
+		}._w(97);
 		var create_image_meta_link = {
 			"4chan": create_image_meta_link_default,
 			"foolz": function (file_info, node) {
@@ -1332,7 +1375,7 @@
 				node.classList.add("btnr");
 				node.classList.add("parent");
 				$.before(par, next, node);
-			}._w(94),
+			}._w(98),
 			"fuuka": function (file_info, node) {
 				var par = file_info.options,
 					t = " [",
@@ -1357,7 +1400,7 @@
 
 				$.before(par, next, node);
 				$.before(par, next, $.tnode("]"));
-			}._w(95),
+			}._w(99),
 			"tinyboard": create_image_meta_link_default,
 			"ipb": create_image_meta_link_default,
 			"ipb_lofi": create_image_meta_link_default,
@@ -1368,86 +1411,86 @@
 		var Module = {
 			get_post_container: function (node) {
 				return post_parent_find[Config.mode].call(null, node);
-			}._w(96),
+			}._w(100),
 			get_text_body: function (node) {
 				return $(post_body_selector[Config.mode], node);
-			}._w(97),
+			}._w(101),
 			is_post: function (node) {
 				return $.test(node, post_selector[Config.mode]);
-			}._w(98),
+			}._w(102),
 			get_all_posts: function (parent) {
 				return $$(post_selector[Config.mode], parent);
-			}._w(99),
+			}._w(103),
 			get_file_info: function (post) {
 				return get_file_info[Config.mode].call(null, post);
-			}._w(100),
+			}._w(104),
 			get_body_links: function (post) {
 				return $$(body_links_selector[Config.mode], post);
-			}._w(101),
+			}._w(105),
 			create_image_meta_link: function (file_info, node) {
 				return create_image_meta_link[Config.mode].call(null, file_info, node);
-			}._w(102),
+			}._w(106),
 			get_op_post_files_container_tinyboard: get_op_post_files_container_tinyboard
 		};
 
 		return Module;
 
-	}._w(73))();
+	}._w(77))();
 	var CreateURL = (function () {
 
 		// Private
 		var to_gallery = {
 			ehentai: function (data, domain) {
 				return "http://" + domain + "/g/" + data.gid + "/" + data.token + "/";
-			}._w(104),
+			}._w(108),
 			nhentai: function (data) {
 				return "http://" + domains.nhentai + "/g/" + data.gid + "/";
-			}._w(105),
+			}._w(109),
 			hitomi: function (data) {
 				return "https://" + domains.hitomi + "/galleries/" + data.gid + ".html";
-			}._w(106)
+			}._w(110)
 		};
 		var to_uploader = {
 			ehentai: function (data, domain) {
 				return "http://" + domain + "/uploader/" + (data.uploader || "Unknown").replace(/\s+/g, "+");
-			}._w(107),
+			}._w(111),
 			nhentai: function () {
 				return "http://" + domains.nhentai + "/";
-			}._w(108),
+			}._w(112),
 			hitomi: function () {
 				return "https://" + domains.hitomi + "/";
-			}._w(109)
+			}._w(113)
 		};
 		var to_category = {
 			ehentai: function (data, domain) {
 				return "http://" + domain + "/" + API.get_category(data.category).short_name;
-			}._w(110),
+			}._w(114),
 			nhentai: function (data) {
 				return "http://" + domains.nhentai + "/category/" + data.category.toLowerCase() + "/";
-			}._w(111),
+			}._w(115),
 			hitomi: function (data) {
 				return "https://" + domains.hitomi + "/type/" + data.category.toLowerCase() + "-all-1.html";
-			}._w(112)
+			}._w(116)
 		};
 		var to_tag = {
 			ehentai: function (tag, domain) {
 				return "http://" + domain + "/tag/" + tag.replace(/\s+/g, "+");
-			}._w(113),
+			}._w(117),
 			nhentai: function (tag, domain) {
 				return "http://" + domain + "/tag/" + tag.replace(/\s+/g, "-") + "/";
-			}._w(114),
+			}._w(118),
 			hitomi: function (tag, domain) {
 				return "https://" + domain + "/tag/" + tag + "-all-1.html";
-			}._w(115)
+			}._w(119)
 		};
 		var to_tag_ns = {
 			ehentai: function (tag, namespace, domain) {
 				return "http://" + domain + "/tag/" + namespace + ":" + tag.replace(/\s+/g, "+");
-			}._w(116),
+			}._w(120),
 			nhentai: function (tag, namespace, domain) {
 				if (namespace === "tags") namespace = "tag";
 				return "http://" + domain + "/" + namespace + "/" + tag.replace(/\s+/g, "-") + "/";
-			}._w(117),
+			}._w(121),
 			hitomi: function (tag, namespace, domain) {
 				if (namespace === "male" || namespace === "female") {
 					return "https://" + domain + "/tag/" + namespace + ":" + tag + "-all-1.html";
@@ -1464,7 +1507,7 @@
 				else {
 					return "https://" + domain + "/tag/" + tag + "-all-1.html";
 				}
-			}._w(118)
+			}._w(122)
 		};
 		var types = {
 			to_gallery: [ to_gallery, [ "data", "domain" ] ],
@@ -1474,17 +1517,17 @@
 			to_tag_ns: [ to_tag_ns, [ "tag", "namespace", "domain" ] ]
 		};
 
-		var eq = function (a, b) { return a === b; }._w(119),
-			neq = function (a, b) { return a !== b; }._w(120),
+		var eq = function (a, b) { return a === b; }._w(123),
+			neq = function (a, b) { return a !== b; }._w(124),
 			operators = {
 				"==": eq,
 				"===": eq,
 				"!=": neq,
 				"!==": neq,
-				">": function (a, b) { return a > b; }._w(121),
-				">=": function (a, b) { return a >= b; }._w(122),
-				"<": function (a, b) { return a < b; }._w(123),
-				"<=": function (a, b) { return a <= b; }._w(124)
+				">": function (a, b) { return a > b; }._w(125),
+				">=": function (a, b) { return a >= b; }._w(126),
+				"<": function (a, b) { return a < b; }._w(127),
+				"<=": function (a, b) { return a <= b; }._w(128)
 			};
 
 		var get_var = function (vars, name) {
@@ -1500,15 +1543,15 @@
 				}
 			}
 			return vars;
-		}._w(125);
+		}._w(129);
 
 		var re_format = /\{([^\}]+)\}/g;
 		var format = function (str, vars) {
 			return str.replace(re_format, function (k, g1) {
 				void(k); // to make jshint ignore the unused var
 				return get_var(vars, g1);
-			}._w(127));
-		}._w(126);
+			}._w(131));
+		}._w(130);
 
 		var check_args = function (array, vars) {
 			var i, ii, op;
@@ -1522,7 +1565,7 @@
 				}
 			}
 			return true;
-		}._w(128);
+		}._w(132);
 
 		var create_generic = function (data, arg_names) {
 			if (typeof(data) === "string") {
@@ -1533,7 +1576,7 @@
 						vars[arg_names[i]] = arguments[i];
 					}
 					return format(data, vars);
-				}._w(130);
+				}._w(134);
 			}
 			if (Array.isArray(data) && data.length > 0) {
 				// Normalize
@@ -1561,13 +1604,13 @@
 						}
 					}
 					return "#";
-				}._w(131);
+				}._w(135);
 			}
 
 			return function () {
 				return "#";
-			}._w(132);
-		}._w(129);
+			}._w(136);
+		}._w(133);
 
 		var register = function (namespace, data) {
 			if (typeof(data) === "object" && data !== null) {
@@ -1584,39 +1627,37 @@
 					}
 				}
 			}
-		}._w(133);
+		}._w(137);
 
 		// Exports
 		return {
 			to_gallery: function (data, domain) {
 				var fn = to_gallery[data.type];
 				return (typeof(fn) !== "function") ? "#" : fn(data, domain);
-			}._w(134),
+			}._w(138),
 			to_uploader: function (data, domain) {
 				var fn = to_uploader[data.type];
 				return (typeof(fn) !== "function") ? "#" : fn(data, domain);
-			}._w(135),
+			}._w(139),
 			to_category: function (data, domain) {
 				var fn = to_category[data.type];
 				return (typeof(fn) !== "function") ? "#" : fn(data, domain);
-			}._w(136),
+			}._w(140),
 			to_tag: function (tag, domain_type, domain) {
 				var fn = to_tag[domain_type];
 				return (typeof(fn) !== "function") ? "#" : fn(tag, domain);
-			}._w(137),
+			}._w(141),
 			to_tag_ns: function (tag, namespace, domain_type, domain) {
 				var fn = to_tag_ns[domain_type];
 				return (typeof(fn) !== "function") ? "#" : fn(tag, namespace, domain);
-			}._w(138),
+			}._w(142),
 			register: register
 		};
 
-	}._w(103))();
+	}._w(107))();
 	var HttpRequest = (function () {
 
-		var debug_fn, request;
-
-		debug_fn = function (type, data, callback, start_time) {
+		var debug_fn = function (type, data, callback, start_time) {
 			return function (xhr) {
 				var t = timing(),
 					args = [
@@ -1631,46 +1672,54 @@
 
 				Debug.log.apply(Debug, args);
 				return callback.apply(this, arguments);
-			}._w(141);
-		}._w(140);
+			}._w(145);
+		}._w(144);
 
-		if ((function () {
+		var debug_begin = function (data) {
+			var upload = data.upload,
+				start = timing(),
+				fn;
+
+			Debug.log("HttpRequest:", data.method, data.url, { data: data });
+
+			if (typeof((fn = data.onload)) === "function") {
+				data.onload = debug_fn("load", data, fn, start);
+			}
+			if (typeof((fn = data.onerror)) === "function") {
+				data.onerror = debug_fn("error", data, fn, start);
+			}
+			if (typeof((fn = data.onabort)) === "function") {
+				data.onabort = debug_fn("abort", data, fn, start);
+			}
+
+			if (typeof(upload) === "object" && upload !== null) {
+				if (typeof((fn = upload.onerror)) === "function") {
+					upload.onerror = debug_fn("upload.error", data, fn, start);
+				}
+				if (typeof((fn = upload.onabort)) === "function") {
+					upload.onabort = debug_fn("upload.abort", data, fn, start);
+				}
+			}
+		}._w(146);
+
+		var supported = function () {
 			try {
-				return (typeof(GM_xmlhttpRequest) === "function");
+				return (typeof(GM.xmlHttpRequest) === "function");
 			}
 			catch (e) {}
 			return false;
-		}._w(142))()) {
+		}._w(147);
+
+		var request;
+
+		if (supported()) {
 			request = function (data) {
-				if (Debug.enabled) {
-					var upload = data.upload,
-						start = timing(),
-						fn;
-
-					Debug.log("HttpRequest:", data.method, data.url, { data: data });
-
-					if (typeof((fn = data.onload)) === "function") {
-						data.onload = debug_fn("load", data, fn, start);
-					}
-					if (typeof((fn = data.onerror)) === "function") {
-						data.onerror = debug_fn("error", data, fn, start);
-					}
-					if (typeof((fn = data.onabort)) === "function") {
-						data.onabort = debug_fn("abort", data, fn, start);
-					}
-
-					if (typeof(upload) === "object" && upload !== null) {
-						if (typeof((fn = upload.onerror)) === "function") {
-							upload.onerror = debug_fn("upload.error", data, fn, start);
-						}
-						if (typeof((fn = upload.onabort)) === "function") {
-							upload.onabort = debug_fn("upload.abort", data, fn, start);
-						}
-					}
+				if (Debug.enabled || true) {
+					debug_begin(data);
 				}
 
-				return GM_xmlhttpRequest(data);
-			}._w(143);
+				GM.xmlHttpRequest(data);
+			}._w(148);
 		}
 		else {
 			// Fallback
@@ -1680,15 +1729,15 @@
 				if (onerror !== null) {
 					setTimeout(function () {
 						onerror.call(null, {});
-					}._w(145), 1);
+					}._w(150), 1);
 				}
-			}._w(144);
+			}._w(149);
 		}
 
 		// Done
 		return request;
 
-	}._w(139))();
+	}._w(143))();
 	var UI = (function () {
 
 		// Private
@@ -1727,12 +1776,12 @@
 								if (err === null && gallery_link_events_data.link === self) {
 									details_hover_start(data, info, self, details);
 								}
-							}._w(149));
+							}._w(154));
 						}
 						document_element.classList.add("xl-details-visible");
 					}
-				}._w(148));
-			}._w(147)),
+				}._w(153));
+			}._w(152)),
 			mouseout: $.wrap_mouseenterleave_event(function () {
 				var details = details_nodes[get_node_id_full(this)];
 
@@ -1743,7 +1792,7 @@
 				if (details === undefined) return;
 
 				details.classList.add("xl-details-hidden");
-			}._w(150)),
+			}._w(155)),
 			mousemove: function (event) {
 				var details = details_nodes[get_node_id_full(this)];
 
@@ -1753,7 +1802,7 @@
 				gallery_link_events_data.mouse_y = event.clientY;
 
 				update_details_position(details, this, event.clientX, event.clientY);
-			}._w(151)
+			}._w(156)
 		};
 		var gallery_tag_events = {
 			click: function (event) {
@@ -1772,10 +1821,10 @@
 							if (err === null) {
 								create_actions(data, info, id, callback);
 							}
-						}._w(154));
-					}._w(153));
+						}._w(159));
+					}._w(158));
 				}
-			}._w(152),
+			}._w(157),
 			mousedown: function () {
 				var node = this;
 				node.href = node.getAttribute("data-xl-href") || "";
@@ -1783,11 +1832,11 @@
 				var on_up = function () {
 					setTimeout(function() {
 						node.removeAttribute("href");
-					}._w(157), 1);
+					}._w(162), 1);
 					$.off(document_element, "mouseup", on_up);
-				}._w(156);
+				}._w(161);
 				$.on(document_element, "mouseup", on_up);
-			}._w(155)
+			}._w(160)
 		};
 		var gallery_fetch_event = function (event) {
 			if ($.is_left_mouse(event)) {
@@ -1804,7 +1853,7 @@
 					load_link(link, info);
 				}
 			}
-		}._w(158);
+		}._w(163);
 		var gallery_error_event = function (event) {
 			if ($.is_left_mouse(event) && config.actions.enabled) {
 				event.preventDefault();
@@ -1826,7 +1875,7 @@
 								if (n !== null) {
 									n.style.paddingRight = "6em";
 								}
-							}._w(161)
+							}._w(166)
 						},
 						{
 							text: "",
@@ -1835,7 +1884,7 @@
 								if (n !== null) {
 									n.textContent = "If this error persists and you believe it shouldn't, clearing the cache may help";
 								}
-							}._w(162)
+							}._w(167)
 						},
 						null,
 						{
@@ -1852,9 +1901,9 @@
 											var clears = API.cache_clear();
 											Debug.log("Cleared cache; entries_removed=" + clears);
 										}
-									}._w(164), false);
+									}._w(169), false);
 								}
-							}._w(163)
+							}._w(168)
 						},
 						null,
 						{
@@ -1863,11 +1912,11 @@
 						}
 					]);
 					callback(null, actions);
-				}._w(160));
+				}._w(165));
 
 				return false;
 			}
-		}._w(159);
+		}._w(164);
 
 		var details_hover_start = function (data, info, node, details) {
 			if (Debug.enabled) {
@@ -1902,14 +1951,14 @@
 			if (data.subtype === "gallery" && info.page !== undefined && info.page > 1) {
 				update_details_page_thumbnail(info.page, data, info, details, node);
 			}
-		}._w(165);
+		}._w(170);
 
 		var set_node_id = function (node, info) {
 			node.setAttribute("data-xl-id", info.id);
-		}._w(166);
+		}._w(171);
 		var get_node_id_full = function (node) {
 			return node.getAttribute("data-xl-id") || "";
-		}._w(167);
+		}._w(172);
 
 		var get_site_tag_from_link = function (node) {
 			// Assume the button is the previous (or previous-previous) sibling
@@ -1921,7 +1970,7 @@
 				return node;
 			}
 			return null;
-		}._w(168);
+		}._w(173);
 		var get_link_from_site_tag = function (node) {
 			// Assume the link is the next (or next-next) sibling
 			if (
@@ -1932,20 +1981,20 @@
 				return node;
 			}
 			return null;
-		}._w(169);
+		}._w(174);
 
 		var pad = function (n, sep) {
 			return (n < 10 ? "0" : "") + n + sep;
-		}._w(170);
+		}._w(175);
 
 		var custom_details_functions = {}; // function (data, info, callback(err, copy_from_node))
 		var custom_actions_functions = {}; // function (data, info, callback(err, gen_info))
 		var register_details_creation = function (custom_id, callback) {
 			custom_details_functions[custom_id] = callback;
-		}._w(171);
+		}._w(176);
 		var register_actions_creation = function (custom_id, callback) {
 			custom_actions_functions[custom_id] = callback;
-		}._w(172);
+		}._w(177);
 
 		var highlight_nodes = function (container, data) {
 			var ns = $$(".xl-highlight", container),
@@ -1958,7 +2007,7 @@
 					Filter.highlight(type, n, data, Filter.None);
 				}
 			}
-		}._w(173);
+		}._w(178);
 
 		var create_details = function (data, info, callback) {
 			var category = API.get_category(data.category),
@@ -1999,7 +2048,7 @@
 						else {
 							callback(err, null);
 						}
-					}._w(175));
+					}._w(180));
 				}
 				else {
 					delete details_nodes_creating[info.id];
@@ -2022,7 +2071,7 @@
 				if (err === null) {
 					this.style.backgroundImage = "url('" + url + "')";
 				}
-			}._w(176), n1));
+			}._w(181), n1));
 
 
 			// Sidebar
@@ -2106,7 +2155,7 @@
 					else {
 						Debug.log("Error requesting full information: " + err);
 					}
-				}._w(177));
+				}._w(182));
 			}
 
 			// Add to container
@@ -2116,7 +2165,7 @@
 
 			// Done
 			callback(null, content);
-		}._w(174);
+		}._w(179);
 		var create_tags = function (data, domain) {
 			var tagfrag = document.createDocumentFragment(),
 				site = data.type,
@@ -2186,7 +2235,7 @@
 			}
 
 			return tagfrag;
-		}._w(178);
+		}._w(183);
 		var update_details_page_thumbnail = function (page, data, info, details, node) {
 			var thumb_state = 0;
 
@@ -2235,9 +2284,9 @@
 								details.classList.add("xl-details-has-thumbnail-visible");
 							}
 						}
-					}._w(181));
+					}._w(186));
 				}
-			}._w(180);
+			}._w(185);
 
 			details.classList.add("xl-details-has-thumbnail");
 			if (info.site === "ehentai") {
@@ -2253,7 +2302,7 @@
 				thumb_cb("Invalid", null);
 			}
 			if (thumb_state === 0) ++thumb_state;
-		}._w(179);
+		}._w(184);
 		var update_full = function (data, info) {
 			var domain = domains.exhentai,
 				full_id = info.id,
@@ -2301,7 +2350,7 @@
 			) {
 				update_details_position(details, n, gallery_link_events_data.mouse_x, gallery_link_events_data.mouse_y);
 			}
-		}._w(182);
+		}._w(187);
 		var update_details_position = function (details, link, mouse_x, mouse_y) {
 			var win_width = (document_element.clientWidth || window.innerWidth || 0),
 				win_height = (document_element.clientHeight || window.innerHeight || 0),
@@ -2316,7 +2365,7 @@
 
 			details.style.left = mouse_x + "px";
 			details.style.top = mouse_y + "px";
-		}._w(183);
+		}._w(188);
 		var update_details_favorite_info = function (node, data) {
 			var cat = data.favorite_category,
 				n;
@@ -2330,11 +2379,11 @@
 			n.title = cat[1];
 
 			$.add(node, n);
-		}._w(184);
+		}._w(189);
 
 		var on_window_resize = function () {
 			update_active_actions_position();
-		}._w(185);
+		}._w(190);
 		var on_document_click = function (event) {
 			if (actions_close_timeout === null) {
 				if (config.actions.close_on_click) {
@@ -2347,7 +2396,7 @@
 					setTimeout(update_active_actions_position, 1);
 				}
 			}
-		}._w(186);
+		}._w(191);
 		var create_tag_bg = function (parent) {
 			var tag_bg = $.node("div", "xl-site-tag-bg" + Theme.classes),
 				outline = $.node("div", "xl-site-tag-bg-shadow xl-hover-shadow" + Theme.classes),
@@ -2361,13 +2410,13 @@
 			$.before(parent, parent.firstChild, outline);
 
 			return tag_bg;
-		}._w(187);
+		}._w(192);
 
 		var mark_site_tag = function (button, text) {
 			if ((button = get_site_tag_text_node(button)) !== null) {
 				button.textContent = button.textContent.replace(/\]\s*$/, text + "]");
 			}
-		}._w(188);
+		}._w(193);
 		var update_site_tag = function (button, info) {
 			var n;
 			if ((n = get_site_tag_text_node(button)) !== null) {
@@ -2376,7 +2425,7 @@
 			if (info.icon !== undefined && (n = $(".xl-site-tag-icon", button)) !== null) {
 				n.setAttribute("data-xl-site-tag-icon", info.icon);
 			}
-		}._w(189);
+		}._w(194);
 
 		// Actions menus
 		var create_actions = function (data, info, index, callback) {
@@ -2411,7 +2460,7 @@
 									n.classList.add("xl-actions-uploader");
 									Filter.highlight("uploader", n, data, Filter.None);
 								}
-							}._w(191)
+							}._w(196)
 						},
 						null,
 						{
@@ -2428,7 +2477,7 @@
 								if (n !== null) {
 									n.removeAttribute("target");
 								}
-							}._w(192)
+							}._w(197)
 						},
 						null,
 						{
@@ -2493,7 +2542,7 @@
 						else {
 							callback(err, null);
 						}
-					}._w(193));
+					}._w(198));
 					return;
 				}
 
@@ -2503,7 +2552,7 @@
 			// Done
 			actions = create_actions_menu(index, entries);
 			callback(null, actions);
-		}._w(190);
+		}._w(195);
 		var update_actions_position = function (actions, tag, tag_bg, de_rect, xpos, ypos) {
 			// Position
 			var rect = tag_bg.getBoundingClientRect(),
@@ -2557,7 +2606,7 @@
 			actions.style.top = y + "px";
 			tag.setAttribute("data-xl-actions-vpos", ypos);
 			actions.setAttribute("data-xl-actions-vpos", ypos);
-		}._w(194);
+		}._w(199);
 		var update_active_actions_position = function () {
 			var de_rect = document_element.getBoundingClientRect(),
 				index, actions, tag, tag_bg, xpos, ypos;
@@ -2573,13 +2622,13 @@
 					update_actions_position(actions, tag, tag_bg, de_rect, xpos, ypos);
 				}
 			}
-		}._w(195);
+		}._w(200);
 
 		var on_actions_menu_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.stopPropagation();
 			}
-		}._w(196);
+		}._w(201);
 		var on_actions_menu_entry_click = function (actions, id, event) {
 			if ($.is_left_mouse(event)) {
 				event.stopPropagation();
@@ -2588,7 +2637,7 @@
 					close_actions_menu(actions, id);
 				}
 			}
-		}._w(197);
+		}._w(202);
 		var close_actions_menu = function (actions, id) {
 			var ns = $$(".xl-site-tag.xl-site-tag-active[xl-actions-id='" + id + "']"),
 				i, ii;
@@ -2599,12 +2648,12 @@
 
 			actions.classList.add("xl-actions-hidden");
 			deactivate_actions_menu(id);
-		}._w(198);
+		}._w(203);
 		var close_all_actions_menus = function () {
 			for (var id in actions_nodes_active) {
 				close_actions_menu(actions_nodes_active[id], id);
 			}
-		}._w(199);
+		}._w(204);
 		var activate_actions_menu = function (node, id) {
 			if (config.actions.close_on_click && actions_nodes_active_count !== 0) {
 				close_all_actions_menus();
@@ -2613,13 +2662,13 @@
 			actions_nodes_active[id] = node;
 
 			if (actions_close_timeout !== null) clearTimeout(actions_close_timeout);
-			actions_close_timeout = setTimeout(function () { actions_close_timeout = null; }._w(201), 1);
+			actions_close_timeout = setTimeout(function () { actions_close_timeout = null; }._w(206), 1);
 
 			if (++actions_nodes_active_count === 1) {
 				$.on(window, "resize", on_window_resize);
 				$.on(document_element, "click", on_document_click);
 			}
-		}._w(200);
+		}._w(205);
 		var deactivate_actions_menu = function (id) {
 			if (actions_nodes_active[id] === undefined) return;
 
@@ -2632,7 +2681,7 @@
 					actions_close_timeout = null;
 				}
 			}
-		}._w(202);
+		}._w(207);
 		var create_actions_menu = function (id, entries) {
 			var theme = Theme.classes,
 				actions = $.node("div", "xl-actions xl-hover-shadow" + theme),
@@ -2695,7 +2744,7 @@
 			// Prepare
 			Popup.hovering(actions);
 			return actions;
-		}._w(203);
+		}._w(208);
 		var enable_actions_menu_on_node = function (node, enabled, id, setup_fn) {
 			var cls = "xl-site-tag-active",
 				actions, tag_bg, info, link;
@@ -2732,7 +2781,7 @@
 								activate_actions_menu(actions, id);
 								update_actions_position(actions, node, tag_bg, document_element.getBoundingClientRect());
 							}
-						}._w(205));
+						}._w(210));
 
 						// API.get_data_from_url_info(info, function (err, data) {
 							// if (err === null) {
@@ -2755,7 +2804,7 @@
 					close_actions_menu(actions, id);
 				}
 			}
-		}._w(204);
+		}._w(209);
 
 		// Events
 		var event_listeners = {
@@ -2766,7 +2815,7 @@
 			if (listeners === undefined) return false;
 			listeners.push(callback);
 			return true;
-		}._w(206);
+		}._w(211);
 		var off = function (event_name, callback) {
 			var listeners = event_listeners[event_name],
 				i, ii;
@@ -2779,13 +2828,13 @@
 				}
 			}
 			return false;
-		}._w(207);
+		}._w(212);
 		var trigger = function (listeners, data) {
 			var i, ii;
 			for (i = 0, ii = listeners.length; i < ii; ++i) {
 				listeners[i].call(null, data);
 			}
-		}._w(208);
+		}._w(213);
 
 		// Public
 		var create_rating_stars = function (rating) {
@@ -2802,13 +2851,13 @@
 			}
 
 			return frag;
-		}._w(209);
+		}._w(214);
 		var get_site_tag_text_node = function (button) {
 			return ((button = button.lastChild) !== null && button.tagName === "SPAN") ? button : null;
-		}._w(210);
+		}._w(215);
 		var create_site_tag_text = function (info) {
 			return "[" + (info.tag || "?") + "]";
-		}._w(211);
+		}._w(216);
 		var format_date = function (timestamp) {
 			var d = new Date(timestamp);
 			return d.getUTCFullYear() + "-" +
@@ -2816,15 +2865,15 @@
 				pad(d.getUTCDate(), " ") +
 				pad(d.getUTCHours(), ":") +
 				pad(d.getUTCMinutes(), "");
-		}._w(212);
+		}._w(217);
 
 		var resetup_link = function (link) {
 			API.get_url_info(link.href || "", function (err, info) {
 				if (err === null && info !== null) {
 					load_link(link, info);
 				}
-			}._w(214));
-		}._w(213);
+			}._w(219));
+		}._w(218);
 		var setup_link = function (link, url, info, auto_load, add_tag) {
 			var button, text, n;
 
@@ -2855,14 +2904,14 @@
 			Linkifier.change_link_events(link, "gallery_link");
 
 			if (auto_load) load_link(link, info);
-		}._w(215);
+		}._w(220);
 		var load_link = function (link, info) {
 			API.get_data_from_url_info(info, function (err, data) {
 				if (link.parentNode !== null) {
 					format_link_generic(link, err, data, info);
 				}
-			}._w(217));
-		}._w(216);
+			}._w(222));
+		}._w(221);
 		var format_link_generic = function (link, err, data, info) {
 			var monitor = (info.monitor === true) && Config.is_4chan_x3,
 				attr;
@@ -2894,7 +2943,7 @@
 				link.removeAttribute(attr);
 				new MutationObserver($.bind(on_formatter_link_change, link)).observe(link, { childList: true, attributes: true });
 			}
-		}._w(218);
+		}._w(223);
 		var format_link = function (link, data, info) {
 			var button = get_site_tag_from_link(link),
 				n = null,
@@ -2956,7 +3005,7 @@
 					$.add(n, n2);
 				}
 			}
-		}._w(219);
+		}._w(224);
 		var format_link_error = function (link, error) {
 			var button = get_site_tag_from_link(link),
 				text, n, n2;
@@ -2986,10 +3035,10 @@
 				}
 				n2.setAttribute("data-xl-error-message", text);
 			}
-		}._w(220);
+		}._w(225);
 		var get_links_formatted = function (parent) {
 			return $$("a.xl-link.xl-link-formatted", parent);
-		}._w(221);
+		}._w(226);
 		var on_formatter_link_change = function (records, mo) {
 			var change = false,
 				info, r, i, ii;
@@ -3016,7 +3065,7 @@
 				mo.disconnect();
 				load_link(this, info);
 			}
-		}._w(222);
+		}._w(227);
 
 		var cleanup_post = function (post) {
 			var nodes, n, i, ii;
@@ -3038,7 +3087,7 @@
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				resetup_link(nodes[i]);
 			}
-		}._w(223);
+		}._w(228);
 		var cleanup_post_removed = function (post) {
 			var nodes, index, n, i, ii;
 			nodes = $$(".xl-site-tag[xl-actions-id]", post);
@@ -3051,7 +3100,7 @@
 					deactivate_actions_menu(index);
 				}
 			}
-		}._w(224);
+		}._w(229);
 
 		var init = function () {
 			Linkifier.register_link_events({
@@ -3060,7 +3109,7 @@
 				gallery_fetch: gallery_fetch_event,
 				gallery_error: gallery_error_event
 			});
-		}._w(225);
+		}._w(230);
 
 		var strings = {
 			thumbnail_failed: "Thumbnail failed to load\n\nThis may be due to an extension conflict - check any adblocker or similar extensions that are installed"
@@ -3084,7 +3133,7 @@
 			strings: strings
 		};
 
-	}._w(146))();
+	}._w(151))();
 	var API = (function () {
 
 		// Caching
@@ -3105,7 +3154,7 @@
 				expires: Date.now() + ttl,
 				data: data
 			}));
-		}._w(227);
+		}._w(232);
 		var cache_get = function (key) {
 			var json = $.json_parse_safe(cache_storage.getItem(cache_prefix + key), null);
 
@@ -3120,13 +3169,13 @@
 
 			cache_storage.removeItem(key);
 			return null;
-		}._w(228);
+		}._w(233);
 		var cache_set_object = function (object_name) {
 			cache_storage.setItem(cache_prefix + object_name, JSON.stringify({
 				expires: null,
 				data: cache_objects[object_name]
 			}));
-		}._w(229);
+		}._w(234);
 		var cache_get_object = function (object_name) {
 			var json = $.json_parse_safe(cache_storage.getItem(cache_prefix + object_name), null),
 				obj, target;
@@ -3143,7 +3192,7 @@
 
 			cache_storage.removeItem(object_name);
 			return false;
-		}._w(230);
+		}._w(235);
 		var cache_merge_objects = function (dest, obj) {
 			var now = Date.now(),
 				update = false,
@@ -3160,7 +3209,7 @@
 			}
 
 			return update;
-		}._w(231);
+		}._w(236);
 		var cache_cleanup = function () {
 			var storage = cache_storage,
 				removes = [],
@@ -3187,7 +3236,7 @@
 			}
 
 			return ii;
-		}._w(232);
+		}._w(237);
 		var cache_clear = function () {
 			var storage_types = [ window.localStorage, window.sessionStorage ],
 				removes = [],
@@ -3211,7 +3260,7 @@
 			}
 
 			return count;
-		}._w(233);
+		}._w(238);
 		var cache_init = function () {
 			// Cache mode
 			if (config.debug.cache_mode === "none") {
@@ -3231,10 +3280,10 @@
 					cache_set_object(k);
 				}
 			}
-		}._w(234);
+		}._w(239);
 		var cache_get_prefix = function () {
 			return cache_prefix;
-		}._w(235);
+		}._w(240);
 
 		var create_temp_storage = function () {
 			var data = {};
@@ -3243,33 +3292,33 @@
 				length: 0,
 				key: function (index) {
 					return Object.keys(data)[index];
-				}._w(237),
+				}._w(242),
 				getItem: function (key) {
 					if (Object.prototype.hasOwnProperty.call(data, key)) {
 						return data[key];
 					}
 					return null;
-				}._w(238),
+				}._w(243),
 				setItem: function (key, value) {
 					if (!Object.prototype.hasOwnProperty.call(data, key)) {
 						++fn.length;
 					}
 					data[key] = value;
-				}._w(239),
+				}._w(244),
 				removeItem: function (key) {
 					if (Object.prototype.hasOwnProperty.call(data, key)) {
 						delete data[key];
 						--fn.length;
 					}
-				}._w(240),
+				}._w(245),
 				clear: function () {
 					data = {};
 					fn.length = 0;
-				}._w(241)
+				}._w(246)
 			};
 
 			return fn;
-		}._w(236);
+		}._w(241);
 
 
 
@@ -3289,11 +3338,11 @@
 			}
 
 			return null;
-		}._w(242);
+		}._w(247);
 		var set_saved_data = function (id, data) {
 			saved_data[id] = data;
 			cache_set("data-" + id, data, ttl_1_hour * (data.date_created >= Date.now() - ttl_1_day ? 1 : 12));
-		}._w(243);
+		}._w(248);
 		var set_saved_error = function (id_list, error, cache) {
 			var id = id_list.join("-");
 			cache_objects.errors[id] = {
@@ -3304,13 +3353,13 @@
 			if (cache) {
 				cache_set_object("errors");
 			}
-		}._w(244);
+		}._w(249);
 		var get_saved_error = function (id_list) {
 			var id = id_list.join("-"),
 				value = cache_objects.errors[id];
 
 			return (value !== undefined) ? value.data : null;
-		}._w(245);
+		}._w(250);
 		var get_saved_thumbnail = function (namespace, gid, page) {
 			var id_full = namespace + "-" + gid + "-" + page,
 				data = saved_thumbnails[id_full];
@@ -3324,21 +3373,21 @@
 			}
 
 			return null;
-		}._w(246);
+		}._w(251);
 		var set_saved_thumbnail = function (namespace, gid, page, data) {
 			var id_full = namespace + "-" + gid + "-" + page;
 			saved_thumbnails[id_full] = data;
 			cache_set("thumb-" + id_full, data, ttl_1_hour * 6);
-		}._w(247);
+		}._w(252);
 
 		var hash_get_sha1_from_md5 = function (md5) {
 			var value = cache_objects.md5_to_hash[md5];
 			return (value !== undefined) ? value.data : null;
-		}._w(248);
+		}._w(253);
 		var hash_get_sha1_from_url = function (url) {
 			var value = cache_objects.url_to_hash[url];
 			return (value !== undefined) ? value.data : null;
-		}._w(249);
+		}._w(254);
 		var hash_set_md5_to_sha1 = function (md5, sha1) {
 			cache_objects.md5_to_hash[md5] = {
 				expires: Date.now() + ttl_1_year,
@@ -3346,7 +3395,7 @@
 			};
 
 			cache_set_object("md5_to_hash");
-		}._w(250);
+		}._w(255);
 		var hash_set_url_to_sha1 = function (url, sha1) {
 			cache_objects.url_to_hash[url] = {
 				expires: Date.now() + ttl_1_day,
@@ -3354,12 +3403,12 @@
 			};
 
 			cache_set_object("url_to_hash");
-		}._w(251);
+		}._w(256);
 
 		var lookup_get_results = function (hash) {
 			var value = cache_objects.lookup[hash];
 			return (value !== undefined) ? value.data : null;
-		}._w(252);
+		}._w(257);
 		var lookup_set_results = function (data) {
 			cache_objects.lookup[data.hash] = {
 				expires: Date.now() + ttl_1_day,
@@ -3367,7 +3416,7 @@
 			};
 
 			cache_set_object("lookup");
-		}._w(253);
+		}._w(258);
 
 
 
@@ -3412,16 +3461,16 @@
 		var normalize_category = function (mapping, category) {
 			var t = mapping[category.toLowerCase()];
 			return (t !== undefined ? t : "misc");
-		}._w(254);
+		}._w(259);
 
 		var get_category = function (name) {
 			var c = categories[name];
 			return (c !== undefined) ? c : categories.misc;
-		}._w(255);
+		}._w(260);
 		var get_category_sort_rank = function (name) {
 			var c = categories[name];
 			return (c !== undefined) ? c.sort : Object.keys(categories).length;
-		}._w(256);
+		}._w(261);
 
 
 		// Private
@@ -3467,7 +3516,7 @@
 				tags: null,
 				tags_ns: null
 			};
-		}._w(257);
+		}._w(262);
 		var header_string_parse = function (header_str) {
 			var lines = header_str.split("\r\n"),
 				re_line = /^([^:]*):\s(.*)$/i,
@@ -3481,11 +3530,11 @@
 			}
 
 			return headers;
-		}._w(258);
+		}._w(263);
 
 		var ehentai_simple_string = function (value, default_value) {
 			return (typeof(value) !== "string" || value.length === 0) ? default_value : value;
-		}._w(259);
+		}._w(264);
 		var ehentai_normalize_string = function (value, default_value) {
 			if (typeof(value) !== "string" || value.length === 0) {
 				return default_value;
@@ -3494,7 +3543,7 @@
 			value = temp_div.textContent;
 			temp_div.textContent = "";
 			return value;
-		}._w(260);
+		}._w(265);
 		var ehentai_normalize_info = function (info) {
 			if (info.error !== undefined) {
 				return { error: info.error };
@@ -3521,7 +3570,7 @@
 			data.tags = Array.isArray(t) ? t : [];
 
 			return data;
-		}._w(261);
+		}._w(266);
 
 		var ehentai_get_favorite_info_from_icon = function (node, data) {
 			var m = /background-position\s*:\s*\S+\s*([\-\+]?[\d\.]+)px/.exec(node.getAttribute("style") || "");
@@ -3531,23 +3580,23 @@
 					node.getAttribute("title") || ""
 				];
 			}
-		}._w(262);
+		}._w(267);
 
 		var ehentai_is_not_available = function (html) {
 			var n;
 			return (
 				(n = $("title", html)) !== null &&
-				/^\s*Gallery\s+Not\s+Available/i.test(n.textContent) &&
+				(/^\s*Gallery\s+Not\s+Available/i).test(n.textContent) &&
 				$("#continue", html) !== null
 			);
-		}._w(263);
+		}._w(268);
 		var ehentai_is_content_warning = function (html) {
 			var n;
 			return (
 				(n = $("h1", html)) !== null &&
-				/^\s*Content\s+Warning/i.test(n.textContent)
+				(/^\s*Content\s+Warning/i).test(n.textContent)
 			);
-		}._w(264);
+		}._w(269);
 		var ehentai_parse_gallery_info = function (html, data) {
 			// Tags
 			var updated_tag_count = 0,
@@ -3617,12 +3666,12 @@
 			// Done
 			data.full = true;
 			return data;
-		}._w(265);
+		}._w(270);
 		var ehentai_make_removed = function (data) {
 			data.removed = true;
 			data.full = true;
 			return data;
-		}._w(266);
+		}._w(271);
 
 		var ehentai_parse_lookup_results = function (xhr, is_similarity_scan, hash, url, md5) {
 			var final_url = xhr.finalUrl,
@@ -3690,7 +3739,7 @@
 				hash: hash,
 				results: results
 			};
-		}._w(267);
+		}._w(272);
 		var ehentai_create_lookup_url = function (sha1) {
 			var url = "http://";
 			url += config.sauce.lookup_domain;
@@ -3699,11 +3748,11 @@
 			url += "&fs_similar=0";
 			if (config.sauce.expunged) url += "&fs_exp=1";
 			return url;
-		}._w(268);
+		}._w(273);
 
 		var nhentai_normalize_tag_namespace = function (namespace) {
 			return nhentai_tag_namespaces[namespace] || namespace;
-		}._w(269);
+		}._w(274);
 		var nhentai_parse_info = function (html, url) {
 			var info = $("#info", html),
 				data, nodes, tags, tag_ns, tag_ns_list, t, m, n, i, ii, j, jj;
@@ -3815,7 +3864,7 @@
 			}
 
 			return data;
-		}._w(270);
+		}._w(275);
 
 		var hitomi_parse_info = function (html, url) {
 			var info = $(".content", html),
@@ -3993,7 +4042,7 @@
 			}
 
 			return data;
-		}._w(271);
+		}._w(276);
 
 
 		var get_image = function (url, callback, progress_callback) {
@@ -4019,23 +4068,23 @@
 					else {
 						callback.call(null, $.xhr_error_string(xhr), null, 0, null, null);
 					}
-				}._w(273),
+				}._w(278),
 				onerror: function () {
 					callback.call(null, "Connection error", null, 0, null, null);
-				}._w(274),
+				}._w(279),
 				onabort: function () {
 					callback.call(null, "Connection aborted", null, 0, null, null);
-				}._w(275)
+				}._w(280)
 			};
 
 			if (progress_callback !== undefined) {
 				xhr_data.onprogress = function (xhr) {
 					progress_callback.call(null, "progress", xhr.lengthComputable, xhr.loaded, xhr.total);
-				}._w(276);
+				}._w(281);
 			}
 
 			HttpRequest(xhr_data);
-		}._w(272);
+		}._w(277);
 		var get_sha1_hash = function (url, md5, callback) {
 			var sha1 = null;
 
@@ -4073,11 +4122,11 @@
 					else {
 						callback.call(null, err, null);
 					}
-				}._w(278));
+				}._w(283));
 			}
 
 			return null;
-		}._w(277);
+		}._w(282);
 
 
 
@@ -4087,7 +4136,7 @@
 			this.active = 0;
 			this.timeout = null;
 			this.types = [];
-		}._w(279);
+		}._w(284);
 		var RequestType = function (count, concurrent, delay_okay, delay_error, group_name, namespace, type) {
 			this.count = count;
 			this.concurrent = concurrent;
@@ -4112,14 +4161,14 @@
 			this.set_data = null;
 			this.setup_xhr = null;
 			this.parse_response = null;
-		}._w(280);
+		}._w(285);
 		var RequestData = function (id, info, callback, progress_callback) {
 			this.id = id;
 			this.info = info;
 			this.callbacks = [ callback ];
 			this.progress_callbacks = [];
 			if (progress_callback !== undefined) this.progress_callbacks.push(progress_callback);
-		}._w(281);
+		}._w(286);
 		var Request = function (type, entries) {
 			var cbs, i, ii;
 
@@ -4143,7 +4192,7 @@
 					}
 				}
 			}
-		}._w(282);
+		}._w(287);
 		var RequestErrorMode = {
 			None: 0,
 			NoCache: 1,
@@ -4153,8 +4202,8 @@
 		RequestGroup.prototype.run_delay = function (type) {
 			setTimeout(function () {
 				type.run();
-			}._w(284), 1);
-		}._w(283);
+			}._w(289), 1);
+		}._w(288);
 		RequestGroup.prototype.run = function (use_delay) {
 			var type, i, ii;
 			for (i = 0, ii = this.types.length; i < ii; ++i) {
@@ -4172,20 +4221,20 @@
 					}
 				}
 			}
-		}._w(285);
+		}._w(290);
 		RequestGroup.prototype.complete = function (delay) {
 			if (delay > 0) {
 				var self = this;
 				setTimeout(function () {
 					--self.active;
 					self.run(false);
-				}._w(287), delay);
+				}._w(292), delay);
 			}
 			else {
 				--this.active;
 				this.run(false);
 			}
-		}._w(286);
+		}._w(291);
 
 		RequestType.prototype.add = function (unique_id, info, quick, callback, progress_callback) {
 			var self = this;
@@ -4224,7 +4273,7 @@
 
 				// Run (if not already running)
 				self.group.run(true);
-			}._w(289);
+			}._w(294);
 
 			if (this.get_data === null) {
 				get_data_callback(null, null);
@@ -4232,14 +4281,14 @@
 			else {
 				this.get_data.call(null, info, get_data_callback);
 			}
-		}._w(288);
+		}._w(293);
 		RequestType.prototype.run = function () {
 			var req = new Request(this, this.queue.splice(0, this.count));
 			if (this.request_init !== null) {
 				this.request_init.call(this, req);
 			}
 			req.run();
-		}._w(290);
+		}._w(295);
 
 		Request.prototype.run = function () {
 			var i, ii, ev;
@@ -4252,7 +4301,7 @@
 			}
 
 			this.type.setup_xhr.call(this, $.bind(this.on_xhr_setup, this));
-		}._w(291);
+		}._w(296);
 		Request.prototype.process_response = function (err, response, delay) {
 			var total = this.infos.length,
 				responses = Math.min(response.length, total),
@@ -4267,7 +4316,7 @@
 				}
 
 				if (++complete >= total) this.complete(delay);
-			}._w(293);
+			}._w(298);
 
 			// Save errors
 			for (i = responses; i < total; ++i) {
@@ -4295,26 +4344,26 @@
 					}
 				}
 			}
-		}._w(292);
+		}._w(297);
 		Request.prototype.complete_entries = function () {
 			var unique = this.type.unique;
 			for (var i = 0, ii = this.entries.length; i < ii; ++i) {
 				delete unique[this.entries[i].id];
 			}
-		}._w(294);
+		}._w(299);
 		Request.prototype.complete = function (delay) {
 			if (this.type.request_complete !== null) {
 				this.type.request_complete.call(this.type, this);
 			}
 			this.type.group.complete(delay);
-		}._w(295);
+		}._w(300);
 		Request.prototype.xhr_error = function (err) {
 			var self = this;
 			return function () {
 				self.complete_entries();
 				self.process_response(err, [], self.type.delay_error);
-			}._w(297);
-		}._w(296);
+			}._w(302);
+		}._w(301);
 		Request.prototype.on_xhr_setup = function (err, xhr_data) {
 			var self = this,
 				any_status = (xhr_data.any_status === true),
@@ -4331,12 +4380,12 @@
 				if (xhr.status === 200 || any_status) {
 					self.type.parse_response.call(self, xhr, function (err, response) {
 						self.on_response_parse(err, response);
-					}._w(300));
+					}._w(305));
 				}
 				else {
 					self.xhr_error($.xhr_error_string(xhr))();
 				}
-			}._w(299);
+			}._w(304);
 
 			// Error handlers
 			xhr_data.onerror = this.xhr_error("Connection error");
@@ -4355,7 +4404,7 @@
 					for (var i = 0, ii = self.progress_callbacks.length; i < ii; ++i) {
 						self.progress_callbacks[i].call(self, "progress", xhr.lengthComputable, xhr.loaded, xhr.total);
 					}
-				}._w(301);
+				}._w(306);
 
 				if (xhr_data.data !== undefined) {
 					ev = "upload";
@@ -4364,7 +4413,7 @@
 						for (var i = 0, ii = self.progress_callbacks.length; i < ii; ++i) {
 							self.progress_callbacks[i].call(self, "download");
 						}
-					}._w(302);
+					}._w(307);
 				}
 				else {
 					ev = "download";
@@ -4379,7 +4428,7 @@
 			// Start
 			HttpRequest(xhr_data);
 			xhr_data = null;
-		}._w(298);
+		}._w(303);
 		Request.prototype.on_response_parse = function (err, response, delay) {
 			if (err !== null) {
 				// Error
@@ -4393,7 +4442,7 @@
 				if (typeof(delay) !== "number") delay = 0;
 				if (delay > 0) {
 					var self = this;
-					setTimeout(function () { self.run(); }._w(304), delay);
+					setTimeout(function () { self.run(); }._w(309), delay);
 				}
 				else {
 					this.run();
@@ -4405,7 +4454,7 @@
 				this.complete_entries();
 				this.process_response("Data not found", response, delay);
 			}
-		}._w(303);
+		}._w(308);
 
 
 
@@ -4423,11 +4472,11 @@
 		rt_ehentai_gallery.get_data = function (info, callback) {
 			var data = get_saved_data(info.id);
 			callback(null, (data !== null && data.token === info.token) ? data : null);
-		}._w(305);
+		}._w(310);
 		rt_ehentai_gallery.set_data = function (data, info, callback) {
 			set_saved_data(info.id, data);
 			callback(null);
-		}._w(306);
+		}._w(311);
 		rt_ehentai_gallery.setup_xhr = function (callback) {
 			var gidlist = [],
 				info, i, ii;
@@ -4446,7 +4495,7 @@
 					gidlist: gidlist
 				})
 			});
-		}._w(307);
+		}._w(312);
 		rt_ehentai_gallery.parse_response = function (xhr, callback) {
 			var response = $.json_parse_safe(xhr.responseText, null),
 				datas, i, ii;
@@ -4473,7 +4522,7 @@
 				}
 			}
 			return "Invalid response";
-		}._w(308);
+		}._w(313);
 
 		rt_ehentai_gallery_page.get_data = function (info, callback) {
 			var data = get_saved_data(info.id);
@@ -4486,7 +4535,7 @@
 			else {
 				callback(null, null);
 			}
-		}._w(309);
+		}._w(314);
 		rt_ehentai_gallery_page.setup_xhr = function (callback) {
 			var pagelist = [],
 				info, i, ii;
@@ -4505,7 +4554,7 @@
 					pagelist: pagelist
 				})
 			});
-		}._w(310);
+		}._w(315);
 		rt_ehentai_gallery_page.parse_response = function (xhr, callback) {
 			var response = $.json_parse_safe(xhr.responseText, null);
 
@@ -4527,15 +4576,15 @@
 			}
 
 			callback("Invalid response");
-		}._w(311);
+		}._w(316);
 
 		rt_ehentai_gallery_full.get_data = function (info, callback) {
 			callback(null, info.data.full ? info.data : null);
-		}._w(312);
+		}._w(317);
 		rt_ehentai_gallery_full.set_data = function (data, info, callback) {
 			set_saved_data(info.info.id, data);
 			callback(null);
-		}._w(313);
+		}._w(318);
 		rt_ehentai_gallery_full.setup_xhr = function (callback) {
 			var info = this.infos[0];
 			callback(null, {
@@ -4543,23 +4592,23 @@
 				url: "http://" + info.domain + "/g/" + info.gid + "/" + info.token + "/" + info.search,
 				any_status: true
 			});
-		}._w(314);
+		}._w(319);
 		rt_ehentai_gallery_full.parse_response = function (xhr, callback) {
 			var info = this.infos[0];
 			if (xhr.status === 200 || xhr.status === 404) {
 				ehentai_response_process_generic.call(this, xhr, info, this.type.delay_okay, callback, function (err, html) {
 					callback(null, [ err === null ? ehentai_parse_gallery_info(html, info.data) : ehentai_make_removed(info.data) ]);
-				}._w(316));
+				}._w(321));
 			}
 			else {
 				callback(null, [ ehentai_make_removed(info.data) ]);
 			}
-		}._w(315);
+		}._w(320);
 		var ehentai_response_process_generic = function (xhr, info, retry_delay, callback, process_callback) {
 			var content_type = header_string_parse(xhr.responseHeaders)["content-type"],
 				html;
 
-			if (!/^text\/html/i.test(content_type || "")) {
+			if (!(/^text\/html/i).test(content_type || "")) {
 				// Panda
 				if (this.retry_count === 0 && info.domain === domains.exhentai) {
 					// Retry
@@ -4603,15 +4652,15 @@
 				this.retry_count = 0;
 				process_callback.call(this, null, html);
 			}
-		}._w(317);
+		}._w(322);
 
 		rt_ehentai_gallery_page_thumb.get_data = function (info, callback) {
 			callback(null, get_saved_thumbnail("ehentai", info.gid, info.page));
-		}._w(318);
+		}._w(323);
 		rt_ehentai_gallery_page_thumb.set_data = function (data, info, callback) {
 			set_saved_thumbnail("ehentai", info.gid, info.page, data);
 			callback(null);
-		}._w(319);
+		}._w(324);
 		rt_ehentai_gallery_page_thumb.setup_xhr = rt_ehentai_gallery_full.setup_xhr;
 		rt_ehentai_gallery_page_thumb.parse_response = function (xhr, callback) {
 			var info = this.infos[0],
@@ -4705,17 +4754,17 @@
 				}
 
 				callback("Thumbnail not found");
-			}._w(321));
-		}._w(320);
+			}._w(326));
+		}._w(325);
 
 		rt_ehentai_lookup.get_data = function (info, callback) {
 			callback(null, info.sha1 === null ? null : lookup_get_results(info.sha1));
-		}._w(322);
+		}._w(327);
 		rt_ehentai_lookup.set_data = function (data, info, callback) {
 			void(info); // to make jshint ignore the unused var
 			lookup_set_results(data);
 			callback(null);
-		}._w(323);
+		}._w(328);
 		rt_ehentai_lookup.setup_xhr = function (callback) {
 			var info = this.infos[0];
 			if (info.similar) {
@@ -4745,25 +4794,25 @@
 					url: ehentai_create_lookup_url(info.sha1)
 				});
 			}
-		}._w(324);
+		}._w(329);
 		rt_ehentai_lookup.parse_response = function (xhr, callback) {
 			var info = this.infos[0];
 			callback(null, [ ehentai_parse_lookup_results(xhr, info.similar, info.sha1, info.url, info.md5) ], info.similar ? this.type.delay_okay : 0);
-		}._w(325);
+		}._w(330);
 
 		rt_nhentai_gallery.get_data = function (info, callback) {
 			callback(null, get_saved_data(info.id));
-		}._w(326);
+		}._w(331);
 		rt_nhentai_gallery.set_data = function (data, info, callback) {
 			set_saved_data(info.id, data);
 			callback(null);
-		}._w(327);
+		}._w(332);
 		rt_nhentai_gallery.setup_xhr = function (callback) {
 			callback(null, {
 				method: "GET",
 				url: "http://" + domains.nhentai + "/g/" + this.infos[0].gid + "/",
 			});
-		}._w(328);
+		}._w(333);
 		rt_nhentai_gallery.parse_response = function (xhr, callback) {
 			var html = $.html_parse_safe(xhr.responseText, null);
 			if (html === null) {
@@ -4772,22 +4821,22 @@
 			else {
 				callback(null, [ nhentai_parse_info(html, xhr.finalUrl) ]);
 			}
-		}._w(329);
+		}._w(334);
 
 		rt_nhentai_gallery_page_thumb.get_data = function (info, callback) {
 			callback(null, get_saved_thumbnail("nhentai", info.gid, info.page));
-		}._w(330);
+		}._w(335);
 		rt_nhentai_gallery_page_thumb.set_data = function (data, info, callback) {
 			set_saved_thumbnail("nhentai", info.gid, info.page, data);
 			callback(null);
-		}._w(331);
+		}._w(336);
 		rt_nhentai_gallery_page_thumb.setup_xhr = function (callback) {
 			var info = this.infos[0];
 			callback(null, {
 				method: "GET",
 				url: "http://" + domains.nhentai + "/g/" + info.gid + "/" + info.page + "/"
 			});
-		}._w(332);
+		}._w(337);
 		rt_nhentai_gallery_page_thumb.parse_response = function (xhr, callback) {
 			var html = $.html_parse_safe(xhr.responseText, null),
 				n1, url;
@@ -4815,21 +4864,21 @@
 			else {
 				callback("Thumbnail not found");
 			}
-		}._w(333);
+		}._w(338);
 
 		rt_hitomi_gallery.get_data = function (info, callback) {
 			callback(null, get_saved_data(info.id));
-		}._w(334);
+		}._w(339);
 		rt_hitomi_gallery.set_data = function (data, info, callback) {
 			set_saved_data(info.id, data);
 			callback(null);
-		}._w(335);
+		}._w(340);
 		rt_hitomi_gallery.setup_xhr = function (callback) {
 			callback(null, {
 				method: "GET",
 				url: "https://" + domains.hitomi + "/galleries/" + this.infos[0].gid + ".html",
 			});
-		}._w(336);
+		}._w(341);
 		rt_hitomi_gallery.parse_response = function (xhr, callback) {
 			var html = $.html_parse_safe(xhr.responseText, null);
 			if (html === null) {
@@ -4838,21 +4887,21 @@
 			else {
 				callback(null, [ hitomi_parse_info(html, xhr.finalUrl) ]);
 			}
-		}._w(337);
+		}._w(342);
 
 		rt_hitomi_gallery_page_thumb.get_data = function (info, callback) {
 			callback(null, get_saved_thumbnail("hitomi", info.gid, info.page));
-		}._w(338);
+		}._w(343);
 		rt_hitomi_gallery_page_thumb.set_data = function (data, info, callback) {
 			set_saved_thumbnail("hitomi", info.gid, info.page, data);
 			callback(null);
-		}._w(339);
+		}._w(344);
 		rt_hitomi_gallery_page_thumb.setup_xhr = function (callback) {
 			callback(null, {
 				method: "GET",
 				url: "https://" + domains.hitomi + "/reader/" + this.infos[0].gid + ".html"
 			});
-		}._w(340);
+		}._w(345);
 		rt_hitomi_gallery_page_thumb.parse_response = function (xhr, callback) {
 			var html = $.html_parse_safe(xhr.responseText, null),
 				n1, url;
@@ -4882,7 +4931,7 @@
 			else {
 				callback("Thumbnail not found");
 			}
-		}._w(341);
+		}._w(346);
 
 
 
@@ -4890,7 +4939,7 @@
 		var re_fjord = /abortion|bestiality|incest|lolicon|shotacon|toddlercon/;
 		var is_fjording = function (data) {
 			return re_fjord.test(data.tags.join(","));
-		}._w(342);
+		}._w(347);
 
 		var rewrite_link = function (url, info) {
 			var rewrite, is_ex;
@@ -4910,7 +4959,7 @@
 			}
 
 			return url;
-		}._w(343);
+		}._w(348);
 		var rewrite_link_smart = function (node, info, data) {
 			if (config.general.rewrite_links === "smart" && data.type === "ehentai") {
 				var url = node.href,
@@ -4930,7 +4979,7 @@
 			}
 
 			return null;
-		}._w(344);
+		}._w(349);
 
 
 
@@ -4977,7 +5026,7 @@
 					if (m !== null) data.page = parseInt(m[1], 10);
 					icon_site = is_ex ? "exhentai" : "ehentai";
 				}
-				else if ((m = /^\/s\/([0-9a-f]+)\/(\d+)\-(\d+)/.exec(remaining)) !== null) {
+				else if ((m = /^\/s\/([0-9a-f]+)\/(\d+)-(\d+)/.exec(remaining)) !== null) {
 					data = {
 						id: "ehentai_" + m[2],
 						site: "ehentai",
@@ -5034,12 +5083,12 @@
 			}
 
 			callback(null, data);
-		}._w(345);
+		}._w(350);
 		var get_url_info_saved = function (url) {
 			url = url.replace(re_remove_protocol, "");
 			var data = url_info_saved[url];
 			return (data !== undefined) ? data : null;
-		}._w(346);
+		}._w(351);
 		var get_url_info_custom = function (i, url, save_key, callback) {
 			// This should avoid stack overflowing when using a callback chain with many synchronous functions
 			var ii = url_info_registrations.length,
@@ -5063,7 +5112,7 @@
 				else {
 					get_url_info_custom(i + 1, url, save_key, callback);
 				}
-			}._w(348);
+			}._w(353);
 
 			for (; i < ii; ++i) {
 				immediate = true;
@@ -5077,12 +5126,12 @@
 			}
 
 			callback(null, null);
-		}._w(347);
+		}._w(352);
 		var register_url_info_function = function (check_fn, get_data_fn) {
 			url_info_registrations.push(check_fn);
 			url_info_to_data_registrations.push(get_data_fn);
 			return url_info_registrations.length - 1;
-		}._w(349);
+		}._w(354);
 
 		var domain_tags = {};
 		domain_tags[domains.exhentai] = "Ex";
@@ -5092,7 +5141,7 @@
 		var get_tag_from_domain = function (domain) {
 			var tag = domain_tags[domain];
 			return (tag === undefined) ? "?" : tag;
-		}._w(350);
+		}._w(355);
 
 		var get_ehentai_gallery_full = function (info, data, callback) {
 			rt_ehentai_gallery_full.add("" + data.gid, {
@@ -5103,7 +5152,7 @@
 				info: info,
 				data: data
 			}, false, callback);
-		}._w(351);
+		}._w(356);
 		var get_ehentai_gallery_page_thumb = function (domain, gid, token, page_token, page, callback) {
 			rt_ehentai_gallery_page_thumb.add(gid + "-" + page, {
 				domain: domain,
@@ -5113,23 +5162,23 @@
 				page_token: page_token,
 				search: ""
 			}, false, callback);
-		}._w(352);
+		}._w(357);
 		var get_nhentai_gallery_page_thumb = function (gid, page, callback) {
 			rt_nhentai_gallery_page_thumb.add(gid + "-" + page, {
 				gid: gid,
 				page: page
 			}, false, callback);
-		}._w(353);
+		}._w(358);
 		var get_hitomi_gallery_page_thumb = function (gid, page, callback) {
 			rt_hitomi_gallery_page_thumb.add(gid + "-" + page, {
 				gid: gid,
 				page: page
 			}, false, callback);
-		}._w(354);
+		}._w(359);
 
 		var get_data = function (url_info) {
 			return get_saved_data(url_info.id);
-		}._w(355);
+		}._w(360);
 		var get_data_from_url_info = function (url_info, callback) {
 			if (url_info.site === "ehentai") {
 				if (url_info.type === "gallery") {
@@ -5145,7 +5194,7 @@
 						else {
 							callback.call(null, err, null);
 						}
-					}._w(357));
+					}._w(362));
 					return;
 				}
 			}
@@ -5172,7 +5221,7 @@
 			}
 
 			callback.call(null, "Malformed data", null);
-		}._w(356);
+		}._w(361);
 
 		var cached_thumbnail_urls = {};
 		var get_thumbnail = function (thumbnail_url, flags, callback) {
@@ -5211,8 +5260,8 @@
 				else {
 					callback.call(null, err, null);
 				}
-			}._w(359));
-		}._w(358);
+			}._w(364));
+		}._w(363);
 
 		var lookup_on_ehentai = function (url, md5, use_similar, callback, progress_callback) {
 			if (use_similar) {
@@ -5238,7 +5287,7 @@
 					else {
 						callback.call(null, err, null);
 					}
-				}._w(361);
+				}._w(366);
 
 				if (sha1 !== null) {
 					rt_ehentai_lookup.add(url, {
@@ -5256,7 +5305,7 @@
 							// Load image
 							get_image(url, get_image_callback, progress_callback);
 						}
-					}._w(362));
+					}._w(367));
 				}
 				else {
 					// Load image
@@ -5281,14 +5330,14 @@
 					else {
 						callback.call(null, err, null);
 					}
-				}._w(363));
+				}._w(368));
 			}
-		}._w(360);
+		}._w(365);
 
 		var init = function () {
 			// Clean
 			cache_init();
-		}._w(364);
+		}._w(369);
 
 
 
@@ -5318,7 +5367,7 @@
 			init: init
 		};
 
-	}._w(226))();
+	}._w(231))();
 	var SHA1 = (function () {
 
 		// SHA-1 JS implementation originally created by Chris Verness; http://movable-type.co.uk/scripts/sha1.html
@@ -5330,10 +5379,10 @@
 				case 2: return (x & y) ^ (x & z) ^ (y & z);
 				case 3: return x ^ y ^ z;
 			}
-		}._w(366);
+		}._w(371);
 		var rotl = function (x, n) {
 			return (x << n) | (x >>> (32 - n));
-		}._w(367);
+		}._w(372);
 		var hex = function (str) {
 			var s = "",
 				v, i;
@@ -5342,7 +5391,7 @@
 				s += v.toString(16);
 			}
 			return s;
-		}._w(368);
+		}._w(373);
 
 		// Public
 		var hash = function (data, data_length) {
@@ -5410,14 +5459,14 @@
 			}
 
 			return hex(H0) + hex(H1) + hex(H2) + hex(H3) + hex(H4);
-		}._w(369);
+		}._w(374);
 
 		// Exports
 		return {
 			hash: hash
 		};
 
-	}._w(365))();
+	}._w(370))();
 	var Sauce = (function () {
 
 		// Private
@@ -5436,7 +5485,7 @@
 			}
 
 			return null;
-		}._w(371);
+		}._w(376);
 
 		var on_sauce_click = function (event) {
 			event.preventDefault();
@@ -5456,7 +5505,7 @@
 					hover.classList.add("xl-exsauce-hover-hidden");
 				}
 			}
-		}._w(372);
+		}._w(377);
 		var on_sauce_click_error = function (event) {
 			event.preventDefault();
 
@@ -5470,8 +5519,8 @@
 			setTimeout(function () {
 				Linkifier.change_link_events(link, events);
 				link.click();
-			}._w(374), 1);
-		}._w(373);
+			}._w(379), 1);
+		}._w(378);
 		var on_sauce_mouseover = $.wrap_mouseenterleave_event(function () {
 			var results = get_exresults_from_exsauce(this),
 				hover, err;
@@ -5487,13 +5536,13 @@
 
 				hover.classList.remove("xl-exsauce-hover-hidden");
 			}
-		}._w(375));
+		}._w(380));
 		var on_sauce_mouseout = $.wrap_mouseenterleave_event(function () {
 			var hover = hover_nodes[this.getAttribute("data-xl-sauce-hover-id") || ""];
 			if (hover !== undefined) {
 				hover.classList.add("xl-exsauce-hover-hidden");
 			}
-		}._w(376));
+		}._w(381));
 		var on_sauce_mousemove = function (event) {
 			var hover = hover_nodes[this.getAttribute("data-xl-sauce-hover-id") || ""];
 
@@ -5517,7 +5566,7 @@
 
 			hover.style.left = x + "px";
 			hover.style.top = y + "px";
-		}._w(377);
+		}._w(382);
 
 		var create_hover = function (id, data) {
 			var results = data.results,
@@ -5536,7 +5585,7 @@
 			hover_nodes[id] = hover;
 
 			return hover;
-		}._w(378);
+		}._w(383);
 		var format = function (a, data) {
 			var count = data.results.length,
 				theme = Theme.classes,
@@ -5593,7 +5642,7 @@
 
 				Linkifier.change_link_events(a, "exsauce_toggle");
 			}
-		}._w(379);
+		}._w(384);
 		var label = function () {
 			var label = config.sauce.label;
 
@@ -5602,7 +5651,7 @@
 			}
 
 			return label;
-		}._w(380);
+		}._w(385);
 
 		var create_error = function (node, error) {
 			var id = hover_nodes_id,
@@ -5630,7 +5679,7 @@
 
 			// Done
 			return hover;
-		}._w(381);
+		}._w(386);
 		var set_error = function (node, error) {
 			// Create hover
 			create_error(node, error);
@@ -5642,7 +5691,7 @@
 
 			// Events
 			Linkifier.change_link_events(node, "exsauce_error");
-		}._w(382);
+		}._w(387);
 		var remove_error = function (node) {
 			var events = Linkifier.get_link_events(node),
 				id = node.getAttribute("data-xl-sauce-hover-id"),
@@ -5657,7 +5706,7 @@
 				if (hover.parentNode !== null) $.remove(hover);
 				delete hover_nodes[id];
 			}
-		}._w(383);
+		}._w(388);
 
 		var fetch_generic = function (link, use_similar) {
 			var url = link.href,
@@ -5677,7 +5726,7 @@
 					else if (state === "download") {
 						link.textContent = "Checking";
 					}
-				}._w(385);
+				}._w(390);
 			}
 			else {
 				link.textContent = "Downloading";
@@ -5689,7 +5738,7 @@
 					else if (state === "upload") {
 						link.textContent = "Checking";
 					}
-				}._w(386);
+				}._w(391);
 			}
 
 			remove_error(link);
@@ -5701,21 +5750,21 @@
 				else {
 					set_error(link, err);
 				}
-			}._w(387), progress);
-		}._w(384);
+			}._w(392), progress);
+		}._w(389);
 		var fetch = function (event) {
 			event.preventDefault();
 			fetch_generic(this, false);
-		}._w(388);
+		}._w(393);
 		var fetch_similar = function (event) {
 			event.preventDefault();
 			fetch_generic(this, true);
-		}._w(389);
+		}._w(394);
 
 		// Public
 		var find_link = function (container) {
 			return $(".xl-exsauce-link", container);
-		}._w(390);
+		}._w(395);
 		var create_link = function (file_info, index) {
 			var event = "exsauce_fetch",
 				sauce, err;
@@ -5724,7 +5773,7 @@
 			sauce.setAttribute("data-xl-filename", file_info.name);
 			sauce.setAttribute("data-xl-image-index", index);
 			if (file_info.md5 !== null) {
-				sauce.setAttribute("data-md5", file_info.md5.replace(/=+/g, ""));
+				sauce.setAttribute("data-md5", file_info.md5.replace(/\=+/g, ""));
 			}
 			if (/^\.jpe?g$/i.test(file_info.type) && !Config.is_tinyboard) {
 				if (browser.is_firefox) {
@@ -5742,7 +5791,7 @@
 			Linkifier.change_link_events(sauce, event);
 
 			return sauce;
-		}._w(391);
+		}._w(396);
 		var init = function () {
 			Linkifier.register_link_events({
 				exsauce_fetch: fetch,
@@ -5760,7 +5809,7 @@
 					mousemove: on_sauce_mousemove
 				},
 			});
-		}._w(392);
+		}._w(397);
 
 		// Exports
 		return {
@@ -5769,7 +5818,7 @@
 			init: init
 		};
 
-	}._w(370))();
+	}._w(375))();
 	var Linkifier = (function () {
 
 		// Private
@@ -5817,7 +5866,7 @@
 
 				// Done
 				return count;
-			}._w(395);
+			}._w(400);
 
 			var textify_node = function (container, offsets, element_fn) {
 				// Create a string of the container's contents (similar to but not exactly the same as node.textContent)
@@ -5874,7 +5923,7 @@
 				}
 
 				return text;
-			}._w(396);
+			}._w(401);
 
 			var replace_match = function (match, text, offsets, setup_fn) {
 				var d = document,
@@ -6048,7 +6097,7 @@
 
 				// Update match position
 				offset_end.start = end;
-			}._w(397);
+			}._w(402);
 
 
 
@@ -6059,7 +6108,7 @@
 
 			return deep_dom_wrap;
 
-		}._w(394))();
+		}._w(399))();
 
 		var linkify_groups = [{
 			regex: re_url,
@@ -6079,13 +6128,13 @@
 					var m = re_url.exec(text);
 					if (m === null) return null;
 					return [ m.index , m.index + m[0].length, "a", m ];
-				}._w(399);
+				}._w(404);
 				node_setup = function (node, match) {
 					var url = match[3][0];
 					if (match[3][1] === undefined) url = "http://" + url.replace(/^\/+/, "");
 					result_nodes.push(node);
 					result_urls.push(url);
-				}._w(400);
+				}._w(405);
 			}
 			else {
 				// Multiple
@@ -6106,7 +6155,7 @@
 					}
 
 					return res;
-				}._w(401);
+				}._w(406);
 				node_setup = function (node, match) {
 					var url = match[3][0],
 						group = match[4],
@@ -6121,11 +6170,11 @@
 
 					result_nodes.push(node);
 					result_urls.push(url);
-				}._w(402);
+				}._w(407);
 			}
 
 			deep_dom_wrap(container, match_fn, linkify_element_checker, node_setup, false);
-		}._w(398);
+		}._w(403);
 		var linkify_element_checker = function (node) {
 			if (node.tagName === "BR" || node.tagName === "A") {
 				return deep_dom_wrap.NODE_NO_PARSE | deep_dom_wrap.NODE_LINE_BREAK;
@@ -6140,7 +6189,7 @@
 				return deep_dom_wrap.NODE_LINE_BREAK;
 			}
 			return deep_dom_wrap.NODE_PARSE;
-		}._w(403);
+		}._w(408);
 		var linkify_test = function (text) {
 			var group, re, i, ii, m;
 			for (i = 0, ii = linkify_groups.length; i < ii; ++i) {
@@ -6158,7 +6207,7 @@
 				}
 			}
 			return null;
-		}._w(404);
+		}._w(409);
 		var linkify_register = function (regex, prefix_group, prefix, prefix_replace_regex, prefix_replace_with) {
 			var prefix_replace = null;
 
@@ -6174,7 +6223,7 @@
 				tag: "a",
 				match: null
 			});
-		}._w(405);
+		}._w(410);
 
 		var parse_text_for_urls = function (text) {
 			var urls = [],
@@ -6187,7 +6236,7 @@
 			}
 
 			return urls;
-		}._w(406);
+		}._w(411);
 
 		// Link creation and processing
 		var create_link = function (parent, next, url, text, auto_process) {
@@ -6198,7 +6247,7 @@
 			preprocess_link(link, url, false, auto_process);
 
 			return link;
-		}._w(407);
+		}._w(412);
 		var preprocess_link = function (node, url, update_on_fail, auto_load) {
 			if (!first_link_preprocessed) {
 				first_link_preprocessed = true;
@@ -6232,8 +6281,8 @@
 				node.classList.add("xl-linkified");
 
 				UI.setup_link(node, url, info, auto_load, modify_link);
-			}._w(409));
-		}._w(408);
+			}._w(414));
+		}._w(413);
 
 		// Post queue
 		var post_queue = {
@@ -6270,7 +6319,7 @@
 					dequeue_posts();
 				}
 			}
-		}._w(410);
+		}._w(415);
 		queue_posts.Flags = {
 			None: 0x0,
 			UseDelay: 0x1,
@@ -6291,7 +6340,7 @@
 				// Timer for next
 				post_queue.timer = setTimeout(dequeue_posts, post_queue.delay);
 			}
-		}._w(411);
+		}._w(416);
 
 		var setup_post_exsauce = function (post) {
 			var index = 0,
@@ -6312,7 +6361,7 @@
 					++index;
 				}
 			}
-		}._w(412);
+		}._w(417);
 		var parse_post = function (post) {
 			var auto_load_links = config.general.automatic_processing,
 				post_body, post_links, link_nodes, link_urls, link, url, valid, i, ii;
@@ -6371,7 +6420,7 @@
 				// Mark
 				post.classList.add("xl-post-linkified");
 			}
-		}._w(413);
+		}._w(418);
 		var parse_posts = function (posts) {
 			var post, i, ii;
 
@@ -6390,7 +6439,7 @@
 			}
 
 			Debug.log("Total posts=" + posts.length + "; time=" + Debug.timer("process"));
-		}._w(414);
+		}._w(419);
 
 		// Link events
 		var link_events = {};
@@ -6406,10 +6455,10 @@
 			}
 
 			return count;
-		}._w(415);
+		}._w(420);
 		var get_link_events = function (node) {
 			return node.getAttribute("data-xl-link-events") || null;
-		}._w(416);
+		}._w(421);
 		var set_link_events = function (node, new_events) {
 			var events = link_events[new_events],
 				k;
@@ -6425,7 +6474,7 @@
 					}
 				}
 			}
-		}._w(417);
+		}._w(422);
 		var apply_link_events = function (node, check_children) {
 			var nodes = check_children ? $$("a.xl-link-events", node) : [ node ],
 				events, i, ii;
@@ -6435,7 +6484,7 @@
 				events = node.getAttribute("data-xl-link-events");
 				set_link_events(node, events);
 			}
-		}._w(418);
+		}._w(423);
 		var change_link_events = function (node, new_events) {
 			var old_events = node.getAttribute("data-xl-link-events"),
 				events, k;
@@ -6462,7 +6511,7 @@
 				node.setAttribute("data-xl-link-events", new_events);
 				set_link_events(node, new_events);
 			}
-		}._w(419);
+		}._w(424);
 
 		// Fixing
 		var fix_inline_linkified_link = function (node) {
@@ -6489,7 +6538,7 @@
 					}
 				}
 			}
-		}._w(420);
+		}._w(425);
 		var unlinkify_post = function (post) {
 			var nodes, i, ii;
 
@@ -6508,7 +6557,7 @@
 				nodes[i].classList.remove("xl-linkified");
 				fix_inline_linkified_link(nodes[i]);
 			}
-		}._w(421);
+		}._w(426);
 		var relinkify_posts = function (posts) {
 			var cls = "xl-post-linkified",
 				post, i, ii;
@@ -6522,7 +6571,7 @@
 			}
 
 			queue_posts(posts, queue_posts.Flags.Flush | queue_posts.Flags.FlushNoParse | queue_posts.Flags.UseDelay);
-		}._w(422);
+		}._w(427);
 		var fix_broken_4chanx_linkification = function (node, event_links) {
 			// Somehow one of the links gets cloned, and then they all get wrapped inside another link
 			var fix = [],
@@ -6558,7 +6607,7 @@
 				link.classList.remove("xl-linkified");
 				preprocess_link(link, link.href || "", false, config.general.automatic_processing);
 			}
-		}._w(423);
+		}._w(428);
 
 		// Events
 		var first_link_preprocessed = false;
@@ -6570,7 +6619,7 @@
 			if (listeners === undefined) return false;
 			listeners.push(callback);
 			return true;
-		}._w(424);
+		}._w(429);
 		var off = function (event_name, callback) {
 			var listeners = event_listeners[event_name],
 				i, ii;
@@ -6583,13 +6632,13 @@
 				}
 			}
 			return false;
-		}._w(425);
+		}._w(430);
 		var trigger = function (listeners, data) {
 			var i, ii;
 			for (i = 0, ii = listeners.length; i < ii; ++i) {
 				listeners[i].call(null, data);
 			}
-		}._w(426);
+		}._w(431);
 
 
 		// Exports
@@ -6607,7 +6656,7 @@
 			off: off
 		};
 
-	}._w(393))();
+	}._w(398))();
 	var Settings = (function () {
 
 		// Private
@@ -6619,13 +6668,13 @@
 
 		var html_filter_guide = function () {
 			return "<div class=\"xl-settings-group xl-settings-filter-guide xl-theme\">Lines starting with <code>/</code> will be treated as <a href=\"https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions\" target=\"_blank\" rel=\"noreferrer nofollow\">regular expressions</a>. <span style=\"opacity: 0.75\">(This is very similar to 4chan-x style filtering)</span><br>Lines starting with <code>#</code> are comments and will be ignored.<br>Lines starting with neither <code>#</code> nor <code>/</code> will be treated as a case-insensitive string to match anywhere.<br>For example, <code>/touhou/i</code> will highlight entries containing the string `<code>touhou</code>`, case-insensitive.<br><br>The lower a filter appears in this list, the greater its priority will be.<br><br>You can use these additional settings with each regular expression, separating them with semicolons:<br><ul><li><strong>Apply the filter to different scopes:</strong><br><code>tags;</code>, <code>title;</code> or <code>uploader;</code>. By default the scope is <code>title;tags;</code><br></li><li><strong>Force a gallery to not be highlighted:</strong> <span style=\"opacity: 0.75\">If omitted, the gallery will be highlighted as normal</span><br><code>bad:no;</code>, <code>bad:yes;</code>, or just <code>bad;</code></li><li><strong>Only apply the filter to certain categories:</strong><br><code>only:doujinshi,manga;</code>.<div style=\"font-size: 0.9em; margin-top: 0.1em; opacity: 0.75\">Categories: <span>artistcg, asianporn, cosplay, doujinshi, gamecg, imageset, manga, misc, <span style=\"white-space: nowrap\">non-h</span>, private, western</span></div></li><li><strong>Only apply the filter if it <em>is not</em> a certain category:</strong><br><code>not:western,non-h;</code>.</li><li><strong>Only apply the filter to certain sites:</strong><br><code>site:ehentai;</code>.<div style=\"font-size: 0.9em; margin-top: 0.1em; opacity: 0.75\">Sites: <span>ehentai, nhentai, hitomi</span></div></li><li><strong>Apply a colored decoration to the matched text:</strong><br><code>color:red;</code>, <code>underline:#0080f0;</code>, or <code>background:rgba(0,255,0,0.5);</code></li><li><strong>Apply a colored decoration to the [Ex] or [EH] tag:</strong><br><code>link-color:blue;</code>, <code>link-underline:#bf48b5;</code>, or <code>link-background:rgba(220,200,20,0.5);</code></li><li><strong>Apply a colored decoration to <em>BOTH</em> the matched text and tag:</strong><br><code>colors:blue;</code>, <code>underlines:#bf48b5;</code>, or <code>backgrounds:rgba(220,200,20,0.5);</code></li><li><strong>Disable any coloring, including the default:</strong><br><code>no-colors;</code> or <code>nocolor;</code></li></ul>Additionally, some settings have aliases. If multiple are used, only the main one will be used.<br><ul><li><code>tags: tag</code></li><li><code>only: category, cat</code></li><li class=\"xl-settings-li-no-space\"><code>not: no</code></li><li class=\"xl-settings-li-no-space\"><code>site: sites</code></li><li><code>colors: cs</code></li><li class=\"xl-settings-li-no-space\"><code>underlines: us</code></li><li class=\"xl-settings-li-no-space\"><code>backgrounds: bgs</code></li><li><code>color: c</code></li><li class=\"xl-settings-li-no-space\"><code>underline: u</code></li><li class=\"xl-settings-li-no-space\"><code>background: bg</code></li><li><code>link-color: link-c, lc</code></li><li class=\"xl-settings-li-no-space\"><code>link-underline: link-u, lu</code></li><li class=\"xl-settings-li-no-space\"><code>link-background: link-bg, lbg</code></li><li><code>no-colors: no-color, nocolors, nocolor</code></li></ul>For easy <a href=\"https://developer.mozilla.org/en-US/docs/Web/CSS/color_value#Color_keywords\" target=\"_blank\" rel=\"noreferrer nofollow\">HTML color</a> selection, you can use the following helper to select a color:<br><br><div><input type=\"color\" value=\"#808080\" class=\"xl-settings-color-input\"><input type=\"text\" value=\"#808080\" class=\"xl-settings-color-input\" readonly=\"readonly\"><input type=\"text\" value=\"rgba(128,128,128,1)\" class=\"xl-settings-color-input\" readonly=\"readonly\"></div></div>";
-		}._w(428);
+		}._w(433);
 		var create_export_data = function () {
 			return {
 				config: Config.get_saved_settings(),
 				easy_list: EasyList.get_saved_settings()
 			};
-		}._w(429);
+		}._w(434);
 		var import_settings = function (data) {
 			if (data !== null && typeof(data) === "object") {
 				var v = data.config;
@@ -6636,7 +6685,7 @@
 				if (typeof(v) !== "object") v = null;
 				EasyList.set_saved_settings(v);
 			}
-		}._w(430);
+		}._w(435);
 
 		var generate_section_header = function (title, message) {
 			var theme = Theme.classes,
@@ -6651,10 +6700,10 @@
 			}
 
 			return n1;
-		}._w(431);
+		}._w(436);
 		var generate_section = function () {
 			return $.node("div", "xl-settings-group " + Theme.classes);
-		}._w(432);
+		}._w(437);
 		var generate_section_options = function (section, namespace, config_descriptor, config_scope) {
 			var type, info, d, i, ii;
 			for (i = 0, ii = config_descriptor.length; i < ii; ++i) {
@@ -6673,13 +6722,13 @@
 					info // info
 				);
 			}
-		}._w(433);
+		}._w(438);
 		var generate_section_options_custom = function (section, namespace, custom_descriptor, custom_config) {
 			var config_descriptor = custom_descriptor[namespace];
 			if (config_descriptor === undefined) return;
 
 			generate_section_options(section, namespace + "-custom", config_descriptor, custom_config[namespace]);
-		}._w(434);
+		}._w(439);
 		var generate_section_option = function (section, config_scope, id, name, label_text, description, type, value, info) {
 			var event = "change",
 				theme = Theme.classes,
@@ -6752,7 +6801,7 @@
 			// Event
 			if (config_scope === null) name = null;
 			$.on(input, event, $.bind(on_change, input, type, config_scope, name, info));
-		}._w(435);
+		}._w(440);
 
 		var generate_extensions = function (container) {
 			var exts = ExtensionAPI.get_registered_extensions(),
@@ -6785,11 +6834,11 @@
 			$.add(container, section);
 
 			return data;
-		}._w(436);
+		}._w(441);
 
 		var titlify_custom_namespace = function (namespace) {
-			return namespace.replace(/[_\W]+/g, " ").replace(/\b\w/g, function (m) { return m.toUpperCase(); }._w(438));
-		}._w(437);
+			return namespace.replace(/[_\W]+/g, " ").replace(/\b\w/g, function (m) { return m.toUpperCase(); }._w(443));
+		}._w(442);
 
 		var on_change = function (type, config_scope, name, info, event) {
 			var fn, v;
@@ -6820,7 +6869,7 @@
 			if (info !== null && (fn = info.on_change) !== undefined) {
 				fn.call(this, event);
 			}
-		}._w(439);
+		}._w(444);
 		var on_cache_clear_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
@@ -6829,21 +6878,21 @@
 				Debug.log("Cleared cache; entries_removed=" + clears);
 				this.textContent = "Cleared!";
 			}
-		}._w(440);
+		}._w(445);
 		var on_changelog_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				close(event);
 				Changelog.open(null);
 			}
-		}._w(441);
+		}._w(446);
 		var on_export_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				close();
 				open_export();
 			}
-		}._w(442);
+		}._w(447);
 		var on_save_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
@@ -6855,14 +6904,14 @@
 				Config.save();
 				close();
 			}
-		}._w(443);
+		}._w(448);
 		var on_cancel_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 
 				close();
 			}
-		}._w(444);
+		}._w(449);
 		var on_toggle_filter_guide = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
@@ -6875,7 +6924,7 @@
 				}
 				catch (e) {}
 			}
-		}._w(445);
+		}._w(450);
 		var on_color_helper_change = function () {
 			var n = this.nextSibling,
 				m;
@@ -6890,14 +6939,14 @@
 					}
 				}
 			}
-		}._w(446);
+		}._w(451);
 		var on_settings_open_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 
 				open();
 			}
-		}._w(447);
+		}._w(452);
 
 		// Public
 		var ready = function () {
@@ -6906,7 +6955,7 @@
 			var n = $.link(Main.homepage, "xl-nav-link", Main.title + " Settings");
 			$.on(n, "click", on_settings_open_click);
 			HeaderBar.insert_menu_link(n);
-		}._w(448);
+		}._w(453);
 		var open = function () {
 			var theme = Theme.classes,
 				custom_options = Config.get_custom_settings_descriptor(),
@@ -6924,7 +6973,7 @@
 					$.add(container, $.link(Main.homepage, "xl-settings-title" + theme, Main.title));
 					$.add(container, n = $.link(Changelog.url, "xl-settings-version" + theme, Main.version.join(".")));
 					$.on(n, "click", on_changelog_click);
-				}._w(450)
+				}._w(455)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -6947,12 +6996,12 @@
 					$.add(container, n = $.link("#", "xl-settings-button" + theme));
 					$.add(n, $.node("span", "xl-settings-button-text", "Cancel"));
 					$.on(n, "click", on_cancel_click);
-				}._w(451)
+				}._w(456)
 			}], {
 				body: true,
 				setup: function (container) {
 					content_container = container;
-				}._w(452)
+				}._w(457)
 			}]);
 
 			// Settings
@@ -7040,7 +7089,7 @@
 			// Focus
 			n = $(".xl-popup-cell-size-scroll", popup);
 			if (n !== null) $.scroll_focus(n);
-		}._w(449);
+		}._w(454);
 		var open_export = function () {
 			var theme = Theme.classes,
 				nodes = {
@@ -7058,7 +7107,7 @@
 				setup: function (container) {
 					$.add(container, $.link(Main.homepage, "xl-settings-title" + theme, Main.title));
 					$.add(container, $.node("span", "xl-settings-title-info" + theme, " - Settings export"));
-				}._w(454)
+				}._w(459)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -7069,7 +7118,7 @@
 						s = "" + s;
 						while (s.length < len) s = "0" + s;
 						return s;
-					}._w(456);
+					}._w(461);
 
 					fn = $.node("input", "xl-settings-file-input");
 					fn.type = "file";
@@ -7078,7 +7127,7 @@
 					$.on(fn, "change", function () {
 						var files = this.files,
 							reader;
-						if (files.length > 0 && /\.json$/i.test(files[0].name)) {
+						if (files.length > 0 && (/\.json$/i).test(files[0].name)) {
 							reader = new FileReader();
 							reader.addEventListener("load", function () {
 								var d = $.json_parse_safe(this.result, null);
@@ -7086,18 +7135,18 @@
 									nodes.textarea.value = JSON.stringify(d, null, 2);
 									nodes.textarea.classList.add("xl-settings-export-textarea-changed");
 								}
-							}._w(458), false);
+							}._w(463), false);
 							reader.readAsText(files[0]);
 						}
 						this.value = null;
-					}._w(457));
+					}._w(462));
 
 					$.add(container, n = $.link(undefined, "xl-settings-button" + theme));
 					$.add(n, $.node("span", "xl-settings-button-text", "Import"));
 					$.on(n, "click", function (event) {
 						event.preventDefault();
 						fn.click();
-					}._w(459));
+					}._w(464));
 
 					$.add(container, n = $.link(export_url, "xl-settings-button" + theme));
 					n.removeAttribute("target");
@@ -7127,12 +7176,12 @@
 							}
 							nodes.textarea.classList.remove("xl-settings-export-textarea-changed");
 						}
-					}._w(460));
+					}._w(465));
 
 					$.add(container, n = $.link("#", "xl-settings-button" + theme));
 					$.add(n, $.node("span", "xl-settings-button-text", "Cancel"));
 					$.on(n, "click", on_cancel_click);
-				}._w(455)
+				}._w(460)
 			}], {
 				padding: false,
 				setup: function (container) {
@@ -7148,12 +7197,12 @@
 					n3.checked = false;
 					$.on(n3, "change", function () {
 						nodes.textarea.readOnly = !this.checked;
-					}._w(462));
+					}._w(467));
 
 					$.add(n1, $.tnode(")"));
 
 					$.add(container, n1);
-				}._w(461)
+				}._w(466)
 			}, {
 				body: true,
 				padding: false,
@@ -7167,12 +7216,12 @@
 					n.readOnly = true;
 					$.on(n, "input", function () {
 						this.classList.add("xl-settings-export-textarea-changed");
-					}._w(464));
+					}._w(469));
 
 					nodes.textarea = n;
 
 					$.add(container, n);
-				}._w(463)
+				}._w(468)
 			}]);
 			$.on(popup, "click", on_cancel_click);
 
@@ -7182,7 +7231,7 @@
 			// Focus
 			n = $(".xl-settings-export-textarea", popup);
 			if (n !== null) n.focus();
-		}._w(453);
+		}._w(458);
 		var close = function () {
 			config_temp = null;
 			config_custom_temp = null;
@@ -7195,7 +7244,7 @@
 				$.revoke_url(export_url);
 				export_url = null;
 			}
-		}._w(465);
+		}._w(470);
 
 		// Exports
 		return {
@@ -7205,7 +7254,7 @@
 			close: close
 		};
 
-	}._w(427))();
+	}._w(432))();
 	var Config = (function () {
 
 		// Private
@@ -7213,24 +7262,43 @@
 			custom = {},
 			custom_descriptor = null;
 
+		var gm_supported = function () {
+			try {
+				return (
+					typeof(GM_setValue) === "function" &&
+					typeof(GM_getValue) === "function" &&
+					typeof(GM_deleteValue) === "function"
+				);
+			}
+			catch (e) {}
+			return true;
+		}._w(472);
+
 		// Public
+		var storage_new = (function () {
+			if (!gm_supported.call(this)) {
+				var s = window.localStorage;
+				return {
+					getItem: to_promise(s.getItem, s),
+					setItem: to_promise(s.setItem, s),
+					removeItem: to_promise(s.removeItem, s)
+				};
+			}
+			else {
+				return {
+					getItem: (k) => GM.getItem(k),
+					setItem: (k,v) => GM.setItem(k, v),
+					removeItem: (k) => GM.removeItem(k)
+				};
+			}
+		}._w(473))();
+
 		var storage = (function () {
-			if ((function () {
-				try {
-					return (
-						typeof(GM_setValue) !== "function" ||
-						typeof(GM_getValue) !== "function" ||
-						typeof(GM_deleteValue) !== "function" ||
-						typeof(GM_listValues) !== "function"
-					);
-				}
-				catch (e) {}
-				return true;
-			}._w(468))()) {
+			if (!gm_supported.call(this)) {
 				return window.localStorage;
 			}
 
-			var log_error = function (/*e*/) {}._w(469);
+			var log_error = function (/*e*/) {}._w(475);
 			var storage = {
 				getItem: function (key) {
 					try {
@@ -7240,7 +7308,7 @@
 						log_error(e);
 					}
 					return null;
-				}._w(470),
+				}._w(476),
 				setItem: function (key, value) {
 					try {
 						GM_setValue(key, value);
@@ -7248,16 +7316,7 @@
 					catch (e) {
 						log_error(e);
 					}
-				}._w(471),
-				key: function (index) {
-					try {
-						return GM_listValues()[index];
-					}
-					catch (e) {
-						log_error(e);
-					}
-					return undefined;
-				}._w(472),
+				}._w(477),
 				removeItem: function (key) {
 					try {
 						GM_deleteValue(key);
@@ -7265,43 +7324,11 @@
 					catch (e) {
 						log_error(e);
 					}
-				}._w(473),
-				clear: function () {
-					try {
-						var v = GM_listValues(), i, ii;
-						for (i = 0, ii = v.length; i < ii; ++i) {
-							GM_deleteValue(v[i]);
-						}
-					}
-					catch (e) {
-						log_error(e);
-					}
-				}._w(474)
-				// length: (getter)
+				}._w(478)
 			};
 
-			// Length getter
-			var get_length = function () {
-				try {
-					return GM_listValues().length;
-				}
-				catch (e) {
-					log_error(e);
-				}
-				return 0;
-			}._w(475);
-			if (Object.defineProperty) {
-				Object.defineProperty(storage, "length", { get: get_length });
-			}
-			else if (Object.prototype.__defineGetter__) {
-				Object.prototype.__defineGetter__.call(storage, "length", get_length);
-			}
-			else {
-				storage.length = 0;
-			}
-
 			return storage;
-		}._w(467))();
+		}._w(474))();
 
 		var init = function () {
 			var update = false,
@@ -7370,7 +7397,7 @@
 
 			// Save changes
 			if (update) save();
-		}._w(476);
+		}._w(479);
 		var ready = function () {
 			var domain = $.get_domain(window.location.href);
 
@@ -7379,7 +7406,7 @@
 				Module.is_4chan = true;
 				Module.is_4chan_x3 = (document_element.className.length > 0) || ($("head>style#layout", document_element) !== null); // appchan-x doesn't insert the fourchan-x class early enough
 			}
-			else if (domain === "desuarchive.org" || domain === "fgts.jp") {
+			else if (domain === "desuarchive.org" || domain === "fgts.jp" || domain === "archived.moe" || domain === "fireden.net") {
 				if (document.doctype.publicId) {
 					Module.mode = "fuuka";
 					Module.is_fuuka = true;
@@ -7415,16 +7442,16 @@
 			}
 
 			return true;
-		}._w(477);
+		}._w(480);
 		var save = function () {
 			config.version = Main.version;
 			storage.setItem(settings_key, JSON.stringify(config));
 			config.version = null;
-		}._w(478);
+		}._w(481);
 		var get_saved_settings = function () {
 			var v = storage.getItem(settings_key);
 			return $.json_parse_safe(v, null);
-		}._w(479);
+		}._w(482);
 		var set_saved_settings = function (data) {
 			if (data === null) {
 				storage.removeItem(settings_key);
@@ -7433,7 +7460,7 @@
 				var v = JSON.stringify(data);
 				storage.setItem(settings_key, v);
 			}
-		}._w(480);
+		}._w(483);
 
 		var load_custom = function () {
 			var saved = $.json_parse_safe(storage.getItem(settings_key + "-custom"), null),
@@ -7455,10 +7482,10 @@
 					}
 				}
 			}
-		}._w(481);
+		}._w(484);
 		var save_custom = function () {
 			storage.setItem(settings_key + "-custom", JSON.stringify(custom));
-		}._w(482);
+		}._w(485);
 
 		var register_custom_setting = function (namespace, name, default_value, title, description, descriptor) {
 			// Already exists
@@ -7489,7 +7516,7 @@
 
 			// Return value
 			return update[1];
-		}._w(483);
+		}._w(486);
 		var init_custom = function (namespace, name, default_value) {
 			var v = custom[namespace],
 				val;
@@ -7507,21 +7534,21 @@
 			}
 
 			return [ false, val ];
-		}._w(484);
+		}._w(487);
 		var get_custom_settings_descriptor = function () {
 			return custom_descriptor === null ? {} : custom_descriptor;
-		}._w(485);
+		}._w(488);
 		var get_custom = function (namespace, name) {
 			var v = custom[namespace];
 			return (v !== undefined) ? v[name] : undefined;
-		}._w(486);
+		}._w(489);
 		var get_custom_clone = function () {
 			return JSON.parse(JSON.stringify(custom));
-		}._w(487);
+		}._w(490);
 		var load_custom_from_clone = function (clone) {
 			custom = clone;
 			save_custom();
-		}._w(488);
+		}._w(491);
 
 		// Exports
 		var Module = {
@@ -7551,7 +7578,7 @@
 
 		return Module;
 
-	}._w(466))();
+	}._w(471))();
 	var Filter = (function () {
 
 		// Private
@@ -7564,7 +7591,7 @@
 			this.regex = regex;
 			this.flags = flags;
 			this.priority = priority;
-		}._w(490);
+		}._w(493);
 		var FilterFlags = function () {
 			this.title = true;
 			this.tags = true;
@@ -7581,7 +7608,7 @@
 			this.link_color = this.color;
 			this.link_underline = null;
 			this.link_background = null;
-		}._w(491);
+		}._w(494);
 		FilterFlags.scope_fn = function (name) {
 			return function (value, state) {
 				if (!state.scope) {
@@ -7592,8 +7619,8 @@
 				}
 
 				this[name] = (good_values.indexOf(value.trim().toLowerCase()) >= 0);
-			}._w(493);
-		}._w(492);
+			}._w(496);
+		}._w(495);
 		FilterFlags.color_fn = function (fn) {
 			return function (value, state) {
 				if (!state.color) {
@@ -7607,8 +7634,8 @@
 				}
 
 				fn.call(this, value.trim());
-			}._w(495);
-		}._w(494);
+			}._w(498);
+		}._w(497);
 		FilterFlags.names = {
 			"tags": FilterFlags.scope_fn("tags"),
 			"title": FilterFlags.scope_fn("title"),
@@ -7616,50 +7643,50 @@
 
 			"bad": FilterFlags.color_fn(function (value) {
 				this.bad = (good_values.indexOf(value.toLowerCase()) >= 0);
-			}._w(496)),
+			}._w(499)),
 
 			"only": function (value) {
 				this.only = this.split(value);
-			}._w(497),
+			}._w(500),
 			"not": function (value) {
 				this.not = this.split(value);
-			}._w(498),
+			}._w(501),
 			"site": function (value) {
 				this.site = this.split(value);
-			}._w(499),
+			}._w(502),
 
 			"colors": FilterFlags.color_fn(function (value) {
 				this.color = value;
 				this.link_color = value;
-			}._w(500)),
+			}._w(503)),
 			"underlines": FilterFlags.color_fn(function (value) {
 				this.underline = value;
 				this.link_underline = value;
-			}._w(501)),
+			}._w(504)),
 			"backgrounds": FilterFlags.color_fn(function (value) {
 				this.background = value;
 				this.link_background = value;
-			}._w(502)),
+			}._w(505)),
 
 			"color": FilterFlags.color_fn(function (value) {
 				this.color = value;
-			}._w(503)),
+			}._w(506)),
 			"underline": FilterFlags.color_fn(function (value) {
 				this.underline = value;
-			}._w(504)),
+			}._w(507)),
 			"background": FilterFlags.color_fn(function (value) {
 				this.background = value;
-			}._w(505)),
+			}._w(508)),
 
 			"link-color": FilterFlags.color_fn(function (value) {
 				this.link_color = value;
-			}._w(506)),
+			}._w(509)),
 			"link-underline": FilterFlags.color_fn(function (value) {
 				this.link_underline = value;
-			}._w(507)),
+			}._w(510)),
 			"link-background": FilterFlags.color_fn(function (value) {
 				this.link_background = value;
-			}._w(508)),
+			}._w(511)),
 
 			"no-colors": function (value, state) {
 				state.color = true;
@@ -7671,7 +7698,7 @@
 				this.link_color = value;
 				this.link_underline = value;
 				this.link_background = value;
-			}._w(509),
+			}._w(512),
 
 			"tag": "tags",
 
@@ -7722,7 +7749,7 @@
 					fn.call(this, flags_obj[k], state);
 				}
 			}
-		}._w(510);
+		}._w(513);
 		FilterFlags.prototype.split = function (text) {
 			var array, i, ii;
 
@@ -7735,27 +7762,27 @@
 			}
 
 			return array;
-		}._w(511);
+		}._w(514);
 		var Match = function (start, end, filter) {
 			this.start = start;
 			this.end = end;
 			this.filter = filter;
-		}._w(512);
+		}._w(515);
 		var MatchSegment = function (start, end, data) {
 			this.start = start;
 			this.end = end;
 			this.data = data;
-		}._w(513);
+		}._w(516);
 		var MatchInfo = function () {
 			this.matches = [];
 			this.any = false;
 			this.bad = false;
-		}._w(514);
+		}._w(517);
 
 		var create_regex = function (pattern, flags) {
 			if (flags.indexOf("g") < 0) flags += "g";
 			return $.create_regex_safe(pattern, flags);
-		}._w(515);
+		}._w(518);
 		var create_flags = function (text) {
 			var flaglist = text.split(";"),
 				flags = {},
@@ -7773,7 +7800,7 @@
 			f = new FilterFlags();
 			f.setup(flags);
 			return f;
-		}._w(516);
+		}._w(519);
 		var matches_to_segments = function (text, matches) {
 			var segments = [ new MatchSegment(0, text.length, []) ],
 				hit, m, s, i, ii, j, jj;
@@ -7801,7 +7828,7 @@
 			}
 
 			return segments;
-		}._w(517);
+		}._w(520);
 		var update_segments = function (segments, pos, match, segment) {
 			var data = segment.data.slice(0),
 				s1, s2;
@@ -7839,7 +7866,7 @@
 			}
 
 			return pos;
-		}._w(518);
+		}._w(521);
 		var apply_styles = function (node, styles) {
 			var color = null,
 				background = null,
@@ -7867,7 +7894,7 @@
 			}
 
 			apply_styling(node, color, background, underline);
-		}._w(519);
+		}._w(522);
 		var apply_styling = function (node, color, background, underline) {
 			if (color !== null) {
 				node.style.setProperty("color", color, "important");
@@ -7878,12 +7905,12 @@
 			if (underline !== null) {
 				node.style.setProperty("border-bottom", "0.125em solid " + underline, "important");
 			}
-		}._w(520);
+		}._w(523);
 		var append_match_datas = function (matchinfo, target) {
 			for (var i = 0, ii = matchinfo.matches.length; i < ii; ++i) {
 				target.push(matchinfo.matches[i].filter);
 			}
-		}._w(521);
+		}._w(524);
 		var remove_non_bad = function (list) {
 			for (var i = 0; i < list.length; ) {
 				if (!list[i].bad) {
@@ -7892,7 +7919,7 @@
 				}
 				++i;
 			}
-		}._w(522);
+		}._w(525);
 		var check_multiple = function (type, text, filters, category, site_type) {
 			var info = new MatchInfo(),
 				filter, match, i, ii;
@@ -7914,7 +7941,7 @@
 			}
 
 			return info;
-		}._w(523);
+		}._w(526);
 		var check_single = function (text, filter, category, site_type) {
 			// return null if no match
 			// return a new Match if a match was found
@@ -7944,7 +7971,7 @@
 			// Text filter
 			m = filter.regex.exec(text);
 			return (m === null) ? null : new Match(m.index, m.index + m[0].length, filter);
-		}._w(524);
+		}._w(527);
 		var hl_return = function (bad, node) {
 			if (bad) {
 				node.classList.add("xl-filter-bad");
@@ -7954,10 +7981,10 @@
 				node.classList.add("xl-filter-good");
 				return Status.Good;
 			}
-		}._w(525);
+		}._w(528);
 		var init_filters = function () {
 			active_filters = config.filter.enabled ? parse(config.filter.filters, 0) : [];
-		}._w(526);
+		}._w(529);
 
 		// Public
 		var parse = function (input, start_priority) {
@@ -8008,7 +8035,7 @@
 			}
 
 			return filters;
-		}._w(527);
+		}._w(530);
 		var highlight = function (type, node, data, input_state, results, extras) {
 			if (active_filters === null) init_filters();
 
@@ -8112,7 +8139,7 @@
 				c[text] = [ info, node ];
 			}
 			return hl_return(bad, node);
-		}._w(528);
+		}._w(531);
 		var highlight_tag = function (node, link, filter_data) {
 			if (filter_data[0] === Status.Bad) {
 				node.classList.add("xl-filter-bad");
@@ -8151,7 +8178,7 @@
 						p3 = p;
 					}
 				}
-			}._w(530);
+			}._w(533);
 
 			get_style(filter_data[1].uploader);
 			get_style(filter_data[1].title);
@@ -8171,7 +8198,7 @@
 				$.add(node, n1);
 				apply_styling(n1, color, background, underline);
 			}
-		}._w(529);
+		}._w(532);
 		var check = function (titlenode, data, extras) {
 			if (active_filters === null) init_filters();
 
@@ -8224,7 +8251,7 @@
 					// Remove dups
 					result.tags = result.tags.filter(function (item, pos, self) {
 						return (self.indexOf(item) === pos);
-					}._w(532));
+					}._w(535));
 				}
 			}
 
@@ -8240,7 +8267,7 @@
 			}
 
 			return [ status , (status === Status.None ? null : result) ];
-		}._w(531);
+		}._w(534);
 
 		// Export
 		return {
@@ -8253,7 +8280,7 @@
 			highlight_tag: highlight_tag
 		};
 
-	}._w(489))();
+	}._w(492))();
 	var Theme = (function () {
 
 		// Private
@@ -8265,7 +8292,7 @@
 			n = n.toString(16);
 			if (n.length < 2) n = "0" + n;
 			return n;
-		}._w(534);
+		}._w(537);
 		var detect = function () {
 			var body = document.body,
 				n = document.createElement("div"),
@@ -8309,7 +8336,7 @@
 				"#" + to_hex2(colors[1][0]) + to_hex2(colors[1][1]) + to_hex2(colors[1][2]),
 				"rgba(" + colors[1][0] + "," + colors[1][1] + "," + colors[1][2] + ","
 			];
-		}._w(535);
+		}._w(538);
 		var update = function (change_nodes) {
 			var new_theme = detect();
 			if (new_theme !== null) {
@@ -8327,7 +8354,7 @@
 				return true;
 			}
 			return false;
-		}._w(536);
+		}._w(539);
 		var update_nodes = function (new_theme) {
 			var nodes = $$(".xl-theme"),
 				ii = nodes.length,
@@ -8344,7 +8371,7 @@
 					nodes[i].classList.add(cls);
 				}
 			}
-		}._w(537);
+		}._w(540);
 		var update_nodes_bg = function () {
 			var nodes = $$(".xl-theme-post-bg"),
 				opacity, node, i, ii;
@@ -8353,7 +8380,7 @@
 				opacity = node.getAttribute("data-xl-theme-post-bg-opacity");
 				node.style.backgroundColor = (opacity ? post_bg_opac + opacity + ")" : post_bg);
 			}
-		}._w(538);
+		}._w(541);
 
 		var on_head_mutate = function (records) {
 			var nodes, node, tag, i, ii, j, jj;
@@ -8363,7 +8390,7 @@
 					for (j = 0, jj = nodes.length; j < jj; ++j) {
 						node = nodes[j];
 						tag = node.tagName;
-						if (tag === "STYLE" || (tag === "LINK" && /\bstylesheet\b/.test(node.rel))) {
+						if (tag === "STYLE" || (tag === "LINK" && (/\bstylesheet\b/).test(node.rel))) {
 							update(true);
 							return;
 						}
@@ -8373,14 +8400,14 @@
 					for (j = 0, jj = nodes.length; j < jj; ++j) {
 						node = nodes[j];
 						tag = node.tagName;
-						if (tag === "STYLE" || (tag === "LINK" && /\bstylesheet\b/.test(node.rel))) {
+						if (tag === "STYLE" || (tag === "LINK" && (/\bstylesheet\b/).test(node.rel))) {
 							update(true);
 							return;
 						}
 					}
 				}
 			}
-		}._w(539);
+		}._w(542);
 
 		// Public
 		var ready = function () {
@@ -8392,7 +8419,7 @@
 			if (document.head) {
 				new MutationObserver(on_head_mutate).observe(document.head, { childList: true });
 			}
-		}._w(540);
+		}._w(543);
 		var bg = function (node, opacity) {
 			if (Config.is_meguca) {
 				return node.classList.add("popup-menu", "glass");
@@ -8406,7 +8433,7 @@
 				node.style.backgroundColor = post_bg_opac + opacity + ")";
 				node.setAttribute("data-xl-theme-post-bg-opacity", opacity);
 			}
-		}._w(541);
+		}._w(544);
 		var apply = function (node) {
 			if (current !== "light") {
 				var nodes = $$(".xl-theme", node),
@@ -8420,7 +8447,7 @@
 					node.classList.add("xl-theme-dark");
 				}
 			}
-		}._w(542);
+		}._w(545);
 		var get_computed_style = function (node) {
 			var s;
 			try {
@@ -8432,7 +8459,7 @@
 				s = node.style || {};
 			}
 			return s;
-		}._w(543);
+		}._w(546);
 		var parse_css_color = function (color) {
 			if (color && color !== "transparent") {
 				var m;
@@ -8465,7 +8492,7 @@
 			}
 
 			return [ 0 , 0 , 0 , 0 ];
-		}._w(544);
+		}._w(547);
 
 		// Events
 		var event_listeners = {
@@ -8476,7 +8503,7 @@
 			if (listeners === undefined) return false;
 			listeners.push(callback);
 			return true;
-		}._w(545);
+		}._w(548);
 		var off = function (event_name, callback) {
 			var listeners = event_listeners[event_name],
 				i, ii;
@@ -8489,13 +8516,13 @@
 				}
 			}
 			return false;
-		}._w(546);
+		}._w(549);
 		var trigger = function (listeners, data) {
 			var i, ii;
 			for (i = 0, ii = listeners.length; i < ii; ++i) {
 				listeners[i].call(null, data);
 			}
-		}._w(547);
+		}._w(550);
 
 		// Exports
 		var Module =  {
@@ -8511,7 +8538,7 @@
 
 		return Module;
 
-	}._w(533))();
+	}._w(536))();
 	var EasyList = (function () {
 
 		var Entry = function (info, data) {
@@ -8519,7 +8546,7 @@
 			this.data = data;
 			this.node = null;
 			this.url = "#";
-		}._w(549);
+		}._w(552);
 
 		// Private
 		var settings_key = "xlinks-easylist-settings",
@@ -8565,7 +8592,7 @@
 
 		var settings_save = function () {
 			Config.storage.setItem(settings_key, JSON.stringify(settings));
-		}._w(550);
+		}._w(553);
 		var settings_load = function () {
 			// Load
 			var value = get_saved_settings(),
@@ -8585,7 +8612,7 @@
 
 			// Load filters
 			load_filters();
-		}._w(551);
+		}._w(554);
 		var create = function () {
 			popup = Popup.create("easylist", function (container) {
 				var theme = Theme.classes,
@@ -8629,13 +8656,13 @@
 				$.add(container, contents[content_current].container);
 
 				content_container = container;
-			}._w(553));
+			}._w(556));
 
 			$.on(popup, "click", on_overlay_click);
 
 			// Setup
 			update_display_mode(true);
-		}._w(552);
+		}._w(555);
 		var create_options = function (theme) {
 			var fn, n1, n2, n3, n4, n5;
 
@@ -8664,7 +8691,7 @@
 				$.on(n2, "change", on_option_change.sort_by);
 
 				return n1;
-			}._w(555);
+			}._w(558);
 			$.add(n4, fn("thread", "Appearance in thread"));
 			$.add(n4, fn("upload", "Upload date"));
 			$.add(n4, fn("rating", "Rating"));
@@ -8688,7 +8715,7 @@
 				$.on(n2, "change", change_fn);
 
 				return n1;
-			}._w(556);
+			}._w(559);
 			$.add(n4, fn(settings.group_by_filters, "Filters", on_option_change.group_by_filters));
 			$.add(n4, fn(settings.group_by_category, "Category", on_option_change.group_by_category));
 
@@ -8714,7 +8741,7 @@
 				$.on(n2, "change", on_option_change.display_mode);
 
 				return n1;
-			}._w(557);
+			}._w(560);
 			$.add(n4, fn(0, "Full"));
 			$.add(n4, fn(1, "Compact"));
 			$.add(n4, fn(2, "Minimal"));
@@ -8741,7 +8768,7 @@
 				$.on(n2, "change", on_option_change.filter_visibility);
 
 				return n1;
-			}._w(558);
+			}._w(561);
 			$.add(n4, fn(0, "Show all"));
 			$.add(n4, fn(1, "Hide bad"));
 			$.add(n4, fn(2, "Only show matches"));
@@ -8780,7 +8807,7 @@
 			$.add(n1, $.node("div", "xl-easylist-title-line"));
 
 			return n1;
-		}._w(554);
+		}._w(557);
 		var create_gallery_nodes = function (data, index, info) {
 			var category = API.get_category(data.category),
 				domain = info.domain,
@@ -8822,7 +8849,7 @@
 							par.style.height = "100%";
 						}
 					}
-				}._w(560), n7));
+				}._w(563), n7));
 			}
 			else {
 				n6.style.width = "100%";
@@ -8903,7 +8930,7 @@
 			update_filters(n1, data, true, false);
 
 			return [ n1, url ];
-		}._w(559);
+		}._w(562);
 		var create_full_tags = function (data, info) {
 			var theme = Theme.classes,
 				n1 = $.node("div", "xl-easylist-item-tag-table" + theme),
@@ -8950,7 +8977,7 @@
 			}
 
 			return n1;
-		}._w(561);
+		}._w(564);
 		var add_gallery_update_timer = null;
 		var add_gallery = function (content_index, entry, index, force_reorder) {
 			var info = entry.info,
@@ -8983,14 +9010,14 @@
 						if (add_gallery_update_timer !== null) clearTimeout(add_gallery_update_timer);
 						add_gallery_update_timer = setTimeout(function () {
 							update_ordering();
-						}._w(563), 1);
+						}._w(566), 1);
 					}
 					else {
 						set_empty(contents[content_index].visible === 0);
 					}
 				}
 			}
-		}._w(562);
+		}._w(565);
 		var set_empty = function (empty) {
 			if (empty_notification !== null) {
 				var cls = "xl-easylist-empty-notification-visible";
@@ -8998,10 +9025,10 @@
 					empty_notification.classList.toggle(cls);
 				}
 			}
-		}._w(564);
+		}._w(567);
 		var get_options_visible = function () {
 			return options_container.classList.contains("xl-easylist-options-visible");
-		}._w(565);
+		}._w(568);
 		var set_options_visible = function (visible) {
 			var n = $(".xl-easylist-control-link-options", popup),
 				cl, cls;
@@ -9015,25 +9042,25 @@
 			cl = options_container.classList;
 			cls = "xl-easylist-options-visible";
 			if (cl.contains(cls) !== visible) cl.toggle(cls);
-		}._w(566);
+		}._w(569);
 
 		var get_node_filter_group = function (node) {
 			var v = get_node_filters_bad(node);
 			return (v > 0) ? -v : get_node_filters_good(node);
-		}._w(567);
+		}._w(570);
 		var get_node_filters_good = function (node) {
 			return (parseInt(node.getAttribute("data-xl-filter-matches-title"), 10) || 0) +
 				(parseInt(node.getAttribute("data-xl-filter-matches-uploader"), 10) || 0) +
 				(parseInt(node.getAttribute("data-xl-filter-matches-tags"), 10) || 0);
-		}._w(568);
+		}._w(571);
 		var get_node_filters_bad = function (node) {
 			return (parseInt(node.getAttribute("data-xl-filter-matches-title-bad"), 10) || 0) +
 				(parseInt(node.getAttribute("data-xl-filter-matches-uploader-bad"), 10) || 0) +
 				(parseInt(node.getAttribute("data-xl-filter-matches-tags-bad"), 10) || 0);
-		}._w(569);
+		}._w(572);
 		var get_node_category_group = function (node) {
 			return API.get_category_sort_rank(node.getAttribute("data-xl-category"));
-		}._w(570);
+		}._w(573);
 		var update_display_mode = function (first) {
 			var mode = display_mode_names[settings.display_mode] || "",
 				cl = content_container.classList,
@@ -9046,7 +9073,7 @@
 			}
 
 			cl.add("xl-easylist-" + mode);
-		}._w(571);
+		}._w(574);
 		var update_ordering = function () {
 			var items = [],
 				mode = settings.sort_by,
@@ -9063,24 +9090,24 @@
 				if (settings.group_by_category) {
 					base_array = function (node) {
 						return [ get_node_category_group(node), get_node_filter_group(node) ];
-					}._w(573);
+					}._w(576);
 					ordering = [ 1, -1 ];
 				}
 				else {
 					base_array = function (node) {
 						return [ get_node_filter_group(node) ];
-					}._w(574);
+					}._w(577);
 					ordering = [ -1 ];
 				}
 			}
 			else if (settings.group_by_category) {
 				base_array = function (node) {
 					return [ get_node_category_group(node) ];
-				}._w(575);
+				}._w(578);
 				ordering = [ 1 ];
 			}
 			else {
-				base_array = function () { return []; }._w(576);
+				base_array = function () { return []; }._w(579);
 				ordering = [];
 			}
 
@@ -9113,7 +9140,7 @@
 					if (x > y) return ordering[i];
 				}
 				return 0;
-			}._w(577));
+			}._w(580));
 
 			// Re-insert
 			// Maybe eventually add labels
@@ -9147,12 +9174,12 @@
 
 			contents[content_index].visible = current_visible_count;
 			set_empty(current_visible_count === 0);
-		}._w(572);
+		}._w(575);
 		var reset_filter_state = function (node, content_node) {
 			content_node.textContent = node.getAttribute("data-xl-original") || "";
 			node.classList.remove("xl-filter-good");
 			node.classList.remove("xl-filter-bad");
-		}._w(578);
+		}._w(581);
 		var update_filters_targets = [
 			[ ".xl-easylist-item-title-link,.xl-easylist-item-title-jp", "title" ],
 			[ ".xl-easylist-item-uploader", "uploader" ],
@@ -9194,7 +9221,7 @@
 					}
 				}
 			}
-		}._w(579);
+		}._w(582);
 		var update_all_filters = function () {
 			var content_index = content_current,
 				entries = contents[content_index].entries,
@@ -9212,17 +9239,17 @@
 			if (settings.group_by_filters || settings.filter_visibility !== 0) {
 				update_ordering();
 			}
-		}._w(580);
+		}._w(583);
 		var load_filters = function () {
 			custom_filters = Filter.parse(settings.custom_filters, undefined);
-		}._w(581);
+		}._w(584);
 		var add_links = function (links) {
 			var immediate = true,
 				i, ii;
 
 			var cb = function (err, data) {
 				add_entry(immediate, err, data);
-			}._w(583);
+			}._w(586);
 
 			for (i = 0, ii = links.length; i < ii; ++i) {
 				API.get_url_info(links[i].href, cb);
@@ -9232,7 +9259,7 @@
 			if (queue.length > 0 && queue_timer === null) {
 				on_timer();
 			}
-		}._w(582);
+		}._w(585);
 		var add_entry = function (immediate, err, info) {
 			var key;
 			if (err !== null || data_map[(key = info.id)] !== undefined) return;
@@ -9249,8 +9276,8 @@
 						}
 					}
 				}
-			}._w(585));
-		}._w(584);
+			}._w(588));
+		}._w(587);
 
 		var set_content_index = function (content_index) {
 			if (content_index === content_current) return;
@@ -9270,7 +9297,7 @@
 				update_all_filters();
 				update_ordering();
 			}
-		}._w(586);
+		}._w(589);
 
 		var enable_custom_links = function (text) {
 			custom_links = [];
@@ -9286,7 +9313,7 @@
 				set_content_index(1);
 				parse_custom_urls(text);
 			}
-		}._w(587);
+		}._w(590);
 		var parse_custom_urls = function (text) {
 			var urls = Linkifier.parse_text_for_urls(text),
 				i, ii;
@@ -9294,7 +9321,7 @@
 			for (i = 0, ii = urls.length; i < ii; ++i) {
 				API.get_url_info(urls[i], $.bind(parse_custom_url_info, null, i));
 			}
-		}._w(588);
+		}._w(591);
 		var parse_custom_url_info = function (index, err, info) {
 			var key;
 			if (err !== null || custom_links_map[(key = info.id)] !== undefined) return;
@@ -9307,35 +9334,35 @@
 						add_gallery(1, entry, index, true);
 					}
 				}
-			}._w(590));
-		}._w(589);
+			}._w(593));
+		}._w(592);
 
 		var on_option_change = {
 			sort_by: function () {
 				settings.sort_by = this.value;
 				settings_save();
 				update_ordering();
-			}._w(591),
+			}._w(594),
 			group_by_category: function () {
 				settings.group_by_category = this.checked;
 				settings_save();
 				update_ordering();
-			}._w(592),
+			}._w(595),
 			group_by_filters: function () {
 				settings.group_by_filters = this.checked;
 				settings_save();
 				update_ordering();
-			}._w(593),
+			}._w(596),
 			display_mode: function () {
 				settings.display_mode = parseInt(this.value, 10) || 0;
 				settings_save();
 				update_display_mode(false);
-			}._w(594),
+			}._w(597),
 			filter_visibility: function () {
 				settings.filter_visibility = parseInt(this.value, 10) || 0;
 				settings_save();
 				update_ordering();
-			}._w(595),
+			}._w(598),
 			custom_filters: function () {
 				if (settings.custom_filters !== this.value) {
 					settings.custom_filters = this.value;
@@ -9343,7 +9370,7 @@
 					load_filters();
 					update_all_filters();
 				}
-			}._w(596),
+			}._w(599),
 			custom_filters_input: function () {
 				var node = this;
 				if (on_option_change.custom_filters_input_delay_timer !== null) {
@@ -9353,17 +9380,17 @@
 					function () {
 						on_option_change.custom_filters_input_delay_timer = null;
 						on_option_change.custom_filters.call(node);
-					}._w(598),
+					}._w(601),
 					1000
 				);
-			}._w(597),
+			}._w(600),
 			custom_filters_input_delay_timer: null,
 			custom_links: function () {
 				var t = this.value.trim();
 				if (t !== custom_links_text) {
 					enable_custom_links(t);
 				}
-			}._w(599),
+			}._w(602),
 			custom_links_input: function () {
 				var node = this;
 				if (on_option_change.custom_links_input_delay_timer !== null) {
@@ -9373,10 +9400,10 @@
 					function () {
 						on_option_change.custom_links_input_delay_timer = null;
 						on_option_change.custom_links.call(node);
-					}._w(601),
+					}._w(604),
 					1000
 				);
-			}._w(600),
+			}._w(603),
 			custom_links_input_delay_timer: null
 		};
 		var on_gallery_mouseover = $.wrap_mouseenterleave_event(function () {
@@ -9403,9 +9430,9 @@
 
 						update_filters(node, data, false, true);
 					}
-				}._w(603));
+				}._w(606));
 			}
-		}._w(602));
+		}._w(605));
 		var on_thumbnail_error = function () {
 			$.off(this, "error", on_thumbnail_error);
 
@@ -9418,10 +9445,10 @@
 			var n = $.node("div", "xl-easylist-item-image-error" + Theme.classes, UI.strings.thumbnail_failed);
 			$.before(par, par.firstChild, n);
 			$.before(par, n, $.node("div", "xl-easylist-item-image-error-aligner" + Theme.classes));
-		}._w(604);
+		}._w(607);
 		var on_link_format = function (event) {
 			add_links([ event.link ]);
-		}._w(605);
+		}._w(608);
 		var on_timer = function () {
 			queue_timer = null;
 
@@ -9436,7 +9463,7 @@
 			if (queue.length > 0) {
 				queue_timer = setTimeout(on_timer, 50);
 			}
-		}._w(606);
+		}._w(609);
 		var on_open_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				open();
@@ -9444,7 +9471,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(607);
+		}._w(610);
 		var on_close_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				close();
@@ -9452,7 +9479,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(608);
+		}._w(611);
 		var on_toggle_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				if (is_open()) {
@@ -9465,7 +9492,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(609);
+		}._w(612);
 		var on_options_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				set_options_visible(!get_options_visible());
@@ -9473,7 +9500,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(610);
+		}._w(613);
 		var on_overlay_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				close();
@@ -9481,7 +9508,7 @@
 				event.preventDefault();
 				return false;
 			}
-		}._w(611);
+		}._w(614);
 		var on_random_link_generate = function () {
 			var entries = contents[content_current].entries,
 				i;
@@ -9490,18 +9517,18 @@
 				i = Math.floor(Math.random() * entries.length);
 				this.href = entries[i].url;
 			}
-		}._w(612);
+		}._w(615);
 		var on_random_link_generate_delayed = function (event) {
 			var self = this;
 			setTimeout(function () {
 				on_random_link_generate.call(self, event);
-			}._w(614), 1);
-		}._w(613);
+			}._w(617), 1);
+		}._w(616);
 
 		// Public
 		var get_saved_settings = function () {
 			return $.json_parse_safe(Config.storage.getItem(settings_key), null);
-		}._w(615);
+		}._w(618);
 		var set_saved_settings = function (data) {
 			if (data === null) {
 				Config.storage.removeItem(settings_key);
@@ -9509,7 +9536,7 @@
 			else {
 				Config.storage.setItem(settings_key, JSON.stringify(data));
 			}
-		}._w(616);
+		}._w(619);
 		var ready = function () {
 			if (!config.easy_list.enabled) return;
 
@@ -9529,13 +9556,13 @@
 						"M 47.316173,40.278702 c -1.977441,10.244331 -5.318272,21.474541 -5.662805,29.784036 -0.242507,5.848836 2.420726,7.5586 5.348383,2.078223 5.586237,-10.45706 7.896687,-21.139251 10.839979,-32.018641 -1.376342,0.732535 -2.33581,0.805482 -3.567752,1.104816 2.20065,-1.826801 1.797963,-1.259845 4.683397,-4.356147 3.702042,-3.972588 11.505701,-7.842675 15.187296,-4.490869 4.597776,4.185917 3.4537,13.920509 -0.431829,18.735387 -1.301987,5.219157 -3.278232,10.993981 -4.691055,14.211545 1.650129,0.951997 7.1775,2.647886 8.723023,6.808838 1.818473,4.895806 0.447993,8.335081 -3.207776,12.929618 8.781279,-6.214409 9.875004,-12.24852 10.586682,-20.251062 C 85.596887,59.244915 85.615915,54.42819 83.82437,47.181873 82.032825,39.935556 77.484187,30.527275 73.806105,23.780748 70.128023,17.034221 68.465076,12.376515 60.467734,7.5782428 54.534892,4.0186364 44.006601,5.3633006 39.960199,11.716546 c -4.046402,6.353245 -2.052295,11.417199 0.339979,17.673546 -0.06795,1.969646 -1.145015,4.295256 0.105508,5.751383 1.875243,-0.914979 2.772108,-1.957655 4.421995,-2.639606 -0.01451,1.529931 0.320921,4.192236 -1.17535,5.722167 1.758316,1.116252 1.80495,1.414307 3.663842,2.054666 z"
 					);
 					$.add(svg, path);
-				}._w(618)
+				}._w(621)
 			);
 			link.classList.add("xl-header-bar-link-dim");
 			Linkifier.on("before_first_link_preprocess", function () {
 				link.classList.remove("xl-header-bar-link-dim");
-			}._w(619));
-		}._w(617);
+			}._w(622));
+		}._w(620);
 		var open = function () {
 			if (popup === null) {
 				settings_load();
@@ -9547,17 +9574,17 @@
 
 			Popup.open(popup);
 			$.scroll_focus(popup);
-		}._w(620);
+		}._w(623);
 		var close = function () {
 			Popup.close(popup);
 
 			set_options_visible(false);
 
 			UI.off("format", on_link_format);
-		}._w(621);
+		}._w(624);
 		var is_open = function () {
 			return (popup !== null && Popup.is_open(popup));
-		}._w(622);
+		}._w(625);
 
 		// Exports
 		return {
@@ -9569,7 +9596,7 @@
 			is_open: is_open
 		};
 
-	}._w(548))();
+	}._w(551))();
 	var Popup = (function () {
 
 		// Private
@@ -9580,14 +9607,14 @@
 			if ($.is_left_mouse(event)) {
 				event.stopPropagation();
 			}
-		}._w(624);
+		}._w(627);
 		var on_overlay_event = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				event.stopPropagation();
 				return false;
 			}
-		}._w(625);
+		}._w(628);
 
 		// Public
 		var create = function (class_ns, setup) {
@@ -9648,7 +9675,7 @@
 			}
 
 			return n1;
-		}._w(626);
+		}._w(629);
 		var open = function (overlay) {
 			if (active !== null && active.parentNode !== null) {
 				$.remove(active);
@@ -9656,17 +9683,17 @@
 			document_element.classList.add("xl-popup-overlaying");
 			hovering(overlay);
 			active = overlay;
-		}._w(627);
+		}._w(630);
 		var close = function (overlay) {
 			document_element.classList.remove("xl-popup-overlaying");
 			if (overlay.parentNode !== null) {
 				$.remove(overlay);
 			}
 			active = null;
-		}._w(628);
+		}._w(631);
 		var is_open = function (overlay) {
 			return (overlay.parentNode !== null);
-		}._w(629);
+		}._w(632);
 		var hovering = function (node) {
 			if (hovering_container === null) {
 				hovering_container = $.node("div", "xl-hovering-elements");
@@ -9679,7 +9706,7 @@
 				}
 			}
 			$.add(hovering_container, node);
-		}._w(630);
+		}._w(633);
 
 		// Exports
 		return {
@@ -9690,7 +9717,7 @@
 			hovering: hovering
 		};
 
-	}._w(623))();
+	}._w(626))();
 	var Changelog = (function () {
 
 		// Private
@@ -9749,7 +9776,7 @@
 				error: null,
 				log_data: versions
 			};
-		}._w(632);
+		}._w(635);
 		var display = function (container, theme) {
 			var versions, authors, changes,
 				e, n1, n2, n3, n4, n5, i, ii, j, jj, k, kk;
@@ -9789,7 +9816,7 @@
 			}
 
 			$.add(container, n1);
-		}._w(633);
+		}._w(636);
 		var acquire = function (callback) {
 			HttpRequest({
 				method: "GET",
@@ -9801,15 +9828,15 @@
 					else {
 						callback.call(null, $.xhr_error_string(xhr), null);
 					}
-				}._w(635),
+				}._w(638),
 				onerror: function () {
 					callback.call(null, "Connection error", null);
-				}._w(636),
+				}._w(639),
 				onabort: function () {
 					callback.call(null, "Connection aborted", null);
-				}._w(637)
+				}._w(640)
 			});
-		}._w(634);
+		}._w(637);
 
 		var on_changelog_get = function (err, data) {
 			if (err !== null) {
@@ -9826,17 +9853,17 @@
 					display(n, Theme.classes);
 				}
 			}
-		}._w(638);
+		}._w(641);
 		var on_close_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				close();
 			}
-		}._w(639);
+		}._w(642);
 		var on_change_save = function () {
 			config.general.changelog_on_update = this.checked;
 			Config.save();
-		}._w(640);
+		}._w(643);
 
 		// Public
 		var open = function (message) {
@@ -9859,7 +9886,7 @@
 						}
 					}
 					$.add(container, $.link(Module.url, "xl-settings-version" + cls + theme, Main.version.join(".")));
-				}._w(642)
+				}._w(645)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -9875,25 +9902,25 @@
 					$.add(container, n1 = $.link("#", "xl-settings-button" + theme));
 					$.add(n1, $.node("span", "xl-settings-button-text", "Close"));
 					$.on(n1, "click", on_close_click);
-				}._w(643)
+				}._w(646)
 			}], {
 				body: true,
 				padding: false,
 				setup: function (container) {
 					container.classList.add("xl-changelog-content");
 					display(container, theme);
-				}._w(644)
+				}._w(647)
 			}]);
 
 			$.on(popup, "click", on_close_click);
 			Popup.open(popup);
-		}._w(641);
+		}._w(644);
 		var close = function () {
 			if (popup !== null) {
 				Popup.close(popup);
 				popup = null;
 			}
-		}._w(645);
+		}._w(648);
 
 		// Exports
 		var Module = {
@@ -9904,7 +9931,7 @@
 
 		return Module;
 
-	}._w(631))();
+	}._w(634))();
 	var HeaderBar = (function () {
 
 		// Private
@@ -9962,7 +9989,7 @@
 			if (nodes.length > 0) {
 				update_svg_color_changes(nodes);
 			}
-		}._w(647);
+		}._w(650);
 
 		var update_svg_color = function (node) {
 			var color = Theme.get_computed_style(node).color,
@@ -9972,15 +9999,15 @@
 				n1.setAttribute("style", "fill:" + color + ";");
 			}
 			node.setAttribute("data-xl-color", color);
-		}._w(648);
+		}._w(651);
 		var update_svg_color_changes = function (nodes) {
 			Theme.on("theme_change", function () {
 				var i, ii;
 				for (i = 0, ii = nodes.length; i < ii; ++i) {
 					update_svg_color(nodes[i]);
 				}
-			}._w(650));
-		}._w(649);
+			}._w(653));
+		}._w(652);
 
 		var on_header_bar_detected = function (node) {
 			header_bar = node;
@@ -10005,7 +10032,7 @@
 			if (shortcut_icons.length > 0) {
 				add_svg_icons(shortcut_icons);
 			}
-		}._w(651);
+		}._w(654);
 		var on_icon_mouseover = $.wrap_mouseenterleave_event(function () {
 			var n = $("svg", this),
 				c;
@@ -10018,13 +10045,13 @@
 				}
 				n.style.fill = c;
 			}
-		}._w(652));
+		}._w(655));
 		var on_icon_mouseout = $.wrap_mouseenterleave_event(function () {
 			var n = $("svg", this);
 			if (n !== null) {
 				n.style.fill = this.getAttribute("data-xl-color");
 			}
-		}._w(653));
+		}._w(656));
 		var on_menu_item_mouseover = $.wrap_mouseenterleave_event(function () {
 			var entries = $$(".entry", this.parent),
 				i, ii;
@@ -10032,16 +10059,16 @@
 				entries[i].classList.remove("focused");
 			}
 			this.classList.add("focused");
-		}._w(654));
+		}._w(657));
 		var on_menu_item_mouseout = $.wrap_mouseenterleave_event(function () {
 			this.classList.remove("focused");
-		}._w(655));
+		}._w(658));
 		var on_menu_item_click = function (event) {
 			if ($.is_left_mouse(event)) {
 				event.preventDefault();
 				document_element.click();
 			}
-		}._w(656);
+		}._w(659);
 		var on_body_observe = function (records) {
 			var nodes, node, i, ii, j, jj;
 
@@ -10057,7 +10084,7 @@
 					}
 				}
 			}
-		}._w(657);
+		}._w(660);
 		var on_header_observe = function (records) {
 			var nodes, node, i, ii, j, jj;
 
@@ -10078,7 +10105,7 @@
 					}
 				}
 			}
-		}._w(658);
+		}._w(661);
 
 		// Public
 		var ready = function () {
@@ -10089,7 +10116,7 @@
 			else {
 				new MutationObserver(on_body_observe).observe(document.body, { childList: true, subtree: false });
 			}
-		}._w(659);
+		}._w(662);
 		var insert_shortcut_icon = function (namespace, title, url, on_click, svg_setup) {
 			var svgns = "http://www.w3.org/2000/svg",
 				n1, svg;
@@ -10111,7 +10138,7 @@
 			if (header_bar !== null) add_svg_icons([ n1 ]);
 
 			return n1;
-		}._w(660);
+		}._w(663);
 		var insert_menu_link = function (menu_node) {
 			menu_node.classList.add("entry");
 			menu_node.style.order = 112;
@@ -10121,7 +10148,7 @@
 			$.on(menu_node, "click", on_menu_item_click);
 
 			menu_nodes.push(menu_node);
-		}._w(661);
+		}._w(664);
 
 		// Exports
 		return {
@@ -10130,7 +10157,7 @@
 			insert_menu_link: insert_menu_link
 		};
 
-	}._w(646))();
+	}._w(649))();
 	var Navigation = (function () {
 
 		// Private
@@ -10166,7 +10193,7 @@
 					}
 					$.remove(link);
 				}
-			}._w(663)
+			}._w(666)
 		};
 
 		var on_observe_all = function (records) {
@@ -10208,7 +10235,7 @@
 				this.disconnect();
 				waiting_observer = null;
 			}
-		}._w(664);
+		}._w(667);
 
 		var LocationData = function (text, url, class_name, on_click) {
 			this.nodes = [];
@@ -10216,7 +10243,7 @@
 			this.url = url;
 			this.class_name = class_name;
 			this.on_click = on_click;
-		}._w(665);
+		}._w(668);
 		LocationData.prototype.add = function (selector, flags, separator) {
 			var node = $(selector);
 			if (node !== null) {
@@ -10234,10 +10261,10 @@
 					waiting_observer.observe(document.body, { childList: true, subtree: true });
 				}
 			}
-		}._w(666);
+		}._w(669);
 		LocationData.prototype.add_node = function (node, flags, separator) {
 			this.nodes.push(node, flags, separator);
-		}._w(667);
+		}._w(670);
 		LocationData.prototype.add_all = function (selector, flags, separator) {
 			var nodes = $$(selector),
 				i, ii;
@@ -10245,7 +10272,7 @@
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
 				this.nodes.push(nodes[i], flags, separator);
 			}
-		}._w(668);
+		}._w(671);
 		LocationData.prototype.insert = function () {
 			var first_mobile = true,
 				container, flags, node, par, pre, next, sep, i, ii, n1, t, t2, t_opt;
@@ -10351,7 +10378,7 @@
 			}
 
 			this.nodes = null;
-		}._w(669);
+		}._w(672);
 
 		// Public
 		var insert_link = function (mode, text, url, class_name, on_click) {
@@ -10403,14 +10430,14 @@
 			}
 
 			locations.insert();
-		}._w(670);
+		}._w(673);
 
 		// Exports
 		return {
 			insert_link: insert_link
 		};
 
-	}._w(662))();
+	}._w(665))();
 	var ExtensionAPI = (function () {
 
 		// Private
@@ -10429,11 +10456,11 @@
 				s += random_string_alphabet[Math.floor(Math.random() * alpha_len)];
 			}
 			return s;
-		}._w(672);
+		}._w(675);
 
 		var is_object = function (obj) {
 			return (obj !== null && typeof(obj) === "object");
-		}._w(673);
+		}._w(676);
 
 		var get_shared_node = function (id) {
 			var par, n;
@@ -10451,14 +10478,14 @@
 			if (par.firstChild === null) $.remove(par);
 
 			return n;
-		}._w(674);
+		}._w(677);
 		var get_shared_node_by_id = function (parent, id) {
 			try {
 				return $("[data-xl-sharing-id='" + id + "']", parent);
 			}
 			catch (e) {}
 			return null;
-		}._w(675);
+		}._w(678);
 
 		var disabled_extensions_key = "xlinks-extensions-disabled";
 		var disabled_extensions;
@@ -10481,7 +10508,7 @@
 				Config.storage.removeItem(disabled_extensions_key);
 				disabled_extensions = null;
 			}
-		}._w(676);
+		}._w(679);
 		var set_extensions_enabled = function (enabled_array) {
 			if (enabled_array === null) return;
 
@@ -10489,7 +10516,7 @@
 				registered[i][0] = enabled_array[i];
 			}
 			save_extensions_enabled_states();
-		}._w(677);
+		}._w(680);
 		var extension_is_enabled = function (name, author, description) {
 			if (disabled_extensions === undefined) {
 				try {
@@ -10508,7 +10535,7 @@
 			}
 
 			return true;
-		}._w(678);
+		}._w(681);
 
 		var registered = [];
 
@@ -10537,7 +10564,7 @@
 				this.post = this.post_window;
 				this.on_message = function (event) {
 					self.on_window_message(event);
-				}._w(680);
+				}._w(683);
 				window.addEventListener("message", this.on_message, false);
 			}
 			else {
@@ -10546,11 +10573,11 @@
 				this.post = this.post_channel;
 				this.on_message = function (event) {
 					self.on_port_message(event);
-				}._w(681);
+				}._w(684);
 				this.port.addEventListener("message", this.on_message, false);
 				this.port.start();
 			}
-		}._w(679);
+		}._w(682);
 
 		CommunicationChannel.create_channel = function () {
 			try {
@@ -10558,7 +10585,7 @@
 			}
 			catch (e) {}
 			return null;
-		}._w(682);
+		}._w(685);
 		CommunicationChannel.prototype.post_window = function (message, transfer) {
 			var msg = {
 				ext: this.is_extension,
@@ -10576,12 +10603,12 @@
 				}
 				catch (e2) {}
 			}
-		}._w(683);
+		}._w(686);
 		CommunicationChannel.prototype.post_channel = function (message, transfer) {
 			this.port.postMessage(message, transfer);
-		}._w(684);
+		}._w(687);
 		CommunicationChannel.prototype.post_null = function () {
-		}._w(685);
+		}._w(688);
 		CommunicationChannel.prototype.on_window_message = function (event) {
 			var data = event.data;
 			if (
@@ -10593,18 +10620,18 @@
 			) {
 				this.callback(event, data, this);
 			}
-		}._w(686);
+		}._w(689);
 		CommunicationChannel.prototype.on_port_message = function (event) {
 			var data = event.data;
 			if (is_object(data)) {
 				this.callback(event, data, this);
 			}
-		}._w(687);
+		}._w(690);
 		CommunicationChannel.prototype.get_port_transfer = function () {
 			var p = this.port_other;
 			this.port_other = null;
 			return (p === null ? [] : [ p ]);
-		}._w(688);
+		}._w(691);
 		CommunicationChannel.prototype.close = function () {
 			if (this.on_message !== null) {
 				if (this.port === null) {
@@ -10618,7 +10645,7 @@
 				this.on_message = null;
 				this.post = this.post_null;
 			}
-		}._w(689);
+		}._w(692);
 
 
 		var api = null;
@@ -10638,9 +10665,9 @@
 				null,
 				function (event, data, channel) {
 					self.on_message(event, data, channel, ExtensionAPI.handlers_init);
-				}._w(691)
+				}._w(694)
 			);
-		}._w(690);
+		}._w(693);
 		ExtensionAPI.prototype.on_message = function (event, data, channel, handlers) {
 			var action = data.xlinks_action,
 				action_is_null = (action === null),
@@ -10682,7 +10709,7 @@
 					);
 				}
 			}
-		}._w(692);
+		}._w(695);
 		ExtensionAPI.prototype.send = function (channel, action, reply_to, data, timeout_delay, on_reply, transfer) {
 			var self = this,
 				id = null,
@@ -10702,7 +10729,7 @@
 					}
 
 					on_reply.apply(this, arguments);
-				}._w(694);
+				}._w(697);
 
 				this.reply_callbacks[id] = cb;
 				cb = null;
@@ -10712,7 +10739,7 @@
 						timeout = null;
 						delete self.reply_callbacks[id];
 						on_reply.call(self, "Response timeout");
-					}._w(695), timeout_delay);
+					}._w(698), timeout_delay);
 				}
 			}
 
@@ -10722,7 +10749,7 @@
 				id: id,
 				reply: reply_to
 			}, transfer);
-		}._w(693);
+		}._w(696);
 		ExtensionAPI.prototype.request_api_fn_callback = function (callback) {
 			return function (err, data) {
 				var args;
@@ -10736,8 +10763,8 @@
 					args = JSON.parse(JSON.stringify(args));
 					callback.apply(null, args);
 				}
-			}._w(697);
-		}._w(696);
+			}._w(700);
+		}._w(699);
 		ExtensionAPI.prototype.register_settings = function (reg_info) {
 			var response = {},
 				name, default_value, title, description, descriptor,
@@ -10772,7 +10799,7 @@
 			}
 
 			return response;
-		}._w(698);
+		}._w(701);
 		ExtensionAPI.prototype.register_settings_descriptor_info = function (input) {
 			if (!is_object(input)) return null;
 
@@ -10801,7 +10828,7 @@
 			}
 
 			return info;
-		}._w(699);
+		}._w(702);
 		ExtensionAPI.prototype.register_request_api = function (reg_info, channel) {
 			if (!is_object(reg_info)) return "Invalid";
 
@@ -10821,7 +10848,7 @@
 						}
 					}
 				}
-			}._w(701));
+			}._w(704));
 
 			// Error
 			if (typeof(req) === "string") return req;
@@ -10832,7 +10859,7 @@
 
 			// Done
 			return req_function_ids;
-		}._w(700);
+		}._w(703);
 		ExtensionAPI.prototype.register_request_api_from_data = function (data, functions_setup) {
 			var req_group = "other",
 				req_namespace = "other",
@@ -10895,7 +10922,7 @@
 
 			// Done
 			return req;
-		}._w(702);
+		}._w(705);
 		ExtensionAPI.prototype.register_linkifier = function (reg_info) {
 			if (!is_object(reg_info)) return "Invalid";
 
@@ -10927,7 +10954,7 @@
 			// Register
 			Linkifier.linkify_register(regex, prefix_group, prefix, null, null);
 			return null;
-		}._w(703);
+		}._w(706);
 		ExtensionAPI.prototype.register_command = function (reg_info, channel) {
 			if (!is_object(reg_info) || reg_info.url_info !== true || reg_info.to_data !== true) {
 				return "Invalid";
@@ -10959,7 +10986,7 @@
 			}
 
 			return id_data;
-		}._w(704);
+		}._w(707);
 		ExtensionAPI.prototype.register_command_fn = function (event, send_data, channel) {
 			var self = this;
 
@@ -10982,10 +11009,10 @@
 						else {
 							cb(null, data.data);
 						}
-					}._w(707)
+					}._w(710)
 				);
-			}._w(706);
-		}._w(705);
+			}._w(709);
+		}._w(708);
 		ExtensionAPI.prototype.register_details_actions_fn = function (event, send_data, channel, validator) {
 			var self = this;
 
@@ -11006,13 +11033,13 @@
 						else {
 							validator(data.data, cb);
 						}
-					}._w(710)
+					}._w(713)
 				);
-			}._w(709);
-		}._w(708);
+			}._w(712);
+		}._w(711);
 		ExtensionAPI.prototype.register_create_url = function (info) {
 			return internal_api_fns.register_create_url(info);
-		}._w(711);
+		}._w(714);
 
 		ExtensionAPI.prototype.create_extension_channel = function (api_name, api_key) {
 			var self = this;
@@ -11023,9 +11050,9 @@
 				CommunicationChannel.create_channel(),
 				function (event, data, channel) {
 					self.on_message(event, data, channel, ExtensionAPI.handlers);
-				}._w(713)
+				}._w(716)
 			);
-		}._w(712);
+		}._w(715);
 
 		ExtensionAPI.prototype.finalize_init = function (data, channel, reply, reply_key) {
 			var main = (internalization_allowed ? data.main : null),
@@ -11070,7 +11097,7 @@
 							remove_waiting_registrations(registrations);
 							Debug.log("Internalized extension error (" + ext_name + "):", e);
 						}
-					}._w(715), 1);
+					}._w(718), 1);
 
 					// Done
 					return;
@@ -11090,7 +11117,7 @@
 				undefined,
 				reply_channel.get_port_transfer()
 			);
-		}._w(714);
+		}._w(717);
 		ExtensionAPI.prototype.create_main_function = function (source) {
 			try {
 				var fn = new Function("var xlinks_api," + ExtensionAPI.internalization_hidden_vars.join(",") + ";return (" + source + ");"); // jshint ignore:line
@@ -11098,18 +11125,18 @@
 			}
 			catch (e) {}
 			return null;
-		}._w(716);
+		}._w(719);
 
 		ExtensionAPI.internalization_hidden_vars = [
 			"unsafeWindow",
 			"cloneInto",
 			"exportFunction",
 			"createObjectIn",
+			"GM",
 			"GM_xmlhttpRequest",
 			"GM_setValue",
 			"GM_getValue",
 			"GM_deleteValue",
-			"GM_listValues",
 			"GM_info"
 		];
 
@@ -11126,7 +11153,7 @@
 					cb(null, data);
 				}
 			}
-		}._w(717);
+		}._w(720);
 		ExtensionAPI.actions_validator = function (data, cb) {
 			if (!Array.isArray(data)) {
 				cb("Invalid extension response", null);
@@ -11144,7 +11171,7 @@
 
 				cb(null, response);
 			}
-		}._w(718);
+		}._w(721);
 
 		ExtensionAPI.request_api_functions_required = [
 			"setup_xhr",
@@ -11165,8 +11192,8 @@
 						-1,
 						self.request_api_fn_callback(callback)
 					);
-				}._w(720);
-			}._w(719),
+				}._w(723);
+			}._w(722),
 			set_data: function (self, fn_id, channel) {
 				return function (data, info, callback) {
 					var state = {
@@ -11191,8 +11218,8 @@
 						-1,
 						self.request_api_fn_callback(callback)
 					);
-				}._w(722);
-			}._w(721),
+				}._w(725);
+			}._w(724),
 			setup_xhr: function (self, fn_id, channel) {
 				return function (callback) {
 					var state = {
@@ -11217,8 +11244,8 @@
 						-1,
 						self.request_api_fn_callback(callback)
 					);
-				}._w(724);
-			}._w(723),
+				}._w(727);
+			}._w(726),
 			parse_response: function (self, fn_id, channel) {
 				return function (xhr, callback) {
 					var state = {
@@ -11247,8 +11274,8 @@
 						-1,
 						self.request_api_fn_callback(callback)
 					);
-				}._w(726);
-			}._w(725)
+				}._w(729);
+			}._w(728)
 		};
 
 		var remove_response_xml = function (xhr) {
@@ -11260,7 +11287,7 @@
 				xhr.responseXML = null;
 			}
 			return xhr;
-		}._w(727);
+		}._w(730);
 
 		var remove_waiting_registrations = function (count) {
 			// Decrease register count
@@ -11277,7 +11304,7 @@
 			}
 
 			return true;
-		}._w(728);
+		}._w(731);
 
 		ExtensionAPI.handlers_init = {
 			init: function (data, channel, reply) {
@@ -11337,7 +11364,7 @@
 					// Finalize init
 					this.finalize_init(data, channel, reply, reply_key);
 				}
-			}._w(729),
+			}._w(732),
 		};
 		ExtensionAPI.handlers = {
 			register: function (data, channel, reply) {
@@ -11394,7 +11421,7 @@
 
 				// Done
 				Main.start_processing(!complete);
-			}._w(730),
+			}._w(733),
 			request: function (data, channel, reply) {
 				var self = this,
 					namespace, type, unique_id, info;
@@ -11429,8 +11456,8 @@
 							data: data
 						}
 					);
-				}._w(732));
-			}._w(731),
+				}._w(735));
+			}._w(734),
 			get_image: function (data, channel, reply) {
 				var self = this,
 					url, flags;
@@ -11456,8 +11483,8 @@
 						reply,
 						{ err: err, url: url }
 					);
-				}._w(734));
-			}._w(733),
+				}._w(737));
+			}._w(736),
 		};
 
 		var api_request_init_fn = function (req) {
@@ -11465,7 +11492,7 @@
 				id: random_string(32),
 				sent: false
 			};
-		}._w(735);
+		}._w(738);
 		var create_api_request_complete_fn = function (channel) {
 			return function (req) {
 				api.send(
@@ -11474,8 +11501,8 @@
 					null,
 					{ id: req.data.id }
 				);
-			}._w(737);
-		}._w(736);
+			}._w(740);
+		}._w(739);
 
 
 		var internal_api_fns = {
@@ -11495,7 +11522,7 @@
 						}
 					}
 				}
-			}._w(738),
+			}._w(741),
 			register_linkifier: function (data) {
 				var re_data = data.regex,
 					prefix_group = data.prefix_group,
@@ -11541,7 +11568,7 @@
 
 				// Done
 				return null;
-			}._w(739),
+			}._w(742),
 			register_command: function (data) {
 				var url_info = data.url_info,
 					to_data = data.to_data,
@@ -11561,7 +11588,7 @@
 				}
 
 				return null;
-			}._w(740),
+			}._w(743),
 			register_request_api: function (data) {
 				var req = api.register_request_api_from_data(data, function (fns, req_functions) {
 					var k;
@@ -11570,9 +11597,9 @@
 							req_functions[k] = fns[k];
 						}
 					}
-				}._w(742));
+				}._w(745));
 				return (typeof(req) === "string") ? req : null;
-			}._w(741),
+			}._w(744),
 			register_create_url: function (info) {
 				var keys = Object.keys(info),
 					i, ii, k, o;
@@ -11584,7 +11611,7 @@
 					}
 				}
 				return null;
-			}._w(743)
+			}._w(746)
 		};
 		var internal_api_create = function (global_config) {
 
@@ -11597,7 +11624,7 @@
 					expires: Date.now() + ttl,
 					data: data
 				}));
-			}._w(745);
+			}._w(748);
 			var cache_get = function (key) {
 				var json = $.json_parse_safe(cache_storage.getItem(cache_prefix + "ext-" + key), null);
 
@@ -11612,7 +11639,7 @@
 
 				cache_storage.removeItem(key);
 				return null;
-			}._w(746);
+			}._w(749);
 
 			var init = function (info, callback) {
 				// Setup vars
@@ -11628,7 +11655,7 @@
 				// Done
 				void(info); // to make jshint ignore the unused var
 				callback(null);
-			}._w(747);
+			}._w(750);
 
 			var register = function (data, callback) {
 				var complete = remove_waiting_registrations(1),
@@ -11672,7 +11699,7 @@
 				// Done
 				if (typeof(callback) === "function") callback(null);
 				Main.start_processing(!complete);
-			}._w(748);
+			}._w(751);
 
 			// This should match api.js
 			return {
@@ -11697,13 +11724,13 @@
 				cache_get: cache_get
 			};
 
-		}._w(744);
+		}._w(747);
 
 
 		// Public
 		var init = function () {
 			if (api === null) api = new ExtensionAPI();
-		}._w(749);
+		}._w(752);
 
 		var request = function (namespace, type, unique_id, info, callback) {
 			var req_data;
@@ -11717,15 +11744,15 @@
 			}
 
 			return req_data.add(unique_id, info, false, callback);
-		}._w(750);
+		}._w(753);
 
 		var should_defer_processing = function () {
 			return document_element.hasAttribute("data-xlinks-extensions-waiting");
-		}._w(751);
+		}._w(754);
 
 		var get_registered_extensions = function () {
 			return registered;
-		}._w(752);
+		}._w(755);
 
 
 		// Exports
@@ -11737,7 +11764,7 @@
 			set_extensions_enabled: set_extensions_enabled
 		};
 
-	}._w(671))();
+	}._w(674))();
 	var Main = (function () {
 
 		// Private
@@ -11752,7 +11779,7 @@
 			all_posts_reloaded = true;
 
 			Linkifier.relinkify_posts(Post.get_all_posts(document));
-		}._w(754);
+		}._w(757);
 
 		var on_ready = function () {
 			ready = true;
@@ -11777,11 +11804,11 @@
 			}
 
 			if (config.general.compatibility_check) {
-				setTimeout(function () { run_compatibility_check(); }._w(756), 1000);
+				setTimeout(function () { run_compatibility_check(); }._w(759), 1000);
 			}
 
 			Debug.timer_log("init.ready.full duration", "init");
-		}._w(755);
+		}._w(758);
 		var on_body_observe = function (records) {
 			var post_list = [],
 				reload_all = false,
@@ -11863,7 +11890,7 @@
 			if (reload_all) {
 				reload_all_posts();
 			}
-		}._w(757);
+		}._w(760);
 		var check_removed_nodes = function (nodes) {
 			var node, ns, i, ii, j, jj;
 			for (i = 0, ii = nodes.length; i < ii; ++i) {
@@ -11880,13 +11907,13 @@
 					}
 				}
 			}
-		}._w(758);
+		}._w(761);
 		var is_post_group_container = function (node) {
 			return node.id === "qp" ||
 				node.id === "thread-container" ||
 				node.classList.contains("thread") ||
 				node.classList.contains("inline");
-		}._w(759);
+		}._w(762);
 
 		var run_compatibility_check = function () {
 			var n = $(".exlinksOptionsLink");
@@ -11899,7 +11926,7 @@
 					}
 				]);
 			}
-		}._w(760);
+		}._w(763);
 
 		var show_compatibility_error = function (errors) {
 			var theme = Theme.classes,
@@ -11913,18 +11940,18 @@
 						popup = null;
 					}
 				}
-			}._w(762);
+			}._w(765);
 			var on_change_save = function () {
 				config.general.compatibility_check = this.checked;
 				Config.save();
-			}._w(763);
+			}._w(766);
 
 
 			popup = Popup.create("settings", [[{
 				small: true,
 				setup: function (container) {
 					$.add(container, $.node("span", "xl-settings-title" + theme, "Compatibility Warning"));
-				}._w(764)
+				}._w(767)
 			}, {
 				align: "right",
 				setup: function (container) {
@@ -11940,7 +11967,7 @@
 					$.add(container, n1 = $.link("#", "xl-settings-button" + theme));
 					$.add(n1, $.node("span", "xl-settings-button-text", "Close"));
 					$.on(n1, "click", on_close_click);
-				}._w(765)
+				}._w(768)
 			}], {
 				body: true,
 				padding: false,
@@ -11966,12 +11993,12 @@
 							$.add(n2, $.tnode(lines[j]));
 						}
 					}
-				}._w(766)
+				}._w(769)
 			}]);
 
 			$.on(popup, "click", on_close_click);
 			Popup.open(popup);
-		}._w(761);
+		}._w(764);
 
 		// Public
 		var init = function () {
@@ -11989,7 +12016,7 @@
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
 			$.ready(on_ready);
-		}._w(767);
+		}._w(770);
 		var version_compare = function (v1, v2) {
 			// Returns: -1 if v1<v2, 0 if v1==v2, 1 if v1>v2
 			var ii = Math.min(v1.length, v2.length),
@@ -12022,7 +12049,7 @@
 			}
 
 			return 0;
-		}._w(768);
+		}._w(771);
 		var insert_custom_fonts = function () {
 			if (fonts_inserted) return;
 			fonts_inserted = true;
@@ -12034,7 +12061,7 @@
 			font.type = "text/css";
 			font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
 			$.add(document.head, font);
-		}._w(769);
+		}._w(772);
 		var start_processing = function (defer) {
 			if (processing_started || !ready) return;
 
@@ -12049,7 +12076,7 @@
 				processing_start_timer = setTimeout(function () {
 					processing_start_timer = null;
 					start_processing(false);
-				}._w(771), 10000);
+				}._w(774), 10000);
 			}
 			else {
 				// Start processing
@@ -12062,14 +12089,14 @@
 					updater.observe(document.body, { childList: true, subtree: true });
 				}
 			}
-		}._w(770);
+		}._w(773);
 
 		// Exports
 		var Module = {
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,8,20,-0xDB],
+			version: [1,2,8,21,-0xDB],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
@@ -12079,10 +12106,10 @@
 
 		return Module;
 
-	}._w(753))();
+	}._w(756))();
 
 	Main.init();
 	Debug.timer_log("init.full duration", timing.start);
 
-})(window);
+}).call(this, window);
 

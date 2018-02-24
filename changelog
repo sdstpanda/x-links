@@ -1,5 +1,10 @@
 ﻿master
 
+1.2.8.21
+- dnsev-h
+  + Added support for fireden.net and archived.moe archives
+  + Some Greasemonkey 4 compatibility changes (still not supported)
+
 1.2.8.20
 - dnsev-h
   + Workaround a firefox CSS layering bug causing page thumbnails to not show up

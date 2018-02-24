@@ -2,12 +2,14 @@
 // @name        X-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.8.20
+// @version     1.2.8.21
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
 // @include     http://8ch.net/*
 // @include     https://8ch.net/*
+// @include     https://archived.moe/*
+// @include     https://boards.fireden.net/*
 // @include     http://desuarchive.org/*
 // @include     https://desuarchive.org/*
 // @include     http://fgts.jp/*
@@ -33,6 +35,9 @@
 // @grant       GM_setValue
 // @grant       GM_getValue
 // @grant       GM_deleteValue
-// @grant       GM_listValues
+// @grant       GM.xmlHttpRequest
+// @grant       GM.setValue
+// @grant       GM.getValue
+// @grant       GM.deleteValue
 // @run-at      document-start
 // ==/UserScript==
