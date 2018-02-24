@@ -44,7 +44,10 @@
 		"GM_setValue",
 		"GM_getValue",
 		"GM_deleteValue",
-		"GM_listValues"
+		"GM.xmlHttpRequest",
+		"GM.setValue",
+		"GM.getValue",
+		"GM.deleteValue"
 	],
 	"settings_prefix": "xlinks-"
 }
