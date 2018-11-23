@@ -1,6 +1,6 @@
 {
 	"name": "X-links",
-	"version": "@:../package.json#version",
+	"version": "1.2.8.22",
 	"author": "dnsev-h",
 	"description": "Making your browsing experience on 4chan and friends more pleasurable",
 	"namespace": "dnsev-h",
@@ -19,6 +19,8 @@
 	"targets": [
 		"http://boards.4chan.org/*",
 		"https://boards.4chan.org/*",
+		"http://boards.4channel.org/*",
+		"https://boards.4channel.org/*",
 		"http://8ch.net/*",
 		"https://8ch.net/*",
 		"https://archived.moe/*",
