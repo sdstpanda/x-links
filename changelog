@@ -1,5 +1,9 @@
 ﻿master
 
+1.2.8.22
+- dnsev-h
+  + Added support for 4channel.org
+
 1.2.8.21
 - dnsev-h
   + Added support for fireden.net and archived.moe archives

@@ -1,5 +1,9 @@
 ﻿master
 
+1.0.0.9
+- dnsev-h
+  + Added support for 4channel.org
+
 1.0.0.8
 - dnsev-h
   + Update URLs to HTTPS

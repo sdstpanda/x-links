@@ -2,10 +2,12 @@
 // @name        X-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.8.21
+// @version     1.2.8.22
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
+// @include     http://boards.4channel.org/*
+// @include     https://boards.4channel.org/*
 // @include     http://8ch.net/*
 // @include     https://8ch.net/*
 // @include     https://archived.moe/*

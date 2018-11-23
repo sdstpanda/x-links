@@ -2,19 +2,24 @@
 // @name        X-links Extension - Multimedia
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.0.7
+// @version     1.0.0.8
 // @description Linkify and format various multimedia links
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
+// @include     http://boards.4channel.org/*
+// @include     https://boards.4channel.org/*
 // @include     http://8ch.net/*
 // @include     https://8ch.net/*
-// @include     http://desustorage.org/*
-// @include     https://desustorage.org/*
+// @include     https://archived.moe/*
+// @include     https://boards.fireden.net/*
+// @include     http://desuarchive.org/*
+// @include     https://desuarchive.org/*
 // @include     http://fgts.jp/*
 // @include     https://fgts.jp/*
 // @include     http://boards.38chan.net/*
 // @include     http://forums.e-hentai.org/*
 // @include     https://forums.e-hentai.org/*
+// @include     https://meguca.org/*
 // @homepage    https://dnsev-h.github.io/x-links/
 // @supportURL  https://github.com/dnsev-h/x-links/issues
 // @updateURL   https://raw.githubusercontent.com/dnsev-h/x-links/stable/builds/x-links-ext-multimedia.meta.js

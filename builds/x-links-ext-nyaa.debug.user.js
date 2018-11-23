@@ -2,12 +2,16 @@
 // @name        X-links Extension - Nyaa Torrents (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.0.0.8.-0xDB
+// @version     1.0.0.9.-0xDB
 // @description Linkify and format nyaa.se links
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
+// @include     http://boards.4channel.org/*
+// @include     https://boards.4channel.org/*
 // @include     http://8ch.net/*
 // @include     https://8ch.net/*
+// @include     https://archived.moe/*
+// @include     https://boards.fireden.net/*
 // @include     http://desuarchive.org/*
 // @include     https://desuarchive.org/*
 // @include     http://fgts.jp/*
@@ -15,6 +19,7 @@
 // @include     http://boards.38chan.net/*
 // @include     http://forums.e-hentai.org/*
 // @include     https://forums.e-hentai.org/*
+// @include     https://meguca.org/*
 // @homepage    https://dnsev-h.github.io/x-links/
 // @supportURL  https://github.com/dnsev-h/x-links/issues
 // @icon        data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAA4klEQVR4Ae2ZoQ7CMBRF+VIMBjGDwSAwmImZGcQUYoYPq32fAPK8LCSleZCmzb3JcUtzD+ndBDslHuVVQr0zJdCAQHoaQEggTQYj9C8ggRVCAqPBDfoUkMBq8HAs4J8vLZ2uEH/VSqC6QEZmMbg7ZgiWzu2wJQEJZGRmgwn+cNf9jxXcRn0BCZA/33VKb848OfbQioAEikqni+MMpRugdGADFQQkEL7rlN7c3QG+2EZgrPUEJPD7V+RgcHQcoGAXDQlIoLx0/kxKhwbahoAEPn5ZYwKU7ldAAvqLSQLNRlEU5Q1O5fOjZV4u4AAAAABJRU5ErkJggg==
@@ -1987,7 +1992,7 @@
 		name: "Nyaa Torrents",
 		author: "dnsev-h",
 		description: "Linkify and format nyaa.se links",
-		version: [1,0,0,8,-0xDB],
+		version: [1,0,0,9,-0xDB],
 		registrations: 1,
 		main: main_fn
 	}, function (err) {
