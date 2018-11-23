@@ -2,7 +2,7 @@
 // @name        X-links (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.8.22.-0xDB
+// @version     1.2.8.23.-0xDB
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -5826,7 +5826,7 @@
 		// Private
 		var re_url = /(https?:\/*)?(?:(?:forums|lofi|gu|g|u)?\.?e[x\-]hentai\.org|nhentai\.net|hitomi\.la)(?:\/[^<>()\s\'\"]*)?/ig,
 			re_url_class_ignore = /(?:\binlined?\b|\bxl-)/,
-			re_4chan_deferrer = /^(?:https?:)?\/\/sys\.4chan\.org\/derefer\?url=([\w\W]*)$/i;
+			re_4chan_deferrer = /^(?:https?:)?\/\/sys\.4chan(?:nel)?\.org\/derefer\?url=([\w\W]*)$/i;
 
 		// Linkification
 		var deep_dom_wrap = (function () {
@@ -7403,7 +7403,7 @@
 		var ready = function () {
 			var domain = $.get_domain(window.location.href);
 
-			if (domain === "4chan.org") {
+			if (domain === "4chan.org" || domain === "4channel.org") {
 				Module.mode = "4chan";
 				Module.is_4chan = true;
 				Module.is_4chan_x3 = (document_element.className.length > 0) || ($("head>style#layout", document_element) !== null); // appchan-x doesn't insert the fourchan-x class early enough
@@ -12098,7 +12098,7 @@
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,8,22,-0xDB],
+			version: [1,2,8,23,-0xDB],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,

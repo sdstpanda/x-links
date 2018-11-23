@@ -1,5 +1,9 @@
 ﻿master
 
+1.2.8.23
+- dnsev-h
+  + Added support for 4channel.org (for real this time)
+
 1.2.8.22
 - dnsev-h
   + Added support for 4channel.org
