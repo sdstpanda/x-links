@@ -2,7 +2,7 @@
 // @name        X-links (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.8.23.-0xDB
+// @version     1.2.8.24.-0xDB
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -12017,7 +12017,11 @@
 			ExtensionAPI.init();
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
-			$.ready(on_ready);
+
+			// Timeout helps give time for an extension to signal it wants to be loaded. (Violentmonkey)
+			setTimeout(function () {
+				$.ready(on_ready);
+			}._w(771), 1);
 		}._w(770);
 		var version_compare = function (v1, v2) {
 			// Returns: -1 if v1<v2, 0 if v1==v2, 1 if v1>v2
@@ -12051,7 +12055,7 @@
 			}
 
 			return 0;
-		}._w(771);
+		}._w(772);
 		var insert_custom_fonts = function () {
 			if (fonts_inserted) return;
 			fonts_inserted = true;
@@ -12063,7 +12067,7 @@
 			font.type = "text/css";
 			font.href = "//fonts.googleapis.com/css?family=Source+Sans+Pro:900";
 			$.add(document.head, font);
-		}._w(772);
+		}._w(773);
 		var start_processing = function (defer) {
 			if (processing_started || !ready) return;
 
@@ -12078,7 +12082,7 @@
 				processing_start_timer = setTimeout(function () {
 					processing_start_timer = null;
 					start_processing(false);
-				}._w(774), 10000);
+				}._w(775), 10000);
 			}
 			else {
 				// Start processing
@@ -12091,14 +12095,14 @@
 					updater.observe(document.body, { childList: true, subtree: true });
 				}
 			}
-		}._w(773);
+		}._w(774);
 
 		// Exports
 		var Module = {
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,8,23,-0xDB],
+			version: [1,2,8,24,-0xDB],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
