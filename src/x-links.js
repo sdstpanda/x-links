@@ -11798,7 +11798,11 @@
 			ExtensionAPI.init();
 			Debug.log(t[0], t[1]);
 			Debug.timer_log("init duration", timing.start);
-			$.ready(on_ready);
+
+			// Timeout helps give time for an extension to signal it wants to be loaded. (Violentmonkey)
+			setTimeout(function () {
+				$.ready(on_ready);
+			}, 1);
 		};
 		var version_compare = function (v1, v2) {
 			// Returns: -1 if v1<v2, 0 if v1==v2, 1 if v1>v2
