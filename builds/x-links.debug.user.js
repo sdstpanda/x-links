@@ -2,7 +2,7 @@
 // @name        X-links (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.8.24.-0xDB
+// @version     1.2.8.25.-0xDB
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -341,8 +341,8 @@
 				"e*hentai.org", "Enable link processing for E-Hentai and ExHentai",
 				null
 			],
-			[ "ehentai_ext", true,
-				"e*hentai.org extended", "Fetch complete gallery info for E*Hentai, including tag namespaces",
+			[ "ehentai_ext", false,
+				"e*hentai.org extended", "Fetch extended gallery info for E*Hentai, including favorited and visible status",
 				"Extended Info"
 			],
 			[ "nhentai", true,
@@ -3552,7 +3552,8 @@
 			}
 
 			var data = create_empty_gallery_info("ehentai"),
-				t;
+				re_tag_ns = /^([^:]*):([\w\W]*)$/,
+				i, ii, m, tag, ns, tags, tags_ns;
 
 			data.gid = parseInt(info.gid, 10) || 0;
 			data.token = ehentai_simple_string(info.token, null);
@@ -3568,8 +3569,29 @@
 			data.rating = parseFloat(info.rating) || 0.0;
 			data.torrent_count = parseInt(info.torrentcount, 10) || 0;
 			data.visible = !info.expunged;
-			t = info.tags;
-			data.tags = Array.isArray(t) ? t : [];
+
+			tags = [];
+			tags_ns = {};
+			if (Array.isArray(info.tags)) {
+				for (i = 0, ii = info.tags.length; i < ii; ++i) {
+					ns = "misc";
+					tag = info.tags[i];
+
+					if ((m = re_tag_ns.exec(tag)) !== null) {
+						ns = m[1];
+						tag = m[2];
+					}
+
+					if (!Object.prototype.hasOwnProperty.call(tags_ns, ns)) {
+						tags_ns[ns] = [];
+					}
+
+					tags.push(tag);
+					tags_ns[ns].push(tag);
+				}
+			}
+			data.tags = tags;
+			data.tags_ns = tags_ns;
 
 			return data;
 		}._w(266);
@@ -4494,7 +4516,8 @@
 				headers: { "Content-Type": "application/json" },
 				data: JSON.stringify({
 					method: "gdata",
-					gidlist: gidlist
+					gidlist: gidlist,
+					namespace: 1
 				})
 			});
 		}._w(312);
@@ -12102,7 +12125,7 @@
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,8,24,-0xDB],
+			version: [1,2,8,25,-0xDB],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,

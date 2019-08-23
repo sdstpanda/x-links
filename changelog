@@ -1,5 +1,9 @@
 ﻿master
 
+1.2.8.25
+- dnsev-h
+  + Use namespaced tags from EHentai API
+
 1.2.8.24
 - dnsev-h
   + Workaround for an issue related to script load times on Violentmonkey
