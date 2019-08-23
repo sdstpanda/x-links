@@ -2,7 +2,7 @@
 // @name        X-links (debug)
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.8.25.-0xDB
+// @version     1.2.8.26.-0xDB
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -2025,7 +2025,7 @@
 			details_nodes_creating[info.id] = true;
 
 			// Fonts
-			Main.insert_custom_fonts();
+			//Main.insert_custom_fonts();
 
 			// Custom
 			if (data.subtype !== "gallery") {
@@ -9015,7 +9015,7 @@
 				n = n[0];
 				n.setAttribute("data-xl-easylist-item-parity", (contents[content_index].visible % 2) === 0 ? "odd" : "even");
 
-				Main.insert_custom_fonts();
+				//Main.insert_custom_fonts();
 
 				$.add(contents[content_index].container, n);
 
@@ -12125,7 +12125,7 @@
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,8,25,-0xDB],
+			version: [1,2,8,26,-0xDB],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,

@@ -1,5 +1,9 @@
 ﻿master
 
+1.2.8.26
+- dnsev-h
+  + Disable using external fonts
+
 1.2.8.25
 - dnsev-h
   + Use namespaced tags from EHentai API
