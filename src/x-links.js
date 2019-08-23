@@ -1806,7 +1806,7 @@
 			details_nodes_creating[info.id] = true;
 
 			// Fonts
-			Main.insert_custom_fonts();
+			//Main.insert_custom_fonts();
 
 			// Custom
 			if (data.subtype !== "gallery") {
@@ -8796,7 +8796,7 @@
 				n = n[0];
 				n.setAttribute("data-xl-easylist-item-parity", (contents[content_index].visible % 2) === 0 ? "odd" : "even");
 
-				Main.insert_custom_fonts();
+				//Main.insert_custom_fonts();
 
 				$.add(contents[content_index].container, n);
 
