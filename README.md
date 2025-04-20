@@ -1,6 +1,7 @@
 # x-links 8moe fork information
 
-### Install with updates: <b>[x-links.user.js](https://raw.githubusercontent.com/sdstpanda/x-links/stable/builds/x-links.user.js)</b> *- the standard version of the userscript*<br />
+## Install 
+**Click here to install with updates:** <b>[x-links.user.js](https://raw.githubusercontent.com/sdstpanda/x-links/stable/builds/x-links.user.js)</b> *- the standard version of the userscript*<br />
 
 Don't expect too much support I can't fix it for every single userscript. Just the main ones.  
 You can send a pull request or make a new fork though.  
@@ -14,14 +15,6 @@ You can send a pull request or make a new fork though.
 
 After changes are final create a release and set the tag to `stable`
 
----
----
----
----
----
----
----
----
 ---
 ---
 ---
