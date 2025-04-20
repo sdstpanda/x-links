@@ -2,7 +2,7 @@
 // @name        X-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.8.26
+// @version     1.2.9.0
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -10,6 +10,8 @@
 // @include     https://boards.4channel.org/*
 // @include     http://8ch.net/*
 // @include     https://8ch.net/*
+// @include     http://8chan.moe/*
+// @include     https://8chan.se/*
 // @include     https://archived.moe/*
 // @include     https://boards.fireden.net/*
 // @include     http://desuarchive.org/*
@@ -28,9 +30,9 @@
 // @connect     raw.githubusercontent.com
 // @connect     *
 // @homepage    https://dnsev-h.github.io/x-links/
-// @supportURL  https://github.com/dnsev-h/x-links/issues
-// @updateURL   https://raw.githubusercontent.com/dnsev-h/x-links/stable/builds/x-links.meta.js
-// @downloadURL https://raw.githubusercontent.com/dnsev-h/x-links/stable/builds/x-links.user.js
+// @supportURL  https://github.com/sdstpanda/x-links/issues
+// @updateURL   https://raw.githubusercontent.com/sdstpanda/x-links/stable/builds/x-links.meta.js
+// @downloadURL https://raw.githubusercontent.com/sdstpanda/x-links/stable/builds/x-links.user.js
 // @icon        data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAA6klEQVR4Ae2ZoQ7CQBBE+VIMBoHBYBAYDKLmDAKFwPBha/sJIGebMMld9hK2l9nkmaa5vpdcr6Kb+Gg0nzb6rzlMgALsPf8kEmDTDG5AAeMHvEAowEnbFQwZoAAvbU/HA/j7W6XtAgYJUACP8dJ2dxQQkKYwH48CsgbwmDKDCUSkcWTTd2y55gmQmGQBCuh/RPJ3rAAmbQeQN0ABAWk7A75fQau0bUHaAAUE9vrywUfA9y6ISf8/QAH9j0gvsXfsAImpllZAzoBm6Yo1IV0rx64rIH0A+bIGAyDdvr8VsLYA/WJSgEaj0axtvoTvtkB/WJNGAAAAAElFTkSuQmCC
 // @icon64      data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAOVBMVEUBAADmje/mku/mqu/mie/mXu/mdu/mbO/mhO/mm+/mf+/mY+/me+8AAADmpe/maO/mce/ml+/moe+i3TygAAAAAXRSTlMAQObYZgAAAJ9JREFUeF7tl0kKxDAQxCbJrPvy/8eOCqYgmMYPqFjXRrqUc8gONs+joXdLDix/qsAEe9hC4AlVQPIZ0gOSv3ABSa18heSAI5I/MEMlG8dFUsARyRNU8gJeSbcjyEkK9B6PV5rB8glyArV8B08lWvkAOYF6Pslv8FyikgMC3ccj+QU3cGQtJwVaeX2TvJYspwX88VQBye10eYHxvwCDwQ+bGFfRy77HgQAAAABJRU5ErkJggg==
 // @grant       GM_xmlhttpRequest
@@ -944,6 +946,7 @@
 			"foolz": "article:not(.backlink_container)",
 			"fuuka": ".content>div[id],.content>table",
 			"tinyboard": ".post",
+			"8moe": ".postCell,.innerOP,.innerPost,.inlineQuote", //also relevant?: is_post_group_container
 			"ipb": ".borderwrap",
 			"ipb_lofi": ".postwrapper",
 			"meguca": "#thread-container article"
@@ -953,6 +956,7 @@
 			"foolz": ".text",
 			"fuuka": "blockquote>p",
 			"tinyboard": ".body",
+			"8moe": ".divMessage",
 			"ipb": ".postcolor",
 			"ipb_lofi": ".postcontent",
 			"meguca": "blockquote"
@@ -962,6 +966,7 @@
 			"foolz": "a:not(.backlink)",
 			"fuuka": "a:not(.backlink)",
 			"tinyboard": "a:not([onclick])",
+			"8moe": "a:not(.quoteLink)",
 			"ipb": "a[target=_blank]",
 			"ipb_lofi": "a[target=_blank]",
 			"meguca": "a:not(.history):not(.embed)"
@@ -999,6 +1004,17 @@
 					}
 					else if (node.classList.contains("thread")) {
 						return $(".post.op", node);
+					}
+				}
+				return null;
+			},
+			"8moe": function (node) {
+				while ((node = node.parentNode) !== null) {
+					if (node.classList.contains("innerPost")) {
+						return node;
+					}
+					else if (node.classList.contains("opCell")) {
+						return $(".innerOP", node);
 					}
 				}
 				return null;
@@ -1155,6 +1171,9 @@
 
 				return results;
 			},
+			"8moe": function () {
+				return [];
+			},
 			"ipb": function () {
 				return [];
 			},
@@ -1179,6 +1198,7 @@
 			"foolz": belongs_to_default,
 			"fuuka": belongs_to_default,
 			"tinyboard": belongs_to_default,
+			"8moe": belongs_to_default,
 			"ipb": belongs_to_default,
 			"ipb_lofi": belongs_to_default,
 			"meguca": belongs_to_default
@@ -1228,6 +1248,7 @@
 				$.before(par, next, $.tnode("]"));
 			},
 			"tinyboard": create_image_meta_link_default,
+			"8moe": create_image_meta_link_default,
 			"ipb": create_image_meta_link_default,
 			"ipb_lofi": create_image_meta_link_default,
 			"meguca": create_image_meta_link_default
@@ -6025,7 +6046,7 @@
 			deep_dom_wrap(container, match_fn, linkify_element_checker, node_setup, false);
 		};
 		var linkify_element_checker = function (node) {
-			if (node.tagName === "BR" || node.tagName === "A") {
+			if (node.tagName === "BR" || node.tagName === "A" || node.tagName === "SUMMARY") {
 				return deep_dom_wrap.NODE_NO_PARSE | deep_dom_wrap.NODE_LINE_BREAK;
 			}
 			else if (node.tagName === "WBR") {
@@ -7282,6 +7303,11 @@
 				Module.mode = "meguca";
 				Module.is_meguca = true;
 			}
+			else if (domain === "8chan.se" || domain === "8chan.moe") {
+				Module.mode = "8moe";
+				Module.is_8moe = true;
+				Module.is_8ch = true; //fetch the images not link them (CORS)
+			}
 			else { // assume tinyboard
 				Module.mode = "tinyboard";
 				Module.is_tinyboard = true;
@@ -7408,6 +7434,7 @@
 			is_foolz: false,
 			is_fuuka: false,
 			is_tinyboard: false,
+			is_8moe: false,
 			is_ipb: false,
 			is_ipb_lofi: false,
 			linkify: true,
@@ -9773,7 +9800,7 @@
 
 		// Exports
 		var Module = {
-			url: "https://raw.githubusercontent.com/dnsev-h/x-links/stable/changelog",
+			url: "https://raw.githubusercontent.com/sdstpanda/x-links/stable/changelog",
 			open: open,
 			close: close
 		};
@@ -10267,6 +10294,9 @@
 			}
 			else if (Config.is_tinyboard) {
 				locations.add_all(".boardlist", Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets | Flags.LowerCase);
+			}
+			else if (Config.is_8moe) {
+				locations.add_all("#navLinkSpan", Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets | Flags.LowerCase);
 			}
 			else if (Config.is_ipb) {
 				locations.add("#livechat", Flags.Prepend | Flags.OuterSpace);
@@ -11948,8 +11978,8 @@
 		var Module = {
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
-			support_url: "https://github.com/dnsev-h/x-links/issues",
-			version: [1,2,8,26],
+			support_url: "https://github.com/sdstpanda/x-links/issues",
+			version: [1,2,9,0],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,

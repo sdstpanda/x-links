@@ -1,14 +1,14 @@
 {
 	"name": "X-links",
-	"version": "1.2.8.26",
+	"version": "1.2.9.0",
 	"author": "dnsev-h",
 	"description": "Making your browsing experience on 4chan and friends more pleasurable",
 	"namespace": "dnsev-h",
 	"urls": {
 		"homepage": "https://dnsev-h.github.io/x-links/",
-		"support": "https://github.com/dnsev-h/x-links/issues",
-		"update_base": "https://raw.githubusercontent.com/dnsev-h/x-links/stable/",
-		"changelog": "https://raw.githubusercontent.com/dnsev-h/x-links/stable/changelog"
+		"support": "https://github.com/sdstpanda/x-links/issues",
+		"update_base": "https://raw.githubusercontent.com/sdstpanda/x-links/stable/",
+		"changelog": "https://raw.githubusercontent.com/sdstpanda/x-links/stable/changelog"
 	},
 	"inputs": [
 		"./x-links.js"
@@ -23,6 +23,8 @@
 		"https://boards.4channel.org/*",
 		"http://8ch.net/*",
 		"https://8ch.net/*",
+		"http://8chan.moe/*",
+		"https://8chan.se/*",
 		"https://archived.moe/*",
 		"https://boards.fireden.net/*",
 		"http://desuarchive.org/*",

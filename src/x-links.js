@@ -901,6 +901,7 @@
 			"foolz": "article:not(.backlink_container)",
 			"fuuka": ".content>div[id],.content>table",
 			"tinyboard": ".post",
+			"8moe": ".postCell,.innerOP,.innerPost,.inlineQuote", //also relevant?: is_post_group_container
 			"ipb": ".borderwrap",
 			"ipb_lofi": ".postwrapper",
 			"meguca": "#thread-container article"
@@ -910,6 +911,7 @@
 			"foolz": ".text",
 			"fuuka": "blockquote>p",
 			"tinyboard": ".body",
+			"8moe": ".divMessage",
 			"ipb": ".postcolor",
 			"ipb_lofi": ".postcontent",
 			"meguca": "blockquote"
@@ -919,6 +921,7 @@
 			"foolz": "a:not(.backlink)",
 			"fuuka": "a:not(.backlink)",
 			"tinyboard": "a:not([onclick])",
+			"8moe": "a:not(.quoteLink)",
 			"ipb": "a[target=_blank]",
 			"ipb_lofi": "a[target=_blank]",
 			"meguca": "a:not(.history):not(.embed)"
@@ -956,6 +959,17 @@
 					}
 					else if (node.classList.contains("thread")) {
 						return $(".post.op", node);
+					}
+				}
+				return null;
+			},
+			"8moe": function (node) {
+				while ((node = node.parentNode) !== null) {
+					if (node.classList.contains("innerPost")) {
+						return node;
+					}
+					else if (node.classList.contains("opCell")) {
+						return $(".innerOP", node);
 					}
 				}
 				return null;
@@ -1112,6 +1126,9 @@
 
 				return results;
 			},
+			"8moe": function () {
+				return [];
+			},
 			"ipb": function () {
 				return [];
 			},
@@ -1136,6 +1153,7 @@
 			"foolz": belongs_to_default,
 			"fuuka": belongs_to_default,
 			"tinyboard": belongs_to_default,
+			"8moe": belongs_to_default,
 			"ipb": belongs_to_default,
 			"ipb_lofi": belongs_to_default,
 			"meguca": belongs_to_default
@@ -1185,6 +1203,7 @@
 				$.before(par, next, $.tnode("]"));
 			},
 			"tinyboard": create_image_meta_link_default,
+			"8moe": create_image_meta_link_default,
 			"ipb": create_image_meta_link_default,
 			"ipb_lofi": create_image_meta_link_default,
 			"meguca": create_image_meta_link_default
@@ -5982,7 +6001,7 @@
 			deep_dom_wrap(container, match_fn, linkify_element_checker, node_setup, false);
 		};
 		var linkify_element_checker = function (node) {
-			if (node.tagName === "BR" || node.tagName === "A") {
+			if (node.tagName === "BR" || node.tagName === "A" || node.tagName === "SUMMARY") {
 				return deep_dom_wrap.NODE_NO_PARSE | deep_dom_wrap.NODE_LINE_BREAK;
 			}
 			else if (node.tagName === "WBR") {
@@ -7239,6 +7258,11 @@
 				Module.mode = "meguca";
 				Module.is_meguca = true;
 			}
+			else if (domain === "8chan.se" || domain === "8chan.moe") {
+				Module.mode = "8moe";
+				Module.is_8moe = true;
+				Module.is_8ch = true; //fetch the images not link them (CORS)
+			}
 			else { // assume tinyboard
 				Module.mode = "tinyboard";
 				Module.is_tinyboard = true;
@@ -7365,6 +7389,7 @@
 			is_foolz: false,
 			is_fuuka: false,
 			is_tinyboard: false,
+			is_8moe: false,
 			is_ipb: false,
 			is_ipb_lofi: false,
 			linkify: true,
@@ -10224,6 +10249,9 @@
 			}
 			else if (Config.is_tinyboard) {
 				locations.add_all(".boardlist", Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets | Flags.LowerCase);
+			}
+			else if (Config.is_8moe) {
+				locations.add_all("#navLinkSpan", Flags.InnerSpace | Flags.OuterSpace | Flags.Brackets | Flags.LowerCase);
 			}
 			else if (Config.is_ipb) {
 				locations.add("#livechat", Flags.Prepend | Flags.OuterSpace);

@@ -1,3 +1,35 @@
+# x-links 8moe fork information
+
+### Install with updates: <b>[x-links.user.js](https://raw.githubusercontent.com/sdstpanda/x-links/stable/builds/x-links.user.js)</b> *- the standard version of the userscript*<br />
+
+Don't expect too much support I can't fix it for every single userscript. Just the main ones.  
+You can send a pull request or make a new fork though.  
+
+## Changelog  
+
+- Basic 8moe support  
+  - ***There might be some bugs or problems with other userscripts***  
+
+
+---
+---
+---
+---
+---
+---
+---
+---
+---
+---
+---
+---
+
+# *original x-links readme below:*
+---
+---
+---
+---
+
 # X-links
 
 X-links is a heavily modified fork of [ExLinks](https://github.com/Hupotronic/ExLinks) with many improvements and added features.
