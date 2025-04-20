@@ -7258,7 +7258,7 @@
 				Module.mode = "meguca";
 				Module.is_meguca = true;
 			}
-			else if (domain === "8chan.se" || domain === "8chan.moe") {
+			else if (domain === "8chan.se" || domain === "8chan.moe" || domain === "alephchvkipd2houttjirmgivro5pxullvcgm4c47ptm7mhubbja6kad.onion") {
 				Module.mode = "8moe";
 				Module.is_8moe = true;
 				Module.is_8ch = true; //fetch the images not link them (CORS)

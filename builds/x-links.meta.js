@@ -10,7 +10,8 @@
 // @include     https://boards.4channel.org/*
 // @include     http://8ch.net/*
 // @include     https://8ch.net/*
-// @include     http://8chan.moe/*
+// @include     https://8chan.moe/*
+// @include     https://alephchvkipd2houttjirmgivro5pxullvcgm4c47ptm7mhubbja6kad.onion/*
 // @include     https://8chan.se/*
 // @include     https://archived.moe/*
 // @include     https://boards.fireden.net/*
