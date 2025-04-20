@@ -10,6 +10,9 @@ You can send a pull request or make a new fork though.
 - Basic 8moe support  
   - ***There might be some bugs or problems with other userscripts***  
 
+## Dev info  
+
+After changes are final create a release and set the tag to `stable`
 
 ---
 ---
