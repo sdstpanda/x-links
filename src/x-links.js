@@ -8137,11 +8137,13 @@
 			else if (Config.is_ipb_lofi) {
 				n.className = "posttopbar";
 			}
+			else if (Config.is_8moe) {
+				n.className = "innerPost";
+			}
 			else {
 				n.className = "post reply post_wrapper";
 			}
 			$.add(body, n);
-
 			color = parse_css_color(get_computed_style(document_element).backgroundColor);
 			colors = [
 				parse_css_color(get_computed_style(body).backgroundColor),
@@ -8218,21 +8220,31 @@
 
 			for (i = 0, ii = records.length; i < ii; ++i) {
 				if ((nodes = records[i].addedNodes)) {
-					for (j = 0, jj = nodes.length; j < jj; ++j) {
-						node = nodes[j];
-						tag = node.tagName;
-						if (tag === "STYLE" || (tag === "LINK" && (/\bstylesheet\b/).test(node.rel))) {
-							update(true);
-							return;
-						}
+					if (nodes.length > 0) {
+						check_nodes(nodes, records);
 					}
 				}
 				if ((nodes = records[i].removedNodes)) {
+					if (nodes.length > 0) {
+						check_nodes(nodes, records);
+					}
+				}
+				if ((nodes = [records[i].target])) { //for attributes
+					if (nodes.length > 0) {
+						check_nodes(nodes, records);
+					}
+				}
+				function check_nodes(nodes, records) {
 					for (j = 0, jj = nodes.length; j < jj; ++j) {
 						node = nodes[j];
 						tag = node.tagName;
 						if (tag === "STYLE" || (tag === "LINK" && (/\bstylesheet\b/).test(node.rel))) {
-							update(true);
+							if (records[i].type === "attributes") {
+								//attribute change is detected before page theme is applied so it needs to be delayed
+								setTimeout(() => { update(true); }, 500);
+							} else {
+								update(true);
+							}
 							return;
 						}
 					}
@@ -8248,7 +8260,7 @@
 			update(false);
 
 			if (document.head) {
-				new MutationObserver(on_head_mutate).observe(document.head, { childList: true });
+				new MutationObserver(on_head_mutate).observe(document.head, { childList: true, subtree: true, attributes: true });
 			}
 		};
 		var bg = function (node, opacity) {
