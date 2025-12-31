@@ -13,6 +13,8 @@
 // @include     https://8chan.moe/*
 // @include     https://alephchvkipd2houttjirmgivro5pxullvcgm4c47ptm7mhubbja6kad.onion/*
 // @include     https://8chan.se/*
+// @include     https://8chan.st/*
+// @include     https://8chan.cc/*
 // @include     https://archived.moe/*
 // @include     https://boards.fireden.net/*
 // @include     http://desuarchive.org/*
@@ -7480,7 +7482,7 @@
 				Module.mode = "meguca";
 				Module.is_meguca = true;
 			}
-			else if (domain === "8chan.se" || domain === "8chan.moe" || domain === "alephchvkipd2houttjirmgivro5pxullvcgm4c47ptm7mhubbja6kad.onion") {
+			else if (domain === "8chan.se" || domain === "8chan.st" || domain === "8chan.cc" || domain === "8chan.moe" || domain === "alephchvkipd2houttjirmgivro5pxullvcgm4c47ptm7mhubbja6kad.onion") {
 				Module.mode = "8moe";
 				Module.is_8moe = true;
 				Module.is_8ch = true; //fetch the images not link them (CORS)

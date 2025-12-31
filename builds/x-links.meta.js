@@ -13,6 +13,8 @@
 // @include     https://8chan.moe/*
 // @include     https://alephchvkipd2houttjirmgivro5pxullvcgm4c47ptm7mhubbja6kad.onion/*
 // @include     https://8chan.se/*
+// @include     https://8chan.st/*
+// @include     https://8chan.cc/*
 // @include     https://archived.moe/*
 // @include     https://boards.fireden.net/*
 // @include     http://desuarchive.org/*
