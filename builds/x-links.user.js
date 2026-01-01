@@ -2,7 +2,7 @@
 // @name        X-links
 // @namespace   dnsev-h
 // @author      dnsev-h
-// @version     1.2.9.1
+// @version     1.2.9.2
 // @description Making your browsing experience on 4chan and friends more pleasurable
 // @include     http://boards.4chan.org/*
 // @include     https://boards.4chan.org/*
@@ -11994,7 +11994,7 @@
 			title: "X-links",
 			homepage: "https://dnsev-h.github.io/x-links/",
 			support_url: "https://github.com/sdstpanda/x-links/issues",
-			version: [1,2,9,1],
+			version: [1,2,9,2],
 			version_change: 0,
 			init: init,
 			version_compare: version_compare,
